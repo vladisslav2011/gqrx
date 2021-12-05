@@ -199,6 +199,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     audio_fft_timer = new QTimer(this);
     connect(audio_fft_timer, SIGNAL(timeout()), this, SLOT(audioFftTimeout()));
 
+    d_realFftData = new float[MAX_FFT_SIZE];
+    d_iirFftData = new float[MAX_FFT_SIZE];
+
     d_audioFftData = new std::complex<float>[MAX_FFT_SIZE];
     d_audioRealFftData = new float[MAX_FFT_SIZE];
 
@@ -493,6 +496,8 @@ MainWindow::~MainWindow()
     delete remote;
     delete [] d_audioFftData;
     delete [] d_audioRealFftData;
+    delete d_realFftData;
+    delete d_iirFftData;
     delete qsvg_dummy;
 }
 
@@ -1450,13 +1455,31 @@ void MainWindow::iqFftTimeout()
     {
         d_fftBusy = true;
         emit doIqFft();
-    }
+    }else
+        d_fftArmed = true;
 }
+
 void MainWindow::fftReady(bool result)
 {
     if(result)
-        emit setNewFftData(fftWorker->d_iirFftData, fftWorker->d_realFftData, fftWorker->fftsize);
-    d_fftBusy = false;
+    {
+        // std::swap does wrong thing, so do it manually
+        typeof(d_realFftData) t_realFftData = d_realFftData;
+        d_realFftData = fftWorker->d_realFftData;
+        fftWorker->d_realFftData = t_realFftData;
+        //swapping does not work with averaging buffer as expected
+        memcpy(d_iirFftData , fftWorker->d_iirFftData, sizeof(float) * MAX_FFT_SIZE);
+        fftsize=fftWorker->fftsize;
+        if(d_fftArmed)
+        {
+            d_fftArmed = false;
+            emit doIqFft();
+        }else
+            d_fftBusy = false;
+        ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize);
+        //emit setNewFftData(d_iirFftData, d_realFftData, fftsize);
+    }else
+        d_fftBusy = false;
 }
 
 
@@ -1762,8 +1785,6 @@ void MainWindow::seekIqFile(qint64 seek_pos)
 void MainWindow::setIqFftSize(int size)
 {
     qDebug() << "Changing baseband FFT size to" << size;
-/*    for (int i = 0; i < size; i++)
-        fftWorker->d_iirFftData[i] = -140.0;  // dBFS*/
     rx->set_iq_fft_size(size);
 }
 

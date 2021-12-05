@@ -112,6 +112,11 @@ private:
     qint64 d_hw_freq_start{};
     qint64 d_hw_freq_stop{};
     bool d_fftBusy;
+    bool d_fftArmed;
+
+    float          *d_realFftData;
+    float          *d_iirFftData;
+    unsigned int    fftsize;
 
     enum receiver::filter_shape d_filter_shape;
     std::complex<float>* d_audioFftData;
