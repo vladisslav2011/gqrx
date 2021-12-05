@@ -51,6 +51,33 @@ namespace Ui {
     class MainWindow;  /*! The main window UI */
 }
 
+class FftWorker : public QObject
+{
+    Q_OBJECT
+
+public:
+    std::complex<float>* d_fftData;
+    float          *d_realFftData;
+    float          *d_iirFftData;
+    unsigned int    fftsize;
+    unsigned int    d_fftsize;
+    float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
+#ifdef Q_OS_LINUX
+    bool d_set_prio;
+#endif
+    receiver *d_rx;
+    FftWorker(receiver *rx);
+    ~FftWorker();
+
+public slots:
+    void doWork();
+
+signals:
+    void resultReady(bool result);
+};
+
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -64,9 +91,13 @@ public:
     void storeSession();
 
     bool configOk; /*!< Main app uses this flag to know whether we should abort or continue. */
+signals:
+    void doIqFft();
+    void setNewFftData(float *fftData, float *wfData, int size);
 
 public slots:
     void setNewFrequency(qint64 rx_freq);
+    void fftReady(bool result);
 
 private:
     Ui::MainWindow *ui;
@@ -80,12 +111,11 @@ private:
     qint64 d_hw_freq;
     qint64 d_hw_freq_start{};
     qint64 d_hw_freq_stop{};
+    bool d_fftBusy;
 
     enum receiver::filter_shape d_filter_shape;
-    std::complex<float>* d_fftData;
-    float          *d_realFftData;
-    float          *d_iirFftData;
-    float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
+    std::complex<float>* d_audioFftData;
+    float          *d_audioRealFftData;
 
     bool d_have_audio;  /*!< Whether we have audio (i.e. not with demod_off. */
 
@@ -119,6 +149,9 @@ private:
 
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
+
+    FftWorker *fftWorker;
+    QThread fftThread;
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);

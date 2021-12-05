@@ -44,6 +44,7 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
           gr::io_signature::make(1, 1, sizeof(gr_complex)),
           gr::io_signature::make(0, 0, 0)),
       d_fftsize(fftsize),
+      n_fftsize(fftsize),
       d_quadrate(quad_rate),
       d_wintype(-1)
 {
@@ -104,8 +105,11 @@ int rx_fft_c::work(int noutput_items,
 void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize)
 {
     std::unique_lock<std::mutex> lock(d_mutex);
+    if (n_fftsize != d_fftsize)
+        set_params();
+    unsigned int l_fftSize = d_fftsize;
 
-    if (d_cbuf.size() < d_fftsize)
+    if (d_cbuf.size() < l_fftSize)
     {
         // not enough samples in the buffer
         fftSize = 0;
@@ -118,16 +122,16 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     d_lasttime = now;
 
     /* perform FFT */
-    d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_quadrate * 1.001), (unsigned int)d_cbuf.size() - d_fftsize));
-    apply_window(d_fftsize);
+    d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_quadrate * 1.001), (unsigned int)d_cbuf.size() - l_fftSize));
     //d_cbuf.clear();
     lock.unlock();
+    apply_window(l_fftSize);
 
     /* compute FFT */
     d_fft->execute();
     /* get FFT data */
-    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
-    fftSize = d_fftsize;
+    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*l_fftSize);
+    fftSize = l_fftSize;
 }
 
 /*! \brief Compute FFT on the available input data.
@@ -156,7 +160,8 @@ void rx_fft_c::apply_window(unsigned int size)
 /*! \brief Update circular buffer and FFT object. */
 void rx_fft_c::set_params()
 {
-    std::lock_guard<std::mutex> lock(d_mutex);
+//    std::lock_guard<std::mutex> lock(d_mutex);
+    d_fftsize = n_fftsize;
 
     /* clear and resize circular buffer */
     d_cbuf.clear();
@@ -179,11 +184,7 @@ void rx_fft_c::set_params()
 /*! \brief Set new FFT size. */
 void rx_fft_c::set_fft_size(unsigned int fftsize)
 {
-    if (fftsize != d_fftsize)
-    {
-        d_fftsize = fftsize;
-        set_params();
-    }
+    n_fftsize = fftsize;
 
 }
 
@@ -318,9 +319,9 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 
     /* perform FFT */
     d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), (unsigned int)d_cbuf.size() - d_fftsize));
-    apply_window(d_fftsize);
     //d_cbuf.clear();
     lock.unlock();
+    apply_window(d_fftsize);
 
     /* compute FFT */
     d_fft->execute();

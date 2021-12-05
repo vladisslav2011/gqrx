@@ -94,6 +94,7 @@ public:
 
 private:
     unsigned int d_fftsize;   /*! Current FFT size. */
+    unsigned int n_fftsize;   /*! Current FFT size. */
     double       d_quadrate;
     int          d_wintype;   /*! Current window type. */
 

@@ -61,13 +61,88 @@
 #include "qtgui/bookmarkstaglist.h"
 #include "qtgui/bandplan.h"
 
+#ifdef Q_OS_LINUX
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
+
+FftWorker::FftWorker(receiver *rx):QObject()
+{
+    d_rx=rx;
+    d_fftsize=0;
+    d_fftData = new std::complex<float>[MAX_FFT_SIZE];
+    d_realFftData = new float[MAX_FFT_SIZE];
+    d_iirFftData = new float[MAX_FFT_SIZE];
+    for (int i = 0; i < MAX_FFT_SIZE; i++)
+        d_iirFftData[i] = -140.0;  // dBFS
+    d_set_prio = false;
+}
+
+FftWorker::~FftWorker()
+{
+    delete [] d_fftData;
+    delete [] d_realFftData;
+    delete [] d_iirFftData;
+
+}
+
+#define LOG2_10 3.321928094887362
+
+void FftWorker::doWork()
+{
+    unsigned int    i;
+    float           pwr_scale;
+
+    // FIXME: fftsize is a reference
+    #ifdef Q_OS_LINUX
+        if(!d_set_prio)
+        {
+            setpriority(PRIO_PROCESS, 0, 5);
+            d_set_prio = true;
+        }
+    #endif
+
+    d_rx->get_iq_fft_data(d_fftData, fftsize);
+
+    if(fftsize != d_fftsize)
+    {
+        for (int i = 0; i < MAX_FFT_SIZE; i++)
+            d_iirFftData[i] = -140.0;  // dBFS
+        d_fftsize = fftsize;
+    }
+    if (fftsize == 0)
+    {
+        /* nothing to do, wait until next activation. */
+        emit resultReady(false);
+        return;
+    }
+
+    // NB: without cast to float the multiplication will overflow at 64k
+    // and pwr_scale will be inf
+    pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
+
+    /* Normalize, calculate power and shift the FFT */
+    volk_32fc_magnitude_squared_32f(d_realFftData, d_fftData + (fftsize/2), fftsize/2);
+    volk_32fc_magnitude_squared_32f(d_realFftData + (fftsize/2), d_fftData, fftsize/2);
+    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, pwr_scale, fftsize);
+    volk_32f_log2_32f(d_realFftData, d_realFftData, fftsize);
+    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, 10 / LOG2_10, fftsize);
+
+    for (i = 0; i < fftsize; i++)
+    {
+        /* FFT averaging */
+        d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
+    }
+
+    emit resultReady(true);
+}
+
 MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) :
     QMainWindow(parent),
     configOk(true),
     ui(new Ui::MainWindow),
     d_lnb_lo(0),
     d_hw_freq(0),
-    d_fftAvg(0.25),
     d_have_audio(true),
     dec_afsk1200(nullptr)
 {
@@ -100,6 +175,16 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     rx = new receiver("", "", 1);
     rx->set_rf_freq(144500000.0f);
 
+    fftThread.setObjectName("FFTThread");
+    fftWorker = new FftWorker(rx);
+    d_fftBusy = false;
+    fftWorker->moveToThread(&fftThread);
+    connect(&fftThread, &QThread::finished, fftWorker, &QObject::deleteLater);
+    connect(this, SIGNAL(doIqFft()), fftWorker, SLOT(doWork()));
+    connect(fftWorker, SIGNAL(resultReady(bool)), this, SLOT(fftReady(bool)));
+    fftThread.start(QThread::LowestPriority);
+    fftThread.setPriority(QThread::LowestPriority);
+
     // remote controller
     remote = new RemoteControl();
 
@@ -114,11 +199,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     audio_fft_timer = new QTimer(this);
     connect(audio_fft_timer, SIGNAL(timeout()), this, SLOT(audioFftTimeout()));
 
-    d_fftData = new std::complex<float>[MAX_FFT_SIZE];
-    d_realFftData = new float[MAX_FFT_SIZE];
-    d_iirFftData = new float[MAX_FFT_SIZE];
-    for (int i = 0; i < MAX_FFT_SIZE; i++)
-        d_iirFftData[i] = -140.0;  // dBFS
+    d_audioFftData = new std::complex<float>[MAX_FFT_SIZE];
+    d_audioRealFftData = new float[MAX_FFT_SIZE];
 
     /* timer for data decoders */
     dec_timer = new QTimer(this);
@@ -313,6 +395,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     // enable frequency tooltips on FFT plot
     ui->plotter->setTooltipsEnabled(true);
+    connect(this,SIGNAL(setNewFftData(float *, float *, int)),ui->plotter,SLOT(setNewFftData(float *, float *, int)));
+
 
     // Create list of input devices. This must be done before the configuration is
     // restored because device probing might change the device configuration
@@ -371,6 +455,8 @@ MainWindow::~MainWindow()
     audio_fft_timer->stop();
     delete audio_fft_timer;
 
+    fftThread.quit();
+    fftThread.wait();
     if (m_settings)
     {
         m_settings->setValue("configversion", 3);
@@ -405,9 +491,8 @@ MainWindow::~MainWindow()
     delete uiDockRDS;
     delete rx;
     delete remote;
-    delete [] d_fftData;
-    delete [] d_realFftData;
-    delete [] d_iirFftData;
+    delete [] d_audioFftData;
+    delete [] d_audioRealFftData;
     delete qsvg_dummy;
 }
 
@@ -1357,43 +1442,23 @@ void MainWindow::meterTimeout()
     remote->setSignalLevel(level);
 }
 
-#define LOG2_10 3.321928094887362
 
 /** Baseband FFT plot timeout. */
 void MainWindow::iqFftTimeout()
 {
-    unsigned int    fftsize;
-    unsigned int    i;
-    float           pwr_scale;
-
-    // FIXME: fftsize is a reference
-    rx->get_iq_fft_data(d_fftData, fftsize);
-
-    if (fftsize == 0)
+    if(!d_fftBusy)
     {
-        /* nothing to do, wait until next activation. */
-        return;
+        d_fftBusy = true;
+        emit doIqFft();
     }
-
-    // NB: without cast to float the multiplication will overflow at 64k
-    // and pwr_scale will be inf
-    pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
-
-    /* Normalize, calculate power and shift the FFT */
-    volk_32fc_magnitude_squared_32f(d_realFftData, d_fftData + (fftsize/2), fftsize/2);
-    volk_32fc_magnitude_squared_32f(d_realFftData + (fftsize/2), d_fftData, fftsize/2);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, pwr_scale, fftsize);
-    volk_32f_log2_32f(d_realFftData, d_realFftData, fftsize);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, 10 / LOG2_10, fftsize);
-
-    for (i = 0; i < fftsize; i++)
-    {
-        /* FFT averaging */
-        d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
-    }
-
-    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize);
 }
+void MainWindow::fftReady(bool result)
+{
+    if(result)
+        emit setNewFftData(fftWorker->d_iirFftData, fftWorker->d_realFftData, fftWorker->fftsize);
+    d_fftBusy = false;
+}
+
 
 /** Audio FFT plot timeout. */
 void MainWindow::audioFftTimeout()
@@ -1407,7 +1472,7 @@ void MainWindow::audioFftTimeout()
     if (!d_have_audio || !uiDockAudio->isVisible())
         return;
 
-    rx->get_audio_fft_data(d_fftData, fftsize);
+    rx->get_audio_fft_data(d_audioFftData, fftsize);
 
     if (fftsize == 0)
     {
@@ -1425,19 +1490,19 @@ void MainWindow::audioFftTimeout()
         /* normalize and shift */
         if (i < fftsize/2)
         {
-            pt = d_fftData[fftsize/2+i];
+            pt = d_audioFftData[fftsize/2+i];
         }
         else
         {
-            pt = d_fftData[i-fftsize/2];
+            pt = d_audioFftData[i-fftsize/2];
         }
 
         /* calculate power in dBFS */
         pwr = pwr_scale * (pt.imag() * pt.imag() + pt.real() * pt.real());
-        d_realFftData[i] = 10.0 * log10f(pwr + 1.0e-20);
+        d_audioRealFftData[i] = 10.0 * log10f(pwr + 1.0e-20);
     }
 
-    uiDockAudio->setNewFftData(d_realFftData, fftsize);
+    uiDockAudio->setNewFftData(d_audioRealFftData, fftsize);
 }
 
 /** RDS message display timeout. */
@@ -1697,9 +1762,9 @@ void MainWindow::seekIqFile(qint64 seek_pos)
 void MainWindow::setIqFftSize(int size)
 {
     qDebug() << "Changing baseband FFT size to" << size;
+/*    for (int i = 0; i < size; i++)
+        fftWorker->d_iirFftData[i] = -140.0;  // dBFS*/
     rx->set_iq_fft_size(size);
-    for (int i = 0; i < size; i++)
-        d_iirFftData[i] = -140.0;  // dBFS
 }
 
 /** Baseband FFT rate has changed. */
@@ -1758,7 +1823,7 @@ void MainWindow::setIqFftSplit(int pct_wf)
 void MainWindow::setIqFftAvg(float avg)
 {
     if ((avg >= 0) && (avg <= 1.0))
-        d_fftAvg = avg;
+        fftWorker->d_fftAvg = avg;
 }
 
 /** Audio FFT rate has changed. */

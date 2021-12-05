@@ -42,9 +42,6 @@ public:
     void setBandPlanEnabled(bool enabled) { m_BandPlanEnabled = enabled; }
     void setDXCSpotsEnabled(bool enabled) { m_DXCSpotsEnabled = enabled; }
 
-    void setNewFftData(float *fftData, int size);
-    void setNewFftData(float *fftData, float *wfData, int size);
-
     void setCenterFreq(quint64 f);
     void setFreqUnits(qint32 unit) { m_FreqUnits = unit; }
 
@@ -157,6 +154,8 @@ public slots:
         m_Size = QSize(0,0);
         resizeEvent(nullptr);
     }
+    void setNewFftData(float *fftData, int size);
+    void setNewFftData(float *fftData, float *wfData, int size);
 
 protected:
     //re-implemented widget event handlers
