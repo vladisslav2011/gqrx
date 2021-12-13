@@ -375,9 +375,6 @@ int file_source::work(int noutput_items,
 {
     char* o = (char*)output_items[0];
     uint64_t size = noutput_items;
-#if 0
-    do_update(); // update d_fp is reqd
-#endif
     if (d_fp == NULL)
         throw std::runtime_error("work with file not open");
 
@@ -394,7 +391,6 @@ int file_source::work(int noutput_items,
             d_buffering = true;
         if(d_buffering)
         {
-            //d_reader_ready.wait(guard);
             //output zeroes while we are buffering
             guard.unlock();
             memset(o, 0, d_itemsize * noutput_items);
@@ -449,21 +445,6 @@ int file_source::work(int noutput_items,
         }
         else
             d_buffering = true;
-#if 0
-        // Add stream tag whenever the file starts again
-
-        uint64_t nitems_to_read = std::min(size, d_items_remaining);
-
-        // Since the bounds of the file are known, unexpected nitems is an error
-        if (nitems_to_read != fread(o, d_itemsize, nitems_to_read, (FILE*)d_fp))
-            throw std::runtime_error("fread error");
-
-        size -= nitems_to_read;
-        d_items_remaining -= nitems_to_read;
-        o += nitems_to_read * d_itemsize;
-
-        // Ran out of items ("EOF")
-#endif
     }
     return (noutput_items - size);
 }
