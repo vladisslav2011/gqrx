@@ -103,7 +103,7 @@ int rx_fft_c::work(int noutput_items,
  */
 void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize)
 {
-    std::lock_guard<std::mutex> lock(d_mutex);
+    std::unique_lock<std::mutex> lock(d_mutex);
 
     if (d_cbuf.size() < d_fftsize)
     {
@@ -119,9 +119,12 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 
     /* perform FFT */
     d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_quadrate * 1.001), (unsigned int)d_cbuf.size() - d_fftsize));
-    do_fft(d_fftsize);
+    apply_window(d_fftsize);
     //d_cbuf.clear();
+    lock.unlock();
 
+    /* compute FFT */
+    d_fft->execute();
     /* get FFT data */
     memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
     fftSize = d_fftsize;
@@ -134,7 +137,7 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
  * Note that this function does not lock the mutex since the caller, get_fft_data()
  * has already locked it.
  */
-void rx_fft_c::do_fft(unsigned int size)
+void rx_fft_c::apply_window(unsigned int size)
 {
     /* apply window, if any */
     if (d_window.size())
@@ -148,8 +151,6 @@ void rx_fft_c::do_fft(unsigned int size)
         memcpy(d_fft->get_inbuf(), d_cbuf.linearize(), sizeof(gr_complex)*size);
     }
 
-    /* compute FFT */
-    d_fft->execute();
 }
 
 /*! \brief Update circular buffer and FFT object. */
@@ -301,7 +302,7 @@ int rx_fft_f::work(int noutput_items,
  */
 void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize)
 {
-    std::lock_guard<std::mutex> lock(d_mutex);
+    std::unique_lock<std::mutex> lock(d_mutex);
 
     if (d_cbuf.size() < d_fftsize)
     {
@@ -317,9 +318,12 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 
     /* perform FFT */
     d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), (unsigned int)d_cbuf.size() - d_fftsize));
-    do_fft(d_fftsize);
+    apply_window(d_fftsize);
     //d_cbuf.clear();
+    lock.unlock();
 
+    /* compute FFT */
+    d_fft->execute();
     /* get FFT data */
     memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
     fftSize = d_fftsize;
@@ -332,7 +336,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
  * Note that this function does not lock the mutex since the caller, get_fft_data()
  * has already locked it.
  */
-void rx_fft_f::do_fft(unsigned int size)
+void rx_fft_f::apply_window(unsigned int size)
 {
     gr_complex *dst = d_fft->get_inbuf();
     unsigned int i;
@@ -349,8 +353,6 @@ void rx_fft_f::do_fft(unsigned int size)
             dst[i] = d_cbuf[i];
     }
 
-    /* compute FFT */
-    d_fft->execute();
 }
 
 
