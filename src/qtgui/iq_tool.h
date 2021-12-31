@@ -64,10 +64,12 @@ public:
     void readSettings(QSettings *settings);
 
 signals:
-    void startRecording(const QString recdir, file_formats fmt, int buffers_max);
+    void startRecording(const QString recdir, file_formats fmt,
+                        int buffers_max);
     void stopRecording();
-    void startPlayback(const QString filename, float samprate, qint64 center_freq,
-                       file_formats fmt, bool repeat);
+    void startPlayback(const QString filename, float samprate,
+                       qint64 center_freq, file_formats fmt,
+                       int buffers_max, bool repeat);
     void stopPlayback();
     void seek(qint64 seek_pos);
 
