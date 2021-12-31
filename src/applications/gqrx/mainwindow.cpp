@@ -280,7 +280,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     // I/Q playback
     connect(iq_tool, SIGNAL(startRecording(QString, enum receiver::file_formats, int)), this, SLOT(startIqRecording(QString, enum receiver::file_formats, int)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats)), this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats)));
+    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)),
+                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
 
@@ -1366,25 +1367,29 @@ double MainWindow::setSqlLevelAuto()
 void MainWindow::meterTimeout()
 {
     float level;
-    struct receiver::iq_recorder_stats iq_stats;
+    struct receiver::iq_tool_stats iq_stats;
 
     level = rx->get_signal_pwr();
     ui->sMeter->setLevel(level);
     remote->setSignalLevel(level);
     // As it looks like this timer is always active (when the DSP is running),
     // check iq recorder state here too
-    rx->get_iq_recorder_stats(iq_stats);
-    if(iq_stats.active)
+    rx->get_iq_tool_stats(iq_stats);
+    if(iq_stats.recording)
     {
         if(iq_stats.failed)
         {
             //stop the recorder
-            iq_tool->updateStats(iq_stats.failed, iq_stats.buffers_used, iq_stats.file_size);
+            iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
             iq_tool->cancelRecording();
         }else{
             //update status
-            iq_tool->updateStats(iq_stats.failed, iq_stats.buffers_used, iq_stats.file_size);
+            iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
         }
+    }
+    if(iq_stats.playing)
+    {
+        iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
     }
 }
 
@@ -1648,7 +1653,7 @@ void MainWindow::stopIqRecording()
     ui->actionLoadSettings->setDisabled(false);
 }
 
-void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64 center_freq, enum receiver::file_formats fmt)
+void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64 center_freq, enum receiver::file_formats fmt, int buffers_max, bool repeat)
 {
     if (ui->actionDSP->isChecked())
     {
@@ -1669,7 +1674,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64
 
     rx->set_input_device(devstr.toStdString());
     updateHWFrequencyRange(false);
-    rx->set_input_file(filename.toStdString(), samprate, fmt);
+    rx->set_input_file(filename.toStdString(), samprate, fmt, buffers_max, repeat);
 
     // sample rate
     auto actual_rate = rx->set_input_rate(samprate);
