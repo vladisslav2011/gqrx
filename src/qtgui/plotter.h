@@ -160,6 +160,11 @@ public slots:
         m_Size = QSize(0,0);
         resizeEvent(nullptr);
     }
+    void setFrequencyRange(qint64 min, qint64 max)
+    {
+        m_MinFreq = min;
+        m_MaxFreq = max;
+    }
 
 protected:
     //re-implemented widget event handlers
@@ -243,6 +248,8 @@ private:
     int         m_CursorCaptureDelta;
     int         m_GrabPosition;
     int         m_Percent2DScreen;
+    qint64      m_MinFreq;
+    qint64      m_MaxFreq;
 
     int         m_FLowCmin;
     int         m_FLowCmax;

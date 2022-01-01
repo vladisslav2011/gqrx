@@ -81,6 +81,8 @@ private:
     qint64 d_hw_freq_start{};
     qint64 d_hw_freq_stop{};
 
+    bool d_ignore_limits;
+
     enum receiver::filter_shape d_filter_shape;
     std::complex<float>* d_fftData;
     float          *d_realFftData;
