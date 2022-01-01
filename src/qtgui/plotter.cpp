@@ -339,6 +339,10 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             {
                 if (event->buttons() & Qt::MiddleButton)
                 {
+                    if (m_DemodCenterFreq + delta_hz < m_MinFreq)
+                        delta_hz = m_MinFreq - m_DemodCenterFreq;
+                    if (m_DemodCenterFreq + delta_hz > m_MaxFreq)
+                        delta_hz = m_MaxFreq - m_DemodCenterFreq;
                     m_CenterFreq += delta_hz;
                     m_DemodCenterFreq += delta_hz;
                     emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
@@ -348,11 +352,11 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                     setFftCenterFreq(m_FftCenter + delta_hz);
                 }
                 updateOverlay();
-
-                m_PeakHoldValid = false;
-
-                m_Xzero = pt.x();
             }
+
+            m_PeakHoldValid = false;
+
+            m_Xzero = pt.x();
         }
     }
     else if (LEFT == m_CursorCaptured)
