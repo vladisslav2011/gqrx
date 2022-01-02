@@ -21,6 +21,7 @@
  * Boston, MA 02110-1301, USA.
  */
 #include <math.h>
+#include <volk/volk.h>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/gr_complex.h>
@@ -57,7 +58,8 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
 #endif
 
     /* allocate circular buffer */
-    d_cbuf.set_capacity(d_fftsize + d_quadrate);
+    d_writer = gr::make_buffer(d_fftsize + d_quadrate, sizeof(gr_complex));
+    d_reader = gr::buffer_add_reader(d_writer, 0);
 
     /* create FFT window */
     set_window_type(wintype);
@@ -83,17 +85,14 @@ int rx_fft_c::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
-    int i;
-    const gr_complex *in = (const gr_complex*)input_items[0];
-    (void) output_items;
-
     /* just throw new samples into the buffer */
     std::lock_guard<std::mutex> lock(d_mutex);
-    for (i = 0; i < noutput_items; i++)
-    {
-        d_cbuf.push_back(in[i]);
-    }
-
+    if (noutput_items > d_writer->bufsize())
+        noutput_items = d_writer->bufsize();
+    if (d_writer->space_available() < noutput_items)
+        d_reader->update_read_pointer(noutput_items - d_writer->space_available());
+    memcpy(d_writer->write_pointer(), input_items[0], sizeof(gr_complex) * noutput_items);
+    d_writer->update_write_pointer(noutput_items);
     return noutput_items;
 
 }
@@ -107,9 +106,9 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     std::unique_lock<std::mutex> lock(d_mutex);
     if (n_fftsize != d_fftsize)
         set_params();
-    unsigned int l_fftSize = d_fftsize;
+    int l_fftSize = d_fftsize;
 
-    if (d_cbuf.size() < l_fftSize)
+    if (d_reader->items_available() < l_fftSize)
     {
         // not enough samples in the buffer
         fftSize = 0;
@@ -122,15 +121,14 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     d_lasttime = now;
 
     /* perform FFT */
-    d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_quadrate * 1.001), (unsigned int)d_cbuf.size() - l_fftSize));
-    //d_cbuf.clear();
+    d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - l_fftSize));
     lock.unlock();
     apply_window(l_fftSize);
 
     /* compute FFT */
     d_fft->execute();
     /* get FFT data */
-    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*l_fftSize);
+    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex) * l_fftSize);
     fftSize = l_fftSize;
 }
 
@@ -144,15 +142,15 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 void rx_fft_c::apply_window(unsigned int size)
 {
     /* apply window, if any */
+    gr_complex * p = (gr_complex *)d_reader->read_pointer();
     if (d_window.size())
     {
         gr_complex *dst = d_fft->get_inbuf();
-        for (unsigned int i = 0; i < size; i++)
-            dst[i] = d_cbuf[i] * d_window[i];
+        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], size);
     }
     else
     {
-        memcpy(d_fft->get_inbuf(), d_cbuf.linearize(), sizeof(gr_complex)*size);
+        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex) * size);
     }
 
 }
@@ -164,8 +162,8 @@ void rx_fft_c::set_params()
     d_fftsize = n_fftsize;
 
     /* clear and resize circular buffer */
-    d_cbuf.clear();
-    d_cbuf.set_capacity(d_fftsize + d_quadrate);
+    d_writer = gr::make_buffer(d_fftsize + d_quadrate, sizeof(gr_complex));
+    d_reader = gr::buffer_add_reader(d_writer, 0);
 
     /* reset window */
     int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
@@ -259,7 +257,8 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 #endif
 
     /* allocate circular buffer */
-    d_cbuf.set_capacity(d_fftsize + d_audiorate);
+    d_writer = gr::make_buffer(d_fftsize + d_audiorate, sizeof(float));
+    d_reader = gr::buffer_add_reader(d_writer, 0);
 
     /* create FFT window */
     set_window_type(wintype);
@@ -283,17 +282,14 @@ int rx_fft_f::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
-    int i;
-    const float *in = (const float*)input_items[0];
     (void) output_items;
 
     /* just throw new samples into the buffer */
     std::lock_guard<std::mutex> lock(d_mutex);
-    for (i = 0; i < noutput_items; i++)
-    {
-        d_cbuf.push_back(in[i]);
-    }
-
+    if(d_writer->space_available() < noutput_items)
+        d_reader->update_read_pointer(noutput_items - d_writer->space_available());
+    memcpy(d_writer->write_pointer(), input_items[0], sizeof(gr_complex) * noutput_items);
+    d_writer->update_write_pointer(noutput_items);
     return noutput_items;
 }
 
@@ -305,7 +301,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 {
     std::unique_lock<std::mutex> lock(d_mutex);
 
-    if (d_cbuf.size() < d_fftsize)
+    if (d_reader->items_available() < d_fftsize)
     {
         // not enough samples in the buffer
         fftSize = 0;
@@ -318,7 +314,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     d_lasttime = now;
 
     /* perform FFT */
-    d_cbuf.erase_begin(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), (unsigned int)d_cbuf.size() - d_fftsize));
+    d_reader->update_read_pointer(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), (unsigned int)d_reader->items_available() - d_fftsize));
     //d_cbuf.clear();
     lock.unlock();
     apply_window(d_fftsize);
@@ -326,7 +322,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     /* compute FFT */
     d_fft->execute();
     /* get FFT data */
-    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex) * d_fftsize);
     fftSize = d_fftsize;
 }
 
@@ -340,25 +336,19 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 void rx_fft_f::apply_window(unsigned int size)
 {
     gr_complex *dst = d_fft->get_inbuf();
-    unsigned int i;
-
+    float * p = (float *)d_reader->read_pointer();
     /* apply window, and convert to complex */
+    volk_32f_x2_interleave_32fc(dst, p, p, size);
     if (d_window.size())
     {
-        for (i = 0; i < size; i++)
-            dst[i] = d_cbuf[i] * d_window[i];
-    }
-    else
-    {
-        for (i = 0; i < size; i++)
-            dst[i] = d_cbuf[i];
+        volk_32fc_32f_multiply_32fc(dst, dst, &d_window[0], size);
     }
 
 }
 
 
 /*! \brief Set new FFT size. */
-void rx_fft_f::set_fft_size(unsigned int fftsize)
+void rx_fft_f::set_fft_size(int fftsize)
 {
     if (fftsize != d_fftsize)
     {
@@ -367,8 +357,8 @@ void rx_fft_f::set_fft_size(unsigned int fftsize)
         d_fftsize = fftsize;
 
         /* clear and resize circular buffer */
-        d_cbuf.clear();
-        d_cbuf.set_capacity(d_fftsize);
+        d_writer = gr::make_buffer(d_fftsize + d_audiorate,sizeof(float));
+        d_reader = gr::buffer_add_reader(d_writer, 0);
 
         /* reset window */
         int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
