@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <typeinfo>
 #include <QDebug>
 
 #include <gnuradio/prefs.h>
@@ -1568,7 +1569,9 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
     // Visualization
     tb->connect(b, 0, iq_fft, 0);
 
+    bool rds_decoder_active = rx && rx->is_rds_decoder_active();
     // RX demod chain
+    receiver_base_cf_sptr old_rx = rx;
     rx.reset();
     switch (type)
     {
@@ -1598,13 +1601,15 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         tb->connect(rx, 1, audio_gain1, 0);
         tb->connect(audio_gain0, 0, audio_snk, 0);
         tb->connect(audio_gain1, 0, audio_snk, 1);
-        // Recorders and sniffers
         if (d_recording_wav)
         {
             tb->connect(rx, 0, wav_sink, 0);
             tb->connect(rx, 1, wav_sink, 1);
         }
-
+        if(old_rx)
+            rx->restore_settings(old_rx);
+        if(rds_decoder_active)
+            rx->start_rds_decoder();
         if (d_sniffer_active)
         {
             tb->connect(rx, 0, sniffer_rr, 0);
