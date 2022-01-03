@@ -271,7 +271,7 @@ public:
 
 private:
     void        connect_all(rx_chain type, enum file_formats fmt);
-    void        setup_source(enum file_formats fmt);
+    gr::basic_block_sptr setup_source(enum file_formats fmt);
     status      connect_iq_recorder();
 
 private:
@@ -292,7 +292,8 @@ private:
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
     int         d_iq_fmt;
-    enum file_formats d_last_format;
+    enum        file_formats d_last_format;
+    bool        d_udp_streaming;    /*!< UDP streamin active. */
 
     std::string input_devstr;  /*!< Current input device string. */
     std::string output_devstr; /*!< Current output device string. */
