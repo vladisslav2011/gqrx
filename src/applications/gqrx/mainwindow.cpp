@@ -1227,9 +1227,14 @@ void MainWindow::selectDemod(int mode_idx)
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
     ui->plotter->setClickResolution(click_res);
     ui->plotter->setFilterClickResolution(click_res);
-    rx->set_filter((double)flo, (double)fhi, d_filter_shape);
-    rx->set_cw_offset(cwofs);
-    rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
+    if (mode_idx != DockRxOpt::MODE_OFF)
+    {
+        rx->set_filter((double)flo, (double)fhi, d_filter_shape);
+        rx->set_cw_offset(cwofs);
+        rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
+        rx->set_am_dcr(uiDockRxOpt->currentAmDcr());
+        rx->set_amsync_dcr(uiDockRxOpt->currentAmsyncDcr());
+     }
 
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
@@ -1237,6 +1242,7 @@ void MainWindow::selectDemod(int mode_idx)
     d_have_audio = (mode_idx != DockRxOpt::MODE_OFF);
 
     uiDockRxOpt->setCurrentDemod(mode_idx);
+
 }
 
 
