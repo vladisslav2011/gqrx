@@ -63,8 +63,6 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     connect(filter, 0, meter, 0);
     connect(filter, 0, sql, 0);
     connect(sql, 0, demod, 0);
-//    connect(sql, 0, agc, 0);
-//    connect(agc, 0, demod, 0);
 
     if (audio_rr0)
     {
@@ -98,6 +96,7 @@ bool nbrx::stop()
 
 void nbrx::set_filter(double low, double high, double tw)
 {
+    receiver_base_cf::set_filter(low, high, tw);
     filter->set_param(low, high, tw);
 }
 
@@ -109,6 +108,7 @@ void nbrx::set_cw_offset(double offset)
 
 void nbrx::set_nb_on(int nbid, bool on)
 {
+    receiver_base_cf::set_nb_on(nbid, on);
     if (nbid == 1)
         nb->set_nb1_on(on);
     else if (nbid == 2)
@@ -117,6 +117,7 @@ void nbrx::set_nb_on(int nbid, bool on)
 
 void nbrx::set_nb_threshold(int nbid, float threshold)
 {
+    receiver_base_cf::set_nb_threshold(nbid, threshold);
     if (nbid == 1)
         nb->set_threshold1(threshold);
     else if (nbid == 2)
@@ -231,25 +232,34 @@ void nbrx::set_demod(rx_demod new_demod)
 
 void nbrx::set_fm_maxdev(float maxdev_hz)
 {
+    receiver_base_cf::set_fm_maxdev(maxdev_hz);
     demod_fm->set_max_dev(maxdev_hz);
 }
 
 void nbrx::set_fm_deemph(double tau)
 {
+    receiver_base_cf::set_fm_deemph(tau);
     demod_fm->set_tau(tau);
 }
 
 void nbrx::set_am_dcr(bool enabled)
 {
+    receiver_base_cf::set_am_dcr(enabled);
+    lock();
     demod_am->set_dcr(enabled);
+    unlock();
 }
 
 void nbrx::set_amsync_dcr(bool enabled)
 {
+    receiver_base_cf::set_amsync_dcr(enabled);
+    lock();
     demod_amsync->set_dcr(enabled);
+    unlock();
 }
 
 void nbrx::set_amsync_pll_bw(float pll_bw)
 {
+    receiver_base_cf::set_amsync_pll_bw(pll_bw);
     demod_amsync->set_pll_bw(pll_bw);
 }

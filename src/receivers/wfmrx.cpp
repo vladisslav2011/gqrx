@@ -84,6 +84,7 @@ bool wfmrx::stop()
 
 void wfmrx::set_filter(double low, double high, double tw)
 {
+    receiver_base_cf::set_filter(low, high, tw);
     filter->set_param(low, high, tw);
 }
 
@@ -149,16 +150,6 @@ void wfmrx::set_demod(rx_demod demod)
 
     /* continue processing */
     unlock();
-}
-
-void wfmrx::set_fm_maxdev(float maxdev_hz)
-{
-    demod_fm->set_max_dev(maxdev_hz);
-}
-
-void wfmrx::set_fm_deemph(double tau)
-{
-    demod_fm->set_tau(tau);
 }
 
 void wfmrx::get_rds_data(std::string &outbuff, int &num)

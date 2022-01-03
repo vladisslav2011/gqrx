@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <typeinfo>
 #include <QDebug>
 
 #include <gnuradio/prefs.h>
@@ -993,16 +994,14 @@ void receiver::get_audio_fft_data(std::complex<float>* fftPoints, unsigned int &
 
 receiver::status receiver::set_nb_on(int nbid, bool on)
 {
-    if (rx[d_current]->has_nb())
-        rx[d_current]->set_nb_on(nbid, on);
+    rx[d_current]->set_nb_on(nbid, on);
 
     return STATUS_OK; // FIXME
 }
 
 receiver::status receiver::set_nb_threshold(int nbid, float threshold)
 {
-    if (rx[d_current]->has_nb())
-        rx[d_current]->set_nb_threshold(nbid, threshold);
+    rx[d_current]->set_nb_threshold(nbid, threshold);
 
     return STATUS_OK; // FIXME
 }
@@ -1013,8 +1012,7 @@ receiver::status receiver::set_nb_threshold(int nbid, float threshold)
  */
 receiver::status receiver::set_sql_level(double level_db)
 {
-    if (rx[d_current]->has_sql())
-        rx[d_current]->set_sql_level(level_db);
+    rx[d_current]->set_sql_level(level_db);
 
     return STATUS_OK; // FIXME
 }
@@ -1022,8 +1020,7 @@ receiver::status receiver::set_sql_level(double level_db)
 /** Set squelch alpha */
 receiver::status receiver::set_sql_alpha(double alpha)
 {
-    if (rx[d_current]->has_sql())
-        rx[d_current]->set_sql_alpha(alpha);
+    rx[d_current]->set_sql_alpha(alpha);
 
     return STATUS_OK; // FIXME
 }
@@ -1035,8 +1032,7 @@ receiver::status receiver::set_sql_alpha(double alpha)
  */
 receiver::status receiver::set_agc_on(bool agc_on)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_on(agc_on);
+    rx[d_current]->set_agc_on(agc_on);
 
     return STATUS_OK; // FIXME
 }
@@ -1044,8 +1040,7 @@ receiver::status receiver::set_agc_on(bool agc_on)
 /** Set AGC hang. */
 receiver::status receiver::set_agc_hang(int hang_ms)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_hang(hang_ms);
+    rx[d_current]->set_agc_hang(hang_ms);
 
     return STATUS_OK; // FIXME
 }
@@ -1053,8 +1048,7 @@ receiver::status receiver::set_agc_hang(int hang_ms)
 /** Set AGC target level. */
 receiver::status receiver::set_agc_target_level(int target_level)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_target_level(target_level);
+    rx[d_current]->set_agc_target_level(target_level);
 
     return STATUS_OK; // FIXME
 }
@@ -1062,8 +1056,7 @@ receiver::status receiver::set_agc_target_level(int target_level)
 /** Set fixed gain used when AGC is OFF. */
 receiver::status receiver::set_agc_manual_gain(float gain)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_manual_gain(gain);
+    rx[d_current]->set_agc_manual_gain(gain);
 
     return STATUS_OK; // FIXME
 }
@@ -1071,8 +1064,7 @@ receiver::status receiver::set_agc_manual_gain(float gain)
 /** Set maximum gain used when AGC is ON. */
 receiver::status receiver::set_agc_max_gain(int gain)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_max_gain(gain);
+    rx[d_current]->set_agc_max_gain(gain);
 
     return STATUS_OK; // FIXME
 }
@@ -1080,8 +1072,7 @@ receiver::status receiver::set_agc_max_gain(int gain)
 /** Set AGC attack. */
 receiver::status receiver::set_agc_attack(int attack_ms)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_attack(attack_ms);
+    rx[d_current]->set_agc_attack(attack_ms);
 
     return STATUS_OK; // FIXME
 }
@@ -1089,8 +1080,7 @@ receiver::status receiver::set_agc_attack(int attack_ms)
 /** Set AGC decay time. */
 receiver::status receiver::set_agc_decay(int decay_ms)
 {
-    if (rx[d_current]->has_agc())
-        rx[d_current]->set_agc_decay(decay_ms);
+    rx[d_current]->set_agc_decay(decay_ms);
 
     return STATUS_OK; // FIXME
 }
@@ -1098,10 +1088,7 @@ receiver::status receiver::set_agc_decay(int decay_ms)
 /** Get AGC current gain. */
 float receiver::get_agc_gain()
 {
-    if (rx[d_current]->has_agc())
-        return rx[d_current]->get_agc_gain();
-    else
-        return 0;
+    return rx[d_current]->get_agc_gain();
 }
 
 /** Set audio mute. */
@@ -1223,13 +1210,7 @@ receiver::status receiver::set_demod(rx_demod demod)
         // End temporary workaronud
         if(old_rx.get() != rx[d_current].get())
         {
-            rx[d_current]->set_center_freq(d_rf_freq);
-            rx[d_current]->set_offset(old_rx->get_offset());
-            rx[d_current]->set_cw_offset(old_rx->get_cw_offset());
-            rx[d_current]->set_audio_rec_sql_triggered(old_rx->get_audio_rec_sql_triggered());
-            rx[d_current]->set_audio_rec_min_time(old_rx->get_audio_rec_min_time());
-            rx[d_current]->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
-            rx[d_current]->set_rec_dir(old_rx->get_rec_dir());
+            rx[d_current]->restore_settings(old_rx);
             // Recorders
             if(old_rx.get() != rx[d_current].get())
             {
@@ -1289,40 +1270,35 @@ receiver::status receiver::reconnect_all(enum file_formats fmt, bool force)
  */
 receiver::status receiver::set_fm_maxdev(float maxdev_hz)
 {
-    if (rx[d_current]->has_fm())
-        rx[d_current]->set_fm_maxdev(maxdev_hz);
+    rx[d_current]->set_fm_maxdev(maxdev_hz);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_fm_deemph(double tau)
 {
-    if (rx[d_current]->has_fm())
-        rx[d_current]->set_fm_deemph(tau);
+    rx[d_current]->set_fm_deemph(tau);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_am_dcr(bool enabled)
 {
-    if (rx[d_current]->has_am())
-        rx[d_current]->set_am_dcr(enabled);
+    rx[d_current]->set_am_dcr(enabled);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_amsync_dcr(bool enabled)
 {
-    if (rx[d_current]->has_amsync())
-        rx[d_current]->set_amsync_dcr(enabled);
+    rx[d_current]->set_amsync_dcr(enabled);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_amsync_pll_bw(float pll_bw)
 {
-    if (rx[d_current]->has_amsync())
-        rx[d_current]->set_amsync_pll_bw(pll_bw);
+    rx[d_current]->set_amsync_pll_bw(pll_bw);
 
     return STATUS_OK;
 }
@@ -1807,7 +1783,6 @@ void receiver::connect_all(enum file_formats fmt)
         connect_rx(rxc->get_index());
     foreground_rx();
 }
-
 
 void receiver::connect_rx()
 {

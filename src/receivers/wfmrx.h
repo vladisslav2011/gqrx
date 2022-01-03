@@ -65,21 +65,8 @@ public:
 
     /* Noise blanker */
     bool has_nb() { return false; }
-    //void set_nb_on(int nbid, bool on);
-    //void set_nb_threshold(int nbid, float threshold);
-
-    /* Squelch parameter */
-    bool has_sql() { return true; }
-
-    /* AGC */
-    bool has_agc() { return true; }
 
     void set_demod(rx_demod demod);
-
-    /* FM parameters */
-    bool has_fm() {return true; }
-    void set_fm_maxdev(float maxdev_hz);
-    void set_fm_deemph(double tau);
 
     void get_rds_data(std::string &outbuff, int &num);
     void start_rds_decoder();

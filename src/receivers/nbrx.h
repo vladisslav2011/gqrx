@@ -54,38 +54,29 @@ public:
     nbrx(float quad_rate, float audio_rate);
     virtual ~nbrx() { };
 
-    bool start();
-    bool stop();
+    bool start() override;
+    bool stop() override;
 
-    void set_filter(double low, double high, double tw);
-    void set_cw_offset(double offset);
+    void set_filter(double low, double high, double tw) override;
+    void set_cw_offset(double offset) override;
 
     /* Noise blanker */
-    bool has_nb() { return true; }
-    void set_nb_on(int nbid, bool on);
-    void set_nb_threshold(int nbid, float threshold);
-
-    /* Squelch parameter */
-    bool has_sql() { return true; }
-
-    /* AGC */
-    bool has_agc() { return true; }
+    bool has_nb() override { return true; }
+    void set_nb_on(int nbid, bool on) override;
+    void set_nb_threshold(int nbid, float threshold) override;
 
     void set_demod(rx_demod new_demod) override;
 
     /* FM parameters */
-    bool has_fm() { return true; }
-    void set_fm_maxdev(float maxdev_hz);
-    void set_fm_deemph(double tau);
+    void set_fm_maxdev(float maxdev_hz) override;
+    void set_fm_deemph(double tau) override;
 
     /* AM parameters */
-    bool has_am() { return true; }
-    void set_am_dcr(bool enabled);
+    void set_am_dcr(bool enabled) override;
 
     /* AM-Sync parameters */
-    bool has_amsync() { return true; }
-    void set_amsync_dcr(bool enabled);
-    void set_amsync_pll_bw(float pll_bw);
+    void set_amsync_dcr(bool enabled) override;
+    void set_amsync_pll_bw(float pll_bw) override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
