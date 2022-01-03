@@ -1733,6 +1733,7 @@ void MainWindow::setIqFftRate(int fps)
         iq_fft_timer->setInterval(interval);
 
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    setAudioFftRate(fps);
 }
 
 void MainWindow::setIqFftWindow(int type)
@@ -1772,6 +1773,13 @@ void MainWindow::setIqFftAvg(float avg)
 /** Audio FFT rate has changed. */
 void MainWindow::setAudioFftRate(int fps)
 {
+    uiDockAudio->setFftRate(fps);
+    if (fps == 0)
+    {
+        if (audio_fft_timer->isActive())
+            audio_fft_timer->setInterval(36e7);
+        return;
+    }
     auto interval = 1000 / fps;
 
     if (interval < 10)
@@ -1828,15 +1836,19 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         if (uiDockFft->fftRate())
         {
             iq_fft_timer->start(1000/uiDockFft->fftRate());
+            audio_fft_timer->start(1000/uiDockFft->fftRate());
             ui->plotter->setRunningState(true);
+            uiDockAudio->setFftRate(1000/uiDockFft->fftRate());
         }
         else
         {
             iq_fft_timer->start(36e7); // 100 hours
             ui->plotter->setRunningState(false);
+            audio_fft_timer->start(36e7);
+            uiDockAudio->setFftRate(0);
         }
 
-        audio_fft_timer->start(40);
+//        audio_fft_timer->start(40);
 
         /* update menu text and button tooltip */
         ui->actionDSP->setToolTip(tr("Stop DSP processing"));

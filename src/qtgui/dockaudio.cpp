@@ -119,6 +119,10 @@ void DockAudio::setInvertScrolling(bool enabled)
     ui->audioSpectrum->setInvertScrolling(enabled);
 }
 
+void DockAudio::setFftRate(int rate)
+{
+    ui->audioSpectrum->setRunningState(rate > 0);
+}
 /*! \brief Set new audio gain.
  *  \param gain the new audio gain in tens of dB (0 dB = 10)
  */
