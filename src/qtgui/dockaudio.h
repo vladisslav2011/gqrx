@@ -55,6 +55,7 @@ public:
     void setNewFftData(float *fftData, int size);
     void setInvertScrolling(bool enabled);
     int  fftRate() const { return 10; }
+    void setFftRate(int rate);
 
     void setAudioGain(int gain);
     int  audioGain();
