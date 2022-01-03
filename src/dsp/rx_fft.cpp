@@ -354,31 +354,46 @@ void rx_fft_f::do_fft(unsigned int size)
 }
 
 
+/*! \brief Update circular buffer and FFT object. */
+void rx_fft_f::set_params()
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+
+    /* clear and resize circular buffer */
+    d_cbuf.clear();
+    d_cbuf.set_capacity(d_fftsize + d_audiorate);
+
+    /* reset window */
+    int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
+    d_wintype = -1;
+    set_window_type(wintype);
+
+    /* reset FFT object (also reset FFTW plan) */
+    delete d_fft;
+#if GNURADIO_VERSION < 0x030900
+    d_fft = new gr::fft::fft_complex(d_fftsize, true);
+#else
+    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
+#endif
+}
+
 /*! \brief Set new FFT size. */
 void rx_fft_f::set_fft_size(unsigned int fftsize)
 {
     if (fftsize != d_fftsize)
     {
-        std::lock_guard<std::mutex> lock(d_mutex);
-
         d_fftsize = fftsize;
+        set_params();
+    }
 
-        /* clear and resize circular buffer */
-        d_cbuf.clear();
-        d_cbuf.set_capacity(d_fftsize);
+}
 
-        /* reset window */
-        int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
-        d_wintype = -1;
-        set_window_type(wintype);
-
-        /* reset FFT object (also reset FFTW plan) */
-        delete d_fft;
-#if GNURADIO_VERSION < 0x030900
-        d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
-        d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
+/*! \brief Set new quadrature rate. */
+void rx_fft_f::set_quad_rate(double quad_rate)
+{
+    if (quad_rate != d_audiorate) {
+        d_audiorate = quad_rate;
+        set_params();
     }
 }
 

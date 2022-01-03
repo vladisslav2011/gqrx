@@ -500,6 +500,13 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         restoreState(m_settings->value("gui/state", saveState()).toByteArray());
     }
 
+    int_val = m_settings->value("output/sample_rate", 48000).toInt(&conv_ok);
+    if (conv_ok && (int_val > 0))
+    {
+        rx->set_audio_rate(int_val);
+        uiDockAudio->setFftSampleRate(int_val);
+    }
+
     QString indev = m_settings->value("input/device", "").toString();
     if (!indev.isEmpty())
     {
@@ -1063,6 +1070,7 @@ void MainWindow::selectDemod(int mode_idx)
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0, click_res=100;
     bool    rds_enabled;
+    int     audio_rate = rx->get_audio_rate();
 
     // validate mode_idx
     if (mode_idx < DockRxOpt::MODE_OFF || mode_idx >= DockRxOpt::MODE_LAST)
@@ -1097,27 +1105,27 @@ void MainWindow::selectDemod(int mode_idx)
         /* Raw I/Q; max 96 ksps*/
         rx->set_demod(receiver::RX_DEMOD_NONE);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
-        uiDockAudio->setFftRange(0,24000);
+        uiDockAudio->setFftRange(-std::min(24000, audio_rate / 2), std::min(24000, audio_rate / 2));
         click_res = 100;
         break;
 
     case DockRxOpt::MODE_AM:
         rx->set_demod(receiver::RX_DEMOD_AM);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
-        uiDockAudio->setFftRange(0,6000);
+        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
         click_res = 100;
         break;
 
     case DockRxOpt::MODE_AM_SYNC:
         rx->set_demod(receiver::RX_DEMOD_AMSYNC);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
-        uiDockAudio->setFftRange(0,6000);
+        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
         click_res = 100;
         break;
 
     case DockRxOpt::MODE_NFM:
         ui->plotter->setDemodRanges(-40000, -1000, 1000, 40000, true);
-        uiDockAudio->setFftRange(0, 5000);
+        uiDockAudio->setFftRange(0, std::min(5000, audio_rate / 2));
         rx->set_demod(receiver::RX_DEMOD_NFM);
         rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
         rx->set_fm_deemph(uiDockRxOpt->currentEmph());
@@ -1129,7 +1137,7 @@ void MainWindow::selectDemod(int mode_idx)
     case DockRxOpt::MODE_WFM_STEREO_OIRT:
         /* Broadcast FM */
         ui->plotter->setDemodRanges(-120e3, -10000, 10000, 120e3, true);
-        uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
+        uiDockAudio->setFftRange(0, std::min(24000, audio_rate / 2));
         click_res = 1000;
         if (mode_idx == DockRxOpt::MODE_WFM_MONO)
             rx->set_demod(receiver::RX_DEMOD_WFM_M);
@@ -1147,7 +1155,7 @@ void MainWindow::selectDemod(int mode_idx)
         /* LSB */
         rx->set_demod(receiver::RX_DEMOD_SSB);
         ui->plotter->setDemodRanges(-40000, -100, -5000, 0, false);
-        uiDockAudio->setFftRange(0,3000);
+        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
         click_res = 100;
         break;
 
@@ -1155,7 +1163,7 @@ void MainWindow::selectDemod(int mode_idx)
         /* USB */
         rx->set_demod(receiver::RX_DEMOD_SSB);
         ui->plotter->setDemodRanges(0, 5000, 100, 40000, false);
-        uiDockAudio->setFftRange(0,3000);
+        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
         click_res = 100;
         break;
 
@@ -1164,7 +1172,7 @@ void MainWindow::selectDemod(int mode_idx)
         rx->set_demod(receiver::RX_DEMOD_SSB);
         cwofs = -uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
-        uiDockAudio->setFftRange(0,1500);
+        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
         click_res = 10;
         break;
 
@@ -1173,7 +1181,7 @@ void MainWindow::selectDemod(int mode_idx)
         rx->set_demod(receiver::RX_DEMOD_SSB);
         cwofs = uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
-        uiDockAudio->setFftRange(0,1500);
+        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
         click_res = 10;
         break;
 
