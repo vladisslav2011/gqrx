@@ -47,7 +47,7 @@
 #endif
 
 #define DEFAULT_AUDIO_GAIN -6.0
-#define TARGET_QUAD_RATE 1e6
+#define TARGET_QUAD_RATE 4e5
 
 /**
  * @brief Public constructor.
