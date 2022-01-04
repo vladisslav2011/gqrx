@@ -101,3 +101,8 @@ void rx_demod_fm::set_tau(double tau)
 {
     d_deemph->set_tau(tau);
 }
+
+void rx_demod_fm::reset_iir()
+{
+    d_deemph->reset_iir();
+}

@@ -61,6 +61,7 @@ public:
 
     void set_max_dev(float max_dev);
     void set_tau(double tau);
+    void reset_iir();
 
 private:
     /* GR blocks */

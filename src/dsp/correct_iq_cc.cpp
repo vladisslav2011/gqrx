@@ -85,6 +85,11 @@ void dc_corr_cc::set_tau(double tau)
     qDebug() << "IQ DCR alpha:" << d_alpha;
 }
 
+/*! \brief Reset the iir filter by setting it's taps. */
+void dc_corr_cc::reset_iir()
+{
+    d_iir->set_taps(d_alpha);
+}
 
 /** I/Q swap **/
 iq_swap_cc_sptr make_iq_swap_cc(bool enabled)

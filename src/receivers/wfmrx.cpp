@@ -281,3 +281,8 @@ bool wfmrx::is_rds_decoder_active()
 {
     return rds_enabled;
 }
+
+void wfmrx::reset_iir()
+{
+    demod_fm->reset_iir();
+}

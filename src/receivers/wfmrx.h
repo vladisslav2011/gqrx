@@ -109,6 +109,8 @@ public:
     void reset_rds_parser();
     bool is_rds_decoder_active();
 
+    void reset_iir();
+
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
     float  d_quad_rate;        /*!< Input sample rate. */

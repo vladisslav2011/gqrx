@@ -105,6 +105,13 @@ void rx_demod_am::set_dcr(bool dcr)
     d_dcr_enabled = dcr;
 }
 
+/*! \brief Reset the iir filter by setting it's taps. */
+void rx_demod_am::reset_iir()
+{
+    d_dcr->set_taps(d_fftaps, d_fbtaps);
+}
+
+
 /* Create a new instance of rx_demod_amsync and return a boost shared_ptr. */
 rx_demod_amsync_sptr make_rx_demod_amsync(float quad_rate, bool dcr, float pll_bw)
 {
@@ -191,3 +198,10 @@ void rx_demod_amsync::set_pll_bw(float pll_bw)
     d_demod1->set_loop_bandwidth(pll_bw);
     d_demod1->update_gains();
 }
+
+/*! \brief Reset the iir filter by setting it's taps. */
+void rx_demod_amsync::reset_iir()
+{
+    d_dcr->set_taps(d_fftaps, d_fbtaps);
+}
+

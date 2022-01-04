@@ -116,6 +116,8 @@ public:
     void set_amsync_dcr(bool enabled);
     void set_amsync_pll_bw(float pll_bw);
 
+    void reset_iir();
+
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
     float  d_quad_rate;        /*!< Input sample rate. */

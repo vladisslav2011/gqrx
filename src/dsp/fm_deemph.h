@@ -58,6 +58,7 @@ public:
     ~fm_deemph();
 
     void set_tau(double tau);
+    void reset_iir();
 
 private:
     /* GR blocks */

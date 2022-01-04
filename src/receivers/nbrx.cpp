@@ -322,3 +322,11 @@ void nbrx::set_amsync_pll_bw(float pll_bw)
 {
     demod_amsync->set_pll_bw(pll_bw);
 }
+
+void nbrx::reset_iir()
+{
+    demod_amsync->reset_iir();
+    demod_am->reset_iir();
+    demod_fm->reset_iir();
+}
+
