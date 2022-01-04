@@ -564,8 +564,8 @@ void receiver::set_iq_swap(bool reversed)
         return;
 
     d_iq_rev = reversed;
-    iq_swap->set_enabled(d_iq_rev);
     set_demod(d_demod, FILE_FORMAT_LAST, true);
+    iq_swap->set_enabled(d_iq_rev);
 }
 
 /**
