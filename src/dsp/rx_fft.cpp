@@ -259,7 +259,7 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 #endif
 
     /* allocate circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_audiorate, sizeof(float));
+    d_writer = gr::make_buffer(d_fftsize + d_audiorate, sizeof(gr_complex));
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
     /* create FFT window */
@@ -290,7 +290,7 @@ int rx_fft_f::work(int noutput_items,
     std::lock_guard<std::mutex> lock(d_mutex);
     if(d_writer->space_available() < noutput_items)
         d_reader->update_read_pointer(noutput_items - d_writer->space_available());
-    memcpy(d_writer->write_pointer(), input_items[0], sizeof(gr_complex) * noutput_items);
+    volk_32f_x2_interleave_32fc((gr_complex *)d_writer->write_pointer(), (const float *)input_items[0], (const float *)input_items[1], noutput_items);
     d_writer->update_write_pointer(noutput_items);
     return noutput_items;
 }
@@ -334,12 +334,17 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
  */
 void rx_fft_f::do_fft(unsigned int size)
 {
-    gr_complex *dst = d_fft->get_inbuf();
-    float * p = (float *)d_reader->read_pointer();
-    /* apply window, and convert to complex */
-    volk_32f_x2_interleave_32fc(dst, p, p, size);
+    /* apply window, if any */
+    gr_complex * p = (gr_complex *)d_reader->read_pointer();
     if (d_window.size())
-        volk_32fc_32f_multiply_32fc(dst, dst, &d_window[0], size);
+    {
+        gr_complex *dst = d_fft->get_inbuf();
+        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], size);
+    }
+    else
+    {
+        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex) * size);
+    }
 
     /* compute FFT */
     d_fft->execute();
@@ -352,7 +357,7 @@ void rx_fft_f::set_params()
     std::lock_guard<std::mutex> lock(d_mutex);
 
     /* clear and resize circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_audiorate,sizeof(float));
+    d_writer = gr::make_buffer(d_fftsize + d_audiorate,sizeof(gr_complex));
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
     /* reset window */

@@ -383,14 +383,7 @@ void receiver::set_output_device(const std::string device)
     {
         try
         {
-            tb->disconnect(audio_gain0);
-        }
-        catch(std::exception &x)
-        {
-        }
-        try
-        {
-            tb->disconnect(audio_gain1);
+            tb->disconnect(audio_snk);
         }
         catch(std::exception &x)
         {
@@ -403,8 +396,6 @@ void receiver::set_output_device(const std::string device)
 
         if (d_demod != RX_DEMOD_OFF)
         {
-            tb->connect(rx, 0, audio_gain0, 0);
-            tb->connect(rx, 1, audio_gain1, 0);
             tb->connect(audio_gain0, 0, audio_snk, 0);
             tb->connect(audio_gain1, 0, audio_snk, 1);
         }
