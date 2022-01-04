@@ -242,7 +242,7 @@ rx_fft_f_sptr make_rx_fft_f(unsigned int fftsize, double audio_rate, int wintype
  */
 rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
     : gr::sync_block ("rx_fft_f",
-          gr::io_signature::make(1, 1, sizeof(float)),
+          gr::io_signature::make(2, 2, sizeof(float)),
           gr::io_signature::make(0, 0, 0)),
       d_fftsize(fftsize),
       d_audiorate(audio_rate),
@@ -282,14 +282,15 @@ int rx_fft_f::work(int noutput_items,
                    gr_vector_void_star &output_items)
 {
     int i;
-    const float *in = (const float*)input_items[0];
+    const float *in0 = (const float*)input_items[0];
+    const float *in1 = (const float*)input_items[1];
     (void) output_items;
 
     /* just throw new samples into the buffer */
     std::lock_guard<std::mutex> lock(d_mutex);
     for (i = 0; i < noutput_items; i++)
     {
-        d_cbuf.push_back(in[i]);
+        d_cbuf.push_back(gr_complex(in0[i],in1[i]));
     }
 
     return noutput_items;

@@ -176,7 +176,7 @@ private:
 #endif
     std::vector<float>  d_window; /*! FFT window taps. */
 
-    boost::circular_buffer<float> d_cbuf; /*! buffer to accumulate samples. */
+    boost::circular_buffer<gr_complex> d_cbuf; /*! buffer to accumulate samples. */
     std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
 
     void do_fft(unsigned int size);
