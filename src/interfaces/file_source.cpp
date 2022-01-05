@@ -50,8 +50,6 @@
 
 void file_source::reader()
 {
-    uint8_t * last=&d_buf.data()[d_buf.size()];
-    uint8_t * p;
     FILE * old_fp = NULL;
     int count = 0;
     while (true)
@@ -60,7 +58,6 @@ void file_source::reader()
         do
         {
             count = 0;
-            p=d_wp;
             if (d_updated)
             {
                 old_fp = d_fp;
@@ -77,8 +74,8 @@ void file_source::reader()
                 guard.lock();
                 d_seek = false;
                 d_buffering = true;
-                p=d_rp=d_wp=d_buf.data();
                 d_items_remaining = d_length_items + d_start_offset_items - d_seek_point;
+                d_reader->update_read_pointer(d_reader->items_available());
                 d_eof = false;
                 continue;
             }
@@ -88,22 +85,16 @@ void file_source::reader()
             }
             if (d_fp && !d_failed)
             {
-                if (p == last)
+                uint64_t read_items = std::min(d_items_remaining,uint64_t(d_writer->space_available()));
+                if (read_items > READ_MAX)
+                    read_items = READ_MAX;
+                if(read_items == 0)
                 {
-                    if (d_rp == d_buf.data())
-                        break;
-                    else
-                        p = d_buf.data();
-                }
-                int64_t read_bytes = (last - p);
-                if (d_rp > p)
-                    read_bytes = d_rp - d_itemsize - p;
-                if (read_bytes <= 0)
+                    count = 0;
                     break;
-                if (read_bytes > READ_MAX)
-                    read_bytes = READ_MAX;
+                }
                 guard.unlock();
-                count = fread(p, 1, read_bytes, d_fp);
+                count = fread(d_writer->write_pointer(), d_itemsize, read_items, d_fp);
                 guard.lock();
                 if (count == 0)
                 {
@@ -125,11 +116,10 @@ void file_source::reader()
                     }
                     break;
                 }
+                d_writer->update_write_pointer(count);
             }
             else
                 break;
-            p += count;
-            d_wp = p;
         }
             while (count);
         if (old_fp)
@@ -194,9 +184,22 @@ file_source::file_source(size_t itemsize,
     d_buffering = false;
     if(buffers_max <= 0)
         buffers_max = 1;
-    d_buffer_size = buffers_max * std::max(8192, sample_rate) * itemsize;
-    d_buf.resize(d_buffer_size);
-    d_wp = d_rp = d_buf.data();
+    d_buffer_size = buffers_max * std::max(8192, sample_rate);
+    if (sizeof(int) < sizeof(int64_t))
+    {
+        // 32bit system. 512M maximum buffer
+        if(d_buffer_size > INT_MAX / 8 / d_itemsize)
+            d_buffer_size = INT_MAX / 8 / d_itemsize;
+    }
+    while(d_buffer_size > 8192)
+    {
+        if(create_ringbuffer(true))
+            break;
+        d_buffer_size /= 2;
+    }
+    if(!d_reader)
+        create_ringbuffer(false);
+     d_buffer_size = d_writer->space_available();
     {
         std::unique_lock<std::mutex> guard(d_mutex);
         d_reader_thread = new std::thread(std::bind(&file_source::reader, this));
@@ -390,7 +393,8 @@ int file_source::work(int noutput_items,
     while (size)
     {
         d_reader_wake.notify_one();
-        if(d_wp == d_rp)
+        uint64_t items_available = d_reader->items_available();
+        if(items_available == 0)
             d_buffering = true;
         if(d_buffering)
         {
@@ -400,55 +404,45 @@ int file_source::work(int noutput_items,
             memset(o, 0, d_itemsize * noutput_items);
             return noutput_items;
         }
-        uint64_t bytes_avail = (d_wp >= d_rp) ? (d_wp - d_rp):
-                               (&d_buf.data()[d_buf.size()] - d_rp);
-        if(bytes_avail >= d_itemsize)
+        uint64_t to_copy = std::min(size, items_available);
+        if(to_copy > d_items_remaining)
+            to_copy = d_items_remaining;
+        guard.unlock();
+        if (d_file_begin && d_add_begin_tag != pmt::PMT_NIL)
         {
-            uint64_t items_to_copy = bytes_avail / d_itemsize;
-            uint64_t to_copy = std::min(size, items_to_copy);
-            if(to_copy > d_items_remaining)
-                to_copy = d_items_remaining;
-            guard.unlock();
-            if (d_file_begin && d_add_begin_tag != pmt::PMT_NIL)
-            {
-                add_item_tag(0,
-                            nitems_written(0) + noutput_items - size,
-                            d_add_begin_tag,
-                            pmt::from_long(d_repeat_cnt),
-                            _id);
-                d_file_begin = false;
-            }
-            memcpy(o, d_rp, to_copy * d_itemsize);
-            guard.lock();
-            o += to_copy * d_itemsize;
-            d_rp += to_copy * d_itemsize;
-            if(d_rp == &d_buf.data()[d_buf.size()])
-                d_rp = d_buf.data();
-            size -= to_copy;
-            d_items_remaining -= to_copy;
-            if (d_items_remaining == 0)
-            {
-
-                // Repeat: rewind and request tag
-                if (d_repeat && d_seekable)
-                {
-                    if (d_add_begin_tag != pmt::PMT_NIL)
-                    {
-                        add_item_tag(0,
-                                    nitems_written(0) + noutput_items - size,
-                                    d_add_begin_tag,
-                                    pmt::from_long(d_repeat_cnt),
-                                    _id);
-                        d_file_begin = false;
-                    }
-                    d_items_remaining = d_length_items - d_start_offset_items;
-                }
-                else
-                    break;
-            }
+            add_item_tag(0,
+                        nitems_written(0) + noutput_items - size,
+                        d_add_begin_tag,
+                        pmt::from_long(d_repeat_cnt),
+                        _id);
+            d_file_begin = false;
         }
-        else
-            d_buffering = true;
+        memcpy(o, d_reader->read_pointer(), to_copy * d_itemsize);
+        guard.lock();
+        d_reader->update_read_pointer(to_copy);
+        o += to_copy * d_itemsize;
+        size -= to_copy;
+        d_items_remaining -= to_copy;
+        if (d_items_remaining == 0)
+        {
+
+            // Repeat: rewind and request tag
+            if (d_repeat && d_seekable)
+            {
+                if (d_add_begin_tag != pmt::PMT_NIL)
+                {
+                    add_item_tag(0,
+                                nitems_written(0) + noutput_items - size,
+                                d_add_begin_tag,
+                                pmt::from_long(d_repeat_cnt),
+                                _id);
+                    d_file_begin = false;
+                }
+                d_items_remaining = d_length_items - d_start_offset_items;
+            }
+            else
+                break;
+        }
 #if 0
         // Add stream tag whenever the file starts again
 
@@ -477,6 +471,24 @@ uint64_t file_source::tell()
 int file_source::get_buffer_usage()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
-    return (d_wp >= d_rp ? d_wp - d_rp :
-           d_wp + d_buffer_size - d_rp) * 100llu / d_buffer_size;
+    return d_reader->items_available() * 100llu / d_buffer_size;
+}
+
+bool file_source::create_ringbuffer(bool safe)
+{
+    if(safe)
+    {
+        try
+        {
+            d_writer = gr::make_buffer(d_buffer_size, d_itemsize);
+        }
+        catch(std::exception e)
+        {
+            return false;
+        }
+    }
+    else
+        d_writer = gr::make_buffer(d_buffer_size, d_itemsize);
+    d_reader = gr::buffer_add_reader(d_writer, 0);
+    return true;
 }

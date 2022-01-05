@@ -92,6 +92,10 @@ elseif(NOT Gnuradio_VERSION VERSION_LESS "3.8")
         gnuradio::gnuradio-audio
         Volk::volk
     )
+else()
+    target_link_libraries(${PROJECT_NAME}
+        ${LOG4CPP_LIBRARIES}
+    )
 endif()
 
 #build a win32 app, not a console app
