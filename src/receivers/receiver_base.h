@@ -92,11 +92,11 @@ public:
 
     /* AM parameters */
     virtual bool has_am();
-    virtual void set_am_dcr(bool enabled);
+    virtual void set_am_dcr(bool enabled, bool locked = true);
 
     /* AM-Sync parameters */
     virtual bool has_amsync();
-    virtual void set_amsync_dcr(bool enabled);
+    virtual void set_amsync_dcr(bool enabled, bool locked = true);
     virtual void set_amsync_pll_bw(float pll_bw);
 
     virtual void get_rds_data(std::string &outbuff, int &num);
@@ -105,7 +105,7 @@ public:
     virtual void reset_rds_parser();
     virtual bool is_rds_decoder_active();
 
-    virtual void restore_settings(receiver_base_cf_sptr from);
+    virtual void restore_settings(receiver_base_cf_sptr from, bool locked = true);
 protected:
     double d_filter_low;
     double d_filter_high;

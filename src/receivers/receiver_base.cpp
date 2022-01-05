@@ -163,7 +163,7 @@ bool receiver_base_cf::has_am()
     return false;
 }
 
-void receiver_base_cf::set_am_dcr(bool enabled)
+void receiver_base_cf::set_am_dcr(bool enabled, bool locked)
 {
     d_am_dcr = enabled;
 }
@@ -173,7 +173,7 @@ bool receiver_base_cf::has_amsync()
     return false;
 }
 
-void receiver_base_cf::set_amsync_dcr(bool enabled)
+void receiver_base_cf::set_amsync_dcr(bool enabled, bool locked)
 {
     d_amsync_dcr = enabled;
 }
@@ -206,7 +206,7 @@ bool receiver_base_cf::is_rds_decoder_active()
     return false;
 }
 
-void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
+void receiver_base_cf::restore_settings(receiver_base_cf_sptr from, bool locked)
 {
     set_filter(from->d_filter_low, from->d_filter_high, from->d_filter_tw);
     set_cw_offset(from->d_cw_offset);
@@ -225,7 +225,7 @@ void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
     set_agc_manual_gain(from->d_agc_gain);
     set_fm_maxdev(from->d_fm_maxdev);
     set_fm_deemph(from->d_fm_deemph);
-    set_am_dcr(from->d_am_dcr);
-    set_amsync_dcr(from->d_amsync_dcr);
+    set_am_dcr(from->d_am_dcr, locked);
+    set_amsync_dcr(from->d_amsync_dcr, locked);
     set_amsync_pll_bw(from->d_amsync_pll_bw);
 }

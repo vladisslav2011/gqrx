@@ -1026,40 +1026,35 @@ receiver::status receiver::set_demod(rx_demod demod, enum file_formats fmt, bool
  */
 receiver::status receiver::set_fm_maxdev(float maxdev_hz)
 {
-    if (rx->has_fm())
-        rx->set_fm_maxdev(maxdev_hz);
+    rx->set_fm_maxdev(maxdev_hz);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_fm_deemph(double tau)
 {
-    if (rx->has_fm())
-        rx->set_fm_deemph(tau);
+    rx->set_fm_deemph(tau);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_am_dcr(bool enabled)
 {
-    if (rx->has_am())
-        rx->set_am_dcr(enabled);
+    rx->set_am_dcr(enabled, d_running);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_amsync_dcr(bool enabled)
 {
-    if (rx->has_amsync())
-        rx->set_amsync_dcr(enabled);
+    rx->set_amsync_dcr(enabled, d_running);
 
     return STATUS_OK;
 }
 
 receiver::status receiver::set_amsync_pll_bw(float pll_bw)
 {
-    if (rx->has_amsync())
-        rx->set_amsync_pll_bw(pll_bw);
+    rx->set_amsync_pll_bw(pll_bw);
 
     return STATUS_OK;
 }
@@ -1578,8 +1573,6 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
             tb->connect(audio_gain0, 0, wav_sink, 0);
             tb->connect(audio_gain1, 0, wav_sink, 1);
         }
-        if(old_rx)
-            rx->restore_settings(old_rx);
         if(rds_decoder_active)
             rx->start_rds_decoder();
         if (d_sniffer_active)
@@ -1605,6 +1598,8 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
             sniffer_rr.reset();
         }
     }
+    if(old_rx)
+        rx->restore_settings(old_rx, false);
 
 }
 

@@ -108,11 +108,11 @@ public:
 
     /* AM parameters */
     bool has_am() { return true; }
-    void set_am_dcr(bool enabled);
+    void set_am_dcr(bool enabled, bool locked = true);
 
     /* AM-Sync parameters */
     bool has_amsync() { return true; }
-    void set_amsync_dcr(bool enabled);
+    void set_amsync_dcr(bool enabled, bool locked = true);
     void set_amsync_pll_bw(float pll_bw);
 
 private:

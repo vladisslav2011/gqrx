@@ -635,6 +635,9 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
 
     uiDockInputCtl->readSettings(m_settings); // this will also update freq range
     uiDockRxOpt->readSettings(m_settings);
+    rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
+    rx->set_am_dcr(uiDockRxOpt->currentAmDcr());
+    rx->set_amsync_dcr(uiDockRxOpt->currentAmsyncDcr());
     uiDockFft->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
@@ -1231,9 +1234,6 @@ void MainWindow::selectDemod(int mode_idx)
     {
         rx->set_filter((double)flo, (double)fhi, d_filter_shape);
         rx->set_cw_offset(cwofs);
-        rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
-        rx->set_am_dcr(uiDockRxOpt->currentAmDcr());
-        rx->set_amsync_dcr(uiDockRxOpt->currentAmsyncDcr());
      }
 
     remote->setMode(mode_idx);
@@ -2036,7 +2036,17 @@ void MainWindow::on_actionLoadSettings_triggered()
     if (!cfgfile.endsWith(".conf", Qt::CaseSensitive))
         cfgfile.append(".conf");
 
+    bool dsp_running = ui->actionDSP->isChecked();
+
+    if (dsp_running)
+        // suspend DSP while we reload settings
+        on_actionDSP_triggered(false);
+
     loadConfig(cfgfile, cfgfile != m_settings->fileName(), cfgfile != m_settings->fileName());
+
+    if (dsp_running)
+        // restsart DSP
+        on_actionDSP_triggered(true);
 
     // store last dir
     QFileInfo fi(cfgfile);
@@ -2413,7 +2423,17 @@ void MainWindow::showSimpleTextFile(const QString &resource_path,
  */
 void MainWindow::loadConfigSlot(const QString &cfgfile)
 {
+    bool dsp_running = ui->actionDSP->isChecked();
+    if (dsp_running)
+        // suspend DSP while we reload settings
+        on_actionDSP_triggered(false);
+
     loadConfig(cfgfile, cfgfile != m_settings->fileName(), cfgfile != m_settings->fileName());
+
+    if (dsp_running)
+        // restsart DSP
+        on_actionDSP_triggered(true);
+
 }
 
 /**
