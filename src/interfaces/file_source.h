@@ -25,6 +25,8 @@
 
 #include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_block.h>
+#include <gnuradio/buffer.h>
+//#include <gnuradio/buffer_reader.h>
 #include <thread>
 #include <queue>
 #include <condition_variable>
@@ -64,9 +66,8 @@ private:
     pmt::pmt_t d_add_begin_tag;
 
     std::mutex d_mutex;
-    std::vector<uint8_t> d_buf;
-    uint8_t *    d_rp;
-    uint8_t *    d_wp;
+    gr::buffer_sptr d_writer;
+    gr::buffer_reader_sptr d_reader;
     std::condition_variable d_reader_wake;
     std::condition_variable d_reader_ready;
     bool         d_reader_finish;
@@ -107,6 +108,7 @@ public:
             gr_vector_void_star& output_items);
 
     void set_begin_tag(pmt::pmt_t val);
+    bool create_ringbuffer(bool safe);
 };
 
 #endif

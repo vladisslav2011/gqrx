@@ -125,6 +125,7 @@ else()
         ${Boost_LIBRARIES}
         ${GNURADIO_ALL_LIBRARIES}
         ${VOLK_LIBRARIES}
+        ${LOG4CPP_LIBRARIES}
     )
 endif()
 
