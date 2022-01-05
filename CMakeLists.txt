@@ -132,6 +132,7 @@ find_package(Gnuradio REQUIRED COMPONENTS analog audio blocks digital filter fft
 if(Gnuradio_VERSION VERSION_LESS "3.8")
     find_package(Volk)
 endif()
+find_package(Log4cpp REQUIRED)
 
 if(NOT Gnuradio_FOUND)
     message(FATAL_ERROR "GnuRadio Runtime required to compile gqrx")
