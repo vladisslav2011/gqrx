@@ -29,6 +29,8 @@
 #include "dsp/rx_fft.h"
 #include <algorithm>
 
+// FIXME 1M FFT, double buffer. Is it enough?
+#define FFT_MAX_BUFFER_SIZE (1024 * 1024 * 2)
 
 rx_fft_c_sptr make_rx_fft_c (unsigned int fftsize, double quad_rate, int wintype)
 {
@@ -58,8 +60,7 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
 #endif
 
     /* allocate circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_quadrate, sizeof(gr_complex));
-    d_reader = gr::buffer_add_reader(d_writer, 0);
+    allocate_buffer();
 
     /* create FFT window */
     set_window_type(wintype);
@@ -70,6 +71,15 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
 rx_fft_c::~rx_fft_c()
 {
     delete d_fft;
+}
+
+void rx_fft_c::allocate_buffer()
+{
+    int bufsz = d_fftsize + d_quadrate;
+    if (bufsz > FFT_MAX_BUFFER_SIZE)
+        bufsz = FFT_MAX_BUFFER_SIZE;
+    d_writer = gr::make_buffer(bufsz, sizeof(gr_complex));
+    d_reader = gr::buffer_add_reader(d_writer, 0);
 }
 
 /*! \brief Receiver FFT work method.
@@ -112,7 +122,7 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     {
         // not enough samples in the buffer
         fftSize = 0;
-
+        d_lasttime = std::chrono::steady_clock::now();
         return;
     }
 
@@ -161,8 +171,7 @@ void rx_fft_c::set_params()
     d_fftsize = n_fftsize;
 
     /* clear and resize circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_quadrate, sizeof(gr_complex));
-    d_reader = gr::buffer_add_reader(d_writer, 0);
+    allocate_buffer();
 
     /* reset window */
     int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
@@ -259,11 +268,11 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 #endif
 
     /* allocate circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_audiorate, sizeof(gr_complex));
-    d_reader = gr::buffer_add_reader(d_writer, 0);
+    allocate_buffer();
 
     /* create FFT window */
     set_window_type(wintype);
+    d_lasttime = std::chrono::steady_clock::now();
 }
 
 rx_fft_f::~rx_fft_f()
@@ -280,6 +289,16 @@ rx_fft_f::~rx_fft_f()
  * circular buffer.
  * FFT is only executed when the GUI asks for new FFT data via get_fft_data().
  */
+
+void rx_fft_f::allocate_buffer()
+{
+    int bufsz = d_fftsize + d_audiorate;
+    if (bufsz > FFT_MAX_BUFFER_SIZE)
+        bufsz = FFT_MAX_BUFFER_SIZE;
+    d_writer = gr::make_buffer(bufsz, sizeof(gr_complex));
+    d_reader = gr::buffer_add_reader(d_writer, 0);
+}
+
 int rx_fft_f::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
@@ -307,7 +326,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     {
         // not enough samples in the buffer
         fftSize = 0;
-
+        d_lasttime = std::chrono::steady_clock::now();
         return;
     }
 
@@ -357,8 +376,7 @@ void rx_fft_f::set_params()
     std::lock_guard<std::mutex> lock(d_mutex);
 
     /* clear and resize circular buffer */
-    d_writer = gr::make_buffer(d_fftsize + d_audiorate,sizeof(gr_complex));
-    d_reader = gr::buffer_add_reader(d_writer, 0);
+    allocate_buffer();
 
     /* reset window */
     int wintype = d_wintype; // FIXME: would be nicer with a window_reset()

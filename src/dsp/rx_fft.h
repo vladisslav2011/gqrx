@@ -113,6 +113,7 @@ private:
 
     void do_fft(unsigned int size);
     void set_params();
+    void allocate_buffer();
 
 };
 
@@ -184,6 +185,7 @@ private:
 
     void do_fft(unsigned int size);
     void set_params();
+    void allocate_buffer();
 
 };
 
