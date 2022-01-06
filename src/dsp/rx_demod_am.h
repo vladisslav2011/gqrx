@@ -66,6 +66,7 @@ public:
     ~rx_demod_am();
 
     void set_dcr(bool dcr);
+    void reset_iir();
 
 private:
     /* GR blocks */
@@ -110,6 +111,7 @@ public:
 
     void set_dcr(bool dcr);
     void set_pll_bw(float pll_bw);
+    void reset_iir();
 
 private:
     /* GR blocks */

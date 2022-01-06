@@ -116,10 +116,14 @@ public:
     void set_amsync_dcr(bool enabled);
     void set_amsync_pll_bw(float pll_bw);
 
+    void reset_iir();
+
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
     float  d_quad_rate;        /*!< Input sample rate. */
     int    d_audio_rate;       /*!< Audio output rate. */
+    double d_sql_level;        /*!< Squelch level. */
+    double d_sql_alpha;        /*!< Squelch alpha. */
 
     nbrx_demod                d_demod;    /*!< Current demodulator. */
 

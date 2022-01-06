@@ -67,6 +67,19 @@ void fm_deemph::set_tau(double tau)
     d_deemph->set_taps(d_fftaps, d_fbtaps);
 }
 
+/*! \brief Reset the iir filter by setting it's taps. */
+void fm_deemph::reset_iir()
+{
+    lock();
+    disconnect(self(), 0, d_deemph, 0);
+    disconnect(d_deemph, 0, self(), 0);
+    //disconnect(d_deemph);
+    d_deemph = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps, false);
+    connect(self(), 0, d_deemph, 0);
+    connect(d_deemph, 0, self(), 0);
+    unlock();
+}
+
 /*! \brief Calculate taps for FM de-emph IIR filter. */
 void fm_deemph::calculate_iir_taps(double tau)
 {

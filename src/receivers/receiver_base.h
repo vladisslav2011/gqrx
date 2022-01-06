@@ -106,6 +106,7 @@ public:
     virtual void reset_rds_parser();
     virtual bool is_rds_decoder_active();
 
+    virtual void reset_iir() = 0;
 };
 
 #endif // RECEIVER_BASE_H

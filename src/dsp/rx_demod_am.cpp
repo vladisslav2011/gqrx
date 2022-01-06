@@ -105,6 +105,22 @@ void rx_demod_am::set_dcr(bool dcr)
     d_dcr_enabled = dcr;
 }
 
+/*! \brief Reset the iir filter by setting it's taps. */
+void rx_demod_am::reset_iir()
+{
+    if(!d_dcr_enabled)
+    {
+        lock();
+        disconnect(d_demod, 0, d_dcr, 0);
+        disconnect(d_dcr, 0, self(), 0);
+        d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
+        connect(d_demod, 0, d_dcr, 0);
+        connect(d_dcr, 0, self(), 0);
+        unlock();
+    }
+}
+
+
 /* Create a new instance of rx_demod_amsync and return a boost shared_ptr. */
 rx_demod_amsync_sptr make_rx_demod_amsync(float quad_rate, bool dcr, float pll_bw)
 {
@@ -191,3 +207,19 @@ void rx_demod_amsync::set_pll_bw(float pll_bw)
     d_demod1->set_loop_bandwidth(pll_bw);
     d_demod1->update_gains();
 }
+
+/*! \brief Reset the iir filter by setting it's taps. */
+void rx_demod_amsync::reset_iir()
+{
+    if(!d_dcr_enabled)
+    {
+        lock();
+        disconnect(d_demod2, 0, d_dcr, 0);
+        disconnect(d_dcr, 0, self(), 0);
+        d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
+        connect(d_demod2, 0, d_dcr, 0);
+        connect(d_dcr, 0, self(), 0);
+        unlock();
+    }
+}
+

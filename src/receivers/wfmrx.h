@@ -109,10 +109,14 @@ public:
     void reset_rds_parser();
     bool is_rds_decoder_active();
 
+    void reset_iir();
+
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
     float  d_quad_rate;        /*!< Input sample rate. */
     int    d_audio_rate;       /*!< Audio output rate. */
+    double d_sql_level;        /*!< Squelch level. */
+    double d_sql_alpha;        /*!< Squelch alpha. */
 
     wfmrx_demod               d_demod;   /*!< Current demodulator. */
 

@@ -69,6 +69,7 @@ public:
     ~dc_corr_cc();
     void set_sample_rate(double sample_rate);
     void set_tau(double tau);
+    void reset_iir();
 
 private:
     gr::filter::single_pole_iir_filter_cc::sptr d_iir;

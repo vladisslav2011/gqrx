@@ -38,12 +38,14 @@ wfmrx::wfmrx(float quad_rate, float audio_rate)
       d_running(false),
       d_quad_rate(quad_rate),
       d_audio_rate(audio_rate),
+      d_sql_level(-150.0),
+      d_sql_alpha(0.001),
       d_demod(WFMRX_DEMOD_MONO)
 {
     iq_resamp = make_resampler_cc(PREF_QUAD_RATE/d_quad_rate);
 
     filter = make_rx_filter(PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
-    sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
+    sql = gr::analog::simple_squelch_cc::make(d_sql_level, d_sql_alpha);
     meter = make_rx_meter_c(PREF_QUAD_RATE);
     demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 75000.0, 0.0);
     stereo = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true);
@@ -133,11 +135,13 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
 
 void wfmrx::set_sql_level(double level_db)
 {
+    d_sql_level = level_db;
     sql->set_threshold(level_db);
 }
 
 void wfmrx::set_sql_alpha(double alpha)
 {
+    d_sql_alpha = alpha;
     sql->set_alpha(alpha);
 }
 
@@ -280,4 +284,16 @@ void wfmrx::reset_rds_parser()
 bool wfmrx::is_rds_decoder_active()
 {
     return rds_enabled;
+}
+
+void wfmrx::reset_iir()
+{
+    demod_fm->reset_iir();
+    lock();
+    disconnect(filter, 0, sql, 0);
+    disconnect(sql, 0, demod_fm, 0);
+    sql = gr::analog::simple_squelch_cc::make(d_sql_level, d_sql_alpha);
+    connect(filter, 0, sql, 0);
+    connect(sql, 0, demod_fm, 0);
+    unlock();
 }

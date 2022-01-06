@@ -38,6 +38,8 @@ nbrx::nbrx(float quad_rate, float audio_rate)
       d_running(false),
       d_quad_rate(quad_rate),
       d_audio_rate(audio_rate),
+      d_sql_level(-150.0),
+      d_sql_alpha(0.001),
       d_demod(NBRX_DEMOD_FM)
 {
     iq_resamp = make_resampler_cc(PREF_QUAD_RATE/d_quad_rate);
@@ -45,7 +47,7 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     nb = make_rx_nb_cc(PREF_QUAD_RATE, 3.3, 2.5);
     filter = make_rx_filter(PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
     agc = make_rx_agc_cc(PREF_QUAD_RATE, true, -100, 0, 0, 500, false);
-    sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
+    sql = gr::analog::simple_squelch_cc::make(d_sql_level, d_sql_alpha);
     meter = make_rx_meter_c(PREF_QUAD_RATE);
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
@@ -322,3 +324,21 @@ void nbrx::set_amsync_pll_bw(float pll_bw)
 {
     demod_amsync->set_pll_bw(pll_bw);
 }
+
+void nbrx::reset_iir()
+{
+    if (d_demod == NBRX_DEMOD_AMSYNC)
+        demod_amsync->reset_iir();
+    if (d_demod == NBRX_DEMOD_AM)
+        demod_am->reset_iir();
+    if (d_demod == NBRX_DEMOD_FM)
+        demod_fm->reset_iir();
+    lock();
+    disconnect(filter, 0, sql, 0);
+    disconnect(sql, 0, agc, 0);
+    sql = gr::analog::simple_squelch_cc::make(d_sql_level, d_sql_alpha);
+    connect(filter, 0, sql, 0);
+    connect(sql, 0, agc, 0);
+    unlock();
+}
+

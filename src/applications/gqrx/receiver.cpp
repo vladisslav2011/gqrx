@@ -244,6 +244,11 @@ void receiver::set_input_device(const std::string device)
         tb->connect(src, 0, iq_swap, 0);
     }
 
+    if (d_dc_cancel)
+        dc_corr->reset_iir();
+    if (d_demod != RX_DEMOD_OFF)
+        rx->reset_iir();
+
     if (d_running)
         tb->start();
 
@@ -1060,6 +1065,8 @@ receiver::status receiver::stop_audio_recording()
     wav_sink->close();
     tb->disconnect(rx, 0, wav_sink, 0);
     tb->disconnect(rx, 1, wav_sink, 1);
+    tb->disconnect(rx, 0, audio_fft, 0);
+    tb->connect(rx, 0, audio_fft, 0);
     tb->unlock();
     wav_sink.reset();
     d_recording_wav = false;
@@ -1285,6 +1292,8 @@ receiver::status receiver::stop_sniffer()
     tb->lock();
     tb->disconnect(rx, 0, sniffer_rr, 0);
     tb->disconnect(sniffer_rr, 0, sniffer, 0);
+    tb->disconnect(rx, 0, audio_fft, 0);
+    tb->connect(rx, 0, audio_fft, 0);
     tb->unlock();
     d_sniffer_active = false;
 
