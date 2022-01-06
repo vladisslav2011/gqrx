@@ -398,11 +398,11 @@ int file_source::work(int noutput_items,
             d_buffering = true;
         if(d_buffering)
         {
-            //d_reader_ready.wait(guard);
+            d_reader_ready.wait(guard);
             //output zeroes while we are buffering
-            guard.unlock();
-            memset(o, 0, d_itemsize * noutput_items);
-            return noutput_items;
+            //guard.unlock();
+            //memset(o, 0, d_itemsize * noutput_items);
+            //return noutput_items;
         }
         uint64_t to_copy = std::min(size, items_available);
         if(to_copy > d_items_remaining)
