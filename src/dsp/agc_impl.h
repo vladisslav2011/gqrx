@@ -27,7 +27,26 @@ typedef struct _dCplx
 
 #define TYPECPX std::complex<float>
 
+class CAgc
+{
+public:
+    CAgc();
+    virtual ~CAgc();
+    void SetParameters(double sample_rate, bool agc_on, int target_level, int manual_gain, int max_gain, int attack, int decay, int hang);
+    void ProcessData(float * pOutData, const float * pInData, int Length);
+    void ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length);
 
+private:
+    float d_sample_rate;
+    bool d_agc_on;
+    int d_target_level;
+    int d_manual_gain;
+    int d_max_gain;
+    int d_attack;
+    int d_decay;
+};
+
+# if 0
 class CAgc
 {
 public:
@@ -74,5 +93,6 @@ private:
 
     float       m_MagBuf[MAX_DELAY_BUF];
 };
+#endif
 
 #endif //  AGC_IMPL_H

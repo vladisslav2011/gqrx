@@ -53,9 +53,8 @@ typedef std::shared_ptr<rx_agc_cc> rx_agc_cc_sptr;
  * To avoid accidental use of raw pointers, the rx_agc_cc constructor is private.
  * make_rx_agc_cc is the public interface for creating new instances.
  */
-rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int threshold,
-                              int manual_gain, int slope, int decay,
-                              bool use_hang);
+rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int target_level,
+                              int manual_gain, int max_gain, int attack, int decay, int hang);
 
 /**
  * \brief Experimental AGC block for analog voice modes (AM, SSB, CW).
@@ -66,13 +65,12 @@ rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int threshold,
  */
 class rx_agc_cc : public gr::sync_block
 {
-    friend rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on,
-                                         int threshold, int manual_gain,
-                                         int slope, int decay, bool use_hang);
+    friend rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int target_level,
+                                         int manual_gain, int max_gain, int attack, int decay, int hang);
 
 protected:
-    rx_agc_cc(double sample_rate, bool agc_on, int threshold, int manual_gain,
-              int slope, int decay, bool use_hang);
+    rx_agc_cc(double sample_rate, bool agc_on, int target_level,
+              int manual_gain, int max_gain, int attack, int decay, int hang);
 
 public:
     ~rx_agc_cc();
@@ -83,23 +81,27 @@ public:
 
     void set_agc_on(bool agc_on);
     void set_sample_rate(double sample_rate);
-    void set_threshold(int threshold);
+    void set_target_level(int target_level);
     void set_manual_gain(int gain);
-    void set_slope(int slope);
+    void set_max_gain(int gain);
+    void set_attack(int attack);
     void set_decay(int decay);
-    void set_use_hang(bool use_hang);
+    void set_hang(int hang);
 
 private:
+    void reconfigure();
+
     CAgc           *d_agc;
     std::mutex      d_mutex;  /*! Used to lock internal data while processing or setting parameters. */
 
     bool            d_agc_on;        /*! Current AGC status (true/false). */
     double          d_sample_rate;   /*! Current sample rate. */
-    int             d_threshold;     /*! Current AGC threshold (-160...0 dB). */
+    int             d_target_level;  /*! SGC target level (-160...0 dB). */
     int             d_manual_gain;   /*! Current gain when AGC is OFF. */
-    int             d_slope;         /*! Current AGC slope (0...10 dB). */
+    int             d_max_gain;      /*! Maximum gain when AGC is ON. */
+    int             d_attack;        /*! Current AGC attack (20...5000 ms). */
     int             d_decay;         /*! Current AGC decay (20...5000 ms). */
-    bool            d_use_hang;      /*! Current AGC hang status (true/false). */
+    int             d_hang;          /*! Current AGC hang (20...5000 ms). */
 };
 
 #endif /* RX_AGC_XX_H */

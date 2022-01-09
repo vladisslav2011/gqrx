@@ -939,29 +939,47 @@ receiver::status receiver::set_agc_on(bool agc_on)
     return STATUS_OK; // FIXME
 }
 
-/** Enable/disable AGC hang. */
-receiver::status receiver::set_agc_hang(bool use_hang)
+/** Set AGC hang. */
+receiver::status receiver::set_agc_hang(int hang_ms)
 {
     if (rx->has_agc())
-        rx->set_agc_hang(use_hang);
+        rx->set_agc_hang(hang_ms);
 
     return STATUS_OK; // FIXME
 }
 
-/** Set AGC threshold. */
-receiver::status receiver::set_agc_threshold(int threshold)
+/** Set AGC target level. */
+receiver::status receiver::set_agc_target_level(int target_level)
 {
     if (rx->has_agc())
-        rx->set_agc_threshold(threshold);
+        rx->set_agc_target_level(target_level);
 
     return STATUS_OK; // FIXME
 }
 
-/** Set AGC slope. */
-receiver::status receiver::set_agc_slope(int slope)
+/** Set fixed gain used when AGC is OFF. */
+receiver::status receiver::set_agc_manual_gain(int gain)
 {
     if (rx->has_agc())
-        rx->set_agc_slope(slope);
+        rx->set_agc_manual_gain(gain);
+
+    return STATUS_OK; // FIXME
+}
+
+/** Set maximum gain used when AGC is ON. */
+receiver::status receiver::set_agc_max_gain(int gain)
+{
+    if (rx->has_agc())
+        rx->set_agc_max_gain(gain);
+
+    return STATUS_OK; // FIXME
+}
+
+/** Set AGC attack. */
+receiver::status receiver::set_agc_attack(int attack_ms)
+{
+    if (rx->has_agc())
+        rx->set_agc_attack(attack_ms);
 
     return STATUS_OK; // FIXME
 }
@@ -975,14 +993,6 @@ receiver::status receiver::set_agc_decay(int decay_ms)
     return STATUS_OK; // FIXME
 }
 
-/** Set fixed gain used when AGC is OFF. */
-receiver::status receiver::set_agc_manual_gain(int gain)
-{
-    if (rx->has_agc())
-        rx->set_agc_manual_gain(gain);
-
-    return STATUS_OK; // FIXME
-}
 
 receiver::status receiver::set_demod(rx_demod demod, enum file_formats fmt, bool force)
 {
