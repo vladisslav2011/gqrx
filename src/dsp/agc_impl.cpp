@@ -46,7 +46,18 @@
 
 #define MIN_GAIN exp10f(-20)
 
-CAgc::CAgc()
+CAgc::CAgc():
+    d_sample_rate(0),
+    d_agc_on(false),
+    d_target_level(0),
+    d_manual_gain(0),
+    d_max_gain(100),
+    d_attack(0),
+    d_decay(0),
+    d_hang(0),
+    d_target_mag(0),
+    d_buf_size(0),
+    d_buf_p(0)
 {
     SetParameters(2000, 0, 0, 0, 100, 50, 50, 0, true);
 }
@@ -108,7 +119,6 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int 
         d_hang = hang;
         hang_changed = true;
     }
-
     if (samp_rate_changed || attack_changed)
     {
         d_buf_samples = sample_rate * d_attack / 1000.0;
