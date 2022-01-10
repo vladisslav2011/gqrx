@@ -41,6 +41,7 @@
 #include <math.h>
 #include <string.h>
 #include <iostream>
+#include <volk/volk.h>
 
 #define NO_AGC_DEBUG
 
@@ -145,7 +146,7 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int 
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = exp10f(float(d_manual_gain) / 10.0);
     if (max_gain_changed || attack_changed || samp_rate_changed)
-        d_attack_step = exp10f(float(d_max_gain) / float(d_buf_samples) / 10.0);
+        d_attack_step = 1 / exp10f(float(d_max_gain) / float(d_buf_samples) / 10.0);
     if (max_gain_changed || decay_changed || samp_rate_changed)
         d_decay_step = exp10f(float(d_max_gain) / float(sample_rate * d_decay / 1000.0) / 10.0);
     if (hang_changed || samp_rate_changed)
@@ -199,12 +200,20 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
     int k;
     float max_out = 0;
     float mag_in = 0;
+    #if 0
+    volk_32fc_magnitude_squared_32f((float*) pOutData, pInData, Length);
+    float * mag_vect = &((float *)pOutData)[Length];
+    volk_32f_invsqrt_32f(mag_vect, (float*) pOutData, Length);
+    #else
+    volk_32fc_magnitude_32f((float*) pOutData, pInData, Length);
+    float * mag_vect = &((float *)pOutData)[0];
+    #endif
     for (k = 0; k < Length; k++)
     {
         TYPECPX sample_in = pInData[k];
         if (d_agc_on)
         {
-            mag_in = sqrtf(sample_in.real() * sample_in.real() + sample_in.imag() * sample_in.imag());
+            mag_in = mag_vect[k];
             TYPECPX sample_out = d_sample_buf[d_buf_p];
 
             d_sample_buf[d_buf_p] = sample_in;
@@ -237,7 +246,7 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
             if(d_current_gain > d_target_gain)
             {
                 //attack, decrease gain one step per sample
-                d_current_gain /= d_attack_step;
+                d_current_gain *= d_attack_step;
             }
             else
             {
