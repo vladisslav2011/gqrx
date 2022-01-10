@@ -194,11 +194,6 @@ void CAgc::update_buffer(int p)
 
 }
 
-void CAgc::ProcessData(float * pOutData, const float * pInData, int Length)
-{
-    memcpy(pOutData, pInData, Length * sizeof(pOutData[0]));
-}
-
 void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
 {
     int k;

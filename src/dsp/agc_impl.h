@@ -25,7 +25,6 @@ public:
     void SetParameters(double sample_rate, bool agc_on, int target_level,
                        int manual_gain, int max_gain, int attack, int decay,
                        int hang, bool force = false);
-    void ProcessData(float * pOutData, const float * pInData, int Length);
     void ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length);
 
 private:
