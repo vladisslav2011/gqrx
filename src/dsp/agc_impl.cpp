@@ -42,7 +42,7 @@
 #include <string.h>
 #include <iostream>
 
-//#define AGC_DEBUG
+#define NO_AGC_DEBUG
 
 #define MIN_GAIN exp10f(-20)
 
@@ -66,7 +66,6 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int 
     bool attack_changed = false;
     bool decay_changed = false;
     bool hang_changed = false;
-//    bool _changed = false;
     if (d_sample_rate != sample_rate || force)
     {
         d_sample_rate = sample_rate;
@@ -173,14 +172,14 @@ void CAgc::update_buffer(int p)
     int base = d_buf_size;
     while(base > 1)
     {
-        float max_p=std::max(d_mag_buf[ofs + p],d_mag_buf[ofs + (p ^ 1)]);
-        p = p / 2;
+        float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
+        p = p >> 1;
         ofs += base;
         if(d_mag_buf[ofs + p] != max_p)
             d_mag_buf[ofs + p] = max_p;
         else
             break;
-        base /= 2;
+        base = base >> 1;
     }
 
 }
@@ -195,35 +194,38 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
     int k;
     float max_out = 0;
     float mag_in = 0;
-    for(k = 0; k < Length; k++)
+    for (k = 0; k < Length; k++)
     {
         TYPECPX sample_in = pInData[k];
-        mag_in = sqrtf(sample_in.real() * sample_in.real() + sample_in.imag() * sample_in.imag());
-        TYPECPX sample_out = d_sample_buf[d_buf_p];
-
-        d_sample_buf[d_buf_p] = sample_in;
-        d_mag_buf[d_buf_p] = mag_in;
-        update_buffer(d_buf_p);
-        max_out = get_peak();
-
-        int buf_p_next = d_buf_p + 1;
-        if(buf_p_next >= d_buf_samples)
-            buf_p_next = 0;
-
-        if(d_agc_on)
+        if (d_agc_on)
         {
-            if(max_out > d_floor)
+            mag_in = sqrtf(sample_in.real() * sample_in.real() + sample_in.imag() * sample_in.imag());
+            TYPECPX sample_out = d_sample_buf[d_buf_p];
+
+            d_sample_buf[d_buf_p] = sample_in;
+            d_mag_buf[d_buf_p] = mag_in;
+            update_buffer(d_buf_p);
+            max_out = get_peak();
+
+            int buf_p_next = d_buf_p + 1;
+            if(buf_p_next >= d_buf_samples)
+                buf_p_next = 0;
+
+            if (max_out > d_floor)
             {
                 float new_target = d_target_mag / max_out;
-                if(new_target < d_target_gain)
+                if (new_target < d_target_gain)
                 {
-                    if(d_current_gain > d_target_gain)
+                    if (d_current_gain > d_target_gain)
                         d_hang_counter = d_buf_samples + d_hang_samp;
                     d_target_gain = new_target;
-                }else
-                    if(!d_hang_counter)
+                }
+                else
+                    if (!d_hang_counter)
                         d_target_gain = new_target;
-            }else{
+            }
+            else
+            {
                 d_target_gain = d_max_gain;
                 d_hang_counter = 0;
             }
@@ -231,25 +233,28 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
             {
                 //attack, decrease gain one step per sample
                 d_current_gain /= d_attack_step;
-            }else{
-                if(d_hang_counter <= 0)
+            }
+            else
+            {
+                if (d_hang_counter <= 0)
                 {
                     //decay, increase gain one step per sample until we reach d_max_gain
-                    if(d_current_gain < d_max_gain)
+                    if (d_current_gain < d_max_gain)
                         d_current_gain *= d_decay_step;
-                    if(d_current_gain > d_max_gain)
+                    if (d_current_gain > d_max_gain)
                         d_current_gain = d_max_gain;
                 }
             }
-            if(d_hang_counter > 0)
+            if (d_hang_counter > 0)
                 d_hang_counter--;
-            if(d_current_gain < MIN_GAIN)
+            if (d_current_gain < MIN_GAIN)
                 d_current_gain = MIN_GAIN;
+            pOutData[k] = sample_out * d_current_gain;
+            d_buf_p = buf_p_next;
         }
-        pOutData[k] = sample_out * d_current_gain;
-        d_buf_p = buf_p_next;
+        else
+            pOutData[k] = sample_in * d_current_gain;
     }
-    //memcpy(pOutData, pInData, Length * sizeof(pOutData[0]));
     #ifdef AGC_DEBUG
     if(d_prev_dbg != d_target_gain)
     {
