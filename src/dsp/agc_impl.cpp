@@ -7,6 +7,7 @@
 //	2010-09-15  Initial creation MSW
 //	2011-03-27  Initial release
 //      2011-09-24  Adapted for gqrx
+//      2022-01-10  Rewritten with low complexity alogo
 //////////////////////////////////////////////////////////////////////
 //==========================================================================================
 // + + +   This Software is released under the "Simplified BSD License"  + + +
@@ -136,12 +137,12 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int 
         {
             d_buf_size = buf_size;
             d_sample_buf.clear();
-            d_sample_buf.resize(d_buf_samples, 0);
+            d_sample_buf.resize(d_buf_size, 0);
             d_mag_buf.clear();
             d_mag_buf.resize(d_buf_size * 2, 0);
             d_buf_p = 0;
             d_max_idx = d_buf_size * 2 - 2;
-        }
+         }
     }
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = exp10f(float(d_manual_gain) / 10.0);
@@ -186,6 +187,8 @@ void CAgc::update_buffer(int p)
         float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
         p = p >> 1;
         ofs += base;
+        if(ofs >= d_buf_size * 2)
+            throw(std::runtime_error("ofs >= d_buf_size * 2"));
         if(d_mag_buf[ofs + p] != max_p)
             d_mag_buf[ofs + p] = max_p;
         else
@@ -200,13 +203,12 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
     int k;
     float max_out = 0;
     float mag_in = 0;
+    float * mag_vect = &((float *)pOutData)[Length];
     #if 0
     volk_32fc_magnitude_squared_32f((float*) pOutData, pInData, Length);
-    float * mag_vect = &((float *)pOutData)[Length];
     volk_32f_invsqrt_32f(mag_vect, (float*) pOutData, Length);
     #else
-    volk_32fc_magnitude_32f((float*) pOutData, pInData, Length);
-    float * mag_vect = &((float *)pOutData)[0];
+    volk_32fc_magnitude_32f(mag_vect, pInData, Length);
     #endif
     for (k = 0; k < Length; k++)
     {
@@ -277,3 +279,10 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
     }
     #endif
 }
+
+
+float CAgc::CurrentGainDb()
+{
+    return 10.0 * log10f(d_current_gain);
+}
+

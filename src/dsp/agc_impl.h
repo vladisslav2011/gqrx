@@ -7,7 +7,7 @@
 //  2010-09-15  Initial creation MSW
 //  2011-03-27  Initial release
 //  2011-09-24  Adapted for gqrx
-//  2022-01-10  Rewritten with O(LOG(attack)) complexity alogo
+//  2022-01-10  Rewritten with low complexity alogo
 //////////////////////////////////////////////////////////////////////
 #ifndef AGC_IMPL_H
 #define AGC_IMPL_H
@@ -26,6 +26,7 @@ public:
                        int manual_gain, int max_gain, int attack, int decay,
                        int hang, bool force = false);
     void ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length);
+    float CurrentGainDb();
 
 private:
     float get_peak();
