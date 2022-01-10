@@ -69,7 +69,9 @@ CAgc::~CAgc()
 
 }
 
-void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int manual_gain, int max_gain, int attack, int decay, int hang, bool force)
+void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level,
+                         int manual_gain, int max_gain, int attack, int decay,
+                         int hang, bool force)
 {
     bool samp_rate_changed = false;
     bool agc_on_changed = false;
@@ -147,11 +149,11 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int 
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = exp10f(float(d_manual_gain) / 10.0);
     if (max_gain_changed || attack_changed || samp_rate_changed)
-        d_attack_step = 1 / exp10f(float(d_max_gain) / float(d_buf_samples) / 10.0);
+        d_attack_step = 1.0 / exp10f(float(d_max_gain) / float(d_buf_samples) / 10.0);
     if (max_gain_changed || decay_changed || samp_rate_changed)
         d_decay_step = exp10f(float(d_max_gain) / float(sample_rate * d_decay / 1000.0) / 10.0);
     if (hang_changed || samp_rate_changed)
-        d_hang_samp = sample_rate * d_hang /1000.0;
+        d_hang_samp = sample_rate * d_hang / 1000.0;
 
     if (target_level_changed || max_gain_changed)
         d_floor = exp10f(float(d_target_level - d_max_gain) / 10.0);
@@ -182,7 +184,7 @@ void CAgc::update_buffer(int p)
 {
     int ofs = 0;
     int base = d_buf_size;
-    while(base > 1)
+    while (base > 1)
     {
         float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
         p = p >> 1;
@@ -217,7 +219,7 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
             max_out = get_peak();
 
             int buf_p_next = d_buf_p + 1;
-            if(buf_p_next >= d_buf_samples)
+            if (buf_p_next >= d_buf_samples)
                 buf_p_next = 0;
 
             if (max_out > d_floor)
@@ -238,7 +240,7 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
                 d_target_gain = d_max_gain;
                 d_hang_counter = 0;
             }
-            if(d_current_gain > d_target_gain)
+            if (d_current_gain > d_target_gain)
             {
                 //attack, decrease gain one step per sample
                 d_current_gain *= d_attack_step;

@@ -39,22 +39,26 @@ typedef std::shared_ptr<rx_agc_cc> rx_agc_cc_sptr;
 
 /**
  * \brief Return a shared_ptr to a new instance of rx_agc_cc.
- * \param sample_rate The sample rate (default = 96000).
- * \param agc_on      Whether AGC should be ON (default = true).
- * \param threshold   AGC Knee in dB if AGC is active. Range -160 to 0 dB.
- * \param manual_gain Manual gain when AGC is OFF. Range 0 to 100 dB.
- * \param slope       AGC slope factor. Specifies dB reduction in output at
- *                    knee from maximum output level. Range 0 to 10 dB
- * \param decay       AGC decay time in milliseconds. Range 20 to 5000. This
- *                    parameter determines whether AGC is fast, slow or medium.
- * \param use_hang    Whether AGC should "hang" before starting to decay.
+ * \param sample_rate  The sample rate (default = 96000).
+ * \param agc_on       Whether AGC should be ON (default = true).
+ * \param target_level Target output level in dB if AGC is active. Range -160 to 0 dB.
+ * \param manual_gain  Manual gain when AGC is OFF. Range -160 to 160 dB.
+ * \param max_gain     Maximum gain when AGC is ON. Range 0 to 100 dB.
+ * \param attack       AGC maximum attack time in milliseconds. Range 20 to 5000. This
+ *                     parameter determines whether AGC is fast, slow or medium.
+ *                     It is recommenfded to set it below 1000 ms to reduce audio lag.
+ * \param decay        AGC decay time in milliseconds. Range 20 to 5000. This
+ *                     parameter determines whether AGC is fast, slow or medium.
+ * \param hang         The time AGC should "hang" before starting to decay in
+ *                     milliseconds. Range 0 to 5000.
  *
  * This is effectively the public constructor for a new AGC block.
  * To avoid accidental use of raw pointers, the rx_agc_cc constructor is private.
  * make_rx_agc_cc is the public interface for creating new instances.
  */
 rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int target_level,
-                              int manual_gain, int max_gain, int attack, int decay, int hang);
+                              int manual_gain, int max_gain, int attack,
+                              int decay, int hang);
 
 /**
  * \brief Experimental AGC block for analog voice modes (AM, SSB, CW).
@@ -65,8 +69,10 @@ rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int target_level,
  */
 class rx_agc_cc : public gr::sync_block
 {
-    friend rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int target_level,
-                                         int manual_gain, int max_gain, int attack, int decay, int hang);
+    friend rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on,
+                                         int target_level, int manual_gain,
+                                         int max_gain, int attack, int decay,
+                                         int hang);
 
 protected:
     rx_agc_cc(double sample_rate, bool agc_on, int target_level,
@@ -101,7 +107,7 @@ private:
     int             d_max_gain;      /*! Maximum gain when AGC is ON. */
     int             d_attack;        /*! Current AGC attack (20...5000 ms). */
     int             d_decay;         /*! Current AGC decay (20...5000 ms). */
-    int             d_hang;          /*! Current AGC hang (20...5000 ms). */
+    int             d_hang;          /*! Current AGC hang (0...5000 ms). */
 };
 
 #endif /* RX_AGC_XX_H */
