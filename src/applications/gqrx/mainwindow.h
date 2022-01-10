@@ -80,8 +80,6 @@ private:
     qint64 d_hw_freq;
     qint64 d_hw_freq_start{};
     qint64 d_hw_freq_stop{};
-    qint64 backupFreq; /* for IQ player */
-    qint64 backupOffset; /* for IQ player */
 
     bool d_ignore_limits;
 
@@ -183,9 +181,10 @@ private slots:
     void stopAudioStreaming();
 
     /* I/Q playback and recording*/
-    void startIqRecording(const QString& recdir);
+    QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
+    void startIqRecording(const QString& recdir, file_formats fmt);
     void stopIqRecording();
-    void startIqPlayback(const QString& filename, float samprate, qint64 center_freq);
+    void startIqPlayback(const QString& filename, float samprate, qint64 center_freq, file_formats fmt);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
 
