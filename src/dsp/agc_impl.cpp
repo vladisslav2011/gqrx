@@ -40,10 +40,15 @@
 #include <dsp/agc_impl.h>
 #include <math.h>
 #include <string.h>
+#include <iostream>
+
+//#define AGC_DEBUG
+
+#define MIN_GAIN exp10f(-20)
 
 CAgc::CAgc()
 {
-
+    SetParameters(2000, 0, 0, 0, 100, 50, 50, 0, true);
 }
 
 CAgc::~CAgc()
@@ -51,8 +56,132 @@ CAgc::~CAgc()
 
 }
 
-void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int manual_gain, int max_gain, int attack, int decay, int hang)
+void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level, int manual_gain, int max_gain, int attack, int decay, int hang, bool force)
 {
+    bool samp_rate_changed = false;
+    bool agc_on_changed = false;
+    bool target_level_changed = false;
+    bool manual_gain_changed = false;
+    bool max_gain_changed = false;
+    bool attack_changed = false;
+    bool decay_changed = false;
+    bool hang_changed = false;
+//    bool _changed = false;
+    if (d_sample_rate != sample_rate || force)
+    {
+        d_sample_rate = sample_rate;
+        samp_rate_changed = true;
+    }
+    if (d_agc_on != agc_on  || force)
+    {
+        d_agc_on = agc_on;
+        agc_on_changed = true;
+    }
+    if (d_target_level != target_level || force)
+    {
+        d_target_level = target_level;
+        d_target_mag = exp10f(float(d_target_level) / 10.0);
+        target_level_changed = true;
+    }
+    if (d_manual_gain != manual_gain || force)
+    {
+        d_manual_gain = manual_gain;
+        manual_gain_changed = true;
+        d_max_gain = max_gain;
+    }
+    if (d_max_gain != max_gain || force)
+    {
+        d_max_gain = max_gain;
+        max_gain_changed = true;
+    }
+    if (d_attack != attack || force)
+    {
+        d_attack = attack;
+        attack_changed = true;
+    }
+    if (d_decay != decay || force)
+    {
+        d_decay = decay;
+        decay_changed = true;
+    }
+    if (d_hang != hang || force)
+    {
+        d_hang = hang;
+        hang_changed = true;
+    }
+
+    if (samp_rate_changed || attack_changed)
+    {
+        d_buf_samples = sample_rate * d_attack / 1000.0;
+        int buf_size = 1;
+        for(unsigned int k = 0; k < sizeof(int) * 8; k++)
+        {
+            buf_size *= 2;
+            if(buf_size >= d_buf_samples)
+                break;
+        }
+        if (d_buf_p >= d_buf_samples)
+            d_buf_p %= d_buf_samples;
+        if(d_buf_size != buf_size)
+        {
+            d_buf_size = buf_size;
+            d_sample_buf.clear();
+            d_sample_buf.resize(d_buf_samples, 0);
+            d_mag_buf.clear();
+            d_mag_buf.resize(d_buf_size * 2, 0);
+            d_buf_p = 0;
+            d_max_idx = d_buf_size * 2 - 2;
+        }
+    }
+    if ((manual_gain_changed || agc_on_changed) && !agc_on)
+        d_current_gain = exp10f(float(d_manual_gain) / 10.0);
+    if (max_gain_changed || attack_changed || samp_rate_changed)
+        d_attack_step = exp10f(float(d_max_gain) / float(d_buf_samples) / 10.0);
+    if (max_gain_changed || decay_changed || samp_rate_changed)
+        d_decay_step = exp10f(float(d_max_gain) / float(sample_rate * d_decay / 1000.0) / 10.0);
+    if (hang_changed || samp_rate_changed)
+        d_hang_samp = sample_rate * d_hang /1000.0;
+
+    if (target_level_changed || max_gain_changed)
+        d_floor = exp10f(float(d_target_level - d_max_gain) / 10.0);
+    #ifdef AGC_DEBUG
+    std::cerr<<std::endl<<
+        "d_target_mag="<<d_target_mag<<std::endl<<
+        "d_target_level="<<d_target_level<<std::endl<<
+        "d_manual_gain="<<d_manual_gain<<std::endl<<
+        "d_max_gain="<<d_max_gain<<std::endl<<
+        "d_attack="<<d_attack<<std::endl<<
+        "d_attack_step="<<d_attack_step<<std::endl<<
+        "d_decay="<<d_decay<<std::endl<<
+        "d_decay_step="<<d_decay_step<<std::endl<<
+        "d_hang="<<d_hang<<std::endl<<
+        "d_hang_samp="<<d_hang_samp<<std::endl<<
+        "d_buf_samples="<<d_buf_samples<<std::endl<<
+        "d_buf_size="<<d_buf_size<<std::endl<<
+        "";
+    #endif
+}
+
+float CAgc::get_peak()
+{
+    return d_mag_buf[d_max_idx];
+}
+
+void CAgc::update_buffer(int p)
+{
+    int ofs = 0;
+    int base = d_buf_size;
+    while(base > 1)
+    {
+        float max_p=std::max(d_mag_buf[ofs + p],d_mag_buf[ofs + (p ^ 1)]);
+        p = p / 2;
+        ofs += base;
+        if(d_mag_buf[ofs + p] != max_p)
+            d_mag_buf[ofs + p] = max_p;
+        else
+            break;
+        base /= 2;
+    }
 
 }
 
@@ -63,5 +192,68 @@ void CAgc::ProcessData(float * pOutData, const float * pInData, int Length)
 
 void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
 {
-    memcpy(pOutData, pInData, Length * sizeof(pOutData[0]));
+    int k;
+    float max_out = 0;
+    float mag_in = 0;
+    for(k = 0; k < Length; k++)
+    {
+        TYPECPX sample_in = pInData[k];
+        mag_in = sqrtf(sample_in.real() * sample_in.real() + sample_in.imag() * sample_in.imag());
+        TYPECPX sample_out = d_sample_buf[d_buf_p];
+
+        d_sample_buf[d_buf_p] = sample_in;
+        d_mag_buf[d_buf_p] = mag_in;
+        update_buffer(d_buf_p);
+        max_out = get_peak();
+
+        int buf_p_next = d_buf_p + 1;
+        if(buf_p_next >= d_buf_samples)
+            buf_p_next = 0;
+
+        if(d_agc_on)
+        {
+            if(max_out > d_floor)
+            {
+                float new_target = d_target_mag / max_out;
+                if(new_target < d_target_gain)
+                {
+                    d_hang_counter = d_buf_samples + d_hang_samp;
+                    d_target_gain = new_target;
+                }else
+                    if(!d_hang_counter)
+                        d_target_gain = new_target;
+            }else{
+                d_target_gain = d_max_gain;
+                d_hang_counter = 0;
+            }
+            if(d_current_gain > d_target_gain)
+            {
+                //attack, decrease gain one step per sample
+                d_current_gain /= d_attack_step;
+            }else{
+                if(d_hang_counter <= 0)
+                {
+                    //decay, increase gain one step per sample until we reach d_max_gain
+                    if(d_current_gain < d_max_gain)
+                        d_current_gain *= d_decay_step;
+                    if(d_current_gain > d_max_gain)
+                        d_current_gain = d_max_gain;
+                }
+            }
+            if(d_hang_counter > 0)
+                d_hang_counter--;
+            if(d_current_gain < MIN_GAIN)
+                d_current_gain = MIN_GAIN;
+        }
+        pOutData[k] = sample_out * d_current_gain;
+        d_buf_p = buf_p_next;
+    }
+    //memcpy(pOutData, pInData, Length * sizeof(pOutData[0]));
+    #ifdef AGC_DEBUG
+    if(d_prev_dbg != d_target_gain)
+    {
+        std::cerr<<"------ d_target_gain="<<d_target_gain<<" d_current_gain="<<d_current_gain<<" d_hang_counter="<<d_hang_counter<<  std::endl;
+        d_prev_dbg = d_target_gain;
+    }
+    #endif
 }

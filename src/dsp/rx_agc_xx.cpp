@@ -203,7 +203,7 @@ void rx_agc_cc::set_decay(int decay)
  */
 void rx_agc_cc::set_hang(int hang)
 {
-    if ((hang != d_hang) && (hang >= 20) && (hang <= 5000)) {
+    if ((hang != d_hang) && (hang >= 0) && (hang <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_hang = hang;
         reconfigure();

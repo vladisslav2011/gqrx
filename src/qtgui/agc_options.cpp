@@ -67,9 +67,9 @@ void CAgcOptions::setPreset(agc_preset_e preset)
     switch (preset)
     {
     case AGC_FAST:
-        setAttack(100);
+        setAttack(50);
         setDecay(100);
-        setHang(100);
+        setHang(0);
         enableAttack(false);
         enableDecay(false);
         enableHang(false);
@@ -77,9 +77,9 @@ void CAgcOptions::setPreset(agc_preset_e preset)
         break;
 
     case AGC_MEDIUM:
-        setAttack(500);
+        setAttack(200);
         setDecay(500);
-        setHang(500);
+        setHang(0);
         enableAttack(false);
         enableDecay(false);
         enableHang(false);
@@ -87,9 +87,9 @@ void CAgcOptions::setPreset(agc_preset_e preset)
         break;
 
     case AGC_SLOW:
-        setAttack(2000);
+        setAttack(500);
         setDecay(2000);
-        setHang(2000);
+        setHang(0);
         enableAttack(false);
         enableDecay(false);
         enableHang(false);

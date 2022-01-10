@@ -183,7 +183,7 @@
          <string>AGC threshold (aka. knee)</string>
         </property>
         <property name="minimum">
-         <number>-160</number>
+         <number>-100</number>
         </property>
         <property name="maximum">
          <number>0</number>
@@ -199,7 +199,7 @@
       <item row="1" column="0">
        <widget class="QLabel" name="maxGainTitle">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
          <string>Max Gain</string>
@@ -212,7 +212,7 @@
       <item row="1" column="1">
        <widget class="QSlider" name="maxGainSlider">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="focusPolicy">
          <enum>Qt::StrongFocus</enum>
@@ -237,7 +237,7 @@
       <item row="1" column="2">
        <widget class="QLabel" name="maxGainLabel">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="toolTip">
          <string>Manual gain. Used when AGC is switched off</string>
@@ -262,10 +262,10 @@
          <string>AGC decay time</string>
         </property>
         <property name="minimum">
-         <number>50</number>
+         <number>20</number>
         </property>
         <property name="maximum">
-         <number>5000</number>
+         <number>1000</number>
         </property>
         <property name="singleStep">
          <number>10</number>
@@ -322,7 +322,7 @@
          <string>AGC decay time</string>
         </property>
         <property name="minimum">
-         <number>50</number>
+         <number>0</number>
         </property>
         <property name="maximum">
          <number>5000</number>

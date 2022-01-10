@@ -434,7 +434,7 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (conv_ok)
         agcOpt->setThreshold(int_val);
     #endif
-    int_val = settings->value("receiver/agc_target_level", -100).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_target_level", 0).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setTargetLevel(int_val);
 
@@ -453,11 +453,11 @@ void DockRxOpt::readSettings(QSettings *settings)
             ui->agcPresetCombo->setCurrentIndex(3);
     }
 
-    int_val = settings->value("receiver/agc_attack", 500).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_attack", 50).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setAttack(int_val);
 
-    int_val = settings->value("receiver/agc_hang", 500).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_hang", 50).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setHang(int_val);
 
