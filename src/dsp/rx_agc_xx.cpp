@@ -144,7 +144,7 @@ void rx_agc_cc::set_target_level(int target_level)
  */
 void rx_agc_cc::set_manual_gain(int gain)
 {
-    if ((gain != d_manual_gain) && (gain >= 0) && (gain <= 100)) {
+    if ((gain != d_manual_gain) && (gain >= -160) && (gain <= 160)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_manual_gain = gain;
         reconfigure();

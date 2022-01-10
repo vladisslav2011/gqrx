@@ -187,8 +187,6 @@ void CAgc::update_buffer(int p)
         float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
         p = p >> 1;
         ofs += base;
-        if(ofs >= d_buf_size * 2)
-            throw(std::runtime_error("ofs >= d_buf_size * 2"));
         if(d_mag_buf[ofs + p] != max_p)
             d_mag_buf[ofs + p] = max_p;
         else
@@ -203,18 +201,13 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
     int k;
     float max_out = 0;
     float mag_in = 0;
-    float * mag_vect = &((float *)pOutData)[Length];
-    #if 0
-    volk_32fc_magnitude_squared_32f((float*) pOutData, pInData, Length);
-    volk_32f_invsqrt_32f(mag_vect, (float*) pOutData, Length);
-    #else
-    volk_32fc_magnitude_32f(mag_vect, pInData, Length);
-    #endif
-    for (k = 0; k < Length; k++)
+    if (d_agc_on)
     {
-        TYPECPX sample_in = pInData[k];
-        if (d_agc_on)
+        float * mag_vect = &((float *)pOutData)[Length];
+        volk_32fc_magnitude_32f(mag_vect, pInData, Length);
+        for (k = 0; k < Length; k++)
         {
+            TYPECPX sample_in = pInData[k];
             mag_in = mag_vect[k];
             TYPECPX sample_out = d_sample_buf[d_buf_p];
 
@@ -268,9 +261,8 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
             pOutData[k] = sample_out * d_current_gain;
             d_buf_p = buf_p_next;
         }
-        else
-            pOutData[k] = sample_in * d_current_gain;
-    }
+    }else
+        volk_32f_s32f_multiply_32f((float *)pOutData, (float *)pInData, d_current_gain, Length * 2);
     #ifdef AGC_DEBUG
     if(d_prev_dbg != d_target_gain)
     {
