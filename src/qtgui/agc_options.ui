@@ -91,7 +91,7 @@
          <enum>Qt::StrongFocus</enum>
         </property>
         <property name="toolTip">
-         <string>AGC decay time</string>
+         <string>AGC decay time.  Time to change from min gain to max gain. Smaller gain changes are faster.</string>
         </property>
         <property name="minimum">
          <number>50</number>
@@ -180,7 +180,7 @@
          <enum>Qt::StrongFocus</enum>
         </property>
         <property name="toolTip">
-         <string>AGC threshold (aka. knee)</string>
+         <string>Target output level.</string>
         </property>
         <property name="minimum">
          <number>-100</number>
@@ -218,7 +218,7 @@
          <enum>Qt::StrongFocus</enum>
         </property>
         <property name="toolTip">
-         <string>Manual gain. Used when AGC is switched off</string>
+         <string>Maximum automatic gain.</string>
         </property>
         <property name="minimum">
          <number>0</number>
@@ -259,7 +259,7 @@
          <enum>Qt::StrongFocus</enum>
         </property>
         <property name="toolTip">
-         <string>AGC decay time</string>
+         <string>AGC attack time. Time to change from max gain to min gain. Smaller gain changes are faster.</string>
         </property>
         <property name="minimum">
          <number>20</number>
@@ -319,7 +319,7 @@
          <enum>Qt::StrongFocus</enum>
         </property>
         <property name="toolTip">
-         <string>AGC decay time</string>
+         <string>AGC hang time. Time to wait before trying to increase the gain after the peak.</string>
         </property>
         <property name="minimum">
          <number>0</number>

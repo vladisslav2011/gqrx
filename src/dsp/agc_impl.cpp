@@ -217,7 +217,8 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
                 float new_target = d_target_mag / max_out;
                 if(new_target < d_target_gain)
                 {
-                    d_hang_counter = d_buf_samples + d_hang_samp;
+                    if(d_current_gain > d_target_gain)
+                        d_hang_counter = d_buf_samples + d_hang_samp;
                     d_target_gain = new_target;
                 }else
                     if(!d_hang_counter)
