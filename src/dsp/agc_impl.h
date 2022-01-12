@@ -50,6 +50,7 @@ private:
     int d_max_idx;
     int d_buf_p;
     int d_hang_counter;
+    TYPEFLOAT d_max_gain_mag;
     TYPEFLOAT d_current_gain;
     TYPEFLOAT d_target_gain;
     TYPEFLOAT d_decay_step;
