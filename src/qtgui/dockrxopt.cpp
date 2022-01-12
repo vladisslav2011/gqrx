@@ -397,6 +397,42 @@ int DockRxOpt::getCwOffset() const
     return demodOpt->getCwOffset();
 }
 
+/** Get agc settings */
+bool DockRxOpt::getAgcOn()
+{
+    return agc_is_on;
+}
+
+int DockRxOpt::getAgcTargetLevel()
+{
+    return agcOpt->targetLevel();
+}
+
+int DockRxOpt::getAgcManualGain()
+{
+    return agcOpt->gain();
+}
+
+int DockRxOpt::getAgcMaxGain()
+{
+    return agcOpt->maxGain();
+}
+
+int DockRxOpt::getAgcAttack()
+{
+    return agcOpt->attack();
+}
+
+int DockRxOpt::getAgcDecay()
+{
+    return agcOpt->decay();
+}
+
+int DockRxOpt::getAgcHang()
+{
+    return agcOpt->hang();
+}
+
 /** Read receiver configuration from settings data. */
 void DockRxOpt::readSettings(QSettings *settings)
 {
