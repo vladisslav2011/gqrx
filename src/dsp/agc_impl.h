@@ -16,6 +16,7 @@
 #include <vector>
 
 #define TYPECPX std::complex<float>
+#define TYPEFLOAT float
 
 class CAgc
 {
@@ -42,23 +43,23 @@ private:
     int d_decay;
     int d_hang;
 
-    float d_target_mag;
+    TYPEFLOAT d_target_mag;
     int d_hang_samp;
     int d_buf_samples;
     int d_buf_size;
     int d_max_idx;
     int d_buf_p;
     int d_hang_counter;
-    float d_current_gain;
-    float d_target_gain;
-    float d_decay_step;
-    float d_attack_step;
-    float d_floor;
+    TYPEFLOAT d_current_gain;
+    TYPEFLOAT d_target_gain;
+    TYPEFLOAT d_decay_step;
+    TYPEFLOAT d_attack_step;
+    TYPEFLOAT d_floor;
 
     std::vector<TYPECPX> d_sample_buf;
     std::vector<float>   d_mag_buf;
 
-    float d_prev_dbg;
+    TYPEFLOAT d_prev_dbg;
 };
 
 #endif //  AGC_IMPL_H
