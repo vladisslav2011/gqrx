@@ -112,6 +112,14 @@ public:
 
     double  getSqlLevel(void) const;
 
+    bool    getAgcOn();
+    int     getAgcTargetLevel();
+    int     getAgcManualGain();
+    int     getAgcMaxGain();
+    int     getAgcAttack();
+    int     getAgcDecay();
+    int     getAgcHang();
+
     static QStringList ModulationStrings;
     static QString GetStringForModulationIndex(int iModulationIndex);
     static int GetEnumForModulationString(QString param);

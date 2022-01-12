@@ -1210,6 +1210,14 @@ void MainWindow::selectDemod(int mode_idx)
     rx->set_cw_offset(cwofs);
     rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
 
+    rx->set_agc_on(uiDockRxOpt->getAgcOn());
+    rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
+    rx->set_agc_manual_gain(uiDockRxOpt->getAgcManualGain());
+    rx->set_agc_max_gain(uiDockRxOpt->getAgcMaxGain());
+    rx->set_agc_attack(uiDockRxOpt->getAgcAttack());
+    rx->set_agc_decay(uiDockRxOpt->getAgcDecay());
+    rx->set_agc_hang(uiDockRxOpt->getAgcHang());
+
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
 
