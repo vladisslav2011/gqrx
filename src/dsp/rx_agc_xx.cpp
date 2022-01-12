@@ -77,10 +77,10 @@ int rx_agc_2f::work(int noutput_items,
                     gr_vector_const_void_star &input_items,
                     gr_vector_void_star &output_items)
 {
-    const gr_complex *in0 = (const gr_complex *) input_items[0];
-    const gr_complex *in1 = (const gr_complex *) input_items[1];
-    gr_complex *out0 = (gr_complex *) output_items[0];
-    gr_complex *out1 = (gr_complex *) output_items[1];
+    const float *in0 = (const float *) input_items[0];
+    const float *in1 = (const float *) input_items[1];
+    float *out0 = (float *) output_items[0];
+    float *out1 = (float *) output_items[1];
 
     std::lock_guard<std::mutex> lock(d_mutex);
     d_agc->ProcessData(out0, out1, in0, in1, noutput_items);
