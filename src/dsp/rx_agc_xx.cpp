@@ -161,7 +161,7 @@ void rx_agc_cc::set_manual_gain(int gain)
  */
 void rx_agc_cc::set_max_gain(int gain)
 {
-    if ((gain != d_max_gain) && (gain >= 0) && (gain <= 100)) {
+    if ((gain != d_max_gain) && (gain >= 0) && (gain <= 160)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_max_gain = gain;
         reconfigure();
@@ -198,7 +198,7 @@ void rx_agc_cc::set_decay(int decay)
 }
 
 /**
- * \brief Set AGC hang time between 20 to 5000 ms.
+ * \brief Set AGC hang time between 0 to 5000 ms.
  * \param hang Time to keep AGC gain at constant level after the peak.
  */
 void rx_agc_cc::set_hang(int hang)

@@ -453,11 +453,11 @@ void DockRxOpt::readSettings(QSettings *settings)
             ui->agcPresetCombo->setCurrentIndex(3);
     }
 
-    int_val = settings->value("receiver/agc_attack", 50).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_attack", 20).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setAttack(int_val);
 
-    int_val = settings->value("receiver/agc_hang", 50).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_hang", 0).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setHang(int_val);
 
@@ -465,7 +465,7 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (conv_ok)
         agcOpt->setGain(int_val);
 
-    int_val = settings->value("receiver/agc_maxgain", 0).toInt(&conv_ok);
+    int_val = settings->value("receiver/agc_maxgain", 100).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setMaxGain(int_val);
 
@@ -535,7 +535,7 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->remove("receiver/agc_target_level");
 
     int_val = agcOpt->attack();
-    if (int_val != 500)
+    if (int_val != 20)
         settings->setValue("receiver/agc_attack", int_val);
     else
         settings->remove("receiver/agc_decay");
@@ -547,7 +547,7 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->remove("receiver/agc_decay");
 
     int_val = agcOpt->hang();
-    if (int_val != 500)
+    if (int_val != 0)
         settings->setValue("receiver/agc_hang", int_val);
     else
         settings->remove("receiver/agc_hang");
@@ -559,7 +559,7 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->remove("receiver/agc_gain");
 
     int_val = agcOpt->maxGain();
-    if (int_val != 0)
+    if (int_val != 100)
         settings->setValue("receiver/agc_maxgain", int_val);
     else
         settings->remove("receiver/agc_maxgain");
