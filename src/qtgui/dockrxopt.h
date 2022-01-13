@@ -114,7 +114,6 @@ public:
 
     bool    getAgcOn();
     int     getAgcTargetLevel();
-    int     getAgcManualGain();
     int     getAgcMaxGain();
     int     getAgcAttack();
     int     getAgcDecay();
@@ -196,9 +195,6 @@ signals:
     /** Signal emitted when AGC target level has changed. Level in dB. */
     void agcTargetLevelChanged(int value);
 
-    /** Signal emitted when AGC manual gain has changed. Gain is in dB.*/
-    void agcGainChanged(int gain);
-
     /** Signal emitted when AGC maximum gain has changed. Gain is in dB.*/
     void agcMaxGainChanged(int gain);
 
@@ -244,7 +240,6 @@ private slots:
     void demodOpt_amSyncPllBwSelected(float pll_bw);
 
     // Signals coming from AGC options popup
-    void agcOpt_gainChanged(int value);
     void agcOpt_maxGainChanged(int value);
     void agcOpt_targetLevelChanged(int value);
     void agcOpt_attackChanged(int value);

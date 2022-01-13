@@ -33,7 +33,7 @@
       <property name="verticalSpacing">
        <number>5</number>
       </property>
-      <item row="3" column="0">
+      <item row="2" column="0">
        <widget class="QLabel" name="targetLevelTitle">
         <property name="text">
          <string>Target</string>
@@ -43,7 +43,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="2">
+      <item row="2" column="2">
        <widget class="QLabel" name="targetLevelLabel">
         <property name="text">
          <string>0 dB</string>
@@ -53,7 +53,7 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
+      <item row="4" column="0">
        <widget class="QLabel" name="decayTitle">
         <property name="enabled">
          <bool>false</bool>
@@ -66,23 +66,7 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="gainLabel">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="toolTip">
-         <string>Manual gain. Used when AGC is switched off</string>
-        </property>
-        <property name="text">
-         <string>0 dB</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="1">
+      <item row="4" column="1">
        <widget class="QSlider" name="decaySlider">
         <property name="enabled">
          <bool>false</bool>
@@ -116,7 +100,7 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="2">
+      <item row="4" column="2">
        <widget class="QLabel" name="decayLabel">
         <property name="enabled">
          <bool>false</bool>
@@ -129,42 +113,7 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QSlider" name="gainSlider">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="focusPolicy">
-         <enum>Qt::StrongFocus</enum>
-        </property>
-        <property name="toolTip">
-         <string>Manual gain. Used when AGC is switched off</string>
-        </property>
-        <property name="minimum">
-         <number>-100</number>
-        </property>
-        <property name="maximum">
-         <number>100</number>
-        </property>
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="gainTitle">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>Gain</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="hangTitle">
         <property name="text">
          <string>Hang</string>
@@ -174,7 +123,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="2" column="1">
        <widget class="QSlider" name="targetLevelSlider">
         <property name="focusPolicy">
          <enum>Qt::StrongFocus</enum>
@@ -196,7 +145,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item row="0" column="0">
        <widget class="QLabel" name="maxGainTitle">
         <property name="enabled">
          <bool>true</bool>
@@ -209,7 +158,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="0" column="1">
        <widget class="QSlider" name="maxGainSlider">
         <property name="enabled">
          <bool>true</bool>
@@ -234,7 +183,7 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="2">
+      <item row="0" column="2">
        <widget class="QLabel" name="maxGainLabel">
         <property name="enabled">
          <bool>true</bool>
@@ -250,7 +199,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="3" column="1">
        <widget class="QSlider" name="attackSlider">
         <property name="enabled">
          <bool>false</bool>
@@ -284,7 +233,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="attackTitle">
         <property name="enabled">
          <bool>false</bool>
@@ -297,7 +246,7 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="2">
+      <item row="3" column="2">
        <widget class="QLabel" name="attackLabel">
         <property name="enabled">
          <bool>false</bool>
@@ -310,7 +259,7 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="5" column="1">
        <widget class="QSlider" name="hangSlider">
         <property name="enabled">
          <bool>false</bool>
@@ -344,7 +293,7 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="2">
+      <item row="5" column="2">
        <widget class="QLabel" name="hangLabel">
         <property name="enabled">
          <bool>false</bool>
@@ -363,7 +312,6 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>gainSlider</tabstop>
   <tabstop>targetLevelSlider</tabstop>
   <tabstop>decaySlider</tabstop>
  </tabstops>

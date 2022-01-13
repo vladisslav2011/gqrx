@@ -163,7 +163,6 @@ private slots:
     void setAgcTargetLevel(int targetLevel);
     void setAgcAttack(int attack);
     void setAgcDecay(int msec);
-    void setAgcGain(int gain);
     void setAgcMaxGain(int gain);
     void setNoiseBlanker(int nbid, bool on, float threshold);
     void setSqlLevel(double level_db);

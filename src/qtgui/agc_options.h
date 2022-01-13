@@ -52,10 +52,6 @@ public:
 
     void closeEvent(QCloseEvent *event);
 
-    int gain();
-    void setGain(int value);
-    void enableGain(bool enabled);
-
     int maxGain();
     void setMaxGain(int value);
 
@@ -87,7 +83,6 @@ public:
     void setPreset(agc_preset_e preset);
 
 signals:
-    void gainChanged(int gain);
     void maxGainChanged(int gain);
     void targetLevelChanged(int level);
     void attackChanged(int decay);
@@ -95,7 +90,6 @@ signals:
     void hangChanged(int hang);
 
 private slots:
-    void on_gainSlider_valueChanged(int value);
     void on_maxGainSlider_valueChanged(int value);
     void on_targetLevelSlider_valueChanged(int value);
     void on_attackSlider_valueChanged(int value);

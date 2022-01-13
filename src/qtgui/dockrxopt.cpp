@@ -118,7 +118,6 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 
     // AGC options dialog
     agcOpt = new CAgcOptions(this);
-    connect(agcOpt, SIGNAL(gainChanged(int)), this, SLOT(agcOpt_gainChanged(int)));
     connect(agcOpt, SIGNAL(maxGainChanged(int)), this, SLOT(agcOpt_maxGainChanged(int)));
     connect(agcOpt, SIGNAL(targetLevelChanged(int)), this, SLOT(agcOpt_targetLevelChanged(int)));
     connect(agcOpt, SIGNAL(attackChanged(int)), this, SLOT(agcOpt_attackChanged(int)));
@@ -408,11 +407,6 @@ int DockRxOpt::getAgcTargetLevel()
     return agcOpt->targetLevel();
 }
 
-int DockRxOpt::getAgcManualGain()
-{
-    return agcOpt->gain();
-}
-
 int DockRxOpt::getAgcMaxGain()
 {
     return agcOpt->maxGain();
@@ -496,10 +490,6 @@ void DockRxOpt::readSettings(QSettings *settings)
     int_val = settings->value("receiver/agc_hang", 0).toInt(&conv_ok);
     if (conv_ok)
         agcOpt->setHang(int_val);
-
-    int_val = settings->value("receiver/agc_gain", 0).toInt(&conv_ok);
-    if (conv_ok)
-        agcOpt->setGain(int_val);
 
     int_val = settings->value("receiver/agc_maxgain", 100).toInt(&conv_ok);
     if (conv_ok)
@@ -587,12 +577,6 @@ void DockRxOpt::saveSettings(QSettings *settings)
         settings->setValue("receiver/agc_hang", int_val);
     else
         settings->remove("receiver/agc_hang");
-
-    int_val = agcOpt->gain();
-    if (int_val != 0)
-        settings->setValue("receiver/agc_gain", int_val);
-    else
-        settings->remove("receiver/agc_gain");
 
     int_val = agcOpt->maxGain();
     if (int_val != 100)
@@ -793,15 +777,6 @@ void DockRxOpt::agcOpt_attackChanged(int value)
 void DockRxOpt::agcOpt_decayChanged(int value)
 {
     emit agcDecayChanged(value);
-}
-
-/**
- * @brief AGC manual gain changed.
- * @param gain The new gain in dB.
- */
-void DockRxOpt::agcOpt_gainChanged(int gain)
-{
-    emit agcGainChanged(gain);
 }
 
 /**

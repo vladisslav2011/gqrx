@@ -223,7 +223,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(amSyncPllBwSelected(float)), this, SLOT(setAmSyncPllBw(float)));
     connect(uiDockRxOpt, SIGNAL(agcToggled(bool)), this, SLOT(setAgcOn(bool)));
     connect(uiDockRxOpt, SIGNAL(agcTargetLevelChanged(int)), this, SLOT(setAgcTargetLevel(int)));
-    connect(uiDockRxOpt, SIGNAL(agcGainChanged(int)), this, SLOT(setAgcGain(int)));
     connect(uiDockRxOpt, SIGNAL(agcMaxGainChanged(int)), this, SLOT(setAgcMaxGain(int)));
     connect(uiDockRxOpt, SIGNAL(agcAttackChanged(int)), this, SLOT(setAgcAttack(int)));
     connect(uiDockRxOpt, SIGNAL(agcDecayChanged(int)), this, SLOT(setAgcDecay(int)));
@@ -1343,12 +1342,6 @@ void MainWindow::setAgcTargetLevel(int targetLevel)
 void MainWindow::setAgcAttack(int attack)
 {
     rx->set_agc_attack(attack);
-}
-
-/** AGC manual gain changed. */
-void MainWindow::setAgcGain(int gain)
-{
-    rx->set_agc_manual_gain(gain);
 }
 
 /** AGC maximum gain changed. */

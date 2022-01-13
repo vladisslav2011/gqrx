@@ -49,12 +49,6 @@ void CAgcOptions::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-/*! \brief Get current gain slider value. */
-int CAgcOptions::gain()
-{
-    return ui->gainSlider->value();
-}
-
 /*! \brief Get current max gain slider value. */
 int CAgcOptions::maxGain()
 {
@@ -73,7 +67,6 @@ void CAgcOptions::setPreset(agc_preset_e preset)
         enableAttack(false);
         enableDecay(false);
         enableHang(false);
-        enableGain(false);
         break;
 
     case AGC_MEDIUM:
@@ -83,7 +76,6 @@ void CAgcOptions::setPreset(agc_preset_e preset)
         enableAttack(false);
         enableDecay(false);
         enableHang(false);
-        enableGain(false);
         break;
 
     case AGC_SLOW:
@@ -93,18 +85,15 @@ void CAgcOptions::setPreset(agc_preset_e preset)
         enableAttack(false);
         enableDecay(false);
         enableHang(false);
-        enableGain(false);
         break;
 
     case AGC_USER:
         enableAttack(true);
         enableDecay(true);
         enableHang(true);
-        enableGain(false);
         break;
 
     case AGC_OFF:
-        enableGain(true);
         break;
 
     default:
@@ -114,31 +103,11 @@ void CAgcOptions::setPreset(agc_preset_e preset)
     }
 }
 
-/*! \brief Set new gain slider value. */
-void CAgcOptions::setGain(int value)
-{
-    ui->gainSlider->setValue(value);
-    ui->gainLabel->setText(QString("%1 dB").arg(ui->gainSlider->value()));
-}
-
 /*! \brief Set new max gain slider value. */
 void CAgcOptions::setMaxGain(int value)
 {
     ui->maxGainSlider->setValue(value);
     ui->maxGainLabel->setText(QString("%1 dB").arg(ui->maxGainSlider->value()));
-}
-
-/*! \brief Enable or disable gain slider.
- *  \param enabled Whether the slider should be enabled or not.
- *
- * The gain slider is enabled when AGC is OFF to provide manual gain
- * control. It is disabled when AGC is ON.
- */
-void CAgcOptions::enableGain(bool enabled)
-{
-    ui->gainLabel->setEnabled(enabled);
-    ui->gainSlider->setEnabled(enabled);
-    ui->gainTitle->setEnabled(enabled);
 }
 
 /*! \brief Get current AGC target level. */
@@ -230,14 +199,6 @@ void CAgcOptions::enableHang(bool enabled)
     ui->hangTitle->setEnabled(enabled);
 }
 
-
-
-/*! \brief AGC gain slider value has changed. */
-void CAgcOptions::on_gainSlider_valueChanged(int value)
-{
-    ui->gainLabel->setText(QString("%1 dB").arg(ui->gainSlider->value()));
-    emit gainChanged(value);
-}
 
 /*! \brief AGC max gain slider value has changed. */
 void CAgcOptions::on_maxGainSlider_valueChanged(int value)
