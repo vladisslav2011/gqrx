@@ -57,7 +57,7 @@ CAgc::CAgc():
     d_attack(0),
     d_decay(0),
     d_hang(0),
-    d_target_mag(0),
+    d_target_mag(1),
     d_buf_size(0),
     d_buf_p(0)
 {
