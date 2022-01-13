@@ -59,6 +59,7 @@ public:
     bool start() override;
     bool stop() override;
 
+    void set_audio_rate(int audio_rate);
 
     void set_filter(int low, int high, int tw) override;
 

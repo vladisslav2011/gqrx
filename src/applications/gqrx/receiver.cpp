@@ -1662,6 +1662,29 @@ int receiver::get_audio_rec_max_gap()
     return rx[d_current]->get_audio_rec_max_gap();
 }
 
+receiver::status receiver::set_audio_rate(int rate)
+{
+    if(d_audio_rate != rate)
+    {
+        d_audio_rate = rate;
+        audio_fft->set_quad_rate(rate);
+    }
+    return STATUS_OK;
+}
+
+receiver::status receiver::commit_audio_rate()
+{
+    std::cerr<<"------------------receiver::commit_audio_rate() "<<d_audio_rate<<"\n";
+    for(auto & rxc : rx)
+        rxc->set_audio_rate(d_audio_rate);
+    return STATUS_OK;
+}
+
+int receiver::get_audio_rate()
+{
+    return d_audio_rate;
+}
+
 /**
  * @brief Start WAV file recorder.
  * @param filename The filename where to record.

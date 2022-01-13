@@ -61,6 +61,8 @@ public:
     void set_offset(int offset) override;
     void set_cw_offset(int offset) override;
 
+    void set_audio_rate(int audio_rate) override;
+
     /* Noise blanker */
     bool has_nb() override { return true; }
     void set_nb_on(int nbid, bool on) override;

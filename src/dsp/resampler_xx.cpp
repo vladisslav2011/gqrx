@@ -78,7 +78,7 @@ void resampler_cc::set_rate(float rate)
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* FIXME: Should implement set_taps() in PFB */
-    lock();
+//    lock();
     disconnect(self(), 0, d_filter, 0);
     disconnect(d_filter, 0, self(), 0);
     d_filter.reset();
@@ -86,7 +86,7 @@ void resampler_cc::set_rate(float rate)
     d_filter->set_output_multiple(4096);
     connect(self(), 0, d_filter, 0);
     connect(d_filter, 0, self(), 0);
-    unlock();
+//    unlock();
 }
 
 /* Create a new instance of resampler_ff and return
@@ -140,12 +140,12 @@ void resampler_ff::set_rate(float rate)
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* FIXME: Should implement set_taps() in PFB */
-    lock();
+//    lock();
     disconnect(self(), 0, d_filter, 0);
     disconnect(d_filter, 0, self(), 0);
     d_filter.reset();
     d_filter = gr::filter::pfb_arb_resampler_fff::make(rate, d_taps, flt_size);
     connect(self(), 0, d_filter, 0);
     connect(d_filter, 0, self(), 0);
-    unlock();
+//    unlock();
 }
