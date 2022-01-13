@@ -365,6 +365,6 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
 
 float CAgc::CurrentGainDb()
 {
-    return 10.0 * log10f(d_current_gain);
+    return 20.0 * log10f(d_current_gain);
 }
 
