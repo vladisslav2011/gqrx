@@ -475,6 +475,9 @@ void wavfile_sink_gqrx::set_sample_rate(unsigned int sample_rate)
 {
     std::unique_lock<std::mutex> guard(d_mutex);
     d_h.sample_rate = sample_rate;
+    d_min_time_samp = d_min_time_ms * d_h.sample_rate / 1000;
+    d_min_time_samp = d_min_time_ms * d_h.sample_rate / 1000;
+    set_history(1 + sample_rate * (SQL_REC_MIN_TIME + SQL_REC_MAX_GAP));
 }
 
 int wavfile_sink_gqrx::bits_per_sample() { return d_bytes_per_sample_new; }
