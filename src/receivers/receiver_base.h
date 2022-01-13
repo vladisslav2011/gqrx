@@ -85,6 +85,7 @@ public:
     virtual void set_quad_rate(double quad_rate);
     virtual void set_center_freq(double center_freq);
     void set_offset(int offset) override;
+    virtual  void set_audio_rate(int audio_rate);
 
     void set_port(int port);
     int  get_port() const { return d_port; }
@@ -161,6 +162,7 @@ protected:
     unsigned int d_ddc_decim;    /*!< Down-conversion decimation. */
     int          d_audio_rate;   /*!< Audio output rate. */
     double       d_center_freq;
+    float        d_pref_quad_rate;
     std::string  d_audio_filename;
     bool         d_udp_streaming;
     bool         d_dedicated_audio_sink;
@@ -177,7 +179,6 @@ protected:
     rx_rnnoise_f_sptr         audio_rnnoise;
     gr::basic_block_sptr      output;
 private:
-    float d_pref_quad_rate;
     rec_event_handler_t d_rec_event;
     static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
 

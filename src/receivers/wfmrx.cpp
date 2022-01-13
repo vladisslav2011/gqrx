@@ -79,10 +79,30 @@ bool wfmrx::stop()
     return true;
 }
 
+void wfmrx::set_audio_rate(int audio_rate)
+{
+    receiver_base_cf::set_audio_rate(audio_rate);
+    switch (d_demod) {
+
+    case Modulations::MODE_WFM_MONO:
+    default:
+        mono->set_audio_rate(audio_rate);
+        break;
+
+    case Modulations::MODE_WFM_STEREO:
+        stereo->set_audio_rate(audio_rate);
+        break;
+
+    case Modulations::MODE_WFM_STEREO_OIRT:
+        stereo_oirt->set_audio_rate(audio_rate);
+        break;
+    }
+}
+
 void wfmrx::set_filter(int low, int high, int tw)
 {
     receiver_base_cf::set_filter(low, high, tw);
-    if(get_demod()!=Modulations::MODE_OFF)
+    if(d_demod!=Modulations::MODE_OFF)
         filter->set_param(double(low), double(high), double(tw));
 }
 
@@ -127,18 +147,21 @@ void wfmrx::set_demod(Modulations::idx demod)
         connect(demod_fm, 0, mono, 0);
         connect(mono, 0, output, 0); // left  channel
         connect(mono, 1, output, 1); // right channel
+        mono->set_audio_rate(d_audio_rate);
         break;
 
     case Modulations::MODE_WFM_STEREO:
         connect(demod_fm, 0, stereo, 0);
         connect(stereo, 0, output, 0); // left  channel
         connect(stereo, 1, output, 1); // right channel
+        stereo->set_audio_rate(d_audio_rate);
         break;
 
     case Modulations::MODE_WFM_STEREO_OIRT:
         connect(demod_fm, 0, stereo_oirt, 0);
         connect(stereo_oirt, 0, output, 0); // left  channel
         connect(stereo_oirt, 1, output, 1); // right channel
+        stereo_oirt->set_audio_rate(d_audio_rate);
         break;
     }
     receiver_base_cf::set_demod(demod);

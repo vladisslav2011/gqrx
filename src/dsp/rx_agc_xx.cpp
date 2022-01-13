@@ -33,7 +33,7 @@
 
 #define MIN_GAIN_DB (-20.0f)
 #define MIN_GAIN exp10f(MIN_GAIN_DB)
-#define MAX_SAMPLE_RATE 96000
+#define MAX_SAMPLE_RATE 192000
 #define PANNING_DELAY_K 4000.0
 #define PANNING_GAIN_K  100.0
 //TODO Make this user-configurable as extra peak history time

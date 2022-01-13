@@ -333,6 +333,9 @@ public:
     status      set_audio_rec_max_gap(const int time_ms);
     int         get_audio_rec_max_gap();
     status      start_audio_recording();
+    status      set_audio_rate(int rate);
+    status      commit_audio_rate();
+    int         get_audio_rate();
     status      stop_audio_recording();
     std::string get_last_audio_filename();
     status      start_audio_playback(const std::string filename);

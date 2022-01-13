@@ -45,10 +45,11 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
+      d_pref_quad_rate(pref_quad_rate),
+      d_audio_filename(""),
       d_udp_streaming(false),
       d_dedicated_audio_sink(false),
-      d_audio_dev(""),
-      d_pref_quad_rate(pref_quad_rate)
+      d_audio_dev("")
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
     d_quad_rate = d_decim_rate / d_ddc_decim;
@@ -115,6 +116,23 @@ void receiver_base_cf::set_quad_rate(double quad_rate)
             ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
             iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
             unlock();
+        }
+    }
+}
+void receiver_base_cf::set_audio_rate(int audio_rate)
+{
+    if(d_audio_rate != audio_rate)
+    {
+        d_audio_rate = audio_rate;
+        agc->set_sample_rate(audio_rate);
+        if(d_dedicated_audio_sink)
+        {
+            disconnect(agc, 0, audio_snk, 0);
+            disconnect(agc, 1, audio_snk, 1);
+            audio_snk.reset();
+            audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
+            connect(agc, 0, audio_snk, 0);
+            connect(agc, 1, audio_snk, 1);
         }
     }
 }
@@ -391,21 +409,24 @@ void receiver_base_cf::set_dedicated_audio_sink(bool value)
 {
     if(d_dedicated_audio_sink == value)
         return;
-//    lock();
     if( !!audio_snk )
     {
         disconnect(agc, 0, audio_snk, 0);
         disconnect(agc, 1, audio_snk, 1);
         audio_snk.reset();
-//        disconnect(self(), 0, ddc, 0);
-//        connect(self(), 0, ddc, 0);
     }
     d_dedicated_audio_sink = value;
     if( d_port != -1 && d_dedicated_audio_sink)
     {
-        audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
-        connect(agc, 0, audio_snk, 0);
-        connect(agc, 1, audio_snk, 1);
+        try
+        {
+            audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
+            connect(agc, 0, audio_snk, 0);
+            connect(agc, 1, audio_snk, 1);
+        }catch(std::exception &e)
+        {
+            audio_snk.reset();
+            d_dedicated_audio_sink = false;
+        }
     }
-//    unlock();
 }
