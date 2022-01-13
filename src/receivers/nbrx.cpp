@@ -83,6 +83,79 @@ bool nbrx::stop()
     return true;
 }
 
+void nbrx::set_audio_rate(int audio_rate)
+{
+    qDebug() << "Changing NB_RX audio rate:"  << d_audio_rate << "->" << audio_rate;
+    receiver_base_cf::set_audio_rate(audio_rate);
+    if (audio_rr0 && (std::abs(d_audio_rate - d_pref_quad_rate) < 0.1))
+    {
+        if (d_demod != Modulations::MODE_OFF)
+        {
+            lock();
+            qDebug() << "nbrx::set_audio_rate Bypassing resampler ";
+            disconnect(demod, 0, audio_rr0, 0);
+            disconnect(audio_rr0, 0, output, 0); // left  channel
+            if (d_demod == Modulations::MODE_RAW)
+            {
+                disconnect(demod, 1, audio_rr1, 0);
+                disconnect(audio_rr1, 0, output, 1); // right channel
+            }
+            else
+                disconnect(audio_rr0, 0, output, 1); // right channel
+        }
+        audio_rr0.reset();
+        audio_rr1.reset();
+        if (d_demod != Modulations::MODE_OFF)
+        {
+            connect(demod, 0, output, 0);
+            if (d_demod == Modulations::MODE_RAW)
+                connect(demod, 1, output, 1);
+            else
+                connect(demod, 0, output, 1);
+            unlock();
+        }
+        return;
+    }
+    if (!audio_rr0 && (std::abs(d_audio_rate - d_pref_quad_rate) >= 0.1))
+    {
+        if (d_demod != Modulations::MODE_OFF)
+        {
+            lock();
+            disconnect(demod, 0, output, 0);
+            if (d_demod == Modulations::MODE_RAW)
+                disconnect(demod, 1, output, 1);
+            else
+                disconnect(demod, 0, output, 1);
+            qDebug() << "nbrx::set_audio_rate Resampling audio " << d_pref_quad_rate << " -> "
+                    << d_audio_rate;
+        }
+        audio_rr0 = make_resampler_ff(d_audio_rate / d_pref_quad_rate);
+        audio_rr1 = make_resampler_ff(d_audio_rate / d_pref_quad_rate);
+        if (d_demod != Modulations::MODE_OFF)
+        {
+            connect(demod, 0, audio_rr0, 0);
+            connect(audio_rr0, 0, output, 0); // left  channel
+            if (d_demod == Modulations::MODE_RAW)
+            {
+                connect(demod, 1, audio_rr1, 0);
+                connect(audio_rr1, 0, output, 1); // right channel
+            }
+            else
+                connect(audio_rr0, 0, output, 1); // right channel
+            unlock();
+        }
+        return;
+    }
+    qDebug() << "nbrx::set_audio_rate rate=" << d_audio_rate << " demod=" <<
+                    d_demod;
+    if (audio_rr0)
+    {
+        audio_rr0->set_rate(d_audio_rate / d_pref_quad_rate);
+        if (d_demod == Modulations::MODE_RAW)
+            audio_rr1->set_rate(d_audio_rate / d_pref_quad_rate);
+    }
+}
+
 void nbrx::set_filter(int low, int high, int tw)
 {
     receiver_base_cf::set_filter(low, high, tw);

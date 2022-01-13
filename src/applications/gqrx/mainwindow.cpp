@@ -589,6 +589,13 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         restoreState(m_settings->value("gui/state", saveState()).toByteArray());
     }
 
+    int_val = m_settings->value("output/sample_rate", 48000).toInt(&conv_ok);
+    if (conv_ok && (int_val > 0))
+    {
+        rx->set_audio_rate(int_val);
+        uiDockAudio->setFftSampleRate(int_val);
+    }
+
     QString indev = m_settings->value("input/device", "").toString();
     if (!indev.isEmpty())
     {
@@ -742,6 +749,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     uiDockBookmarks->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
+    rx->commit_audio_rate();
 
     iq_tool->readSettings(m_settings);
 
@@ -1884,6 +1892,7 @@ void MainWindow::updateDemodGUIRanges()
 {
     int click_res=100;
     int     flo=0, fhi=0, loMin, loMax, hiMin,hiMax;
+    int     audio_rate = rx->get_audio_rate();
     Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::idx mode_idx = rx->get_demod();
@@ -1898,22 +1907,22 @@ void MainWindow::updateDemodGUIRanges()
 
     case Modulations::MODE_RAW:
         /* Raw I/Q; max 96 ksps*/
-        uiDockAudio->setFftRange(0,24000);
+        uiDockAudio->setFftRange(-std::min(24000, audio_rate / 2), std::min(24000, audio_rate / 2));
         click_res = 100;
         break;
 
     case Modulations::MODE_AM:
-        uiDockAudio->setFftRange(0,6000);
+        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
         click_res = 100;
         break;
 
     case Modulations::MODE_AM_SYNC:
-        uiDockAudio->setFftRange(0,6000);
+        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
         click_res = 100;
         break;
 
     case Modulations::MODE_NFM:
-        uiDockAudio->setFftRange(0, 5000);
+        uiDockAudio->setFftRange(0, std::min(5000, audio_rate / 2));
         click_res = 100;
         break;
 
@@ -1926,31 +1935,31 @@ void MainWindow::updateDemodGUIRanges()
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
         /* Broadcast FM */
-        uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
+        uiDockAudio->setFftRange(0, std::min(24000, audio_rate / 2));
         click_res = 1000;
         break;
 
     case Modulations::MODE_LSB:
         /* LSB */
-        uiDockAudio->setFftRange(0,3000);
+        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
         click_res = 100;
         break;
 
     case Modulations::MODE_USB:
         /* USB */
-        uiDockAudio->setFftRange(0,3000);
+        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
         click_res = 100;
         break;
 
     case Modulations::MODE_CWL:
         /* CW-L */
-        uiDockAudio->setFftRange(0,1500);
+        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
         click_res = 10;
         break;
 
     case Modulations::MODE_CWU:
         /* CW-U */
-        uiDockAudio->setFftRange(0,1500);
+        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
         click_res = 10;
         break;
 

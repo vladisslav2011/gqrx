@@ -198,6 +198,7 @@ public:
     int  get_window_type() const { return d_wintype; }
 
     void set_fft_size(unsigned int fftsize);
+    void set_quad_rate(double quad_rate);
     unsigned int fft_size() const {return d_fftsize;}
     void set_enabled(bool enabled) { d_enabled=enabled; };
 
