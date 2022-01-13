@@ -1211,7 +1211,8 @@ void MainWindow::selectDemod(int mode_idx)
     rx->set_cw_offset(cwofs);
     rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
 
-    rx->set_agc_on(uiDockRxOpt->getAgcOn());
+    //Call wrapper to update enable/disabled state
+    setAgcOn(uiDockRxOpt->getAgcOn());
     rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
     rx->set_agc_manual_gain(uiDockAudio->audioGain());
     rx->set_agc_max_gain(uiDockRxOpt->getAgcMaxGain());
