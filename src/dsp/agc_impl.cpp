@@ -46,7 +46,8 @@
 
 #define NO_AGC_DEBUG
 
-#define MIN_GAIN powf(10.0, -20.0)
+#define MIN_GAIN_DB (-20.0f)
+#define MIN_GAIN powf(10.0, MIN_GAIN_DB)
 
 CAgc::CAgc():
     d_sample_rate(0),
@@ -151,7 +152,7 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level,
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = powf(10.0, float(d_manual_gain) / 10.0);
     if (max_gain_changed || attack_changed || samp_rate_changed)
-        d_attack_step = 1.0 / powf(10.0, float(d_max_gain) / float(d_buf_samples) / 10.0);
+        d_attack_step = 1.0 / powf(10.0, std::max(TYPEFLOAT(d_max_gain), - MIN_GAIN_DB) / TYPEFLOAT(d_buf_samples) / 20.0);
     if (max_gain_changed || decay_changed || samp_rate_changed)
         d_decay_step = powf(10.0, float(d_max_gain) / float(sample_rate * d_decay / 1000.0) / 10.0);
     if (hang_changed || samp_rate_changed)
