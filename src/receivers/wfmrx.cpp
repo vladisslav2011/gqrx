@@ -174,6 +174,11 @@ void wfmrx::set_agc_hang(int hang_ms)
     agc->set_hang(hang_ms);
 }
 
+float wfmrx::get_agc_gain()
+{
+    return agc->get_current_gain();
+}
+
 void wfmrx::set_demod(int demod)
 {
     /* check if new demodulator selection is valid */

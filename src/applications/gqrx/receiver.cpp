@@ -993,6 +993,16 @@ receiver::status receiver::set_agc_decay(int decay_ms)
     return STATUS_OK; // FIXME
 }
 
+/** Get AGC current gain. */
+float receiver::get_agc_gain()
+{
+    if (rx->has_agc())
+        return rx->get_agc_gain();
+    else
+        return 0;
+}
+
+
 
 receiver::status receiver::set_demod(rx_demod demod, enum file_formats fmt, bool force)
 {

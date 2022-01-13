@@ -1294,7 +1294,8 @@ void MainWindow::setAmSyncPllBw(float pll_bw)
  */
 void MainWindow::setAudioGain(float value)
 {
-    rx->set_af_gain(value);
+    //rx->set_af_gain(value);
+    rx->set_agc_manual_gain(value);
 }
 
 /** Set AGC ON/OFF. */
@@ -1405,6 +1406,10 @@ void MainWindow::meterTimeout()
     if(iq_stats.playing)
     {
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
+    }
+    if(uiDockRxOpt->getAgcOn())
+    {
+        uiDockAudio->setAudioGain(rx->get_agc_gain() * 10.0);
     }
 }
 

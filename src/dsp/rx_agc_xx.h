@@ -93,6 +93,7 @@ public:
     void set_attack(int attack);
     void set_decay(int decay);
     void set_hang(int hang);
+    float get_current_gain();
 
 private:
     void reconfigure();

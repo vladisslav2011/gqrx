@@ -211,3 +211,10 @@ void rx_agc_2f::set_hang(int hang)
         reconfigure();
     }
 }
+
+float rx_agc_2f::get_current_gain()
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+    return d_agc->CurrentGainDb();
+}
+

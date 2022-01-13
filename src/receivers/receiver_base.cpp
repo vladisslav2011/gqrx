@@ -114,6 +114,11 @@ void receiver_base_cf::set_agc_hang(int hang_ms)
     (void) hang_ms;
 }
 
+float receiver_base_cf::get_agc_gain()
+{
+    return 0;
+}
+
 bool receiver_base_cf::has_fm()
 {
     return false;

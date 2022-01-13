@@ -191,6 +191,11 @@ void nbrx::set_agc_hang(int hang_ms)
     agc->set_hang(hang_ms);
 }
 
+float nbrx::get_agc_gain()
+{
+    return agc->get_current_gain();
+}
+
 void nbrx::set_demod(int rx_demod)
 {
     nbrx_demod current_demod = d_demod;

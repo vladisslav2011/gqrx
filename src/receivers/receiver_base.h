@@ -85,6 +85,7 @@ public:
     virtual void set_agc_attack(int attack_ms);
     virtual void set_agc_decay(int decay_ms);
     virtual void set_agc_hang(int hang_ms);
+    virtual float get_agc_gain();
 
     /* FM parameters */
     virtual bool has_fm();

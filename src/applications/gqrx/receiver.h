@@ -215,6 +215,7 @@ public:
     status      set_agc_attack(int attack_ms);
     status      set_agc_decay(int decay_ms);
     status      set_agc_hang(int hang_ms);
+    float       get_agc_gain();
 
     status      set_demod(rx_demod demod,
                           enum file_formats fmt = FILE_FORMAT_LAST,

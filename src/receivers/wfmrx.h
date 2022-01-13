@@ -96,6 +96,7 @@ public:
     void set_agc_attack(int attack_ms);
     void set_agc_decay(int decay_ms);
     void set_agc_hang(int hang_ms);
+    float get_agc_gain();
 
     void set_demod(int demod);
 
