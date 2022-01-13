@@ -232,6 +232,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
     connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
+    connect(uiDockAudio, SIGNAL(audioMuteChanged(bool)), this, SLOT(setAudioMute(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted(QString,int,bool)), this, SLOT(startAudioStream(QString,int,bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
     connect(uiDockAudio, SIGNAL(audioRecStarted(QString)), this, SLOT(startAudioRec(QString)));
@@ -1294,8 +1295,23 @@ void MainWindow::setAmSyncPllBw(float pll_bw)
  */
 void MainWindow::setAudioGain(float value)
 {
-    //rx->set_af_gain(value);
     rx->set_agc_manual_gain(value);
+}
+
+/**
+ * @brief Audio mute changed.
+ * @param mute New state.
+ */
+void MainWindow::setAudioMute(bool mute)
+{
+    if(mute)
+    {
+        rx->set_agc_target_level(-80);
+        rx->set_agc_manual_gain(-80);
+    }else{
+        rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
+        rx->set_agc_manual_gain(uiDockAudio->audioGain());
+    }
 }
 
 /** Set AGC ON/OFF. */

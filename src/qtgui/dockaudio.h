@@ -98,6 +98,9 @@ signals:
     /*! \brief FFT rate changed. */
     void fftRateChanged(int fps);
 
+    /*! \brief Signal emitted when audio mute has changed. */
+    void audioMuteChanged(bool mute);
+
 private slots:
     void on_audioGainSlider_valueChanged(int value);
     void on_audioStreamButton_clicked(bool checked);

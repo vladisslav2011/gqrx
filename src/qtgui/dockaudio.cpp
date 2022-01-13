@@ -279,16 +279,7 @@ void DockAudio::on_audioConfButton_clicked()
 /*! \brief Mute audio. */
 void DockAudio::on_audioMuteButton_clicked(bool checked)
 {
-    if (checked)
-    {
-        emit audioGainChanged(-INFINITY);
-    }
-    else
-    {
-        int value = ui->audioGainSlider->value();
-        float gain = float(value) / 10.0;
-        emit audioGainChanged(gain);
-    }
+    emit audioMuteChanged(checked);
 }
 
 /*! \brief Set status of audio record button. */
