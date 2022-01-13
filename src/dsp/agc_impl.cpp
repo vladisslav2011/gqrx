@@ -49,7 +49,8 @@
 #define exp10f(K) powf(10.0,(K))
 #define exp10(K) pow(10.0,(K))
 
-#define MIN_GAIN exp10f(-20)
+#define MIN_GAIN_DB (-20.0f)
+#define MIN_GAIN exp10f(MIN_GAIN_DB)
 
 CAgc::CAgc():
     d_sample_rate(0),
@@ -154,7 +155,7 @@ void CAgc::SetParameters(double sample_rate, bool agc_on, int target_level,
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = exp10(TYPEFLOAT(d_manual_gain) / 20.0);
     if (max_gain_changed || attack_changed || samp_rate_changed)
-        d_attack_step = 1.0 / exp10(TYPEFLOAT(d_max_gain) / TYPEFLOAT(d_buf_samples) / 20.0);
+        d_attack_step = 1.0 / exp10(std::max(TYPEFLOAT(d_max_gain), - MIN_GAIN_DB) / TYPEFLOAT(d_buf_samples) / 20.0);
     if (max_gain_changed || decay_changed || samp_rate_changed)
         d_decay_step = exp10(TYPEFLOAT(d_max_gain) / TYPEFLOAT(sample_rate * d_decay / 1000.0) / 20.0);
     if (hang_changed || samp_rate_changed)
