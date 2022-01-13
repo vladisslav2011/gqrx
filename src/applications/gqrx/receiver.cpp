@@ -945,7 +945,7 @@ receiver::status receiver::set_agc_target_level(int target_level)
 }
 
 /** Set fixed gain used when AGC is OFF. */
-receiver::status receiver::set_agc_manual_gain(int gain)
+receiver::status receiver::set_agc_manual_gain(float gain)
 {
     if (rx->has_agc())
         rx->set_agc_manual_gain(gain);

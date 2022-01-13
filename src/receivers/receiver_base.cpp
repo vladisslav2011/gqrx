@@ -89,7 +89,7 @@ void receiver_base_cf::set_agc_target_level(int target_level)
     (void) target_level;
 }
 
-void receiver_base_cf::set_agc_manual_gain(int gain)
+void receiver_base_cf::set_agc_manual_gain(float gain)
 {
     (void) gain;
 }

@@ -166,7 +166,7 @@ void nbrx::set_agc_target_level(int target_level)
     agc->set_target_level(target_level);
 }
 
-void nbrx::set_agc_manual_gain(int gain)
+void nbrx::set_agc_manual_gain(float gain)
 {
     agc->set_manual_gain(gain);
 }

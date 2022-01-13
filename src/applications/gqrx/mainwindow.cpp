@@ -1213,7 +1213,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     rx->set_agc_on(uiDockRxOpt->getAgcOn());
     rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
-    rx->set_agc_manual_gain(uiDockRxOpt->getAgcManualGain());
+    rx->set_agc_manual_gain(uiDockAudio->audioGain());
     rx->set_agc_max_gain(uiDockRxOpt->getAgcMaxGain());
     rx->set_agc_attack(uiDockRxOpt->getAgcAttack());
     rx->set_agc_decay(uiDockRxOpt->getAgcDecay());
@@ -1308,16 +1308,22 @@ void MainWindow::setAudioMute(bool mute)
     {
         rx->set_agc_target_level(-80);
         rx->set_agc_manual_gain(-80);
+        if(!uiDockRxOpt->getAgcOn())
+            uiDockAudio->setGainEnabled(false);
     }else{
         rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
-        rx->set_agc_manual_gain(uiDockAudio->audioGain());
+        rx->set_agc_manual_gain(uiDockAudio->audioGain() / 10.0);
+        if(!uiDockRxOpt->getAgcOn())
+            uiDockAudio->setGainEnabled(true);
     }
+
 }
 
 /** Set AGC ON/OFF. */
 void MainWindow::setAgcOn(bool agc_on)
 {
     rx->set_agc_on(agc_on);
+    uiDockAudio->setGainEnabled(!agc_on);
 }
 
 /** AGC hang ON/OFF. */

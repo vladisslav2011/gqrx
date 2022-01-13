@@ -131,6 +131,14 @@ int  DockAudio::audioGain()
     return ui->audioGainSlider->value();
 }
 
+/*! \brief Set audio gain slider state.
+ *  \param state new slider state.
+ */
+void DockAudio::setGainEnabled(bool state)
+{
+    ui->audioGainSlider->setEnabled(state);
+}
+
 /*! Set FFT plot color. */
 void DockAudio::setFftColor(QColor color)
 {

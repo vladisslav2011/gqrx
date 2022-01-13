@@ -80,7 +80,7 @@ public:
     virtual bool has_agc();
     virtual void set_agc_on(bool agc_on);
     virtual void set_agc_target_level(int target_level);
-    virtual void set_agc_manual_gain(int gain);
+    virtual void set_agc_manual_gain(float gain);
     virtual void set_agc_max_gain(int gain);
     virtual void set_agc_attack(int attack_ms);
     virtual void set_agc_decay(int decay_ms);
