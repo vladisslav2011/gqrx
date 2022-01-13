@@ -164,6 +164,7 @@ public:
     int  get_window_type() const;
 
     void set_fft_size(unsigned int fftsize);
+    void set_quad_rate(double quad_rate);
     unsigned int get_fft_size() const;
 
 private:
@@ -185,6 +186,7 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
 
     void apply_window(unsigned int size);
+    void set_params();
 
 };
 
