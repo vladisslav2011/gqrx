@@ -24,6 +24,10 @@
 #define RECEIVER_BASE_H
 
 #include <gnuradio/hier_block2.h>
+#include <gnuradio/analog/simple_squelch_cc.h>
+#include "dsp/resampler_xx.h"
+#include "dsp/rx_meter.h"
+#include "dsp/rx_agc_xx.h"
 
 
 class receiver_base_cf;
@@ -49,18 +53,18 @@ public:
     /*! \brief Public constructor.
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
-    receiver_base_cf(std::string src_name);
+    receiver_base_cf(std::string src_name, float pref_quad_rate, float quad_rate, int audio_rate);
     virtual ~receiver_base_cf();
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
 
-    virtual void set_quad_rate(float quad_rate) = 0;
+    virtual void set_quad_rate(float quad_rate);
 
     virtual void set_filter(double low, double high, double tw) = 0;
     virtual void set_cw_offset(double offset) = 0;
 
-    virtual float get_signal_level() = 0;
+    virtual float get_signal_level();
 
     virtual void set_demod(int demod) = 0;
 
@@ -106,7 +110,16 @@ public:
     virtual void stop_rds_decoder();
     virtual void reset_rds_parser();
     virtual bool is_rds_decoder_active();
+protected:
+    float  d_quad_rate;        /*!< Input sample rate. */
+    int    d_audio_rate;       /*!< Audio output rate. */
 
+    resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
+    rx_meter_c_sptr           meter;      /*!< Signal strength. */
+    rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
+    gr::analog::simple_squelch_cc::sptr sql;        /*!< Squelch. */
+private:
+    float d_pref_quad_rate;
 };
 
 #endif // RECEIVER_BASE_H

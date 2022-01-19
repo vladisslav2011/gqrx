@@ -23,19 +23,14 @@
 #ifndef NBRX_H
 #define NBRX_H
 
-#include <gnuradio/analog/simple_squelch_cc.h>
 #include <gnuradio/basic_block.h>
 #include <gnuradio/blocks/complex_to_float.h>
 #include <gnuradio/blocks/complex_to_real.h>
 #include "receivers/receiver_base.h"
 #include "dsp/rx_noise_blanker_cc.h"
 #include "dsp/rx_filter.h"
-#include "dsp/rx_meter.h"
-#include "dsp/rx_agc_xx.h"
 #include "dsp/rx_demod_fm.h"
 #include "dsp/rx_demod_am.h"
-//#include "dsp/resampler_ff.h"
-#include "dsp/resampler_xx.h"
 
 class nbrx;
 
@@ -73,12 +68,8 @@ public:
     bool start();
     bool stop();
 
-    void set_quad_rate(float quad_rate);
-
     void set_filter(double low, double high, double tw);
     void set_cw_offset(double offset);
-
-    float get_signal_level();
 
     /* Noise blanker */
     bool has_nb() { return true; }
@@ -87,19 +78,9 @@ public:
 
     /* Squelch parameter */
     bool has_sql() { return true; }
-    void set_sql_level(double level_db);
-    void set_sql_alpha(double alpha);
 
     /* AGC */
     bool has_agc() { return true; }
-    void set_agc_on(bool agc_on);
-    void set_agc_target_level(int target_level);
-    void set_agc_manual_gain(float gain);
-    void set_agc_max_gain(int gain);
-    void set_agc_attack(int attack_ms);
-    void set_agc_decay(int decay_ms);
-    void set_agc_hang(int hang_ms);
-    float get_agc_gain();
 
     void set_demod(int demod);
 
@@ -119,18 +100,12 @@ public:
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
-    float  d_quad_rate;        /*!< Input sample rate. */
-    int    d_audio_rate;       /*!< Audio output rate. */
 
     nbrx_demod                d_demod;    /*!< Current demodulator. */
 
-    resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
     rx_filter_sptr            filter;  /*!< Non-translating bandpass filter.*/
 
     rx_nb_cc_sptr             nb;         /*!< Noise blanker. */
-    rx_meter_c_sptr           meter;      /*!< Signal strength. */
-    rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
-    gr::analog::simple_squelch_cc::sptr sql;        /*!< Squelch. */
     gr::blocks::complex_to_float::sptr  demod_raw;  /*!< Raw I/Q passthrough. */
     gr::blocks::complex_to_real::sptr   demod_ssb;  /*!< SSB demodulator. */
     rx_demod_fm_sptr          demod_fm;   /*!< FM demodulator. */

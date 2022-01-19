@@ -34,19 +34,13 @@ nbrx_sptr make_nbrx(float quad_rate, float audio_rate)
 }
 
 nbrx::nbrx(float quad_rate, float audio_rate)
-    : receiver_base_cf("NBRX"),
+    : receiver_base_cf("NBRX", PREF_QUAD_RATE, quad_rate, audio_rate),
       d_running(false),
-      d_quad_rate(quad_rate),
-      d_audio_rate(audio_rate),
       d_demod(NBRX_DEMOD_FM)
 {
-    iq_resamp = make_resampler_cc(PREF_QUAD_RATE/d_quad_rate);
 
     nb = make_rx_nb_cc(PREF_QUAD_RATE, 3.3, 2.5);
     filter = make_rx_filter(PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
-    agc = make_rx_agc_2f(d_audio_rate, true, 0, 0, 100, 500, 500, 0);
-    sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
-    meter = make_rx_meter_c(PREF_QUAD_RATE);
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
     demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 5000.0, 75.0e-6);
@@ -103,18 +97,6 @@ bool nbrx::stop()
     return true;
 }
 
-void nbrx::set_quad_rate(float quad_rate)
-{
-    if (std::abs(d_quad_rate-quad_rate) > 0.5)
-    {
-        qDebug() << "Changing NB_RX quad rate:"  << d_quad_rate << "->" << quad_rate;
-        d_quad_rate = quad_rate;
-        lock();
-        iq_resamp->set_rate(PREF_QUAD_RATE/d_quad_rate);
-        unlock();
-    }
-}
-
 void nbrx::set_filter(double low, double high, double tw)
 {
     filter->set_param(low, high, tw);
@@ -123,11 +105,6 @@ void nbrx::set_filter(double low, double high, double tw)
 void nbrx::set_cw_offset(double offset)
 {
     filter->set_cw_offset(offset);
-}
-
-float nbrx::get_signal_level()
-{
-    return meter->get_level_db();
 }
 
 void nbrx::set_nb_on(int nbid, bool on)
@@ -144,56 +121,6 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
         nb->set_threshold1(threshold);
     else if (nbid == 2)
         nb->set_threshold2(threshold);
-}
-
-void nbrx::set_sql_level(double level_db)
-{
-    sql->set_threshold(level_db);
-}
-
-void nbrx::set_sql_alpha(double alpha)
-{
-    sql->set_alpha(alpha);
-}
-
-void nbrx::set_agc_on(bool agc_on)
-{
-    agc->set_agc_on(agc_on);
-}
-
-void nbrx::set_agc_target_level(int target_level)
-{
-    agc->set_target_level(target_level);
-}
-
-void nbrx::set_agc_manual_gain(float gain)
-{
-    agc->set_manual_gain(gain);
-}
-
-void nbrx::set_agc_max_gain(int gain)
-{
-    agc->set_max_gain(gain);
-}
-
-void nbrx::set_agc_attack(int attack_ms)
-{
-    agc->set_attack(attack_ms);
-}
-
-void nbrx::set_agc_decay(int decay_ms)
-{
-    agc->set_decay(decay_ms);
-}
-
-void nbrx::set_agc_hang(int hang_ms)
-{
-    agc->set_hang(hang_ms);
-}
-
-float nbrx::get_agc_gain()
-{
-    return agc->get_current_gain();
 }
 
 void nbrx::set_demod(int rx_demod)

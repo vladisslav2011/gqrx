@@ -34,18 +34,12 @@ wfmrx_sptr make_wfmrx(float quad_rate, float audio_rate)
 }
 
 wfmrx::wfmrx(float quad_rate, float audio_rate)
-    : receiver_base_cf("WFMRX"),
+    : receiver_base_cf("WFMRX", PREF_QUAD_RATE, quad_rate, audio_rate),
       d_running(false),
-      d_quad_rate(quad_rate),
-      d_audio_rate(audio_rate),
       d_demod(WFMRX_DEMOD_MONO)
 {
-    iq_resamp = make_resampler_cc(PREF_QUAD_RATE/d_quad_rate);
 
     filter = make_rx_filter(PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
-    agc = make_rx_agc_2f(d_audio_rate, true, 0, 0, 100, 500, 500, 0);
-    sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
-    meter = make_rx_meter_c(PREF_QUAD_RATE);
     demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 75000.0, 0.0);
     stereo = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true);
     stereo_oirt = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true, true);
@@ -89,94 +83,9 @@ bool wfmrx::stop()
     return true;
 }
 
-void wfmrx::set_quad_rate(float quad_rate)
-{
-    if (std::abs(d_quad_rate-quad_rate) > 0.5)
-    {
-        qDebug() << "Changing WFM RX quad rate:"  << d_quad_rate << "->" << quad_rate;
-        d_quad_rate = quad_rate;
-        lock();
-        iq_resamp->set_rate(PREF_QUAD_RATE/d_quad_rate);
-        unlock();
-    }
-}
-
 void wfmrx::set_filter(double low, double high, double tw)
 {
     filter->set_param(low, high, tw);
-}
-
-float wfmrx::get_signal_level()
-{
-    return meter->get_level_db();
-}
-
-/*
-void wfmrx::set_nb_on(int nbid, bool on)
-{
-    if (nbid == 1)
-        nb->set_nb1_on(on);
-    else if (nbid == 2)
-        nb->set_nb2_on(on);
-}
-
-void wfmrx::set_nb_threshold(int nbid, float threshold)
-{
-    if (nbid == 1)
-        nb->set_threshold1(threshold);
-    else if (nbid == 2)
-        nb->set_threshold2(threshold);
-}
-*/
-
-void wfmrx::set_sql_level(double level_db)
-{
-    sql->set_threshold(level_db);
-}
-
-void wfmrx::set_sql_alpha(double alpha)
-{
-    sql->set_alpha(alpha);
-}
-
-void wfmrx::set_agc_on(bool agc_on)
-{
-    agc->set_agc_on(agc_on);
-}
-
-void wfmrx::set_agc_target_level(int target_level)
-{
-    agc->set_target_level(target_level);
-}
-
-void wfmrx::set_agc_manual_gain(float gain)
-{
-    agc->set_manual_gain(gain);
-}
-
-void wfmrx::set_agc_max_gain(int gain)
-{
-    agc->set_max_gain(gain);
-}
-
-void wfmrx::set_agc_attack(int attack_ms)
-{
-    agc->set_attack(attack_ms);
-}
-
-void wfmrx::set_agc_decay(int decay_ms)
-{
-    agc->set_decay(decay_ms);
-}
-
-void wfmrx::set_agc_hang(int hang_ms)
-{
-    agc->set_hang(hang_ms);
-}
-
-float wfmrx::get_agc_gain()
-{
-    return agc->get_current_gain();
 }
 
 void wfmrx::set_demod(int demod)
