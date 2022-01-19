@@ -211,13 +211,10 @@ void CAgc::ProcessData(float * pOutData0,float * pOutData1, const float * pInDat
     TYPEFLOAT mag_in = 0;
     if (d_agc_on)
     {
-//        float * mag_vect = &((float *)pOutData)[Length];
-//        volk_32fc_magnitude_32f(mag_vect, pInData, Length);
         for (k = 0; k < Length; k++)
         {
             float sample_in0 = pInData0[k];
             float sample_in1 = pInData1[k];
-//            mag_in = mag_vect[k];
             mag_in = std::max(fabs(sample_in0),fabs(sample_in1));
             float sample_out0 = d_sample_buf[d_buf_p].real();
             float sample_out1 = d_sample_buf[d_buf_p].imag();
@@ -278,82 +275,6 @@ void CAgc::ProcessData(float * pOutData0,float * pOutData1, const float * pInDat
         volk_32f_s32f_multiply_32f((float *)pOutData0, (float *)pInData0, d_current_gain, Length);
         volk_32f_s32f_multiply_32f((float *)pOutData1, (float *)pInData1, d_current_gain, Length);
     }
-    #ifdef AGC_DEBUG2
-    if(d_prev_dbg != d_target_gain)
-    {
-        std::cerr<<"------ d_target_gain="<<d_target_gain<<" d_current_gain="<<d_current_gain<<" d_hang_counter="<<d_hang_counter<<  std::endl;
-        d_prev_dbg = d_target_gain;
-    }
-    #endif
-}
-
-void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
-{
-    int k;
-    TYPEFLOAT max_out = 0;
-    TYPEFLOAT mag_in = 0;
-    if (d_agc_on)
-    {
-        float * mag_vect = &((float *)pOutData)[Length];
-        volk_32fc_magnitude_32f(mag_vect, pInData, Length);
-        for (k = 0; k < Length; k++)
-        {
-            TYPECPX sample_in = pInData[k];
-            mag_in = mag_vect[k];
-            TYPECPX sample_out = d_sample_buf[d_buf_p];
-
-            d_sample_buf[d_buf_p] = sample_in;
-            d_mag_buf[d_buf_p] = mag_in;
-            update_buffer(d_buf_p);
-            max_out = get_peak();
-
-            int buf_p_next = d_buf_p + 1;
-            if (buf_p_next >= d_buf_samples)
-                buf_p_next = 0;
-
-            if (max_out > d_floor)
-            {
-                float new_target = d_target_mag / max_out;
-                if (new_target < d_target_gain)
-                {
-                    if (d_current_gain > d_target_gain)
-                        d_hang_counter = d_buf_samples + d_hang_samp;
-                    d_target_gain = new_target;
-                }
-                else
-                    if (!d_hang_counter)
-                        d_target_gain = new_target;
-            }
-            else
-            {
-                d_target_gain = d_max_gain_mag;
-                d_hang_counter = 0;
-            }
-            if (d_current_gain > d_target_gain)
-            {
-                //attack, decrease gain one step per sample
-                d_current_gain *= d_attack_step;
-            }
-            else
-            {
-                if (d_hang_counter <= 0)
-                {
-                    //decay, increase gain one step per sample until we reach d_max_gain
-                    if (d_current_gain < d_max_gain_mag)
-                        d_current_gain *= d_decay_step;
-                    if (d_current_gain > d_max_gain_mag)
-                        d_current_gain = d_max_gain_mag;
-                }
-            }
-            if (d_hang_counter > 0)
-                d_hang_counter--;
-            if (d_current_gain < MIN_GAIN)
-                d_current_gain = MIN_GAIN;
-            pOutData[k] = sample_out * float(d_current_gain);
-            d_buf_p = buf_p_next;
-        }
-    }else
-        volk_32f_s32f_multiply_32f((float *)pOutData, (float *)pInData, d_current_gain, Length * 2);
     #ifdef AGC_DEBUG2
     if(d_prev_dbg != d_target_gain)
     {

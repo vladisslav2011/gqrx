@@ -26,7 +26,6 @@ public:
     void SetParameters(double sample_rate, bool agc_on, int target_level,
                        float manual_gain, int max_gain, int attack, int decay,
                        int hang, bool force = false);
-    void ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length);
     void ProcessData(float * pOutData0,float * pOutData1, const float * pInData0, const float * pInData1, int Length);
     float CurrentGainDb();
 
