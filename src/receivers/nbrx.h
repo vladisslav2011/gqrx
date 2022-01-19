@@ -93,11 +93,13 @@ public:
     /* AGC */
     bool has_agc() { return true; }
     void set_agc_on(bool agc_on);
-    void set_agc_hang(bool use_hang);
-    void set_agc_threshold(int threshold);
-    void set_agc_slope(int slope);
+    void set_agc_target_level(int target_level);
+    void set_agc_manual_gain(float gain);
+    void set_agc_max_gain(int gain);
+    void set_agc_attack(int attack_ms);
     void set_agc_decay(int decay_ms);
-    void set_agc_manual_gain(int gain);
+    void set_agc_hang(int hang_ms);
+    float get_agc_gain();
 
     void set_demod(int demod);
 
@@ -127,7 +129,7 @@ private:
 
     rx_nb_cc_sptr             nb;         /*!< Noise blanker. */
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
-    rx_agc_cc_sptr            agc;        /*!< Receiver AGC. */
+    rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
     gr::analog::simple_squelch_cc::sptr sql;        /*!< Squelch. */
     gr::blocks::complex_to_float::sptr  demod_raw;  /*!< Raw I/Q passthrough. */
     gr::blocks::complex_to_real::sptr   demod_ssb;  /*!< SSB demodulator. */

@@ -25,41 +25,47 @@
 #include <gnuradio/gr_complex.h>
 #include <dsp/rx_agc_xx.h>
 
-rx_agc_cc_sptr make_rx_agc_cc(double sample_rate, bool agc_on, int threshold,
-                              int manual_gain, int slope, int decay, bool use_hang)
+rx_agc_2f_sptr make_rx_agc_2f(double sample_rate, bool agc_on, int target_level,
+                              int manual_gain, int max_gain, int attack, int decay, int hang)
 {
-    return gnuradio::get_initial_sptr(new rx_agc_cc(sample_rate, agc_on, threshold,
-                                                    manual_gain, slope, decay,
-                                                    use_hang));
+    return gnuradio::get_initial_sptr(new rx_agc_2f(sample_rate, agc_on, target_level,
+                                                    manual_gain, max_gain, attack, decay,
+                                                    hang));
 }
 
 /**
  * \brief Create receiver AGC object.
  *
- * Use make_rx_agc_cc() instead.
+ * Use make_rx_agc_2f() instead.
  */
-rx_agc_cc::rx_agc_cc(double sample_rate, bool agc_on, int threshold,
-                     int manual_gain, int slope, int decay, bool use_hang)
-    : gr::sync_block ("rx_agc_cc",
-          gr::io_signature::make(1, 1, sizeof(gr_complex)),
-          gr::io_signature::make(1, 1, sizeof(gr_complex))),
+rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
+                              int manual_gain, int max_gain, int attack, int decay, int hang)
+    : gr::sync_block ("rx_agc_2f",
+          gr::io_signature::make(2, 2, sizeof(float)),
+          gr::io_signature::make(2, 2, sizeof(float))),
       d_agc_on(agc_on),
       d_sample_rate(sample_rate),
-      d_threshold(threshold),
+      d_target_level(target_level),
       d_manual_gain(manual_gain),
-      d_slope(slope),
+      d_max_gain(max_gain),
+      d_attack(attack),
       d_decay(decay),
-      d_use_hang(use_hang)
+      d_hang(hang)
 {
     d_agc = new CAgc();
-    d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                         d_slope, d_decay, d_sample_rate);
+    reconfigure();
 }
 
-rx_agc_cc::~rx_agc_cc()
+rx_agc_2f::~rx_agc_2f()
 {
     delete d_agc;
 }
+
+void rx_agc_2f::reconfigure()
+{
+    d_agc->SetParameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang);
+}
+
 
 /**
  * \brief Receiver AGC work method.
@@ -67,15 +73,17 @@ rx_agc_cc::~rx_agc_cc()
  * \param input_items
  * \param output_items
  */
-int rx_agc_cc::work(int noutput_items,
+int rx_agc_2f::work(int noutput_items,
                     gr_vector_const_void_star &input_items,
                     gr_vector_void_star &output_items)
 {
-    const gr_complex *in = (const gr_complex *) input_items[0];
-    gr_complex *out = (gr_complex *) output_items[0];
+    const float *in0 = (const float *) input_items[0];
+    const float *in1 = (const float *) input_items[1];
+    float *out0 = (float *) output_items[0];
+    float *out1 = (float *) output_items[1];
 
     std::lock_guard<std::mutex> lock(d_mutex);
-    d_agc->ProcessData(noutput_items, in, out);
+    d_agc->ProcessData(out0, out1, in0, in1, noutput_items);
 
     return noutput_items;
 }
@@ -88,13 +96,12 @@ int rx_agc_cc::work(int noutput_items,
  *
  * \sa set_manual_gain()
  */
-void rx_agc_cc::set_agc_on(bool agc_on)
+void rx_agc_2f::set_agc_on(bool agc_on)
 {
     if (agc_on != d_agc_on) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_agc_on = agc_on;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        reconfigure();
     }
 }
 
@@ -105,63 +112,77 @@ void rx_agc_cc::set_agc_on(bool agc_on)
  * The AGC uses knowledge about the sample rate to calculate various delays and
  * time constants.
  */
-void rx_agc_cc::set_sample_rate(double sample_rate)
+void rx_agc_2f::set_sample_rate(double sample_rate)
 {
     if (sample_rate != d_sample_rate) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_sample_rate = sample_rate;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        reconfigure();
     }
 }
 
 /**
- * \brief Set new AGC threshold.
- * \param threshold The new threshold between -160 and 0dB.
+ * \brief Set new AGC target level.
+ * \param threshold The new target level between -160 and 0dB.
  *
- * The threshold specifies AGC "knee" in dB when the AGC is active.
+ * Maximum output signal lenvel in dB..
  */
-void rx_agc_cc::set_threshold(int threshold)
+void rx_agc_2f::set_target_level(int target_level)
 {
-    if ((threshold != d_threshold) && (threshold >= -160) && (threshold <= 0)) {
+    if ((target_level != d_target_level) && (target_level >= -160) && (target_level <= 0)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_threshold = threshold;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        d_target_level = target_level;
+        reconfigure();
     }
 }
 
 /**
  * \brief Set new manual gain.
- * \param gain The new manual gain between 0 and 100dB.
+ * \param gain The new manual gain between -160 and 160dB.
  *
  * The manual gain is used when AGC is switched off.
  *
  * \sa set_agc_on()
  */
-void rx_agc_cc::set_manual_gain(int gain)
+void rx_agc_2f::set_manual_gain(float gain)
 {
-    if ((gain != d_manual_gain) && (gain >= 0) && (gain <= 100)) {
+    if ((gain != d_manual_gain) && (gain >= -160.0) && (gain <= 160.0)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_manual_gain = gain;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        reconfigure();
     }
 }
 
 /**
- * \brief Set AGC slope factor.
- * \param slope The new slope factor between 0 and 10dB.
+ * \brief Set new max gain.
+ * \param gain The new max gain between 0 and 100dB.
  *
- * The slope factor specifies dB reduction in output at knee from maximum output level
+ * Limits maximum AGC gain to reduce noise.
+ *
+ * \sa set_agc_on()
  */
-void rx_agc_cc::set_slope(int slope)
+void rx_agc_2f::set_max_gain(int gain)
 {
-    if ((slope != d_slope) && (slope >= 0) && (slope <= 10)) {
+    if ((gain != d_max_gain) && (gain >= 0) && (gain <= 160)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_slope = slope;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        d_max_gain = gain;
+        reconfigure();
+    }
+}
+
+/**
+ * \brief Set AGC attack time.
+ * \param decay The new AGC attack time between 20 to 5000 ms.
+ *
+ * Sets length of the delay buffer
+ *
+ */
+void rx_agc_2f::set_attack(int attack)
+{
+    if ((attack != d_attack) && (attack >= 20) && (attack <= 5000)) {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        d_attack = attack;
+        reconfigure();
     }
 }
 
@@ -169,26 +190,31 @@ void rx_agc_cc::set_slope(int slope)
  * \brief Set AGC decay time.
  * \param decay The new AGC decay time between 20 to 5000 ms.
  */
-void rx_agc_cc::set_decay(int decay)
+void rx_agc_2f::set_decay(int decay)
 {
     if ((decay != d_decay) && (decay >= 20) && (decay <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_decay = decay;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        reconfigure();
     }
 }
 
 /**
- * \brief Enable/disable AGC hang.
- * \param use_hang Whether to use hang or not.
+ * \brief Set AGC hang time between 0 to 5000 ms.
+ * \param hang Time to keep AGC gain at constant level after the peak.
  */
-void rx_agc_cc::set_use_hang(bool use_hang)
+void rx_agc_2f::set_hang(int hang)
 {
-    if (use_hang != d_use_hang) {
+    if ((hang != d_hang) && (hang >= 0) && (hang <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_use_hang = use_hang;
-        d_agc->SetParameters(d_agc_on, d_use_hang, d_threshold, d_manual_gain,
-                             d_slope, d_decay, d_sample_rate);
+        d_hang = hang;
+        reconfigure();
     }
 }
+
+float rx_agc_2f::get_current_gain()
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+    return d_agc->CurrentGainDb();
+}
+
