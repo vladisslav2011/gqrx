@@ -205,3 +205,54 @@ bool receiver_base_cf::is_rds_decoder_active()
 {
     return false;
 }
+
+int receiver_base_cf::start_audio_recording(const std::string filename)
+{
+    // if this fails, we don't want to go and crash now, do we
+    try {
+#if GNURADIO_VERSION < 0x030900
+        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
+                                                  (unsigned int) d_audio_rate,
+                                                  16);
+#else
+        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
+                                                  (unsigned int) d_audio_rate,
+                                                  gr::blocks::FORMAT_WAV, gr::blocks::FORMAT_PCM_16);
+#endif
+    }
+    catch (std::runtime_error &e) {
+        std::cout << "Error opening " << filename << ": " << e.what() << std::endl;
+        return 1;
+    }
+
+    lock();
+    connect(agc, 0, wav_sink, 0);
+    connect(agc, 1, wav_sink, 1);
+    unlock();
+    return 0;
+}
+
+void receiver_base_cf::stop_audio_recording()
+{
+    // not strictly necessary to lock but I think it is safer
+    lock();
+    wav_sink->close();
+    disconnect(agc, 0, wav_sink, 0);
+    disconnect(agc, 1, wav_sink, 1);
+
+    unlock();
+    wav_sink.reset();
+}
+
+//FIXME Reimplement wavfile_sink correctly to make this work as expected
+void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
+{
+    if(from.get() == this)
+        return;
+    from->disconnect(from->agc, 0, from->wav_sink, 0);
+    from->disconnect(from->agc, 1, from->wav_sink, 1);
+    wav_sink = from->wav_sink;
+    connect(agc, 0, wav_sink, 0);
+    connect(agc, 1, wav_sink, 1);
+    from->wav_sink.reset();
+}

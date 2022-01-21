@@ -1162,33 +1162,15 @@ receiver::status receiver::start_audio_recording(const std::string filename)
 
         return STATUS_ERROR;
     }
-
-    // if this fails, we don't want to go and crash now, do we
-    try {
-#if GNURADIO_VERSION < 0x030900
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
-                                                  (unsigned int) d_audio_rate,
-                                                  16);
-#else
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
-                                                  (unsigned int) d_audio_rate,
-                                                  gr::blocks::FORMAT_WAV, gr::blocks::FORMAT_PCM_16);
-#endif
+    
+    if(rx->start_audio_recording(filename) == 0)
+    {
+        d_recording_wav = true;
+        std::cout << "Recording audio to " << filename << std::endl;
+        return STATUS_OK;
     }
-    catch (std::runtime_error &e) {
-        std::cout << "Error opening " << filename << ": " << e.what() << std::endl;
+    else
         return STATUS_ERROR;
-    }
-
-    tb->lock();
-    tb->connect(rx, 0, wav_sink, 0);
-    tb->connect(rx, 1, wav_sink, 1);
-    tb->unlock();
-    d_recording_wav = true;
-
-    std::cout << "Recording audio to " << filename << std::endl;
-
-    return STATUS_OK;
 }
 
 /** Stop WAV file recorder. */
@@ -1207,20 +1189,8 @@ receiver::status receiver::stop_audio_recording()
 
         return STATUS_ERROR;
     }
+    rx->stop_audio_recording();
 
-    // not strictly necessary to lock but I think it is safer
-    tb->lock();
-    wav_sink->close();
-    tb->disconnect(rx, 0, wav_sink, 0);
-    tb->disconnect(rx, 1, wav_sink, 1);
-
-    // Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-    tb->disconnect(ddc, 0, rx, 0);
-    tb->connect(ddc, 0, rx, 0);
-    // End temporary workaronud
-
-    tb->unlock();
-    wav_sink.reset();
     d_recording_wav = false;
 
     std::cout << "Audio recorder stopped" << std::endl;
@@ -1608,6 +1578,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
     // Visualization
     tb->connect(b, 0, iq_fft, 0);
 
+    receiver_base_cf_sptr old_rx = rx;
     // RX demod chain
     switch (type)
     {
@@ -1646,10 +1617,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         }
         // Recorders and sniffers
         if (d_recording_wav)
-        {
-            tb->connect(rx, 0, wav_sink, 0);
-            tb->connect(rx, 1, wav_sink, 1);
-        }
+            rx->continue_audio_recording(old_rx);
 
         if (d_sniffer_active)
         {
@@ -1661,8 +1629,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
     {
         if (d_recording_wav)
         {
-            wav_sink->close();
-            wav_sink.reset();
+            rx->stop_audio_recording();
             d_recording_wav = false;
         }
 

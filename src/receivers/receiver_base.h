@@ -25,6 +25,7 @@
 
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/analog/simple_squelch_cc.h>
+#include <gnuradio/blocks/wavfile_sink.h>
 #include "dsp/resampler_xx.h"
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
@@ -110,6 +111,9 @@ public:
     virtual void stop_rds_decoder();
     virtual void reset_rds_parser();
     virtual bool is_rds_decoder_active();
+    virtual int start_audio_recording(std::string filename);
+    virtual void stop_audio_recording();
+    virtual void continue_audio_recording(receiver_base_cf_sptr from);
 protected:
     float  d_quad_rate;        /*!< Input sample rate. */
     int    d_audio_rate;       /*!< Audio output rate. */
@@ -118,6 +122,7 @@ protected:
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
     rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
     gr::analog::simple_squelch_cc::sptr sql;        /*!< Squelch. */
+    gr::blocks::wavfile_sink::sptr      wav_sink;   /*!< WAV file sink for recording. */
 private:
     float d_pref_quad_rate;
 };

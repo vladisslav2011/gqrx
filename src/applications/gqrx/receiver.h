@@ -32,7 +32,6 @@
 //#include <gnuradio/blocks/file_sink.h>
 //#include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/null_sink.h>
-#include <gnuradio/blocks/wavfile_sink.h>
 #include <gnuradio/blocks/wavfile_source.h>
 #include <gnuradio/blocks/throttle.h>
 #include <gnuradio/top_block.h>
@@ -336,7 +335,6 @@ private:
     gr::blocks::throttle::sptr                     input_throttle;
     file_source::sptr                              input_file;
 
-    gr::blocks::wavfile_sink::sptr      wav_sink;   /*!< WAV file sink for recording. */
     gr::blocks::wavfile_source::sptr    wav_src;    /*!< WAV file source for playback. */
     gr::blocks::null_sink::sptr         audio_null_sink0; /*!< Audio null sink used during playback. */
     gr::blocks::null_sink::sptr         audio_null_sink1; /*!< Audio null sink used during playback. */
