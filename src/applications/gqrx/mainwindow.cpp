@@ -234,12 +234,13 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool)), this, SLOT(setAudioMute(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted(QString,int,bool)), this, SLOT(startAudioStream(QString,int,bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
-    connect(uiDockAudio, SIGNAL(audioRecStarted(QString)), this, SLOT(startAudioRec(QString)));
-    connect(uiDockAudio, SIGNAL(audioRecStarted(QString)), remote, SLOT(startAudioRecorder(QString)));
-    connect(uiDockAudio, SIGNAL(audioRecStopped()), this, SLOT(stopAudioRec()));
-    connect(uiDockAudio, SIGNAL(audioRecStopped()), remote, SLOT(stopAudioRecorder()));
+    connect(uiDockAudio, SIGNAL(audioRecStart()), this, SLOT(startAudioRec()));
+    connect(uiDockAudio, SIGNAL(audioRecStart()), remote, SLOT(startAudioRecorder()));
+    connect(uiDockAudio, SIGNAL(audioRecStop()), this, SLOT(stopAudioRec()));
+    connect(uiDockAudio, SIGNAL(audioRecStop()), remote, SLOT(stopAudioRecorder()));
     connect(uiDockAudio, SIGNAL(audioPlayStarted(QString)), this, SLOT(startAudioPlayback(QString)));
     connect(uiDockAudio, SIGNAL(audioPlayStopped()), this, SLOT(stopAudioPlayback()));
+    connect(uiDockAudio, SIGNAL(recDirChanged(QString)), this, SLOT(recDirChanged(QString)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
@@ -1514,10 +1515,19 @@ void MainWindow::rdsTimeout()
 }
 
 /**
+ * @brief Set audio recording directory.
+ * @param dir The directory, where audio files should be created.
+ */
+void MainWindow::recDirChanged(const QString dir)
+{
+    rx->set_audio_rec_dir(dir.toStdString());
+}
+
+/**
  * @brief Start audio recorder.
  * @param filename The file name into which audio should be recorded.
  */
-void MainWindow::startAudioRec(const QString& filename)
+void MainWindow::startAudioRec()
 {
     if (!d_have_audio)
     {
@@ -1529,7 +1539,7 @@ void MainWindow::startAudioRec(const QString& filename)
         msg_box.exec();
         uiDockAudio->setAudioRecButtonState(false);
     }
-    else if (rx->start_audio_recording(filename.toStdString()))
+    else if (rx->start_audio_recording())
     {
         ui->statusBar->showMessage(tr("Error starting audio recorder"));
 
@@ -1538,7 +1548,8 @@ void MainWindow::startAudioRec(const QString& filename)
     }
     else
     {
-        ui->statusBar->showMessage(tr("Recording audio to %1").arg(filename));
+        ui->statusBar->showMessage(tr("Recording audio to %1").arg(rx->get_last_audio_filename().data()));
+        uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));
     }
 }
 
@@ -1550,6 +1561,7 @@ void MainWindow::stopAudioRec()
         /* okay, this one would be weird if it really happened */
         ui->statusBar->showMessage(tr("Error stopping audio recorder"));
 
+        uiDockAudio->audioRecStopped();
         uiDockAudio->setAudioRecButtonState(true);
     }
     else

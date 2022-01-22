@@ -73,6 +73,8 @@ public slots:
     void stopAudioRecorder(void);
     void setRxFrequency(qint64 freq);
     void setWfColormap(const QString &cmap);
+    void audioRecStarted(const QString filename);
+    void audioRecStopped();
 
 signals:
     /*! \brief Signal emitted when audio gain has changed. Gain is in dB. */
@@ -85,10 +87,10 @@ signals:
     void audioStreamingStopped();
 
     /*! \brief Signal emitted when audio recording is started. */
-    void audioRecStarted(const QString filename);
+    void audioRecStart();
 
     /*! \brief Signal emitted when audio recording is stopped. */
-    void audioRecStopped();
+    void audioRecStop();
 
     /*! \brief Signal emitted when audio playback is started. */
     void audioPlayStarted(const QString filename);
@@ -101,6 +103,9 @@ signals:
 
     /*! \brief Signal emitted when audio mute has changed. */
     void audioMuteChanged(bool mute);
+
+    /*! \brief Signal emitted when recording directory has changed. */
+    void recDirChanged(const QString dir);
 
 private slots:
     void on_audioGainSlider_valueChanged(int value);

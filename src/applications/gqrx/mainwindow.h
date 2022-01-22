@@ -172,7 +172,8 @@ private slots:
     void setPassband(int bandwidth);
 
     /* audio recording and playback */
-    void startAudioRec(const QString& filename);
+    void recDirChanged(const QString dir);
+    void startAudioRec();
     void stopAudioRec();
     void startAudioPlayback(const QString& filename);
     void stopAudioPlayback();

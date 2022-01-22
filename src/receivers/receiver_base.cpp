@@ -23,6 +23,8 @@
 #include <gnuradio/io_signature.h>
 #include "receivers/receiver_base.h"
 #include <QDebug>
+#include <QDateTime>
+#include <QDir>
 
 
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
@@ -59,6 +61,21 @@ void receiver_base_cf::set_quad_rate(float quad_rate)
         iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
         unlock();
     }
+}
+
+void receiver_base_cf::set_center_freq(double center_freq)
+{
+    d_center_freq = center_freq;
+}
+
+void receiver_base_cf::set_offset(double offset)
+{
+    d_offset = offset;
+}
+
+void receiver_base_cf::set_rec_dir(std::string dir)
+{
+    d_rec_dir = dir;
 }
 
 float receiver_base_cf::get_signal_level()
@@ -206,22 +223,28 @@ bool receiver_base_cf::is_rds_decoder_active()
     return false;
 }
 
-int receiver_base_cf::start_audio_recording(const std::string filename)
+int receiver_base_cf::start_audio_recording()
 {
+    // FIXME: option to use local time
+    // use toUTC() function compatible with older versions of Qt.
+    QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
+    QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
+    d_audio_filename = filename.toStdString();
+
     // if this fails, we don't want to go and crash now, do we
     try {
 #if GNURADIO_VERSION < 0x030900
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
+        wav_sink = gr::blocks::wavfile_sink::make(d_audio_filename.c_str(), 2,
                                                   (unsigned int) d_audio_rate,
                                                   16);
 #else
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
+        wav_sink = gr::blocks::wavfile_sink::make(d_audio_filename.c_str(), 2,
                                                   (unsigned int) d_audio_rate,
                                                   gr::blocks::FORMAT_WAV, gr::blocks::FORMAT_PCM_16);
 #endif
     }
     catch (std::runtime_error &e) {
-        std::cout << "Error opening " << filename << ": " << e.what() << std::endl;
+        std::cout << "Error opening " << d_audio_filename << ": " << e.what() << std::endl;
         return 1;
     }
 
@@ -255,4 +278,9 @@ void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     from->wav_sink.reset();
+}
+
+std::string receiver_base_cf::get_last_audio_filename()
+{
+    return d_audio_filename;
 }

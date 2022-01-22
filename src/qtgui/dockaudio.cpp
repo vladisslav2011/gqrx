@@ -223,25 +223,12 @@ void DockAudio::on_audioStreamButton_clicked(bool checked)
 void DockAudio::on_audioRecButton_clicked(bool checked)
 {
     if (checked) {
-        // FIXME: option to use local time
-        // use toUTC() function compatible with older versions of Qt.
-        QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
-        last_audio = QString("%1/%2_%3.wav").arg(rec_dir).arg(file_name).arg(rx_freq);
-        QFileInfo info(last_audio);
 
         // emit signal and start timer
-        emit audioRecStarted(last_audio);
-
-        ui->audioRecLabel->setText(info.fileName());
-        ui->audioRecButton->setToolTip(tr("Stop audio recorder"));
-        ui->audioPlayButton->setEnabled(false); /* prevent playback while recording */
+        emit audioRecStart();
     }
     else {
-        ui->audioRecLabel->setText("<i>DSP</i>");
-        ui->audioRecButton->setToolTip(tr("Start audio recorder"));
-        emit audioRecStopped();
-
-        ui->audioPlayButton->setEnabled(true);
+        emit audioRecStop();
     }
 }
 
@@ -460,6 +447,7 @@ void DockAudio::setNewWaterfallRange(int min, int max)
 void DockAudio::setNewRecDir(const QString &dir)
 {
     rec_dir = dir;
+    emit recDirChanged(dir);
 }
 
 /*! \brief Slot called when a new network host has been entered. */
@@ -482,6 +470,24 @@ void DockAudio::setNewUdpStereo(bool enabled)
 {
     udp_stereo = enabled;
 }
+
+/*! \brief Slot called when audio recording is started after clicking rec or being triggered by squelch. */
+void DockAudio::audioRecStarted(const QString filename)
+{
+    last_audio = filename;
+    QFileInfo info(last_audio);
+    ui->audioRecLabel->setText(info.fileName());
+    ui->audioRecButton->setToolTip(tr("Stop audio recorder"));
+    ui->audioPlayButton->setEnabled(false); /* prevent playback while recording */
+}
+
+void DockAudio::audioRecStopped()
+{
+        ui->audioRecLabel->setText("<i>DSP</i>");
+        ui->audioRecButton->setToolTip(tr("Start audio recorder"));
+        ui->audioPlayButton->setEnabled(true);
+}
+
 
 void DockAudio::recordToggleShortcut() {
     ui->audioRecButton->click();

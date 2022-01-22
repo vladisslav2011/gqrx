@@ -659,6 +659,7 @@ receiver::status receiver::set_rf_freq(double freq_hz)
     d_rf_freq = freq_hz;
 
     src->set_center_freq(d_rf_freq);
+    rx->set_center_freq(d_rf_freq);//to generate audio filename
     // FIXME: read back frequency?
 
     return STATUS_OK;
@@ -776,6 +777,7 @@ receiver::status receiver::set_filter_offset(double offset_hz)
 {
     d_filter_offset = offset_hz;
     ddc->set_center_freq(d_filter_offset - d_cw_offset);
+    rx->set_offset(offset_hz);//to generate audio filename from
 
     return STATUS_OK;
 }
@@ -1137,6 +1139,12 @@ receiver::status receiver::set_amsync_pll_bw(float pll_bw)
     return STATUS_OK;
 }
 
+receiver::status receiver::set_audio_rec_dir(const std::string dir)
+{
+    rx->set_rec_dir(dir);
+    return STATUS_OK;
+}
+
 /**
  * @brief Start WAV file recorder.
  * @param filename The filename where to record.
@@ -1146,7 +1154,7 @@ receiver::status receiver::set_amsync_pll_bw(float pll_bw)
  * file names does not work with WAV files (the initial /tmp/gqrx.wav will not be stopped
  * because the wav file can not be empty). See https://github.com/gqrx-sdr/gqrx/issues/36
  */
-receiver::status receiver::start_audio_recording(const std::string filename)
+receiver::status receiver::start_audio_recording()
 {
     if (d_recording_wav)
     {
@@ -1162,11 +1170,11 @@ receiver::status receiver::start_audio_recording(const std::string filename)
 
         return STATUS_ERROR;
     }
-    
-    if(rx->start_audio_recording(filename) == 0)
+
+    if(rx->start_audio_recording() == 0)
     {
         d_recording_wav = true;
-        std::cout << "Recording audio to " << filename << std::endl;
+        std::cout << "Recording audio to " << rx->get_last_audio_filename() << std::endl;
         return STATUS_OK;
     }
     else
@@ -1196,6 +1204,12 @@ receiver::status receiver::stop_audio_recording()
     std::cout << "Audio recorder stopped" << std::endl;
 
     return STATUS_OK;
+}
+
+/** get last recorded audio file name. */
+std::string receiver::get_last_audio_filename()
+{
+    return rx->get_last_audio_filename();
 }
 
 /** Start audio playback. */
@@ -1616,8 +1630,13 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
             tb->connect(rx, 1, audio_snk, 1);
         }
         // Recorders and sniffers
-        if (d_recording_wav)
-            rx->continue_audio_recording(old_rx);
+        if(old_rx.get() != rx.get())
+        {
+            if (d_recording_wav)
+                rx->continue_audio_recording(old_rx);
+            rx->set_center_freq(d_rf_freq);
+            rx->set_offset(d_filter_offset);
+        }
 
         if (d_sniffer_active)
         {

@@ -235,8 +235,10 @@ public:
     status      set_amsync_pll_bw(float pll_bw);
 
     /* Audio parameters */
-    status      start_audio_recording(const std::string filename);
+    status      set_audio_rec_dir(const std::string dir);
+    status      start_audio_recording();
     status      stop_audio_recording();
+    std::string get_last_audio_filename();
     status      start_audio_playback(const std::string filename);
     status      stop_audio_playback();
 

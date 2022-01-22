@@ -61,6 +61,9 @@ public:
     virtual bool stop() = 0;
 
     virtual void set_quad_rate(float quad_rate);
+    virtual void set_center_freq(double center_freq);
+    virtual void set_offset(double offset);
+    virtual void set_rec_dir(std::string dir);
 
     virtual void set_filter(double low, double high, double tw) = 0;
     virtual void set_cw_offset(double offset) = 0;
@@ -111,12 +114,18 @@ public:
     virtual void stop_rds_decoder();
     virtual void reset_rds_parser();
     virtual bool is_rds_decoder_active();
-    virtual int start_audio_recording(std::string filename);
+    virtual int  start_audio_recording();
     virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);
+    virtual std::string get_last_audio_filename();
+
 protected:
-    float  d_quad_rate;        /*!< Input sample rate. */
-    int    d_audio_rate;       /*!< Audio output rate. */
+    float       d_quad_rate;        /*!< Input sample rate. */
+    int         d_audio_rate;       /*!< Audio output rate. */
+    double      d_center_freq;
+    double      d_offset;
+    std::string d_rec_dir;
+    std::string d_audio_filename;
 
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
