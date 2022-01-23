@@ -29,6 +29,7 @@
 #include "dsp/resampler_xx.h"
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
+#include "interfaces/wav_sink.h"
 
 
 class receiver_base_cf;
@@ -131,7 +132,7 @@ protected:
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
     rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
     gr::analog::pwr_squelch_cc::sptr sql;        /*!< Squelch. */
-    gr::blocks::wavfile_sink::sptr      wav_sink;   /*!< WAV file sink for recording. */
+    wavfile_sink_gqrx::sptr      wav_sink;   /*!< WAV file sink for recording. */
 private:
     float d_pref_quad_rate;
 };

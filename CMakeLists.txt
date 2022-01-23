@@ -126,6 +126,7 @@ endif()
 find_package(Qt5 COMPONENTS Core Network Widgets Svg REQUIRED)
 include(FindPkgConfig)
 find_package(Gnuradio-osmosdr REQUIRED)
+find_package(SNDFILE REQUIRED)
 
 set(GR_REQUIRED_COMPONENTS RUNTIME ANALOG AUDIO BLOCKS DIGITAL FILTER FFT PMT)
 find_package(Gnuradio REQUIRED COMPONENTS analog audio blocks digital filter fft network)

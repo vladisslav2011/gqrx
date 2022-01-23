@@ -7,4 +7,6 @@ add_source_files(SRCS_LIST
 	file_sink.h
 	file_source.cpp
 	file_source.h
+	wav_sink.cpp
+	wav_sink.h
 )
