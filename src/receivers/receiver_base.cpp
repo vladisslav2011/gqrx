@@ -25,6 +25,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QDir>
+#include <functional>
 
 
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
@@ -44,6 +45,12 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
     agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0);
     sql = gr::analog::pwr_squelch_cc::make(-150.0, 0.001);
     meter = make_rx_meter_c(d_pref_quad_rate);
+    wav_sink = wavfile_sink_gqrx::make(0, 2, (unsigned int) d_audio_rate,
+                                       FORMAT_WAV, FORMAT_PCM_16);
+    connect(agc, 0, wav_sink, 0);
+    connect(agc, 1, wav_sink, 1);
+    wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
+                                    std::placeholders::_2));
 }
 
 receiver_base_cf::~receiver_base_cf()
@@ -66,16 +73,19 @@ void receiver_base_cf::set_quad_rate(float quad_rate)
 void receiver_base_cf::set_center_freq(double center_freq)
 {
     d_center_freq = center_freq;
+    wav_sink->set_center_freq(center_freq);
 }
 
 void receiver_base_cf::set_offset(double offset)
 {
     d_offset = offset;
+    wav_sink->set_offset(offset);
 }
 
 void receiver_base_cf::set_rec_dir(std::string dir)
 {
     d_rec_dir = dir;
+    wav_sink->set_rec_dir(dir);
 }
 
 float receiver_base_cf::get_signal_level()
@@ -225,40 +235,12 @@ bool receiver_base_cf::is_rds_decoder_active()
 
 int receiver_base_cf::start_audio_recording()
 {
-    // FIXME: option to use local time
-    // use toUTC() function compatible with older versions of Qt.
-    QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
-    QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
-    d_audio_filename = filename.toStdString();
-
-    // if this fails, we don't want to go and crash now, do we
-    try {
-        wav_sink = wavfile_sink_gqrx::make(d_audio_filename.c_str(), 2,
-                                                  (unsigned int) d_audio_rate,
-                                                  FORMAT_WAV, FORMAT_PCM_16);
-    }
-    catch (std::runtime_error &e) {
-        std::cout << "Error opening " << d_audio_filename << ": " << e.what() << std::endl;
-        return 1;
-    }
-
-    lock();
-    connect(agc, 0, wav_sink, 0);
-    connect(agc, 1, wav_sink, 1);
-    unlock();
-    return 0;
+    return wav_sink->open_new();
 }
 
 void receiver_base_cf::stop_audio_recording()
 {
-    // not strictly necessary to lock but I think it is safer
-    lock();
     wav_sink->close();
-    disconnect(agc, 0, wav_sink, 0);
-    disconnect(agc, 1, wav_sink, 1);
-
-    unlock();
-    wav_sink.reset();
 }
 
 //FIXME Reimplement wavfile_sink correctly to make this work as expected
@@ -269,6 +251,8 @@ void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
     from->disconnect(from->agc, 0, from->wav_sink, 0);
     from->disconnect(from->agc, 1, from->wav_sink, 1);
     wav_sink = from->wav_sink;
+    wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
+                                    std::placeholders::_2));
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     from->wav_sink.reset();
@@ -277,4 +261,11 @@ void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
 std::string receiver_base_cf::get_last_audio_filename()
 {
     return d_audio_filename;
+}
+
+void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, bool is_running)
+{
+    self->d_audio_filename = filename;
+    if(self->d_rec_event)
+        self->d_rec_event(filename, is_running);
 }

@@ -135,6 +135,8 @@ public:
         size_t file_pos;
      };
 
+    typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
+
     receiver(const std::string input_device="",
              const std::string audio_device="",
              unsigned int decimation=1);
@@ -270,7 +272,10 @@ public:
     /* utility functions */
     static std::string escape_filename(std::string filename);
     static int sample_size_from_format(enum file_formats fmt);
-
+    template <typename T> void set_audio_rec_event_handler(T handler)
+    {
+        d_audio_rec_event_handler = handler;
+    }
 
 private:
     void        connect_all(rx_chain type, enum file_formats fmt);
@@ -352,9 +357,11 @@ private:
 #else
     gr::audio::sink::sptr     audio_snk;  /*!< gr audio sink */
 #endif
-
+    audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
     static std::string get_zero_file(void);
+    static void audio_rec_event(receiver * self, std::string filename,
+                                bool is_running);
 };
 
 #endif // RECEIVER_H

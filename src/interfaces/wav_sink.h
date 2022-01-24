@@ -84,6 +84,10 @@ private:
     SNDFILE* d_new_fp;
     bool d_updated;
     std::mutex d_mutex;
+    double      d_center_freq;
+    double      d_offset;
+    std::string d_rec_dir;
+    std::string d_filename;
 
     static constexpr int s_items_size = 8192;
     static constexpr int s_max_channels = 24;
@@ -112,17 +116,18 @@ protected:
     bool stop() override;
 
 public:
+typedef std::function<void(std::string, bool)> rec_event_handler_t;
 #if GNURADIO_VERSION < 0x030900
     typedef boost::shared_ptr<wavfile_sink_gqrx> sptr;
 #else
     typedef std::shared_ptr<wavfile_sink_gqrx> sptr;
 #endif
-static sptr make(const char* filename,
-                 int n_channels,
-                 unsigned int sample_rate,
-                 wavfile_format_t format,
-                 wavfile_subformat_t subformat,
-                 bool append = false);
+    static sptr make(const char* filename,
+                    int n_channels,
+                    unsigned int sample_rate,
+                    wavfile_format_t format,
+                    wavfile_subformat_t subformat,
+                    bool append = false);
     wavfile_sink_gqrx(const char* filename,
                       int n_channels,
                       unsigned int sample_rate,
@@ -131,7 +136,15 @@ static sptr make(const char* filename,
                       bool append = false);
     ~wavfile_sink_gqrx() override;
 
+    virtual void set_center_freq(double center_freq);
+    virtual void set_offset(double offset);
+    virtual void set_rec_dir(std::string dir);
+    template <typename T> void set_rec_event_handler(T handler)
+    {
+        d_rec_event = handler;
+    }
     bool open(const char* filename) override;
+    int  open_new();
     void close() override;
 
     void set_sample_rate(unsigned int sample_rate) override;
@@ -144,6 +157,8 @@ static sptr make(const char* filename,
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
              gr_vector_void_star& output_items) override;
+private:
+    rec_event_handler_t d_rec_event;
 };
 
 #endif /* GQRX_WAVFILE_SINK_C_H */

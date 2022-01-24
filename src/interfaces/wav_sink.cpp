@@ -26,6 +26,8 @@
 #include <gnuradio/thread/thread.h>
 #include <cstring>
 #include <stdexcept>
+#include <QDateTime>
+#include <QDir>
 
 wavfile_sink_gqrx::sptr wavfile_sink_gqrx::make(const char* filename,
                                       int n_channels,
@@ -51,9 +53,12 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
       d_append(append),
       d_fp(nullptr),
       d_new_fp(nullptr),
-      d_updated(false)
+      d_updated(false),
+      d_center_freq(0),
+      d_offset(0),
+      d_rec_dir("")
 {
-    int bits_per_sample;
+    int bits_per_sample = 16;
 
     if (n_channels > s_max_channels) {
         throw std::runtime_error("Number of channels greater than " +
@@ -96,10 +101,28 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
     set_max_noutput_items(s_items_size);
     d_buffer.resize(s_items_size * d_h.nchans);
 
-    if (!open(filename)) {
-        throw std::runtime_error("Can't open WAV file.");
-    }
+    if(filename)
+        if (!open(filename)) {
+            throw std::runtime_error("Can't open WAV file.");
+        }
 }
+
+void wavfile_sink_gqrx::set_center_freq(double center_freq)
+{
+    d_center_freq = center_freq;
+}
+
+void wavfile_sink_gqrx::set_offset(double offset)
+{
+    d_offset = offset;
+}
+
+void wavfile_sink_gqrx::set_rec_dir(std::string dir)
+{
+    d_rec_dir = dir;
+}
+
+
 
 bool wavfile_sink_gqrx::open(const char* filename)
 {
@@ -211,6 +234,21 @@ bool wavfile_sink_gqrx::open(const char* filename)
     return true;
 }
 
+int wavfile_sink_gqrx::open_new()
+{
+    // FIXME: option to use local time
+    // use toUTC() function compatible with older versions of Qt.
+    QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
+    QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
+    if(open(filename.toStdString().data()))
+    {
+        if(d_rec_event)
+            d_rec_event(d_filename = filename.toStdString(), true);
+        return 0;
+    }
+    return 1;
+}
+
 void wavfile_sink_gqrx::close()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
@@ -226,6 +264,8 @@ void wavfile_sink_gqrx::close_wav()
     sf_write_sync(d_fp);
     sf_close(d_fp);
     d_fp = nullptr;
+    if(d_rec_event)
+        d_rec_event(d_filename, false);
 }
 
 wavfile_sink_gqrx::~wavfile_sink_gqrx()

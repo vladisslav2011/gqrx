@@ -55,6 +55,7 @@ public:
     /*! \brief Public constructor.
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
+    typedef std::function<void(std::string, bool)> rec_event_handler_t;
     receiver_base_cf(std::string src_name, float pref_quad_rate, float quad_rate, int audio_rate);
     virtual ~receiver_base_cf();
 
@@ -119,6 +120,10 @@ public:
     virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);
     virtual std::string get_last_audio_filename();
+    template <typename T> void set_rec_event_handler(T handler)
+    {
+        d_rec_event = handler;
+    }
 
 protected:
     float       d_quad_rate;        /*!< Input sample rate. */
@@ -135,6 +140,8 @@ protected:
     wavfile_sink_gqrx::sptr      wav_sink;   /*!< WAV file sink for recording. */
 private:
     float d_pref_quad_rate;
+    rec_event_handler_t d_rec_event;
+    static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
 };
 
 #endif // RECEIVER_BASE_H

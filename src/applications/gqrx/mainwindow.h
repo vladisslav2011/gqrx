@@ -55,6 +55,9 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+signals:
+    void sigAudioRecEvent(const QString filename, bool is_running);
+
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
     ~MainWindow() override;
@@ -130,6 +133,8 @@ private:
                             const QString &window_title);
     /* key shortcut */
     void frequencyFocusShortcut();
+    void audioRecEventEmitter(std::string filename, bool is_running);
+    static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
 
 private slots:
     /* RecentConfig */
@@ -175,6 +180,7 @@ private slots:
     void recDirChanged(const QString dir);
     void startAudioRec();
     void stopAudioRec();
+    void audioRecEvent(const QString filename, bool is_running);
     void startAudioPlayback(const QString& filename);
     void stopAudioPlayback();
 

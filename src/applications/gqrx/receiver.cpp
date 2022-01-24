@@ -160,6 +160,9 @@ receiver::receiver(const std::string input_device,
     gr::prefs pref;
     qDebug() << "Using audio backend:"
              << pref.get_string("audio", "audio_module", "N/A").c_str();
+    rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
 }
 
 receiver::~receiver()
@@ -1173,8 +1176,6 @@ receiver::status receiver::start_audio_recording()
 
     if(rx->start_audio_recording() == 0)
     {
-        d_recording_wav = true;
-        std::cout << "Recording audio to " << rx->get_last_audio_filename() << std::endl;
         return STATUS_OK;
     }
     else
@@ -1198,10 +1199,6 @@ receiver::status receiver::stop_audio_recording()
         return STATUS_ERROR;
     }
     rx->stop_audio_recording();
-
-    d_recording_wav = false;
-
-    std::cout << "Audio recorder stopped" << std::endl;
 
     return STATUS_OK;
 }
@@ -1601,6 +1598,9 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         {
             rx.reset();
             rx = make_nbrx(d_quad_rate, d_audio_rate);
+            rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
         }
         break;
 
@@ -1609,6 +1609,9 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         {
             rx.reset();
             rx = make_wfmrx(d_quad_rate, d_audio_rate);
+            rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
         }
         break;
 
@@ -1736,4 +1739,21 @@ std::string receiver::escape_filename(std::string filename)
     ss1 << std::quoted(filename, '\'', '\\');
     ss2 << std::quoted(ss1.str(), '\'', '\\');
     return ss2.str();
+}
+
+void receiver::audio_rec_event(receiver * self, std::string filename, bool is_running)
+{
+    if (is_running)
+    {
+        self->d_recording_wav = true;
+        std::cout << "Recording audio to " << filename << std::endl;
+    }
+    else
+    {
+        self->d_recording_wav = false;
+        std::cout << "Audio recorder stopped" << std::endl;
+    }
+
+    if(self->d_audio_rec_event_handler)
+        self->d_audio_rec_event_handler(filename, is_running);
 }
