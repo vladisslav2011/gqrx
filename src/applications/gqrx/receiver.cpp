@@ -1148,6 +1148,12 @@ receiver::status receiver::set_audio_rec_dir(const std::string dir)
     return STATUS_OK;
 }
 
+receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
+{
+    rx->set_audio_rec_squelch_triggered(enabled);
+    return STATUS_OK;
+}
+
 /**
  * @brief Start WAV file recorder.
  * @param filename The filename where to record.

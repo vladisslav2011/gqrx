@@ -244,6 +244,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(audioPlayStarted(QString)), this, SLOT(startAudioPlayback(QString)));
     connect(uiDockAudio, SIGNAL(audioPlayStopped()), this, SLOT(stopAudioPlayback()));
     connect(uiDockAudio, SIGNAL(recDirChanged(QString)), this, SLOT(recDirChanged(QString)));
+    connect(uiDockAudio, SIGNAL(recSquelchTriggeredChanged(bool)), this, SLOT(recSquelchTriggeredChanged(bool)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
@@ -303,8 +304,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newSquelchLevel(double)), this, SLOT(setSqlLevel(double)));
     connect(remote, SIGNAL(newSquelchLevel(double)), uiDockRxOpt, SLOT(setSquelchLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
-    connect(remote, SIGNAL(startAudioRecorderEvent()), uiDockAudio, SLOT(startAudioRecorder()));
-    connect(remote, SIGNAL(stopAudioRecorderEvent()), uiDockAudio, SLOT(stopAudioRecorder()));
+    connect(remote, SIGNAL(startAudioRecorderEvent()), this, SLOT(startAudioRec()));
+    connect(remote, SIGNAL(stopAudioRecorderEvent()), this, SLOT(stopAudioRec()));
     connect(ui->plotter, SIGNAL(newFilterFreq(int, int)), remote, SLOT(setPassband(int, int)));
     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
     connect(remote, SIGNAL(gainChanged(QString, double)), uiDockInputCtl, SLOT(setGain(QString,double)));
@@ -1525,6 +1526,15 @@ void MainWindow::rdsTimeout()
 void MainWindow::recDirChanged(const QString dir)
 {
     rx->set_audio_rec_dir(dir.toStdString());
+}
+
+/**
+ * @brief Set audio recording squelch triggered mode.
+ * @param enabled New state.
+ */
+void MainWindow::recSquelchTriggeredChanged(const bool enabled)
+{
+    rx->set_audio_rec_sql_triggered(enabled);
 }
 
 /**

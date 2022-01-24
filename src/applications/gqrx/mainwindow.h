@@ -178,6 +178,7 @@ private slots:
 
     /* audio recording and playback */
     void recDirChanged(const QString dir);
+    void recSquelchTriggeredChanged(const bool enabled);
     void startAudioRec();
     void stopAudioRec();
     void audioRecEvent(const QString filename, bool is_running);

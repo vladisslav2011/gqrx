@@ -67,6 +67,7 @@ enum wavfile_subformat_t {
 };
 
 #include <gnuradio/blocks/wavfile_sink.h>
+#include <gnuradio/block.h>
 #include <sndfile.h> // for SNDFILE
 #include <thread>
 #include <condition_variable>
@@ -74,6 +75,11 @@ enum wavfile_subformat_t {
 class wavfile_sink_gqrx : public gr::blocks::wavfile_sink
 {
 private:
+    typedef enum{
+        ACT_NONE=0,
+        ACT_OPEN,
+        ACT_CLOSE
+        } sql_action;
     wav_header_info d_h;
     int d_bytes_per_sample_new;
     bool d_append;
@@ -157,8 +163,13 @@ typedef std::function<void(std::string, bool)> rec_event_handler_t;
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
              gr_vector_void_star& output_items) override;
+    void set_squelch_triggered(const bool enabled);
 private:
+    bool open_unlocked(const char* filename);
+    int  open_new_unlocked();
     rec_event_handler_t d_rec_event;
+    bool d_squelch_triggered;
+    pmt::pmt_t d_sob_key, d_eob_key;
 };
 
 #endif /* GQRX_WAVFILE_SINK_C_H */

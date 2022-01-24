@@ -238,6 +238,7 @@ public:
 
     /* Audio parameters */
     status      set_audio_rec_dir(const std::string dir);
+    status      set_audio_rec_sql_triggered(const bool enabled);
     status      start_audio_recording();
     status      stop_audio_recording();
     std::string get_last_audio_filename();

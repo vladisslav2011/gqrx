@@ -66,6 +66,7 @@ public:
     virtual void set_center_freq(double center_freq);
     virtual void set_offset(double offset);
     virtual void set_rec_dir(std::string dir);
+    virtual void set_audio_rec_squelch_triggered(bool enabled);
 
     virtual void set_filter(double low, double high, double tw) = 0;
     virtual void set_cw_offset(double offset) = 0;

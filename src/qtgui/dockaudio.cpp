@@ -56,6 +56,7 @@ DockAudio::DockAudio(QWidget *parent) :
     connect(audioOptions, SIGNAL(newUdpHost(QString)), this, SLOT(setNewUdpHost(QString)));
     connect(audioOptions, SIGNAL(newUdpPort(int)), this, SLOT(setNewUdpPort(int)));
     connect(audioOptions, SIGNAL(newUdpStereo(bool)), this, SLOT(setNewUdpStereo(bool)));
+    connect(audioOptions, SIGNAL(newSquelchTriggered(bool)), this, SLOT(setNewSquelchTriggered(bool)));
 
     connect(ui->audioSpectrum, SIGNAL(pandapterRangeChanged(float,float)), audioOptions, SLOT(setPandapterSliderValues(float,float)));
 
@@ -151,32 +152,9 @@ void DockAudio::setFftFill(bool enabled)
     ui->audioSpectrum->setFftFill(enabled);
 }
 
-/*! Public slot to trig audio recording by external events (e.g. satellite AOS).
- *
- * If a recording is already in progress we ignore the event.
- */
-void DockAudio::startAudioRecorder(void)
+bool DockAudio::getSquelchTriggered()
 {
-    if (ui->audioRecButton->isChecked())
-    {
-        qDebug() << __func__ << "An audio recording is already in progress";
-        return;
-    }
-
-    // emulate a button click
-    ui->audioRecButton->click();
-}
-
-/*! Public slot to stop audio recording by external events (e.g. satellite LOS).
- *
- * The event is ignored if no audio recording is in progress.
- */
-void DockAudio::stopAudioRecorder(void)
-{
-    if (ui->audioRecButton->isChecked())
-        ui->audioRecButton->click(); // emulate a button click
-    else
-        qDebug() << __func__ << "No audio recording in progress";
+    return squelch_triggered;
 }
 
 /*! Public slot to set new RX frequency in Hz. */
@@ -373,6 +351,11 @@ void DockAudio::saveSettings(QSettings *settings)
     else
         settings->remove("udp_stereo");
 
+    if (squelch_triggered != false)
+        settings->setValue("squelch_triggered_recording", squelch_triggered);
+    else
+        settings->remove("squelch_triggered_recording");
+
     settings->endGroup();
 }
 
@@ -423,10 +406,12 @@ void DockAudio::readSettings(QSettings *settings)
     if (!conv_ok)
         udp_port = 7355;
     udp_stereo = settings->value("udp_stereo", false).toBool();
+    squelch_triggered = settings->value("squelch_triggered_recording", false).toBool();
 
     audioOptions->setUdpHost(udp_host);
     audioOptions->setUdpPort(udp_port);
     audioOptions->setUdpStereo(udp_stereo);
+    audioOptions->setSquelchTriggered(squelch_triggered);
 
     settings->endGroup();
 }
@@ -479,15 +464,24 @@ void DockAudio::audioRecStarted(const QString filename)
     ui->audioRecLabel->setText(info.fileName());
     ui->audioRecButton->setToolTip(tr("Stop audio recorder"));
     ui->audioPlayButton->setEnabled(false); /* prevent playback while recording */
+    setAudioRecButtonState(true);
 }
 
 void DockAudio::audioRecStopped()
 {
-        ui->audioRecLabel->setText("<i>DSP</i>");
-        ui->audioRecButton->setToolTip(tr("Start audio recorder"));
-        ui->audioPlayButton->setEnabled(true);
+    ui->audioRecLabel->setText("<i>DSP</i>");
+    ui->audioRecButton->setToolTip(tr("Start audio recorder"));
+    ui->audioPlayButton->setEnabled(true);
+    setAudioRecButtonState(false);
 }
 
+
+void DockAudio::setNewSquelchTriggered(bool enabled)
+{
+    squelch_triggered = enabled;
+    ui->audioRecButton->setStyleSheet(enabled?"color: rgb(255,0,0)":"");
+    emit recSquelchTriggeredChanged(enabled);
+}
 
 void DockAudio::recordToggleShortcut() {
     ui->audioRecButton->click();

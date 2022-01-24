@@ -96,6 +96,11 @@ void CAudioOptions::setUdpStereo(bool stereo)
     ui->udpStereo->setChecked(stereo);
 }
 
+void CAudioOptions::setSquelchTriggered(bool value)
+{
+    ui->squelchTriggered->setChecked(value);
+}
+
 
 void CAudioOptions::setFftSplit(int pct_2d)
 {
@@ -210,6 +215,14 @@ void CAudioOptions::on_recDirEdit_textChanged(const QString &dir)
     {
         ui->recDirEdit->setPalette(*error_palette);  // indicate error
     }
+}
+
+/**
+ */
+void CAudioOptions::on_squelchTriggered_stateChanged(int state)
+{
+
+    emit newSquelchTriggered(state == Qt::Checked);
 }
 
 /** Slot called when the user clicks on the "Select" button. */

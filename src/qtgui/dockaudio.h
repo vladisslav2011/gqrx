@@ -65,12 +65,12 @@ public:
     void setFftColor(QColor color);
     void setFftFill(bool enabled);
 
+    bool getSquelchTriggered();
+
     void saveSettings(QSettings *settings);
     void readSettings(QSettings *settings);
 
 public slots:
-    void startAudioRecorder(void);
-    void stopAudioRecorder(void);
     void setRxFrequency(qint64 freq);
     void setWfColormap(const QString &cmap);
     void audioRecStarted(const QString filename);
@@ -107,6 +107,9 @@ signals:
     /*! \brief Signal emitted when recording directory has changed. */
     void recDirChanged(const QString dir);
 
+    /*! \brief Signal emitted when squelch triggered recording mode is changed. */
+    void recSquelchTriggeredChanged(const bool enabled);
+
 private slots:
     void on_audioGainSlider_valueChanged(int value);
     void on_audioStreamButton_clicked(bool checked);
@@ -120,6 +123,7 @@ private slots:
     void setNewUdpHost(const QString &host);
     void setNewUdpPort(int port);
     void setNewUdpStereo(bool enabled);
+    void setNewSquelchTriggered(bool enabled);
 
 
 private:
@@ -131,6 +135,7 @@ private:
     QString        udp_host;     /*! UDP client host name. */
     int            udp_port;     /*! UDP client port number. */
     bool           udp_stereo;   /*! Enable stereo streaming for UDP. */
+    bool           squelch_triggered; /*! Enable squelch-triggered recording */
 
     bool           autoSpan;     /*! Whether to allow mode-dependent auto span. */
 

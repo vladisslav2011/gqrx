@@ -56,7 +56,8 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
       d_updated(false),
       d_center_freq(0),
       d_offset(0),
-      d_rec_dir("")
+      d_rec_dir(""),
+      d_squelch_triggered(false)
 {
     int bits_per_sample = 16;
 
@@ -105,6 +106,9 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
         if (!open(filename)) {
             throw std::runtime_error("Can't open WAV file.");
         }
+    //FIXME Make this configurable?
+    d_sob_key = pmt::intern("squelch_sob");
+    d_eob_key = pmt::intern("squelch_eob");
 }
 
 void wavfile_sink_gqrx::set_center_freq(double center_freq)
@@ -123,12 +127,15 @@ void wavfile_sink_gqrx::set_rec_dir(std::string dir)
 }
 
 
-
 bool wavfile_sink_gqrx::open(const char* filename)
 {
-    SF_INFO sfinfo;
-
     std::unique_lock<std::mutex> guard(d_mutex);
+    return open_unlocked(filename);
+}
+
+bool wavfile_sink_gqrx::open_unlocked(const char* filename)
+{
+    SF_INFO sfinfo;
 
     if (d_new_fp) { // if we've already got a new one open, close it
         sf_close(d_new_fp);
@@ -236,11 +243,17 @@ bool wavfile_sink_gqrx::open(const char* filename)
 
 int wavfile_sink_gqrx::open_new()
 {
+    std::unique_lock<std::mutex> guard(d_mutex);
+    return open_new_unlocked();
+}
+
+int wavfile_sink_gqrx::open_new_unlocked()
+{
     // FIXME: option to use local time
     // use toUTC() function compatible with older versions of Qt.
     QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
     QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
-    if(open(filename.toStdString().data()))
+    if(open_unlocked(filename.toStdString().data()))
     {
         if(d_rec_event)
             d_rec_event(d_filename = filename.toStdString(), true);
@@ -293,8 +306,27 @@ int wavfile_sink_gqrx::work(int noutput_items,
     int n_in_chans = input_items.size();
     int nwritten;
     int errnum;
-
+    //FIXME: reimplement with history and min_time, max_gap
+    uint64_t abs_N, end_N;
+    std::vector<gr::tag_t> work_tags;
     std::unique_lock<std::mutex> guard(d_mutex); // hold mutex for duration of this block
+    sql_action last_action = ACT_NONE;
+
+    abs_N = nitems_read(0);
+    end_N = abs_N + (uint64_t)(noutput_items);
+
+    get_tags_in_range(work_tags, 0, abs_N, end_N);
+
+
+    for (const auto& tag : work_tags)
+    {
+        if(tag.key == d_sob_key)
+            last_action = ACT_OPEN;
+        if(tag.key == d_eob_key)
+            last_action = ACT_CLOSE;
+    }
+    if(d_squelch_triggered && (last_action == ACT_OPEN) && !d_fp)
+        open_new_unlocked();
     do_update();                            // update: d_fp is read
     if (!d_fp) {                            // drop output on the floor
         return noutput_items;
@@ -321,8 +353,14 @@ int wavfile_sink_gqrx::work(int noutput_items,
         close();
         throw std::runtime_error("File I/O error.");
     }
+    if(d_squelch_triggered && (last_action == ACT_CLOSE) && d_fp)
+        close_wav();
 
     return nwritten;
+}
+void wavfile_sink_gqrx::set_squelch_triggered(const bool enabled)
+{
+    d_squelch_triggered = enabled;
 }
 
 void wavfile_sink_gqrx::set_bits_per_sample(int bits_per_sample)

@@ -55,7 +55,9 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
 
 receiver_base_cf::~receiver_base_cf()
 {
-
+    //Prevent segfault
+    if(wav_sink)
+        wav_sink->set_rec_event_handler(nullptr);
 }
 
 void receiver_base_cf::set_quad_rate(float quad_rate)
@@ -86,6 +88,11 @@ void receiver_base_cf::set_rec_dir(std::string dir)
 {
     d_rec_dir = dir;
     wav_sink->set_rec_dir(dir);
+}
+
+void receiver_base_cf::set_audio_rec_squelch_triggered(bool enabled)
+{
+    wav_sink->set_squelch_triggered(enabled);
 }
 
 float receiver_base_cf::get_signal_level()
