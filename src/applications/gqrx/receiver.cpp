@@ -1644,6 +1644,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         rx->set_audio_rec_sql_triggered(old_rx->get_audio_rec_sql_triggered());
         rx->set_audio_rec_min_time(old_rx->get_audio_rec_min_time());
         rx->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
+        rx->set_rec_dir(old_rx->get_rec_dir());
     }
     // Audio path (if there is a receiver)
     if (type != RX_CHAIN_NONE)
