@@ -66,7 +66,13 @@ public:
     virtual void set_center_freq(double center_freq);
     virtual void set_offset(double offset);
     virtual void set_rec_dir(std::string dir);
-    virtual void set_audio_rec_squelch_triggered(bool enabled);
+    virtual std::string get_rec_dir() { return d_rec_dir; }
+    virtual void set_audio_rec_sql_triggered(bool enabled);
+    virtual bool get_audio_rec_sql_triggered() { return wav_sink->get_sql_triggered(); }
+    virtual void set_audio_rec_min_time(const int time_ms);
+    virtual int get_audio_rec_min_time() { return wav_sink->get_min_time(); }
+    virtual void set_audio_rec_max_gap(const int time_ms);
+    virtual int get_audio_rec_max_gap() { return wav_sink->get_max_gap(); }
 
     virtual void set_filter(double low, double high, double tw) = 0;
     virtual void set_cw_offset(double offset) = 0;

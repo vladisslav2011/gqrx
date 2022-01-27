@@ -1150,7 +1150,19 @@ receiver::status receiver::set_audio_rec_dir(const std::string dir)
 
 receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
 {
-    rx->set_audio_rec_squelch_triggered(enabled);
+    rx->set_audio_rec_sql_triggered(enabled);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_audio_rec_min_time(const int time_ms)
+{
+    rx->set_audio_rec_min_time(time_ms);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_audio_rec_max_gap(const int time_ms)
+{
+    rx->set_audio_rec_max_gap(time_ms);
     return STATUS_OK;
 }
 
@@ -1625,6 +1637,14 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         break;
     }
 
+    if(old_rx.get() != rx.get())
+    {
+        rx->set_center_freq(d_rf_freq);
+        rx->set_offset(d_filter_offset);
+        rx->set_audio_rec_sql_triggered(old_rx->get_audio_rec_sql_triggered());
+        rx->set_audio_rec_min_time(old_rx->get_audio_rec_min_time());
+        rx->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
+    }
     // Audio path (if there is a receiver)
     if (type != RX_CHAIN_NONE)
     {
@@ -1643,8 +1663,6 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         {
             if (d_recording_wav)
                 rx->continue_audio_recording(old_rx);
-            rx->set_center_freq(d_rf_freq);
-            rx->set_offset(d_filter_offset);
         }
 
         if (d_sniffer_active)

@@ -110,6 +110,12 @@ signals:
     /*! \brief Signal emitted when squelch triggered recording mode is changed. */
     void recSquelchTriggeredChanged(const bool enabled);
 
+    /*! \brief Signal emitted when squelch triggered recording min time is changed. */
+    void recMinTimeChanged(int time_ms);
+
+    /*! \brief Signal emitted when squelch triggered recording max gap time is changed. */
+    void recMaxGapChanged(int time_ms);
+
 private slots:
     void on_audioGainSlider_valueChanged(int value);
     void on_audioStreamButton_clicked(bool checked);
@@ -124,6 +130,8 @@ private slots:
     void setNewUdpPort(int port);
     void setNewUdpStereo(bool enabled);
     void setNewSquelchTriggered(bool enabled);
+    void setRecMinTime(int time_ms);
+    void setRecMaxGap(int time_ms);
 
 
 private:
@@ -136,6 +144,8 @@ private:
     int            udp_port;     /*! UDP client port number. */
     bool           udp_stereo;   /*! Enable stereo streaming for UDP. */
     bool           squelch_triggered; /*! Enable squelch-triggered recording */
+    int            recMinTime;   /*! Minimum squelch-triggered recording time */
+    int            recMaxGap;    /*! Maximum gap time in squelch-triggered mode*/
 
     bool           autoSpan;     /*! Whether to allow mode-dependent auto span. */
 

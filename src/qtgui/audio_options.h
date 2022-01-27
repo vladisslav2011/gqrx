@@ -48,6 +48,8 @@ public:
     void setUdpPort(int port);
     void setUdpStereo(bool stereo);
     void setSquelchTriggered(bool value);
+    void setRecMinTime(int time_ms);
+    void setRecMaxGap(int time_ms);
 
     void setFftSplit(int pct_2d);
     int  getFftSplit(void) const;
@@ -76,6 +78,8 @@ signals:
     void newUdpPort(int port);
     void newUdpStereo(bool enabled);
     void newSquelchTriggered(bool enabled);
+    void newRecMinTime(int time_ms);
+    void newRecMaxGap(int time_ms);
 
 private slots:
     void on_fftSplitSlider_valueChanged(int value);
@@ -88,6 +92,8 @@ private slots:
     void on_udpPort_valueChanged(int port);
     void on_udpStereo_stateChanged(int state);
     void on_squelchTriggered_stateChanged(int state);
+    void on_recMinTime_valueChanged(int value);
+    void on_recMaxGap_valueChanged(int value);
 
 private:
     Ui::CAudioOptions *ui;                   /*!< The user interface widget. */

@@ -57,6 +57,8 @@ DockAudio::DockAudio(QWidget *parent) :
     connect(audioOptions, SIGNAL(newUdpPort(int)), this, SLOT(setNewUdpPort(int)));
     connect(audioOptions, SIGNAL(newUdpStereo(bool)), this, SLOT(setNewUdpStereo(bool)));
     connect(audioOptions, SIGNAL(newSquelchTriggered(bool)), this, SLOT(setNewSquelchTriggered(bool)));
+    connect(audioOptions, SIGNAL(newRecMinTime(int)), this, SLOT(setRecMinTime(int)));
+    connect(audioOptions, SIGNAL(newRecMaxGap(int)), this, SLOT(setRecMaxGap(int)));
 
     connect(ui->audioSpectrum, SIGNAL(pandapterRangeChanged(float,float)), audioOptions, SLOT(setPandapterSliderValues(float,float)));
 
@@ -356,6 +358,16 @@ void DockAudio::saveSettings(QSettings *settings)
     else
         settings->remove("squelch_triggered_recording");
 
+    if(recMinTime != 0)
+        settings->setValue("rec_min_time", recMinTime);
+    else
+        settings->remove("rec_min_time");
+
+    if(recMaxGap != 0)
+        settings->setValue("rec_max_gap", recMaxGap);
+    else
+        settings->remove("rec_max_gap");
+
     settings->endGroup();
 }
 
@@ -406,12 +418,22 @@ void DockAudio::readSettings(QSettings *settings)
     if (!conv_ok)
         udp_port = 7355;
     udp_stereo = settings->value("udp_stereo", false).toBool();
-    squelch_triggered = settings->value("squelch_triggered_recording", false).toBool();
 
     audioOptions->setUdpHost(udp_host);
     audioOptions->setUdpPort(udp_port);
     audioOptions->setUdpStereo(udp_stereo);
+
+    squelch_triggered = settings->value("squelch_triggered_recording", false).toBool();
     audioOptions->setSquelchTriggered(squelch_triggered);
+
+    recMinTime = settings->value("rec_min_time", 0).toInt(&conv_ok);
+    if (!conv_ok)
+        recMinTime = 0;
+    audioOptions->setRecMinTime(recMinTime);
+    recMaxGap = settings->value("rec_max_gap", 0).toInt(&conv_ok);
+    if (!conv_ok)
+        recMaxGap = 0;
+    audioOptions->setRecMaxGap(recMaxGap);
 
     settings->endGroup();
 }
@@ -482,6 +504,19 @@ void DockAudio::setNewSquelchTriggered(bool enabled)
     ui->audioRecButton->setStyleSheet(enabled?"color: rgb(255,0,0)":"");
     emit recSquelchTriggeredChanged(enabled);
 }
+
+void DockAudio::setRecMinTime(int time_ms)
+{
+    recMinTime = time_ms;
+    emit recMinTimeChanged(time_ms);
+}
+
+void DockAudio::setRecMaxGap(int time_ms)
+{
+    recMaxGap = time_ms;
+    emit recMaxGapChanged(time_ms);
+}
+
 
 void DockAudio::recordToggleShortcut() {
     ui->audioRecButton->click();

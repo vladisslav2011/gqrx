@@ -29,6 +29,9 @@
 #include <QDateTime>
 #include <QDir>
 
+static const int SQL_REC_MIN_TIME = 10; /* Minimum squelch recorder time, seconds. */
+static const int SQL_REC_MAX_GAP = 10; /* Maximum squelch recorder gap, seconds. */
+
 wavfile_sink_gqrx::sptr wavfile_sink_gqrx::make(const char* filename,
                                       int n_channels,
                                       unsigned int sample_rate,
@@ -57,14 +60,19 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
       d_center_freq(0),
       d_offset(0),
       d_rec_dir(""),
-      d_squelch_triggered(false)
+      d_squelch_triggered(false),
+      d_min_time_ms(0),
+      d_max_gap_ms(0),
+      d_min_time_samp(0),
+      d_max_gap_samp(0),
+      d_prev_action(ACT_NONE),
+      d_prev_roffset(0)
 {
     int bits_per_sample = 16;
 
-    if (n_channels > s_max_channels) {
+    if (n_channels > s_max_channels)
         throw std::runtime_error("Number of channels greater than " +
                                  std::to_string(s_max_channels) + " not supported.");
-    }
 
     d_h.sample_rate = sample_rate;
     d_h.nchans = n_channels;
@@ -102,27 +110,30 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
     set_max_noutput_items(s_items_size);
     d_buffer.resize(s_items_size * d_h.nchans);
 
-    if(filename)
-        if (!open(filename)) {
+    if (filename)
+        if (!open(filename))
             throw std::runtime_error("Can't open WAV file.");
-        }
     //FIXME Make this configurable?
     d_sob_key = pmt::intern("squelch_sob");
     d_eob_key = pmt::intern("squelch_eob");
+    set_history(1 + sample_rate * (SQL_REC_MIN_TIME + SQL_REC_MAX_GAP));
 }
 
 void wavfile_sink_gqrx::set_center_freq(double center_freq)
 {
+    std::unique_lock<std::mutex> guard(d_mutex);
     d_center_freq = center_freq;
 }
 
 void wavfile_sink_gqrx::set_offset(double offset)
 {
+    std::unique_lock<std::mutex> guard(d_mutex);
     d_offset = offset;
 }
 
 void wavfile_sink_gqrx::set_rec_dir(std::string dir)
 {
+    std::unique_lock<std::mutex> guard(d_mutex);
     d_rec_dir = dir;
 }
 
@@ -253,9 +264,9 @@ int wavfile_sink_gqrx::open_new_unlocked()
     // use toUTC() function compatible with older versions of Qt.
     QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
     QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
-    if(open_unlocked(filename.toStdString().data()))
+    if (open_unlocked(filename.toStdString().data()))
     {
-        if(d_rec_event)
+        if (d_rec_event)
             d_rec_event(d_filename = filename.toStdString(), true);
         return 0;
     }
@@ -266,9 +277,8 @@ void wavfile_sink_gqrx::close()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
 
-    if (!d_fp) {
+    if (!d_fp)
         return;
-    }
     close_wav();
 }
 
@@ -277,7 +287,7 @@ void wavfile_sink_gqrx::close_wav()
     sf_write_sync(d_fp);
     sf_close(d_fp);
     d_fp = nullptr;
-    if(d_rec_event)
+    if (d_rec_event)
         d_rec_event(d_filename, false);
 }
 
@@ -304,63 +314,138 @@ int wavfile_sink_gqrx::work(int noutput_items,
 {
     auto in = (float**)&input_items[0];
     int n_in_chans = input_items.size();
-    int nwritten;
-    int errnum;
-    //FIXME: reimplement with history and min_time, max_gap
-    uint64_t abs_N, end_N;
+    int hist = history() - 1;
+    int nwritten = hist;
+    int writecount = noutput_items;
     std::vector<gr::tag_t> work_tags;
     std::unique_lock<std::mutex> guard(d_mutex); // hold mutex for duration of this block
-    sql_action last_action = ACT_NONE;
-
-    abs_N = nitems_read(0);
-    end_N = abs_N + (uint64_t)(noutput_items);
-
-    get_tags_in_range(work_tags, 0, abs_N, end_N);
+    int roffset = 0; /** relative offset*/
 
 
-    for (const auto& tag : work_tags)
+    if (d_squelch_triggered)
     {
-        if(tag.key == d_sob_key)
-            last_action = ACT_OPEN;
-        if(tag.key == d_eob_key)
-            last_action = ACT_CLOSE;
-    }
-    if(d_squelch_triggered && (last_action == ACT_OPEN) && !d_fp)
-        open_new_unlocked();
-    do_update();                            // update: d_fp is read
-    if (!d_fp) {                            // drop output on the floor
-        return noutput_items;
-    }
-
-    int nchans = d_h.nchans;
-    for (nwritten = 0; nwritten < noutput_items; nwritten++) {
-        for (int chan = 0; chan < nchans; chan++) {
-            // Write zeros to channels which are in the WAV file
-            // but don't have any inputs here
-            if (chan < n_in_chans) {
-                d_buffer[chan + (nwritten * nchans)] = in[chan][nwritten];
-            } else {
-                d_buffer[chan + (nwritten * nchans)] = 0;
+        uint64_t abs_N = nitems_read(0);
+        get_tags_in_window(work_tags, 0, 0, noutput_items);
+        for (const auto& tag : work_tags)
+        {
+            roffset = (tag.offset - abs_N);
+            if (tag.key == d_sob_key)
+            {
+                if (d_prev_action == ACT_CLOSE)
+                {
+                    if (roffset + hist - d_prev_roffset <= d_max_gap_samp)
+                    {
+                        if (d_fp)
+                        {
+                            writeout(d_prev_roffset, roffset + hist - d_prev_roffset, n_in_chans, in);
+                            nwritten = roffset + hist;
+                            writecount = noutput_items - roffset;
+                        }
+                        d_prev_action = ACT_NONE;
+                    }
+                    else
+                    {
+                        if (d_fp)
+                            close_wav();
+                    }
+                }
+                d_prev_roffset = roffset + hist;
+                if (!d_fp)
+                    d_prev_action = ACT_OPEN;
+            }
+            if (tag.key == d_eob_key)
+            {
+                if (d_prev_action == ACT_OPEN)
+                {
+                    if (!d_fp && (roffset + hist - d_prev_roffset >= d_min_time_samp))
+                    {
+                        open_new_unlocked();
+                        do_update();
+                        if (d_fp)
+                            writeout(d_prev_roffset, roffset + hist - d_prev_roffset, n_in_chans, in);
+                    }
+                }
+                if (d_fp)
+                    d_prev_action = ACT_CLOSE;
+                else
+                    d_prev_action = ACT_NONE;
+                d_prev_roffset = roffset + hist;
             }
         }
     }
-
-    sf_write_float(d_fp, &d_buffer[0], nchans * nwritten);
-
-    errnum = sf_error(d_fp);
-    if (errnum) {
-        std::cerr << "sf_error: " << sf_error_number(errnum) << std::endl;
-        close();
-        throw std::runtime_error("File I/O error.");
+    switch(d_prev_action)
+    {
+    case ACT_NONE:
+        do_update();                            // update: d_fp is read
+        if (d_fp && writecount)
+            writeout(nwritten, writecount, n_in_chans, in);
+        break;
+    case ACT_OPEN:
+        if (hist - d_prev_roffset >= d_min_time_samp)
+        {
+            d_prev_action = ACT_NONE;
+            if (!d_fp)
+            {
+                open_new_unlocked();
+                do_update();
+                if (d_fp)
+                    writeout(d_prev_roffset, hist - d_prev_roffset + writecount, n_in_chans, in);
+            }
+        }
+        break;
+    case  ACT_CLOSE:
+        if (hist - d_prev_roffset >= d_max_gap_samp)
+        {
+            if (d_fp)
+            {
+                close_wav();
+            }
+            d_prev_action = ACT_NONE;
+        }
+        break;
     }
-    if(d_squelch_triggered && (last_action == ACT_CLOSE) && d_fp)
-        close_wav();
-
-    return nwritten;
+    d_prev_roffset -= noutput_items;
+    if (d_prev_roffset < 0)
+        d_prev_roffset = 0;
+    return noutput_items;
 }
-void wavfile_sink_gqrx::set_squelch_triggered(const bool enabled)
+
+void wavfile_sink_gqrx::writeout(const int offset, const int writecount, const int n_in_chans, float** in)
 {
+    int nchans = d_h.nchans;
+    int nwritten = 0;
+    int bp = 0;
+    int errnum;
+    while(nwritten < writecount)
+    {
+        for (bp = 0; (nwritten < writecount) && (bp < s_items_size); nwritten++, bp++)
+        {
+            for (int chan = 0; chan < nchans; chan++)
+            {
+                // Write zeros to channels which are in the WAV file
+                // but don't have any inputs here
+                if (chan < n_in_chans)
+                    d_buffer[chan + (bp * nchans)] = in[chan][nwritten + offset];
+                else
+                    d_buffer[chan + (bp * nchans)] = 0;
+            }
+        }
+        sf_write_float(d_fp, &d_buffer[0], nchans * bp);
+
+        errnum = sf_error(d_fp);
+        if (errnum) {
+            std::cerr << "sf_error: " << sf_error_number(errnum) << std::endl;
+            close();
+            throw std::runtime_error("File I/O error.");
+        }
+    }
+}
+
+void wavfile_sink_gqrx::set_sql_triggered(const bool enabled)
+{
+    std::unique_lock<std::mutex> guard(d_mutex);
     d_squelch_triggered = enabled;
+    d_prev_action = ACT_NONE;
 }
 
 void wavfile_sink_gqrx::set_bits_per_sample(int bits_per_sample)
@@ -392,13 +477,11 @@ unsigned int wavfile_sink_gqrx::sample_rate() { return d_h.sample_rate; }
 
 void wavfile_sink_gqrx::do_update()
 {
-    if (!d_updated) {
+    if (!d_updated)
         return;
-    }
 
-    if (d_fp) {
+    if (d_fp)
         close_wav();
-    }
 
     d_fp = d_new_fp; // install new file pointer
     d_new_fp = nullptr;
@@ -407,4 +490,34 @@ void wavfile_sink_gqrx::do_update()
     // Avoid deadlock.
     set_bits_per_sample_unlocked(8 * d_bytes_per_sample_new);
     d_updated = false;
+}
+
+void wavfile_sink_gqrx::set_rec_min_time(int min_time_ms)
+{
+    std::unique_lock<std::mutex> guard(d_mutex);
+    d_min_time_ms = min_time_ms;
+    d_min_time_samp = d_min_time_ms * d_h.sample_rate / 1000;
+/*    int new_history = 1 + (d_min_time_ms + d_max_gap_ms) * d_h.sample_rate / 1000;
+    if (int(history()) < new_history)
+        set_history(new_history);*/
+}
+
+void wavfile_sink_gqrx::set_rec_max_gap(int max_gap_ms)
+{
+    std::unique_lock<std::mutex> guard(d_mutex);
+    d_max_gap_ms = max_gap_ms;
+    d_max_gap_samp = max_gap_ms * d_h.sample_rate / 1000;
+/*    int new_history = 1 + (d_min_time_ms + d_max_gap_ms) * d_h.sample_rate / 1000;
+    if (int(history()) < new_history)
+        set_history(new_history);*/
+}
+
+int wavfile_sink_gqrx::get_min_time()
+{
+    return d_min_time_ms;
+}
+
+int wavfile_sink_gqrx::get_max_gap()
+{
+    return d_max_gap_ms;
 }

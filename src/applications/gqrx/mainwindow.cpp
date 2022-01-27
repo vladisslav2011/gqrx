@@ -245,6 +245,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(audioPlayStopped()), this, SLOT(stopAudioPlayback()));
     connect(uiDockAudio, SIGNAL(recDirChanged(QString)), this, SLOT(recDirChanged(QString)));
     connect(uiDockAudio, SIGNAL(recSquelchTriggeredChanged(bool)), this, SLOT(recSquelchTriggeredChanged(bool)));
+    connect(uiDockAudio, SIGNAL(recMinTimeChanged(int)), this, SLOT(recMinTimeChanged(int)));
+    connect(uiDockAudio, SIGNAL(recMaxGapChanged(int)), this, SLOT(recMaxGapChanged(int)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
@@ -1535,6 +1537,24 @@ void MainWindow::recDirChanged(const QString dir)
 void MainWindow::recSquelchTriggeredChanged(const bool enabled)
 {
     rx->set_audio_rec_sql_triggered(enabled);
+}
+
+/**
+ * @brief Set audio recording squelch triggered minimum time.
+ * @param time_ms New time in milliseconds.
+ */
+void MainWindow::recMinTimeChanged(const int time_ms)
+{
+    rx->set_audio_rec_min_time(time_ms);
+}
+
+/**
+ * @brief Set audio recording squelch triggered maximum gap time.
+ * @param time_ms New time in milliseconds.
+ */
+void MainWindow::recMaxGapChanged(const int time_ms)
+{
+    rx->set_audio_rec_max_gap(time_ms);
 }
 
 /**

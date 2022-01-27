@@ -24,8 +24,6 @@
 #ifndef GQRX_WAVFILE_SINK_C_H
 #define GQRX_WAVFILE_SINK_C_H
 
-//#include <gnuradio/blocks/wavfile.h>
-
 //! WAV file header information.
 struct wav_header_info {
 
@@ -74,6 +72,14 @@ enum wavfile_subformat_t {
 
 class wavfile_sink_gqrx : public gr::blocks::wavfile_sink
 {
+public:
+    typedef std::function<void(std::string, bool)> rec_event_handler_t;
+#if GNURADIO_VERSION < 0x030900
+    typedef boost::shared_ptr<wavfile_sink_gqrx> sptr;
+#else
+    typedef std::shared_ptr<wavfile_sink_gqrx> sptr;
+#endif
+
 private:
     typedef enum{
         ACT_NONE=0,
@@ -97,6 +103,16 @@ private:
 
     static constexpr int s_items_size = 8192;
     static constexpr int s_max_channels = 24;
+
+    rec_event_handler_t d_rec_event;
+    bool d_squelch_triggered;
+    pmt::pmt_t d_sob_key, d_eob_key;
+    int d_min_time_ms;
+    int d_max_gap_ms;
+    int d_min_time_samp;
+    int d_max_gap_samp;
+    sql_action d_prev_action;
+    int d_prev_roffset;
 
     /*!
      * \brief If any file changes have occurred, update now. This is called
@@ -122,12 +138,6 @@ protected:
     bool stop() override;
 
 public:
-typedef std::function<void(std::string, bool)> rec_event_handler_t;
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<wavfile_sink_gqrx> sptr;
-#else
-    typedef std::shared_ptr<wavfile_sink_gqrx> sptr;
-#endif
     static sptr make(const char* filename,
                     int n_channels,
                     unsigned int sample_rate,
@@ -163,13 +173,18 @@ typedef std::function<void(std::string, bool)> rec_event_handler_t;
     int work(int noutput_items,
              gr_vector_const_void_star& input_items,
              gr_vector_void_star& output_items) override;
-    void set_squelch_triggered(const bool enabled);
+    void set_sql_triggered(const bool enabled);
+    bool get_sql_triggered() { return d_squelch_triggered; }
+    void set_rec_min_time(int min_time_ms);
+    int get_rec_min_time() { return d_min_time_ms; }
+    void set_rec_max_gap(int max_gap_ms);
+    int get_rec_max_gap() { return d_max_gap_ms; }
+    int get_min_time();
+    int get_max_gap();
 private:
     bool open_unlocked(const char* filename);
     int  open_new_unlocked();
-    rec_event_handler_t d_rec_event;
-    bool d_squelch_triggered;
-    pmt::pmt_t d_sob_key, d_eob_key;
+    void writeout(const int offset, const int writecount, const int n_in_chans, float** in);
 };
 
 #endif /* GQRX_WAVFILE_SINK_C_H */

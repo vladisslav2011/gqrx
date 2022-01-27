@@ -47,6 +47,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
     meter = make_rx_meter_c(d_pref_quad_rate);
     wav_sink = wavfile_sink_gqrx::make(0, 2, (unsigned int) d_audio_rate,
                                        FORMAT_WAV, FORMAT_PCM_16);
+//    agc->set_min_output_buffer(audio_rate * (SQL_REC_MIN_TIME + SQL_REC_MAX_GAP));
+//    agc->set_max_output_buffer(audio_rate * (SQL_REC_MIN_TIME + SQL_REC_MAX_GAP) * 2);
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
@@ -90,9 +92,19 @@ void receiver_base_cf::set_rec_dir(std::string dir)
     wav_sink->set_rec_dir(dir);
 }
 
-void receiver_base_cf::set_audio_rec_squelch_triggered(bool enabled)
+void receiver_base_cf::set_audio_rec_sql_triggered(bool enabled)
 {
-    wav_sink->set_squelch_triggered(enabled);
+    wav_sink->set_sql_triggered(enabled);
+}
+
+void receiver_base_cf::set_audio_rec_min_time(const int time_ms)
+{
+    wav_sink->set_rec_min_time(time_ms);
+}
+
+void receiver_base_cf::set_audio_rec_max_gap(const int time_ms)
+{
+    wav_sink->set_rec_max_gap(time_ms);
 }
 
 float receiver_base_cf::get_signal_level()
