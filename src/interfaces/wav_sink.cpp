@@ -293,6 +293,7 @@ void wavfile_sink_gqrx::close_wav()
 
 wavfile_sink_gqrx::~wavfile_sink_gqrx()
 {
+    set_rec_event_handler(nullptr);
     if (d_new_fp) {
         sf_close(d_new_fp);
         d_new_fp = nullptr;
