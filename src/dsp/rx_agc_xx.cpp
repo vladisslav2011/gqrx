@@ -33,7 +33,7 @@
 
 #define MIN_GAIN_DB (-20.0f)
 #define MIN_GAIN exp10f(MIN_GAIN_DB)
-
+#define MAX_SAMPLE_RATE 96000
 
 rx_agc_2f_sptr make_rx_agc_2f(double sample_rate, bool agc_on, int target_level,
                               int manual_gain, int max_gain, int attack, int decay, int hang)
@@ -77,6 +77,7 @@ rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
 
 {
     set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, true);
+    set_history(MAX_SAMPLE_RATE + 1);
 }
 
 rx_agc_2f::~rx_agc_2f()
@@ -116,13 +117,13 @@ int rx_agc_2f::work(int noutput_items,
 #endif
         for (k = 0; k < noutput_items; k++)
         {
-            float sample_in0 = in0[k];
-            float sample_in1 = in1[k];
+            int k_hist = k + history() - 1;
+            float sample_in0 = in0[k_hist];
+            float sample_in1 = in1[k_hist];
             mag_in = std::max(fabs(sample_in0),fabs(sample_in1));
-            float sample_out0 = d_sample_buf[d_buf_p].real();
-            float sample_out1 = d_sample_buf[d_buf_p].imag();
+            float sample_out0 = in0[k_hist - d_buf_samples];
+            float sample_out1 = in1[k_hist - d_buf_samples];
 
-            d_sample_buf[d_buf_p] = TYPECPX(sample_in0, sample_in1);
             d_mag_buf[d_buf_p] = mag_in;
             update_buffer(d_buf_p);
             max_out = get_peak();
@@ -175,8 +176,8 @@ int rx_agc_2f::work(int noutput_items,
         }
     }
     else{
-        volk_32f_s32f_multiply_32f((float *)out0, (float *)in0, d_current_gain, noutput_items);
-        volk_32f_s32f_multiply_32f((float *)out1, (float *)in1, d_current_gain, noutput_items);
+        volk_32f_s32f_multiply_32f((float *)out0, (float *)&in0[history() - 1], d_current_gain, noutput_items);
+        volk_32f_s32f_multiply_32f((float *)out1, (float *)&in1[history() - 1], d_current_gain, noutput_items);
     }
     #ifdef AGC_DEBUG2
     if(d_prev_dbg != d_target_gain)
@@ -402,8 +403,6 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
         if(d_buf_size != buf_size)
         {
             d_buf_size = buf_size;
-            d_sample_buf.clear();
-            d_sample_buf.resize(d_buf_size, 0);
             d_mag_buf.clear();
             d_mag_buf.resize(d_buf_size * 2, 0);
             d_buf_p = 0;

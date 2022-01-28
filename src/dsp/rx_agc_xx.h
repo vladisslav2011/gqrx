@@ -129,7 +129,6 @@ private:
     TYPEFLOAT d_attack_step;
     TYPEFLOAT d_floor;
 
-    std::vector<TYPECPX> d_sample_buf;
     std::vector<float>   d_mag_buf;
 
     TYPEFLOAT d_prev_dbg;
