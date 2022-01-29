@@ -43,7 +43,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
 {
     iq_resamp = make_resampler_cc(d_pref_quad_rate/d_quad_rate);
     agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0);
-    sql = gr::analog::pwr_squelch_cc::make(-150.0, 0.001);
+    sql = make_rx_sql_cc(-150.0, 0.001);
     meter = make_rx_meter_c(d_pref_quad_rate);
     wav_sink = wavfile_sink_gqrx::make(0, 2, (unsigned int) d_audio_rate,
                                        FORMAT_WAV, FORMAT_PCM_16);
@@ -92,6 +92,7 @@ void receiver_base_cf::set_rec_dir(std::string dir)
 
 void receiver_base_cf::set_audio_rec_sql_triggered(bool enabled)
 {
+    sql->set_impl(enabled ? rx_sql_cc::SQL_PWR : rx_sql_cc::SQL_SIMPLE);
     wav_sink->set_sql_triggered(enabled);
 }
 

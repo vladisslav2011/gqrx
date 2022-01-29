@@ -1639,12 +1639,18 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
 
     if(old_rx.get() != rx.get())
     {
+        //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
+        tb->connect(ddc, 0, rx, 0);
+        // End temporary workaronud
         rx->set_center_freq(d_rf_freq);
         rx->set_offset(d_filter_offset);
         rx->set_audio_rec_sql_triggered(old_rx->get_audio_rec_sql_triggered());
         rx->set_audio_rec_min_time(old_rx->get_audio_rec_min_time());
         rx->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
         rx->set_rec_dir(old_rx->get_rec_dir());
+        //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
+        tb->disconnect(ddc, 0, rx, 0);
+        // End temporary workaronud
     }
     // Audio path (if there is a receiver)
     if (type != RX_CHAIN_NONE)

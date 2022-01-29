@@ -24,11 +24,11 @@
 #define RECEIVER_BASE_H
 
 #include <gnuradio/hier_block2.h>
-#include <gnuradio/analog/pwr_squelch_cc.h>
 #include <gnuradio/blocks/wavfile_sink.h>
 #include "dsp/resampler_xx.h"
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
+#include "dsp/rx_squelch.h"
 #include "interfaces/wav_sink.h"
 
 
@@ -143,7 +143,7 @@ protected:
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
     rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */
-    gr::analog::pwr_squelch_cc::sptr sql;        /*!< Squelch. */
+    rx_sql_cc_sptr            sql;        /*!< Squelch. */
     wavfile_sink_gqrx::sptr      wav_sink;   /*!< WAV file sink for recording. */
 private:
     float d_pref_quad_rate;
