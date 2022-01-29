@@ -65,13 +65,12 @@ enum wavfile_subformat_t {
     FORMAT_VORBIS = 0x0060,
 };
 
-#include <gnuradio/blocks/wavfile_sink.h>
-#include <gnuradio/block.h>
+#include <gnuradio/sync_block.h>
 #include <sndfile.h> // for SNDFILE
 #include <thread>
 #include <condition_variable>
 
-class wavfile_sink_gqrx : public gr::blocks::wavfile_sink
+class wavfile_sink_gqrx : virtual public gr::sync_block
 {
 public:
     typedef std::function<void(std::string, bool)> rec_event_handler_t;
@@ -160,12 +159,13 @@ public:
     {
         d_rec_event = handler;
     }
-    bool open(const char* filename) override;
+    bool open(const char* filename);
     int  open_new();
-    void close() override;
+    void close();
 
-    void set_sample_rate(unsigned int sample_rate) override;
-    void set_bits_per_sample(int bits_per_sample) override;
+    void set_sample_rate(unsigned int sample_rate);
+    void set_bits_per_sample(int bits_per_sample);
+
     void set_append(bool append);
 
     int bits_per_sample();
