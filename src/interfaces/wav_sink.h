@@ -25,46 +25,6 @@
 #ifndef GQRX_WAVFILE_SINK_C_H
 #define GQRX_WAVFILE_SINK_C_H
 
-//! WAV file header information.
-struct wav_header_info {
-
-    //! sample rate [S/s]
-    int sample_rate;
-
-    //! Number of channels
-    int nchans;
-
-    //! Bytes per sample
-    int bytes_per_sample;
-
-    //! Number of samples per channel
-    long long samples_per_chan;
-
-    //! sndfile format
-    int format;
-
-    //! sndfile format
-    int subformat;
-};
-
-enum wavfile_format_t {
-    FORMAT_WAV = 0x010000,
-    FORMAT_FLAC = 0x170000,
-    FORMAT_OGG = 0x200000,
-    FORMAT_RF64 = 0x220000,
-};
-
-enum wavfile_subformat_t {
-    FORMAT_PCM_S8 = 1,
-    FORMAT_PCM_16,
-    FORMAT_PCM_24,
-    FORMAT_PCM_32,
-    FORMAT_PCM_U8,
-    FORMAT_FLOAT,
-    FORMAT_DOUBLE,
-    FORMAT_VORBIS = 0x0060,
-};
-
 #include <gnuradio/sync_block.h>
 #include <sndfile.h> // for SNDFILE
 #include <thread>
@@ -80,7 +40,48 @@ public:
     typedef std::shared_ptr<wavfile_sink_gqrx> sptr;
 #endif
 
+    enum wavfile_format_t {
+        FORMAT_WAV = 0x010000,
+        FORMAT_FLAC = 0x170000,
+        FORMAT_OGG = 0x200000,
+        FORMAT_RF64 = 0x220000,
+    };
+
+    enum wavfile_subformat_t {
+        FORMAT_PCM_S8 = 1,
+        FORMAT_PCM_16,
+        FORMAT_PCM_24,
+        FORMAT_PCM_32,
+        FORMAT_PCM_U8,
+        FORMAT_FLOAT,
+        FORMAT_DOUBLE,
+        FORMAT_VORBIS = 0x0060,
+    };
+
 private:
+    //! WAV file header information.
+    struct wav_header_info {
+
+        //! sample rate [S/s]
+        int sample_rate;
+
+        //! Number of channels
+        int nchans;
+
+        //! Bytes per sample
+        int bytes_per_sample;
+
+        //! Number of samples per channel
+        long long samples_per_chan;
+
+        //! sndfile format
+        int format;
+
+        //! sndfile format
+        int subformat;
+    };
+
+
     typedef enum{
         ACT_NONE=0,
         ACT_OPEN,

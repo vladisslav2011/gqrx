@@ -46,7 +46,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
     sql = make_rx_sql_cc(-150.0, 0.001);
     meter = make_rx_meter_c(d_pref_quad_rate);
     wav_sink = wavfile_sink_gqrx::make(0, 2, (unsigned int) d_audio_rate,
-                                       FORMAT_WAV, FORMAT_PCM_16);
+                                       wavfile_sink_gqrx::FORMAT_WAV,
+                                       wavfile_sink_gqrx::FORMAT_PCM_16);
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
