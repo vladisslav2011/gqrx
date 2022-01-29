@@ -3,7 +3,8 @@
  * Gqrx SDR: Software defined radio receiver powered by GNU Radio and Qt
  *           https://gqrx.dk/
  *
- * Copyright 2021 vladisslav2011@gmail.com.
+ * Copyright 2008,2009,2013 Free Software Foundation, Inc.
+ * Copyright 2022 vladisslav2011@gmail.com.
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
