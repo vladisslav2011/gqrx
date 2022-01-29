@@ -70,6 +70,7 @@ receiver::receiver(const std::string input_device,
       d_iq_rev(false),
       d_dc_cancel(false),
       d_iq_balance(false),
+      d_mute(false),
       d_last_format(FILE_FORMAT_NONE),
       d_demod(RX_DEMOD_OFF)
 {
@@ -404,7 +405,7 @@ void receiver::set_output_device(const std::string device)
         audio_snk = gr::audio::sink::make(d_audio_rate, device, true);
 #endif
 
-        if (d_demod != RX_DEMOD_OFF)
+        if ((d_demod != RX_DEMOD_OFF) && !d_mute)
         {
             tb->connect(rx, 0, audio_snk, 0);
             tb->connect(rx, 1, audio_snk, 1);
@@ -989,6 +990,32 @@ float receiver::get_agc_gain()
         return 0;
 }
 
+/** Set audio mute. */
+receiver::status receiver::set_mute(bool mute)
+{
+    if (d_mute == mute)
+        return STATUS_OK;
+    tb->lock();
+    if (mute)
+    {
+        tb->disconnect(rx, 0, audio_snk, 0);
+        tb->disconnect(rx, 1, audio_snk, 1);
+    }
+    else
+    {
+        tb->connect(rx, 0, audio_snk, 0);
+        tb->connect(rx, 1, audio_snk, 1);
+    }
+    tb->unlock();
+    d_mute = mute;
+    return STATUS_OK;
+}
+
+/** Get audio mute. */
+bool receiver::get_mute()
+{
+    return d_mute;
+}
 
 
 receiver::status receiver::set_demod(rx_demod demod, enum file_formats fmt, bool force)
@@ -1242,15 +1269,21 @@ receiver::status receiver::start_audio_playback(const std::string filename)
 
     stop();
     /* route demodulator output to null sink */
-    tb->disconnect(rx, 0, audio_snk, 0);
-    tb->disconnect(rx, 1, audio_snk, 1);
+    if (!d_mute)
+    {
+        tb->disconnect(rx, 0, audio_snk, 0);
+        tb->disconnect(rx, 1, audio_snk, 1);
+    }
     tb->disconnect(rx, 0, audio_fft, 0);
     tb->disconnect(rx, 0, audio_udp_sink, 0);
     tb->disconnect(rx, 1, audio_udp_sink, 1);
     tb->connect(rx, 0, audio_null_sink0, 0); /** FIXME: other channel? */
     tb->connect(rx, 1, audio_null_sink1, 0); /** FIXME: other channel? */
-    tb->connect(wav_src, 0, audio_snk, 0);
-    tb->connect(wav_src, 1, audio_snk, 1);
+    if (!d_mute)
+    {
+        tb->connect(wav_src, 0, audio_snk, 0);
+        tb->connect(wav_src, 1, audio_snk, 1);
+    }
     tb->connect(wav_src, 0, audio_fft, 0);
     tb->connect(wav_src, 0, audio_udp_sink, 0);
     tb->connect(wav_src, 1, audio_udp_sink, 1);
@@ -1266,15 +1299,21 @@ receiver::status receiver::stop_audio_playback()
 {
     /* disconnect wav source and reconnect receiver */
     stop();
-    tb->disconnect(wav_src, 0, audio_snk, 0);
-    tb->disconnect(wav_src, 1, audio_snk, 1);
+    if (!d_mute)
+    {
+        tb->disconnect(wav_src, 0, audio_snk, 0);
+        tb->disconnect(wav_src, 1, audio_snk, 1);
+    }
     tb->disconnect(wav_src, 0, audio_fft, 0);
     tb->disconnect(wav_src, 0, audio_udp_sink, 0);
     tb->disconnect(wav_src, 1, audio_udp_sink, 1);
     tb->disconnect(rx, 0, audio_null_sink0, 0);
     tb->disconnect(rx, 1, audio_null_sink1, 0);
-    tb->connect(rx, 0, audio_snk, 0);
-    tb->connect(rx, 1, audio_snk, 1);
+    if (!d_mute)
+    {
+        tb->connect(rx, 0, audio_snk, 0);
+        tb->connect(rx, 1, audio_snk, 1);
+    }
     tb->connect(rx, 0, audio_fft, 0);  /** FIXME: other channel? */
     tb->connect(rx, 0, audio_udp_sink, 0);
     tb->connect(rx, 1, audio_udp_sink, 1);
@@ -1600,8 +1639,11 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         tb->connect(rx, 0, audio_fft, 0);
         tb->connect(rx, 0, audio_udp_sink, 0);
         tb->connect(rx, 1, audio_udp_sink, 1);
-        tb->connect(rx, 0, audio_snk, 0);
-        tb->connect(rx, 1, audio_snk, 1);
+        if (!d_mute)
+        {
+            tb->connect(rx, 0, audio_snk, 0);
+            tb->connect(rx, 1, audio_snk, 1);
+        }
         // Recorders and sniffers
         if (d_recording_wav)
         {

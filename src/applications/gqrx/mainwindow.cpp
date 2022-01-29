@@ -1213,7 +1213,7 @@ void MainWindow::selectDemod(int mode_idx)
     //Call wrapper to update enable/disabled state
     setAgcOn(uiDockRxOpt->getAgcOn());
     rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
-    rx->set_agc_manual_gain(uiDockAudio->audioGain());
+    rx->set_agc_manual_gain(uiDockAudio->audioGain() / 10.0);
     rx->set_agc_max_gain(uiDockRxOpt->getAgcMaxGain());
     rx->set_agc_attack(uiDockRxOpt->getAgcAttack());
     rx->set_agc_decay(uiDockRxOpt->getAgcDecay());
@@ -1304,19 +1304,7 @@ void MainWindow::setAudioGain(float value)
  */
 void MainWindow::setAudioMute(bool mute)
 {
-    if(mute)
-    {
-        rx->set_agc_target_level(-80);
-        rx->set_agc_manual_gain(-80);
-        if(!uiDockRxOpt->getAgcOn())
-            uiDockAudio->setGainEnabled(false);
-    }else{
-        rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
-        rx->set_agc_manual_gain(uiDockAudio->audioGain() / 10.0);
-        if(!uiDockRxOpt->getAgcOn())
-            uiDockAudio->setGainEnabled(true);
-    }
-
+    rx->set_mute(mute);
 }
 
 /** Set AGC ON/OFF. */

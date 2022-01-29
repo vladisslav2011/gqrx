@@ -39,7 +39,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, f
       d_pref_quad_rate(pref_quad_rate)
 {
     iq_resamp = make_resampler_cc(d_pref_quad_rate/d_quad_rate);
-    agc = make_rx_agc_2f(d_audio_rate, true, 0, 0, 100, 500, 500, 0);
+    agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0);
     sql = gr::analog::simple_squelch_cc::make(-150.0, 0.001);
     meter = make_rx_meter_c(d_pref_quad_rate);
 }

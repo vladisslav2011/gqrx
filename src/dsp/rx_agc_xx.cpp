@@ -24,6 +24,16 @@
 #include <gnuradio/io_signature.h>
 #include <gnuradio/gr_complex.h>
 #include <dsp/rx_agc_xx.h>
+#include <volk/volk.h>
+
+#define NO_AGC_DEBUG
+
+#define exp10f(K) powf(10.0,(K))
+#define exp10(K) pow(10.0,(K))
+
+#define MIN_GAIN_DB (-20.0f)
+#define MIN_GAIN exp10f(MIN_GAIN_DB)
+
 
 rx_agc_2f_sptr make_rx_agc_2f(double sample_rate, bool agc_on, int target_level,
                               int manual_gain, int max_gain, int attack, int decay, int hang)
@@ -50,22 +60,28 @@ rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
       d_max_gain(max_gain),
       d_attack(attack),
       d_decay(decay),
-      d_hang(hang)
+      d_hang(hang),
+      d_target_mag(1),
+      d_hang_samp(0),
+      d_buf_samples(0),
+      d_buf_size(0),
+      d_max_idx(0),
+      d_buf_p(0),
+      d_hang_counter(0),
+      d_max_gain_mag(1.0),
+      d_current_gain(1.0),
+      d_target_gain(1.0),
+      d_decay_step(1.01),
+      d_attack_step(0.99),
+      d_floor(0.0001)
+
 {
-    d_agc = new CAgc();
-    reconfigure();
+    set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, true);
 }
 
 rx_agc_2f::~rx_agc_2f()
 {
-    delete d_agc;
 }
-
-void rx_agc_2f::reconfigure()
-{
-    d_agc->SetParameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang);
-}
-
 
 /**
  * \brief Receiver AGC work method.
@@ -83,7 +99,92 @@ int rx_agc_2f::work(int noutput_items,
     float *out1 = (float *) output_items[1];
 
     std::lock_guard<std::mutex> lock(d_mutex);
-    d_agc->ProcessData(out0, out1, in0, in1, noutput_items);
+
+    int k;
+    TYPEFLOAT max_out = 0;
+    TYPEFLOAT mag_in = 0;
+    if (d_agc_on)
+    {
+#if GNURADIO_VERSION < 0x030800
+        std::vector<gr::tag_t> work_tags;
+        get_tags_in_window(work_tags, 0, 0, noutput_items);
+        for (const auto& tag : work_tags)
+            add_item_tag(0, tag.offset + d_buf_samples, tag.key, tag.value);
+        get_tags_in_window(work_tags, 1, 0, noutput_items);
+        for (const auto& tag : work_tags)
+            add_item_tag(1, tag.offset + d_buf_samples, tag.key, tag.value);
+#endif
+        for (k = 0; k < noutput_items; k++)
+        {
+            float sample_in0 = in0[k];
+            float sample_in1 = in1[k];
+            mag_in = std::max(fabs(sample_in0),fabs(sample_in1));
+            float sample_out0 = d_sample_buf[d_buf_p].real();
+            float sample_out1 = d_sample_buf[d_buf_p].imag();
+
+            d_sample_buf[d_buf_p] = TYPECPX(sample_in0, sample_in1);
+            d_mag_buf[d_buf_p] = mag_in;
+            update_buffer(d_buf_p);
+            max_out = get_peak();
+
+            int buf_p_next = d_buf_p + 1;
+            if (buf_p_next >= d_buf_samples)
+                buf_p_next = 0;
+
+            if (max_out > d_floor)
+            {
+                float new_target = d_target_mag / max_out;
+                if (new_target < d_target_gain)
+                {
+                    if (d_current_gain > d_target_gain)
+                        d_hang_counter = d_buf_samples + d_hang_samp;
+                    d_target_gain = new_target;
+                }
+                else
+                    if (!d_hang_counter)
+                        d_target_gain = new_target;
+            }
+            else
+            {
+                d_target_gain = d_max_gain_mag;
+                d_hang_counter = 0;
+            }
+            if (d_current_gain > d_target_gain)
+            {
+                //attack, decrease gain one step per sample
+                d_current_gain *= d_attack_step;
+            }
+            else
+            {
+                if (d_hang_counter <= 0)
+                {
+                    //decay, increase gain one step per sample until we reach d_max_gain
+                    if (d_current_gain < d_max_gain_mag)
+                        d_current_gain *= d_decay_step;
+                    if (d_current_gain > d_max_gain_mag)
+                        d_current_gain = d_max_gain_mag;
+                }
+            }
+            if (d_hang_counter > 0)
+                d_hang_counter--;
+            if (d_current_gain < MIN_GAIN)
+                d_current_gain = MIN_GAIN;
+            out0[k] = sample_out0 * d_current_gain;
+            out1[k] = sample_out1 * d_current_gain;
+            d_buf_p = buf_p_next;
+        }
+    }
+    else{
+        volk_32f_s32f_multiply_32f((float *)out0, (float *)in0, d_current_gain, noutput_items);
+        volk_32f_s32f_multiply_32f((float *)out1, (float *)in1, d_current_gain, noutput_items);
+    }
+    #ifdef AGC_DEBUG2
+    if(d_prev_dbg != d_target_gain)
+    {
+        std::cerr<<"------ d_target_gain="<<d_target_gain<<" d_current_gain="<<d_current_gain<<" d_hang_counter="<<d_hang_counter<<  std::endl;
+        d_prev_dbg = d_target_gain;
+    }
+    #endif
 
     return noutput_items;
 }
@@ -100,8 +201,13 @@ void rx_agc_2f::set_agc_on(bool agc_on)
 {
     if (agc_on != d_agc_on) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_agc_on = agc_on;
-        reconfigure();
+        set_parameters(d_sample_rate, agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang);
+#if GNURADIO_VERSION >= 0x030800
+        if(d_agc_on)
+            declare_sample_delay(d_sample_rate * d_attack / 1000);
+        else
+            declare_sample_delay(0);
+#endif
     }
 }
 
@@ -116,8 +222,11 @@ void rx_agc_2f::set_sample_rate(double sample_rate)
 {
     if (sample_rate != d_sample_rate) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_sample_rate = sample_rate;
-        reconfigure();
+        set_parameters(sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang);
+#if GNURADIO_VERSION >= 0x030800
+        if(d_agc_on)
+            declare_sample_delay(d_sample_rate * d_attack / 1000);
+#endif
     }
 }
 
@@ -131,8 +240,7 @@ void rx_agc_2f::set_target_level(int target_level)
 {
     if ((target_level != d_target_level) && (target_level >= -160) && (target_level <= 0)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_target_level = target_level;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang);
     }
 }
 
@@ -148,8 +256,7 @@ void rx_agc_2f::set_manual_gain(float gain)
 {
     if ((gain != d_manual_gain) && (gain >= -160.0) && (gain <= 160.0)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_manual_gain = gain;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, d_target_level, gain, d_max_gain, d_attack, d_decay, d_hang);
     }
 }
 
@@ -165,8 +272,7 @@ void rx_agc_2f::set_max_gain(int gain)
 {
     if ((gain != d_max_gain) && (gain >= 0) && (gain <= 160)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_max_gain = gain;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, gain, d_attack, d_decay, d_hang);
     }
 }
 
@@ -181,8 +287,11 @@ void rx_agc_2f::set_attack(int attack)
 {
     if ((attack != d_attack) && (attack >= 20) && (attack <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_attack = attack;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, attack, d_decay, d_hang);
+#if GNURADIO_VERSION >= 0x030800
+        if(d_agc_on)
+            declare_sample_delay(d_sample_rate * d_attack / 1000);
+#endif
     }
 }
 
@@ -194,8 +303,7 @@ void rx_agc_2f::set_decay(int decay)
 {
     if ((decay != d_decay) && (decay >= 20) && (decay <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_decay = decay;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, decay, d_hang);
     }
 }
 
@@ -207,14 +315,151 @@ void rx_agc_2f::set_hang(int hang)
 {
     if ((hang != d_hang) && (hang >= 0) && (hang <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
-        d_hang = hang;
-        reconfigure();
+        set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, hang);
     }
 }
 
 float rx_agc_2f::get_current_gain()
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    return d_agc->CurrentGainDb();
+    return 20.0 * log10f(d_current_gain);
 }
 
+void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level,
+                              float manual_gain, int max_gain, int attack,
+                              int decay, int hang, bool force)
+{
+    bool samp_rate_changed = false;
+    bool agc_on_changed = false;
+    bool target_level_changed = false;
+    bool manual_gain_changed = false;
+    bool max_gain_changed = false;
+    bool attack_changed = false;
+    bool decay_changed = false;
+    bool hang_changed = false;
+    if (d_sample_rate != sample_rate || force)
+    {
+        d_sample_rate = sample_rate;
+        samp_rate_changed = true;
+    }
+    if (d_agc_on != agc_on  || force)
+    {
+        d_agc_on = agc_on;
+        agc_on_changed = true;
+#if GNURADIO_VERSION < 0x030800
+        if(d_agc_on)
+            set_tag_propagation_policy(TPP_DONT);
+        else
+            set_tag_propagation_policy(TPP_ONE_TO_ONE);
+#endif
+    }
+    if (d_target_level != target_level || force)
+    {
+        d_target_level = target_level;
+        d_target_mag = exp10f(TYPEFLOAT(d_target_level) / 20.0);
+        target_level_changed = true;
+    }
+    if (d_manual_gain != manual_gain || force)
+    {
+        d_manual_gain = manual_gain;
+        manual_gain_changed = true;
+    }
+    if (d_max_gain != max_gain || force)
+    {
+        d_max_gain = max_gain;
+        if(d_max_gain < 1)
+            d_max_gain = 1;
+        d_max_gain_mag = exp10(d_max_gain / 20.0);
+        max_gain_changed = true;
+    }
+    if (d_attack != attack || force)
+    {
+        d_attack = attack;
+        attack_changed = true;
+    }
+    if (d_decay != decay || force)
+    {
+        d_decay = decay;
+        decay_changed = true;
+    }
+    if (d_hang != hang || force)
+    {
+        d_hang = hang;
+        hang_changed = true;
+    }
+    if (samp_rate_changed || attack_changed)
+    {
+        d_buf_samples = sample_rate * d_attack / 1000.0;
+        int buf_size = 1;
+        for(unsigned int k = 0; k < sizeof(int) * 8; k++)
+        {
+            buf_size *= 2;
+            if(buf_size >= d_buf_samples)
+                break;
+        }
+        if (d_buf_p >= d_buf_samples)
+            d_buf_p %= d_buf_samples;
+        if(d_buf_size != buf_size)
+        {
+            d_buf_size = buf_size;
+            d_sample_buf.clear();
+            d_sample_buf.resize(d_buf_size, 0);
+            d_mag_buf.clear();
+            d_mag_buf.resize(d_buf_size * 2, 0);
+            d_buf_p = 0;
+            d_max_idx = d_buf_size * 2 - 2;
+         }
+    }
+    if ((manual_gain_changed || agc_on_changed) && !agc_on)
+        d_current_gain = exp10(TYPEFLOAT(d_manual_gain) / 20.0);
+    if (max_gain_changed || attack_changed || samp_rate_changed)
+        d_attack_step = 1.0 / exp10(std::max(TYPEFLOAT(d_max_gain), - MIN_GAIN_DB) / TYPEFLOAT(d_buf_samples) / 20.0);
+    if (max_gain_changed || decay_changed || samp_rate_changed)
+        d_decay_step = exp10(TYPEFLOAT(d_max_gain) / TYPEFLOAT(sample_rate * d_decay / 1000.0) / 20.0);
+    if (hang_changed || samp_rate_changed)
+        d_hang_samp = sample_rate * d_hang / 1000.0;
+
+    if (target_level_changed || max_gain_changed)
+        d_floor = exp10(TYPEFLOAT(d_target_level - d_max_gain) / 20.0);
+    #ifdef AGC_DEBUG
+    std::cerr<<std::endl<<
+        "d_target_mag="<<d_target_mag<<std::endl<<
+        "d_target_level="<<d_target_level<<std::endl<<
+        "d_manual_gain="<<d_manual_gain<<std::endl<<
+        "d_max_gain="<<d_max_gain<<std::endl<<
+        "d_attack="<<d_attack<<std::endl<<
+        "d_attack_step="<<log10(d_attack_step)*20.0<<std::endl<<
+        "d_decay="<<d_decay<<std::endl<<
+        "d_decay_step="<<log10(d_decay_step)*20.0<<std::endl<<
+        "d_hang="<<d_hang<<std::endl<<
+        "d_hang_samp="<<d_hang_samp<<std::endl<<
+        "d_hang_counter="<<d_hang_counter<<std::endl<<
+        "d_buf_samples="<<d_buf_samples<<std::endl<<
+        "d_buf_size="<<d_buf_size<<std::endl<<
+        "d_current_gain="<<d_current_gain<<std::endl<<
+        "";
+    #endif
+}
+
+float rx_agc_2f::get_peak()
+{
+    return d_mag_buf[d_max_idx];
+}
+
+void rx_agc_2f::update_buffer(int p)
+{
+    int ofs = 0;
+    int base = d_buf_size;
+    while (base > 1)
+    {
+        float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
+        p = p >> 1;
+        ofs += base;
+        if(d_mag_buf[ofs + p] != max_p)
+            d_mag_buf[ofs + p] = max_p;
+        else
+            break;
+        base = base >> 1;
+    }
+
+}

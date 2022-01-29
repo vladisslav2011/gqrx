@@ -217,6 +217,9 @@ public:
     status      set_agc_hang(int hang_ms);
     float       get_agc_gain();
 
+    status      set_mute(bool mute);
+    bool        get_mute();
+
     status      set_demod(rx_demod demod,
                           enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
@@ -290,6 +293,7 @@ private:
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
+    bool        d_mute;             /*!< Enable audio mute. */
     int         d_iq_fmt;
     enum file_formats d_last_format;
 

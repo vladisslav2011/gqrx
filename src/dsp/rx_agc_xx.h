@@ -26,7 +26,9 @@
 #include <mutex>
 #include <gnuradio/sync_block.h>
 #include <gnuradio/gr_complex.h>
-#include <dsp/agc_impl.h>
+
+#define TYPECPX std::complex<float>
+#define TYPEFLOAT float
 
 class rx_agc_2f;
 
@@ -94,11 +96,11 @@ public:
     void set_decay(int decay);
     void set_hang(int hang);
     float get_current_gain();
-
 private:
-    void reconfigure();
+    void set_parameters(double sample_rate, bool agc_on, int target_level,
+                       float manual_gain, int max_gain, int attack, int decay,
+                       int hang, bool force = false);
 
-    CAgc           *d_agc;
     std::mutex      d_mutex;  /*! Used to lock internal data while processing or setting parameters. */
 
     bool            d_agc_on;        /*! Current AGC status (true/false). */
@@ -109,6 +111,28 @@ private:
     int             d_attack;        /*! Current AGC attack (20...5000 ms). */
     int             d_decay;         /*! Current AGC decay (20...5000 ms). */
     int             d_hang;          /*! Current AGC hang (0...5000 ms). */
+private:
+    float get_peak();
+    void update_buffer(int p);
+
+    TYPEFLOAT d_target_mag;
+    int d_hang_samp;
+    int d_buf_samples;
+    int d_buf_size;
+    int d_max_idx;
+    int d_buf_p;
+    int d_hang_counter;
+    TYPEFLOAT d_max_gain_mag;
+    TYPEFLOAT d_current_gain;
+    TYPEFLOAT d_target_gain;
+    TYPEFLOAT d_decay_step;
+    TYPEFLOAT d_attack_step;
+    TYPEFLOAT d_floor;
+
+    std::vector<TYPECPX> d_sample_buf;
+    std::vector<float>   d_mag_buf;
+
+    TYPEFLOAT d_prev_dbg;
 };
 
 #endif /* RX_AGC_XX_H */
