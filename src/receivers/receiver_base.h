@@ -29,6 +29,7 @@
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
 #include "dsp/rx_squelch.h"
+#include "dsp/downconverter.h"
 #include "interfaces/wav_sink.h"
 
 
@@ -56,13 +57,13 @@ public:
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
     typedef std::function<void(std::string, bool)> rec_event_handler_t;
-    receiver_base_cf(std::string src_name, float pref_quad_rate, float quad_rate, int audio_rate);
+    receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate);
     virtual ~receiver_base_cf();
 
     virtual bool start() = 0;
     virtual bool stop() = 0;
 
-    virtual void set_quad_rate(float quad_rate);
+    virtual void set_quad_rate(double quad_rate);
     virtual void set_center_freq(double center_freq);
     virtual void set_offset(double offset);
     virtual void set_rec_dir(std::string dir);
@@ -75,7 +76,7 @@ public:
     virtual int get_audio_rec_max_gap() { return wav_sink->get_max_gap(); }
 
     virtual void set_filter(double low, double high, double tw) = 0;
-    virtual void set_cw_offset(double offset) = 0;
+    virtual void set_cw_offset(double offset);
 
     virtual float get_signal_level();
 
@@ -133,13 +134,17 @@ public:
     }
 
 protected:
-    float       d_quad_rate;        /*!< Input sample rate. */
+    double      d_decim_rate;       /*!< Quadrature rate (before down-conversion) */
+    double      d_quad_rate;        /*!< Quadrature rate (after down-conversion) */
+    double      d_cw_offset;        /*!< CW offset */
+    unsigned int    d_ddc_decim;    /*!< Down-conversion decimation. */
     int         d_audio_rate;       /*!< Audio output rate. */
     double      d_center_freq;
     double      d_offset;
     std::string d_rec_dir;
     std::string d_audio_filename;
 
+    downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
     rx_meter_c_sptr           meter;      /*!< Signal strength. */
     rx_agc_2f_sptr            agc;        /*!< Receiver AGC. */

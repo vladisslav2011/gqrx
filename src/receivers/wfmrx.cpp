@@ -52,7 +52,7 @@ wfmrx::wfmrx(float quad_rate, float audio_rate)
     rds_store = make_rx_rds_store();
     rds_enabled = false;
 
-    connect(self(), 0, iq_resamp, 0);
+    connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, filter, 0);
     connect(filter, 0, meter, 0);
     connect(filter, 0, sql, 0);

@@ -28,19 +28,28 @@
 #include <functional>
 
 
+#define TARGET_QUAD_RATE 1e6
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 2; /* Minimum number of output streams. */
 static const int MAX_OUT = 2; /* Maximum number of output streams. */
 
-receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, float quad_rate, int audio_rate)
+receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate)
     : gr::hier_block2 (src_name,
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof(gr_complex)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof(float))),
-      d_quad_rate(quad_rate),
+      d_decim_rate(quad_rate),
+      d_quad_rate(0),
+      d_cw_offset(0),
+      d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_pref_quad_rate(pref_quad_rate)
 {
+    d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
+    d_quad_rate = d_decim_rate / d_ddc_decim;
+    ddc = make_downconverter_cc(d_ddc_decim, 0.0, d_decim_rate);
+    connect(self(), 0, ddc, 0);
+
     iq_resamp = make_resampler_cc(d_pref_quad_rate/d_quad_rate);
     agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0);
     sql = make_rx_sql_cc(-150.0, 0.001);
@@ -61,13 +70,16 @@ receiver_base_cf::~receiver_base_cf()
         wav_sink->set_rec_event_handler(nullptr);
 }
 
-void receiver_base_cf::set_quad_rate(float quad_rate)
+void receiver_base_cf::set_quad_rate(double quad_rate)
 {
-    if (std::abs(d_quad_rate-quad_rate) > 0.5)
+    if (std::abs(d_decim_rate-quad_rate) > 0.5)
     {
-        qDebug() << "Changing RX quad rate:"  << d_quad_rate << "->" << quad_rate;
-        d_quad_rate = quad_rate;
+        d_decim_rate = quad_rate;
+        d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
+        d_quad_rate = d_decim_rate / d_ddc_decim;
+        qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << quad_rate;
         lock();
+        ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
         iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
         unlock();
     }
@@ -82,7 +94,14 @@ void receiver_base_cf::set_center_freq(double center_freq)
 void receiver_base_cf::set_offset(double offset)
 {
     d_offset = offset;
+    ddc->set_center_freq(d_offset - d_cw_offset);
     wav_sink->set_offset(offset);
+}
+
+void receiver_base_cf::set_cw_offset(double offset)
+{
+    d_cw_offset = offset;
+    ddc->set_center_freq(d_offset - d_cw_offset);
 }
 
 void receiver_base_cf::set_rec_dir(std::string dir)

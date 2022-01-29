@@ -39,7 +39,6 @@
 #include <string>
 
 #include "dsp/correct_iq_cc.h"
-#include "dsp/downconverter.h"
 #include "dsp/filter/fir_decim.h"
 #include "dsp/rx_noise_blanker_cc.h"
 #include "dsp/rx_filter.h"
@@ -289,10 +288,8 @@ private:
     bool        d_running;          /*!< Whether receiver is running or not. */
     double      d_input_rate;       /*!< Input sample rate. */
     double      d_decim_rate;       /*!< Rate after decimation (input_rate / decim) */
-    double      d_quad_rate;        /*!< Quadrature rate (after down-conversion) */
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
-    unsigned int    d_ddc_decim;    /*!< Down-conversion decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
     double      d_filter_offset;    /*!< Current filter offset */
     double      d_cw_offset;        /*!< CW offset */
@@ -322,8 +319,6 @@ private:
 
     rx_fft_c_sptr             iq_fft;     /*!< Baseband FFT block. */
     rx_fft_f_sptr             audio_fft;  /*!< Audio FFT block. */
-
-    downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
 
     file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
     //Format converters to/from signed integer

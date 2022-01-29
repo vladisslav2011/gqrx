@@ -46,7 +46,6 @@
 #include <gnuradio/audio/sink.h>
 #endif
 
-#define TARGET_QUAD_RATE 1e6
 
 /**
  * @brief Public constructor.
@@ -110,10 +109,7 @@ receiver::receiver(const std::string input_device,
         d_decim_rate = d_input_rate;
     }
 
-    d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
-    d_quad_rate = d_decim_rate / d_ddc_decim;
-    ddc = make_downconverter_cc(d_ddc_decim, 0.0, d_decim_rate);
-    rx  = make_nbrx(d_quad_rate, d_audio_rate);
+    rx  = make_nbrx(d_decim_rate, d_audio_rate);
 
     input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,1);
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex),192000.0);
@@ -479,11 +475,8 @@ double receiver::set_input_rate(double rate)
     }
 
     d_decim_rate = d_input_rate / (double)d_decim;
-    d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
-    d_quad_rate = d_decim_rate / d_ddc_decim;
     dc_corr->set_sample_rate(d_decim_rate);
-    ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
-    rx->set_quad_rate(d_quad_rate);
+    rx->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
     tb->unlock();
 
@@ -536,11 +529,8 @@ unsigned int receiver::set_input_decim(unsigned int decim)
     }
 
     // update quadrature rate
-    d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
-    d_quad_rate = d_decim_rate / d_ddc_decim;
     dc_corr->set_sample_rate(d_decim_rate);
-    ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
-    rx->set_quad_rate(d_quad_rate);
+    rx->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
 
     if (d_decim >= 2)
@@ -778,7 +768,6 @@ receiver::status receiver::set_auto_gain(bool automatic)
 receiver::status receiver::set_filter_offset(double offset_hz)
 {
     d_filter_offset = offset_hz;
-    ddc->set_center_freq(d_filter_offset - d_cw_offset);
     rx->set_offset(offset_hz);//to generate audio filename from
 
     return STATUS_OK;
@@ -798,7 +787,6 @@ double receiver::get_filter_offset(void) const
 receiver::status receiver::set_cw_offset(double offset_hz)
 {
     d_cw_offset = offset_hz;
-    ddc->set_center_freq(d_filter_offset - d_cw_offset);
     rx->set_cw_offset(d_cw_offset);
 
     return STATUS_OK;
@@ -1571,8 +1559,8 @@ receiver::status receiver::stop_sniffer()
     tb->disconnect(rx, 0, sniffer_rr, 0);
 
     // Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-    tb->disconnect(ddc, 0, rx, 0);
-    tb->connect(ddc, 0, rx, 0);
+    tb->disconnect(rx, 0, audio_fft, 0);
+    tb->connect(rx, 0, audio_fft, 0);
     // End temporary workaronud
 
     tb->disconnect(sniffer_rr, 0, sniffer, 0);
@@ -1618,7 +1606,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         if (rx->name() != "NBRX")
         {
             rx.reset();
-            rx = make_nbrx(d_quad_rate, d_audio_rate);
+            rx = make_nbrx(d_decim_rate, d_audio_rate);
             rx->set_rec_event_handler(std::bind(audio_rec_event, this,
                                     std::placeholders::_1,
                                     std::placeholders::_2));
@@ -1629,7 +1617,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         if (rx->name() != "WFMRX")
         {
             rx.reset();
-            rx = make_wfmrx(d_quad_rate, d_audio_rate);
+            rx = make_wfmrx(d_decim_rate, d_audio_rate);
             rx->set_rec_event_handler(std::bind(audio_rec_event, this,
                                     std::placeholders::_1,
                                     std::placeholders::_2));
@@ -1643,7 +1631,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
     if(old_rx.get() != rx.get())
     {
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-        tb->connect(ddc, 0, rx, 0);
+        tb->connect(b, 0, rx, 0);
         // End temporary workaronud
         rx->set_center_freq(d_rf_freq);
         rx->set_offset(d_filter_offset);
@@ -1652,14 +1640,13 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         rx->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
         rx->set_rec_dir(old_rx->get_rec_dir());
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-        tb->disconnect(ddc, 0, rx, 0);
+        tb->disconnect(b, 0, rx, 0);
         // End temporary workaronud
     }
     // Audio path (if there is a receiver)
     if (type != RX_CHAIN_NONE)
     {
-        tb->connect(b, 0, ddc, 0);
-        tb->connect(ddc, 0, rx, 0);
+        tb->connect(b, 0, rx, 0);
         tb->connect(rx, 0, audio_fft, 0);
         tb->connect(rx, 0, audio_udp_sink, 0);
         tb->connect(rx, 1, audio_udp_sink, 1);

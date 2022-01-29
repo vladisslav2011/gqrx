@@ -58,7 +58,7 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     }
 
     demod = demod_fm;
-    connect(self(), 0, iq_resamp, 0);
+    connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, nb, 0);
     connect(nb, 0, filter, 0);
     connect(filter, 0, meter, 0);
@@ -104,6 +104,7 @@ void nbrx::set_filter(double low, double high, double tw)
 
 void nbrx::set_cw_offset(double offset)
 {
+    receiver_base_cf::set_cw_offset(offset);
     filter->set_cw_offset(offset);
 }
 
