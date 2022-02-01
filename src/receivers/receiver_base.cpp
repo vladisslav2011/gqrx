@@ -43,6 +43,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_cw_offset(0),
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
+      d_index(-1),
+      d_demod(RX_DEMOD_OFF),
       d_pref_quad_rate(pref_quad_rate)
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
@@ -70,6 +72,34 @@ receiver_base_cf::~receiver_base_cf()
         wav_sink->set_rec_event_handler(nullptr);
 }
 
+void receiver_base_cf::set_index(int index)
+{
+    d_index = index;
+}
+
+int  receiver_base_cf::get_index()
+{
+    return d_index;
+}
+
+void receiver_base_cf::set_demod(rx_demod demod)
+{
+    if ((d_demod == RX_DEMOD_OFF) && (demod != RX_DEMOD_OFF))
+    {
+        qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
+        lock();
+        ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
+        iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
+        unlock();
+    }
+    d_demod = demod;
+}
+
+rx_demod receiver_base_cf::get_demod()
+{
+    return d_demod;
+}
+
 void receiver_base_cf::set_quad_rate(double quad_rate)
 {
     if (std::abs(d_decim_rate-quad_rate) > 0.5)
@@ -77,11 +107,15 @@ void receiver_base_cf::set_quad_rate(double quad_rate)
         d_decim_rate = quad_rate;
         d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
         d_quad_rate = d_decim_rate / d_ddc_decim;
-        qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << quad_rate;
-        lock();
-        ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
-        iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
-        unlock();
+        //avoid triggering https://github.com/gnuradio/gnuradio/issues/5436
+        if (d_demod != RX_DEMOD_OFF)
+        {
+            qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
+            lock();
+            ddc->set_decim_and_samp_rate(d_ddc_decim, d_decim_rate);
+            iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
+            unlock();
+        }
     }
 }
 
@@ -98,10 +132,20 @@ void receiver_base_cf::set_offset(double offset)
     wav_sink->set_offset(offset);
 }
 
+double receiver_base_cf::get_offset()
+{
+    return d_offset;
+}
+
 void receiver_base_cf::set_cw_offset(double offset)
 {
     d_cw_offset = offset;
     ddc->set_center_freq(d_offset - d_cw_offset);
+}
+
+double receiver_base_cf::get_cw_offset()
+{
+    return d_cw_offset;
 }
 
 void receiver_base_cf::set_rec_dir(std::string dir)

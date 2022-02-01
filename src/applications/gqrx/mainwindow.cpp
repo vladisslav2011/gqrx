@@ -199,7 +199,14 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addSeparator();
     ui->menu_View->addAction(ui->actionFullScreen);
 
+    /* Setup demodulator switching SpinBox */
+    rxSpinBox = new QSpinBox(ui->mainToolBar);
+    rxSpinBox->setMaximum(255);
+    rxSpinBox->setValue(0);
+    ui->mainToolBar->insertWidget(ui->actionAddDemodulator, rxSpinBox);
+
     /* connect signals and slots */
+    connect(rxSpinBox, SIGNAL(valueChanged(int)), this, SLOT(on_rxSpinBox_valueChanged(int)));
     connect(ui->freqCtrl, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), this, SLOT(setLnbLo(double)));
     connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), remote, SLOT(setLnbLo(double)));
@@ -416,6 +423,7 @@ MainWindow::~MainWindow()
     delete [] d_realFftData;
     delete [] d_iirFftData;
     delete qsvg_dummy;
+    delete rxSpinBox;
 }
 
 /**
@@ -1125,27 +1133,27 @@ void MainWindow::selectDemod(int mode_idx)
         {
             dec_afsk1200->close();
         }
-        rx->set_demod(receiver::RX_DEMOD_OFF);
+        rx->set_demod(RX_DEMOD_OFF);
         click_res = 1000;
         break;
 
     case DockRxOpt::MODE_RAW:
         /* Raw I/Q; max 96 ksps*/
-        rx->set_demod(receiver::RX_DEMOD_NONE);
+        rx->set_demod(RX_DEMOD_NONE);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,24000);
         click_res = 100;
         break;
 
     case DockRxOpt::MODE_AM:
-        rx->set_demod(receiver::RX_DEMOD_AM);
+        rx->set_demod(RX_DEMOD_AM);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
     case DockRxOpt::MODE_AM_SYNC:
-        rx->set_demod(receiver::RX_DEMOD_AMSYNC);
+        rx->set_demod(RX_DEMOD_AMSYNC);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
@@ -1154,7 +1162,7 @@ void MainWindow::selectDemod(int mode_idx)
     case DockRxOpt::MODE_NFM:
         ui->plotter->setDemodRanges(-40000, -1000, 1000, 40000, true);
         uiDockAudio->setFftRange(0, 5000);
-        rx->set_demod(receiver::RX_DEMOD_NFM);
+        rx->set_demod(RX_DEMOD_NFM);
         rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
         rx->set_fm_deemph(uiDockRxOpt->currentEmph());
         click_res = 100;
@@ -1168,11 +1176,11 @@ void MainWindow::selectDemod(int mode_idx)
         uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
         click_res = 1000;
         if (mode_idx == DockRxOpt::MODE_WFM_MONO)
-            rx->set_demod(receiver::RX_DEMOD_WFM_M);
+            rx->set_demod(RX_DEMOD_WFM_M);
         else if (mode_idx == DockRxOpt::MODE_WFM_STEREO_OIRT)
-            rx->set_demod(receiver::RX_DEMOD_WFM_S_OIRT);
+            rx->set_demod(RX_DEMOD_WFM_S_OIRT);
         else
-            rx->set_demod(receiver::RX_DEMOD_WFM_S);
+            rx->set_demod(RX_DEMOD_WFM_S);
 
         uiDockRDS->setEnabled();
         if (rds_enabled)
@@ -1181,7 +1189,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     case DockRxOpt::MODE_LSB:
         /* LSB */
-        rx->set_demod(receiver::RX_DEMOD_SSB);
+        rx->set_demod(RX_DEMOD_SSB);
         ui->plotter->setDemodRanges(-40000, -100, -5000, 0, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
@@ -1189,7 +1197,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     case DockRxOpt::MODE_USB:
         /* USB */
-        rx->set_demod(receiver::RX_DEMOD_SSB);
+        rx->set_demod(RX_DEMOD_SSB);
         ui->plotter->setDemodRanges(0, 5000, 100, 40000, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
@@ -1197,7 +1205,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     case DockRxOpt::MODE_CWL:
         /* CW-L */
-        rx->set_demod(receiver::RX_DEMOD_SSB);
+        rx->set_demod(RX_DEMOD_SSB);
         cwofs = -uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
@@ -1206,7 +1214,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     case DockRxOpt::MODE_CWU:
         /* CW-U */
-        rx->set_demod(receiver::RX_DEMOD_SSB);
+        rx->set_demod(RX_DEMOD_SSB);
         cwofs = uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
@@ -2581,6 +2589,49 @@ void MainWindow::on_actionAddBookmark_triggered()
         uiDockBookmarks->updateBookmarks();
         ui->plotter->updateOverlay();
     }
+}
+
+void MainWindow::on_actionAddDemodulator_triggered()
+{
+    int n = rx->add_rx();
+    std::cerr<<"on_actionAddDemodulator_triggered() "<<n<<std::endl;
+    rxSpinBox->setMaximum(rx->get_rx_count()-1);
+    rxSpinBox->setValue(n);
+}
+
+void MainWindow::on_actionRemoveDemodulator_triggered()
+{
+    int n = rx->delete_rx();
+    std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n<<std::endl;
+    rxSpinBox->setValue(n);
+    rxSpinBox->setMaximum(rx->get_rx_count()-1);
+    loadRxToGUI();
+}
+
+void MainWindow::on_rxSpinBox_valueChanged(int i)
+{
+    int n = rx->select_rx(i);
+    std::cerr<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n<<std::endl;
+    if(n == receiver::STATUS_OK)
+        loadRxToGUI();
+}
+
+void MainWindow::loadRxToGUI()
+{
+    auto rf_freq = rx->get_rf_freq();
+    auto new_offset = rx->get_filter_offset();
+    auto rx_freq = (double)(rf_freq + d_lnb_lo + new_offset);
+
+    ui->plotter->setFilterOffset(new_offset);
+    uiDockRxOpt->setRxFreq(rx_freq);
+    uiDockRxOpt->setHwFreq(d_hw_freq);
+    uiDockRxOpt->setFilterOffset(new_offset);
+    ui->freqCtrl->setFrequency(rx_freq);
+    uiDockBookmarks->setNewFrequency(rx_freq);
+    remote->setNewFrequency(rx_freq);
+    uiDockAudio->setRxFrequency(rx_freq);
+    if (rx->is_rds_decoder_active())
+        rx->reset_rds_parser();
 }
 
 void MainWindow::updateClusterSpots()

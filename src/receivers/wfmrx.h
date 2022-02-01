@@ -53,13 +53,6 @@ class wfmrx : public receiver_base_cf
 {
 
 public:
-    /*! \brief Available demodulators. */
-    enum wfmrx_demod {
-        WFMRX_DEMOD_MONO       = 0,  /*!< Mono. */
-        WFMRX_DEMOD_STEREO     = 1,  /*!< FM stereo. */
-        WFMRX_DEMOD_STEREO_UKW = 2,  /*!< UKW stereo. */
-        WFMRX_DEMOD_NUM        = 3   /*!< Included for convenience. */
-    };
     wfmrx(float quad_rate, float audio_rate);
     ~wfmrx();
 
@@ -81,7 +74,7 @@ public:
     /* AGC */
     bool has_agc() { return true; }
 
-    void set_demod(int demod);
+    void set_demod(rx_demod demod);
 
     /* FM parameters */
     bool has_fm() {return true; }
@@ -96,8 +89,6 @@ public:
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
-
-    wfmrx_demod               d_demod;   /*!< Current demodulator. */
 
     rx_filter_sptr            filter;    /*!< Non-translating bandpass filter.*/
 

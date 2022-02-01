@@ -35,8 +35,7 @@ nbrx_sptr make_nbrx(float quad_rate, float audio_rate)
 
 nbrx::nbrx(float quad_rate, float audio_rate)
     : receiver_base_cf("NBRX", PREF_QUAD_RATE, quad_rate, audio_rate),
-      d_running(false),
-      d_demod(NBRX_DEMOD_FM)
+      d_running(false)
 {
 
     nb = make_rx_nb_cc(PREF_QUAD_RATE, 3.3, 2.5);
@@ -124,15 +123,16 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
         nb->set_threshold2(threshold);
 }
 
-void nbrx::set_demod(int rx_demod)
+void nbrx::set_demod(rx_demod new_demod)
 {
-    nbrx_demod current_demod = d_demod;
+    rx_demod current_demod = d_demod;
 
     /* check if new demodulator selection is valid */
-    if ((rx_demod < NBRX_DEMOD_NONE) || (rx_demod >= NBRX_DEMOD_NUM))
-        return;
+    if ((new_demod < RX_DEMOD_NONE) || (new_demod > RX_DEMOD_NFM))
+        if((new_demod < RX_DEMOD_SSB) || (new_demod >RX_DEMOD_AMSYNC))
+            return;
 
-    if (rx_demod == current_demod) {
+    if (new_demod == current_demod) {
         /* nothing to do */
         return;
     }
@@ -140,7 +140,7 @@ void nbrx::set_demod(int rx_demod)
     disconnect(sql, 0, demod, 0);
     if (audio_rr0)
     {
-        if (current_demod == NBRX_DEMOD_NONE)
+        if (current_demod == RX_DEMOD_NONE)
         {
             disconnect(demod, 0, audio_rr0, 0);
             disconnect(demod, 1, audio_rr1, 0);
@@ -158,7 +158,7 @@ void nbrx::set_demod(int rx_demod)
     }
     else
     {
-        if (current_demod == NBRX_DEMOD_NONE)
+        if (current_demod == RX_DEMOD_NONE)
         {
             disconnect(demod, 0, agc, 0);
             disconnect(demod, 1, agc, 1);
@@ -170,31 +170,26 @@ void nbrx::set_demod(int rx_demod)
         }
     }
 
-    switch (rx_demod) {
+    switch (new_demod) {
 
-    case NBRX_DEMOD_NONE:
-        d_demod = NBRX_DEMOD_NONE;
+    case RX_DEMOD_NONE:
         demod = demod_raw;
         break;
 
-    case NBRX_DEMOD_SSB:
-        d_demod = NBRX_DEMOD_SSB;
+    case RX_DEMOD_SSB:
         demod = demod_ssb;
         break;
 
-    case NBRX_DEMOD_AM:
-        d_demod = NBRX_DEMOD_AM;
+    case RX_DEMOD_AM:
         demod = demod_am;
         break;
 
-    case NBRX_DEMOD_AMSYNC:
-        d_demod = NBRX_DEMOD_AMSYNC;
+    case RX_DEMOD_AMSYNC:
         demod = demod_amsync;
         break;
 
-    case NBRX_DEMOD_FM:
+    case RX_DEMOD_NFM:
     default:
-        d_demod = NBRX_DEMOD_FM;
         demod = demod_fm;
         break;
     }
@@ -202,7 +197,7 @@ void nbrx::set_demod(int rx_demod)
     connect(sql, 0, demod, 0);
     if (audio_rr0)
     {
-        if (d_demod == NBRX_DEMOD_NONE)
+        if (new_demod == RX_DEMOD_NONE)
         {
             connect(demod, 0, audio_rr0, 0);
             connect(demod, 1, audio_rr1, 0);
@@ -220,7 +215,7 @@ void nbrx::set_demod(int rx_demod)
     }
     else
     {
-        if (d_demod == NBRX_DEMOD_NONE)
+        if (new_demod == RX_DEMOD_NONE)
         {
             connect(demod, 0, agc, 0);
             connect(demod, 1, agc, 1);
@@ -231,6 +226,7 @@ void nbrx::set_demod(int rx_demod)
             connect(demod, 0, agc, 1);
         }
     }
+    receiver_base_cf::set_demod(new_demod);
 }
 
 void nbrx::set_fm_maxdev(float maxdev_hz)

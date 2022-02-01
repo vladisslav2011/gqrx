@@ -25,13 +25,18 @@
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/blocks/multiply_const_ff.h>
+#include <gnuradio/blocks/add_ff.h>
 #else
 #include <gnuradio/blocks/multiply_const.h>
+#include <gnuradio/blocks/add_blk.h>
 #endif
 
 //#include <gnuradio/blocks/file_sink.h>
 //#include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/null_sink.h>
+//temporary workaround to make add_ff happy
+#include <gnuradio/blocks/null_source.h>
+//emd workaround
 #include <gnuradio/blocks/wavfile_source.h>
 #include <gnuradio/blocks/throttle.h>
 #include <gnuradio/top_block.h>
@@ -84,19 +89,6 @@ public:
     enum status {
         STATUS_OK    = 0, /*!< Operation was successful. */
         STATUS_ERROR = 1  /*!< There was an error. */
-    };
-
-    /** Available demodulators. */
-    enum rx_demod {
-        RX_DEMOD_OFF   = 0,  /*!< No receiver. */
-        RX_DEMOD_NONE  = 1,  /*!< No demod. Raw I/Q to audio. */
-        RX_DEMOD_AM    = 2,  /*!< Amplitude modulation. */
-        RX_DEMOD_NFM   = 3,  /*!< Frequency modulation. */
-        RX_DEMOD_WFM_M = 4,  /*!< Frequency modulation (wide, mono). */
-        RX_DEMOD_WFM_S = 5,  /*!< Frequency modulation (wide, stereo). */
-        RX_DEMOD_WFM_S_OIRT = 6,  /*!< Frequency modulation (wide, stereo oirt). */
-        RX_DEMOD_SSB   = 7,  /*!< Single Side Band. */
-        RX_DEMOD_AMSYNC = 8  /*!< Amplitude modulation (synchronous demod). */
     };
 
     /** Supported receiver types. */
@@ -185,6 +177,11 @@ public:
     status      set_gain(std::string name, double value);
     double      get_gain(std::string name) const;
 
+    int         add_rx();
+    int         get_rx_count();
+    int         delete_rx();
+    status      select_rx(int no);
+
     status      set_filter_offset(double offset_hz);
     double      get_filter_offset(void) const;
     status      set_cw_offset(double offset_hz);
@@ -220,8 +217,8 @@ public:
     status      set_mute(bool mute);
     bool        get_mute();
 
-    status      set_demod(rx_demod demod,
-                          enum file_formats fmt = FILE_FORMAT_LAST,
+    status      set_demod(rx_demod demod);
+    status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
 
     /* FM parameters */
@@ -280,19 +277,25 @@ public:
     }
 
 private:
-    void        connect_all(rx_chain type, enum file_formats fmt);
+    void        connect_all(enum file_formats fmt);
+    void        connect_rx();
+    void        connect_rx(int n);
+    void        disconnect_rx();
+    void        disconnect_rx(int n);
+    void        foreground_rx();
+    void        background_rx();
     void        setup_source(enum file_formats fmt);
     status      connect_iq_recorder();
 
 private:
+    int         d_current;          /*!< Current selected demodulator. */
+    int         d_active;           /*!< Active demodulator count. */
     bool        d_running;          /*!< Whether receiver is running or not. */
     double      d_input_rate;       /*!< Input sample rate. */
     double      d_decim_rate;       /*!< Rate after decimation (input_rate / decim) */
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
-    double      d_filter_offset;    /*!< Current filter offset */
-    double      d_cw_offset;        /*!< CW offset */
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
     bool        d_recording_wav;    /*!< Whether we are recording WAV file. */
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
@@ -303,16 +306,22 @@ private:
     enum file_formats d_iq_fmt;
     enum file_formats d_last_format;
 
-    std::string input_devstr;  /*!< Current input device string. */
-    std::string output_devstr; /*!< Current output device string. */
+    std::string input_devstr;       /*!< Current input device string. */
+    std::string output_devstr;      /*!< Current output device string. */
 
-    rx_demod    d_demod;       /*!< Current demodulator. */
+    gr::basic_block_sptr iq_src;    /*!< Points to the block, connected to rx[]. */
+    rx_demod    d_demod;            /*!< Current demodulator. */
 
     gr::top_block_sptr         tb;        /*!< The GNU Radio top block. */
 
     osmosdr::source::sptr     src;       /*!< Real time I/Q source. */
     fir_decim_cc_sptr         input_decim;      /*!< Input decimator. */
-    receiver_base_cf_sptr     rx;        /*!< receiver. */
+    std::vector<receiver_base_cf_sptr> rx;     /*!< receiver. */
+    gr::blocks::add_ff::sptr           add0;   /* Audio downmix */
+    gr::blocks::add_ff::sptr           add1;   /* Audio downmix */
+    gr::blocks::multiply_const_ff::sptr mc0;   /* Audio downmix */
+    gr::blocks::multiply_const_ff::sptr mc1;   /* Audio downmix */
+    gr::blocks::null_source::sptr null_src;    /* temporary workaround */
 
     dc_corr_cc_sptr           dc_corr;   /*!< DC corrector block. */
     iq_swap_cc_sptr           iq_swap;   /*!< I/Q swapping block. */

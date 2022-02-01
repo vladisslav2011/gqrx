@@ -35,6 +35,19 @@
 
 class receiver_base_cf;
 
+/** Available demodulators. */
+enum rx_demod {
+    RX_DEMOD_OFF   = 0,  /*!< No receiver. */
+    RX_DEMOD_NONE  = 1,  /*!< No demod. Raw I/Q to audio. */
+    RX_DEMOD_AM    = 2,  /*!< Amplitude modulation. */
+    RX_DEMOD_NFM   = 3,  /*!< Frequency modulation. */
+    RX_DEMOD_WFM_M = 4,  /*!< Frequency modulation (wide, mono). */
+    RX_DEMOD_WFM_S = 5,  /*!< Frequency modulation (wide, stereo). */
+    RX_DEMOD_WFM_S_OIRT = 6,  /*!< Frequency modulation (wide, stereo oirt). */
+    RX_DEMOD_SSB   = 7,  /*!< Single Side Band. */
+    RX_DEMOD_AMSYNC = 8  /*!< Amplitude modulation (synchronous demod). */
+};
+
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<receiver_base_cf> receiver_base_cf_sptr;
 #else
@@ -63,9 +76,13 @@ public:
     virtual bool start() = 0;
     virtual bool stop() = 0;
 
+    virtual void set_index(int index);
+    virtual int  get_index();
+
     virtual void set_quad_rate(double quad_rate);
     virtual void set_center_freq(double center_freq);
     virtual void set_offset(double offset);
+    virtual double get_offset();
     virtual void set_rec_dir(std::string dir);
     virtual std::string get_rec_dir() { return d_rec_dir; }
     virtual void set_audio_rec_sql_triggered(bool enabled);
@@ -77,10 +94,12 @@ public:
 
     virtual void set_filter(double low, double high, double tw) = 0;
     virtual void set_cw_offset(double offset);
+    virtual double get_cw_offset();
 
     virtual float get_signal_level();
 
-    virtual void set_demod(int demod) = 0;
+    virtual void set_demod(rx_demod demod);
+    virtual rx_demod  get_demod();
 
     /* the rest is optional */
 
@@ -143,6 +162,8 @@ protected:
     double      d_offset;
     std::string d_rec_dir;
     std::string d_audio_filename;
+    int         d_index;
+    rx_demod    d_demod;
 
     downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */

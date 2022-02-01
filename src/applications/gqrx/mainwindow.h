@@ -32,6 +32,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QSvgWidget>
+#include <QSpinBox>
 
 #include "qtgui/dockrxopt.h"
 #include "qtgui/dockaudio.h"
@@ -122,6 +123,7 @@ private:
 
     std::map<QString, QVariant> devList;
 
+    QSpinBox *rxSpinBox;
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
 
@@ -135,6 +137,7 @@ private:
     void frequencyFocusShortcut();
     void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
+    void loadRxToGUI();
 
 private slots:
     /* RecentConfig */
@@ -246,6 +249,9 @@ private slots:
     void on_actionAboutQt_triggered();
     void on_actionAddBookmark_triggered();
     void on_actionDX_Cluster_triggered();
+    void on_actionAddDemodulator_triggered();
+    void on_actionRemoveDemodulator_triggered();
+    void on_rxSpinBox_valueChanged(int i);
 
 
     /* window close signals */

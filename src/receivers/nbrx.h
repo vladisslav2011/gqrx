@@ -51,17 +51,6 @@ nbrx_sptr make_nbrx(float quad_rate, float audio_rate);
 class nbrx : public receiver_base_cf
 {
 public:
-    /*! \brief Available demodulators. */
-    enum nbrx_demod {
-        NBRX_DEMOD_NONE = 0,  /*!< No demod. Raw I/Q to audio. */
-        NBRX_DEMOD_AM   = 1,  /*!< Amplitude modulation. */
-        NBRX_DEMOD_FM   = 2,  /*!< Frequency modulation. */
-        NBRX_DEMOD_SSB  = 3,  /*!< Single Side Band. */
-        NBRX_DEMOD_AMSYNC = 4, /*!< Amplitude modulation (synchronous demod). */
-        NBRX_DEMOD_NUM  = 5   /*!< Included for convenience. */
-    };
-
-public:
     nbrx(float quad_rate, float audio_rate);
     virtual ~nbrx() { };
 
@@ -82,7 +71,7 @@ public:
     /* AGC */
     bool has_agc() { return true; }
 
-    void set_demod(int demod);
+    void set_demod(rx_demod new_demod) override;
 
     /* FM parameters */
     bool has_fm() { return true; }
@@ -100,8 +89,6 @@ public:
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
-
-    nbrx_demod                d_demod;    /*!< Current demodulator. */
 
     rx_filter_sptr            filter;  /*!< Non-translating bandpass filter.*/
 

@@ -35,8 +35,7 @@ wfmrx_sptr make_wfmrx(float quad_rate, float audio_rate)
 
 wfmrx::wfmrx(float quad_rate, float audio_rate)
     : receiver_base_cf("WFMRX", PREF_QUAD_RATE, quad_rate, audio_rate),
-      d_running(false),
-      d_demod(WFMRX_DEMOD_MONO)
+      d_running(false)
 {
 
     filter = make_rx_filter(PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
@@ -88,10 +87,10 @@ void wfmrx::set_filter(double low, double high, double tw)
     filter->set_param(low, high, tw);
 }
 
-void wfmrx::set_demod(int demod)
+void wfmrx::set_demod(rx_demod demod)
 {
     /* check if new demodulator selection is valid */
-    if ((demod < WFMRX_DEMOD_MONO) || (demod >= WFMRX_DEMOD_NUM))
+    if ((demod < RX_DEMOD_WFM_M) || (demod > RX_DEMOD_WFM_S_OIRT))
         return;
 
     if (demod == d_demod) {
@@ -105,20 +104,20 @@ void wfmrx::set_demod(int demod)
     /* disconnect current demodulator */
     switch (d_demod) {
 
-    case WFMRX_DEMOD_MONO:
+    case RX_DEMOD_WFM_M:
     default:
         disconnect(demod_fm, 0, mono, 0);
         disconnect(mono, 0, agc, 0); // left  channel
         disconnect(mono, 1, agc, 1); // right channel
         break;
 
-    case WFMRX_DEMOD_STEREO:
+    case RX_DEMOD_WFM_S:
         disconnect(demod_fm, 0, stereo, 0);
         disconnect(stereo, 0, agc, 0); // left  channel
         disconnect(stereo, 1, agc, 1); // right channel
         break;
 
-    case WFMRX_DEMOD_STEREO_UKW:
+    case RX_DEMOD_WFM_S_OIRT:
         disconnect(demod_fm, 0, stereo_oirt, 0);
         disconnect(stereo_oirt, 0, agc, 0); // left  channel
         disconnect(stereo_oirt, 1, agc, 1); // right channel
@@ -127,26 +126,26 @@ void wfmrx::set_demod(int demod)
 
     switch (demod) {
 
-    case WFMRX_DEMOD_MONO:
+    case RX_DEMOD_WFM_M:
     default:
         connect(demod_fm, 0, mono, 0);
         connect(mono, 0, agc, 0); // left  channel
         connect(mono, 1, agc, 1); // right channel
         break;
 
-    case WFMRX_DEMOD_STEREO:
+    case RX_DEMOD_WFM_S:
         connect(demod_fm, 0, stereo, 0);
         connect(stereo, 0, agc, 0); // left  channel
         connect(stereo, 1, agc, 1); // right channel
         break;
 
-    case WFMRX_DEMOD_STEREO_UKW:
+    case RX_DEMOD_WFM_S_OIRT:
         connect(demod_fm, 0, stereo_oirt, 0);
         connect(stereo_oirt, 0, agc, 0); // left  channel
         connect(stereo_oirt, 1, agc, 1); // right channel
         break;
     }
-    d_demod = (wfmrx_demod) demod;
+    receiver_base_cf::set_demod(demod);
 
     /* continue processing */
     unlock();
