@@ -166,8 +166,11 @@ public:
         d_rec_event = handler;
     }
     virtual void restore_settings(receiver_base_cf_sptr from);
+    bool connected() { return d_connected; }
+    void connected(bool value) { d_connected = value; }
 
 protected:
+    bool        d_connected;
     double      d_decim_rate;       /*!< Quadrature rate (before down-conversion) */
     double      d_quad_rate;        /*!< Quadrature rate (after down-conversion) */
     double      d_cw_offset;        /*!< CW offset */

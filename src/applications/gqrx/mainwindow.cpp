@@ -2592,6 +2592,7 @@ void MainWindow::on_actionAddDemodulator_triggered()
     std::cerr<<"on_actionAddDemodulator_triggered() "<<n<<std::endl;
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     rxSpinBox->setValue(n);
+//    loadRxToGUI();
 }
 
 void MainWindow::on_actionRemoveDemodulator_triggered()

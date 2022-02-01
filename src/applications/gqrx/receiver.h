@@ -220,7 +220,8 @@ public:
     status      set_mute(bool mute);
     bool        get_mute();
 
-    status      set_demod(Modulations::idx demod);
+    status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
+    status      set_demod(Modulations::idx demod, int old_idx = -1);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);

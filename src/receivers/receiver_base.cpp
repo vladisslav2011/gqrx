@@ -37,6 +37,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     : gr::hier_block2 (src_name,
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof(gr_complex)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof(float))),
+      d_connected(false),
       d_decim_rate(quad_rate),
       d_quad_rate(0),
       d_cw_offset(0),

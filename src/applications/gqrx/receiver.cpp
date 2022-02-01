@@ -229,6 +229,8 @@ void receiver::set_input_device(const std::string device)
     }
 
     tb->disconnect_all();
+    for(auto &rxc : rx)
+        rxc->connected(false);
 
 #if GNURADIO_VERSION < 0x030802
     //Work around GNU Radio bug #3184
@@ -291,6 +293,8 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
     };
 
     tb->disconnect_all();
+    for(auto &rxc : rx)
+        rxc->connected(false);
 
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex), sample_rate);
     //set_demod(d_demod, fmt, true);
@@ -789,11 +793,11 @@ int receiver::add_rx()
     if(d_current >= 0)
         background_rx();
     rx.push_back(make_nbrx(d_decim_rate, d_audio_rate));
+    int old = d_current;
     d_current = rx.size() - 1;
     rx[d_current]->set_index(d_current);
-    set_demod(d_demod);
-    connect_rx();
-    foreground_rx();
+    d_demod = rx[d_current]->get_demod();
+    set_demod_locked(rx[old]->get_demod(), old);
     if(d_running)
     {
         tb->start();
@@ -836,6 +840,7 @@ int receiver::delete_rx()
             disconnect_rx(rx.back()->get_index());
             rx[d_current] = rx.back();
             rx[d_current]->set_index(d_current);
+            rx.back().reset();
             connect_rx();
         }
         else
@@ -1146,28 +1151,16 @@ bool receiver::get_mute()
 }
 
 
-receiver::status receiver::set_demod(Modulations::idx demod)
+receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
 {
     status ret = STATUS_OK;
     rx_chain rxc = RX_CHAIN_NONE;
-    if(d_demod == demod)
-        return ret;
-     std::cerr<<"set_demod "<<demod<<std::endl;
-     bool restart_required = false;
-     if(d_active <= 1)
-     {
-        restart_required = true;
-        if(d_running)
-        {
-            tb->stop();
-            tb->wait();
-        }
+    if(old_idx == -1)
+    {
+        background_rx();
+        disconnect_rx();
     }
-    else
-        tb->lock();
-
-    background_rx();
-    disconnect_rx();
+     std::cerr<<"set_demod_locked "<<demod<<" old "<<old_idx<<std::endl;
 
     switch (demod)
     {
@@ -1199,7 +1192,7 @@ receiver::status receiver::set_demod(Modulations::idx demod)
     d_demod = demod;
     if(ret != STATUS_ERROR)
     {
-        receiver_base_cf_sptr old_rx = rx[d_current];
+        receiver_base_cf_sptr old_rx = rx[(old_idx == -1) ? d_current : old_idx];
         // RX demod chain
         switch (rxc)
         {
@@ -1259,6 +1252,28 @@ receiver::status receiver::set_demod(Modulations::idx demod)
     }
     connect_rx();
     foreground_rx();
+    return ret;
+}
+
+receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
+{
+    status ret = STATUS_OK;
+    if(d_demod == demod)
+        return ret;
+     std::cerr<<"set_demod "<<demod<<std::endl;
+     bool restart_required = false;
+     if(d_active <= 1)
+     {
+        restart_required = true;
+        if(d_running)
+        {
+            tb->stop();
+            tb->wait();
+        }
+    }
+    else
+        tb->lock();
+    ret = set_demod_locked(demod, old_idx);
     if(restart_required)
     {
         if(d_running)
@@ -1280,7 +1295,11 @@ receiver::status receiver::reconnect_all(enum file_formats fmt, bool force)
         tb->wait();
     }
     if(force)
+    {
         tb->disconnect_all();
+        for(auto &rxc : rx)
+            rxc->connected(false);
+    }
     connect_all(fmt);
 
     if (d_running)
@@ -1819,16 +1838,30 @@ void receiver::connect_rx(int n)
 {
     if(!rx[n])
         return;
+    if(rx[n]->connected())
+        return;
     std::cerr<<"connect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
     if(rx[n]->get_demod() != Modulations::MODE_OFF)
     {
-        tb->connect(iq_src, 0, rx[n], 0);
         if(d_active == 0)
         {
             for(auto &rxc : rx)
             {
-                tb->connect(rxc, 0, add0, rxc->get_index());
-                tb->connect(rxc, 0, add1, rxc->get_index());
+                if(!rxc)
+                    continue;
+                if(rxc->get_demod() != Modulations::MODE_OFF)
+                {
+                    tb->connect(iq_src, 0, rxc, 0);
+                    tb->connect(rxc, 0, add0, rxc->get_index());
+                    tb->connect(rxc, 1, add1, rxc->get_index());
+                    d_active++;
+                }
+                else
+                {
+                    tb->connect(null_src, 0, add0, n);
+                    tb->connect(null_src, 0, add1, n);
+                }
+                rxc->connected(true);
             }
             tb->connect(add0, 0, mc0, 0);
             tb->connect(add1, 0, mc1, 0);
@@ -1839,10 +1872,11 @@ void receiver::connect_rx(int n)
                 tb->connect(mc1, 0, audio_snk, 1);
             }
         }else{
+            tb->connect(iq_src, 0, rx[n], 0);
             tb->connect(rx[n], 0, add0, n);
-            tb->connect(rx[n], 0, add1, n);
+            tb->connect(rx[n], 1, add1, n);
+            d_active++;
         }
-        d_active++;
     }else{
         if(d_active > 0)
         {
@@ -1850,6 +1884,7 @@ void receiver::connect_rx(int n)
             tb->connect(null_src, 0, add1, n);
         }
     }
+    rx[n]->connected(true);
 }
 
 void receiver::disconnect_rx()
@@ -1862,28 +1897,57 @@ void receiver::disconnect_rx(int n)
     std::cerr<<"disconnect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
     if(rx[n]->get_demod() != Modulations::MODE_OFF)
     {
-        tb->disconnect(iq_src, 0, rx[n], 0);
-        tb->disconnect(rx[n], 0, add0, n);
-        tb->disconnect(rx[n], 0, add1, n);
         d_active--;
         if(d_active == 0)
         {
-            tb->disconnect(add0);
-            tb->disconnect(add1);
+           std::cerr<<"disconnect_rx d_active == 0"<<std::endl;
+            for(auto &rxc : rx)
+            {
+                if(!rxc)
+                    continue;
+                std::cerr<<"disconnect_rx loop "<<rxc->get_index()<<std::endl;
+                if(rxc->connected())
+                {
+                    if(rxc->get_demod() != Modulations::MODE_OFF)
+                    {
+                        std::cerr<<"disconnect_rx loop MODE_OFF"<<std::endl;
+                        tb->disconnect(iq_src, 0, rxc, 0);
+                        tb->disconnect(rxc, 0, add0, rxc->get_index());
+                        tb->disconnect(rxc, 1, add1, rxc->get_index());
+                    }
+                    else
+                    {
+                        std::cerr<<"disconnect_rx loop !MODE_OFF"<<std::endl;
+                        tb->disconnect(null_src, 0, add0, n);
+                        tb->disconnect(null_src, 0, add1, n);
+                    }
+                    rxc->connected(false);
+                }
+            }
+            std::cerr<<"disconnect_rx disconnect add"<<std::endl;
+            tb->disconnect(add0, 0, mc0, 0);
+            tb->disconnect(add1, 0, mc1, 0);
             if (!d_mute)
             {
                 std::cerr<<"disconnect audio_snk "<<d_active<<std::endl;
-                tb->disconnect(mc0);
-                tb->disconnect(mc1);
+                tb->disconnect(mc0, 0, audio_snk, 0);
+                tb->disconnect(mc1, 0, audio_snk, 1);
             }
+        }else{
+            std::cerr<<"disconnect_rx d_active > 0"<<std::endl;
+            tb->disconnect(iq_src, 0, rx[n], 0);
+            tb->disconnect(rx[n], 0, add0, n);
+            tb->disconnect(rx[n], 1, add1, n);
         }
     }else{
         if(d_active > 0)
         {
+            std::cerr<<"disconnect_rx MODE_OFF d_active > 0"<<std::endl;
             tb->disconnect(null_src, 0, add0, n);
             tb->disconnect(null_src, 0, add1, n);
         }
     }
+    rx[n]->connected(false);
 }
 
 void receiver::background_rx()
