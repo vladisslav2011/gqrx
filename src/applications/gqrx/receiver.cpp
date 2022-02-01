@@ -1233,10 +1233,11 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             // Recorders
             if(old_rx.get() != rx[d_current].get())
             {
-                if (d_recording_wav)
-                    rx[d_current]->continue_audio_recording(old_rx);
+                if(old_idx == -1)
+                    if (d_recording_wav)
+                        rx[d_current]->continue_audio_recording(old_rx);
             }
-            else
+            if(demod == Modulations::MODE_OFF)
             {
                 if (d_recording_wav)
                 {
