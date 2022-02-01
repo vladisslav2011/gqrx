@@ -2616,13 +2616,16 @@ void MainWindow::loadRxToGUI()
     auto rf_freq = rx->get_rf_freq();
     auto new_offset = rx->get_filter_offset();
     auto rx_freq = (double)(rf_freq + d_lnb_lo + new_offset);
+    
+    double low;
+    double high;
+    receiver::filter_shape fs;
+    
 
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);
     uiDockRxOpt->setFilterOffset(new_offset);
-    
-    uiDockRxOpt->setCurrentDemod(rx->get_demod());
     
     ui->freqCtrl->setFrequency(rx_freq);
     uiDockBookmarks->setNewFrequency(rx_freq);
@@ -2631,6 +2634,14 @@ void MainWindow::loadRxToGUI()
     
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
+
+    uiDockRxOpt->setCurrentDemod(rx->get_demod());
+    rx->get_filter(low, high, fs);
+    uiDockRxOpt->setFilterParam(low, high);
+    uiDockRxOpt->setCurrentFilterShape(fs);
+    ui->plotter->setHiLowCutFrequencies(low, high);
+    
+    uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
 }
 
 void MainWindow::updateClusterSpots()

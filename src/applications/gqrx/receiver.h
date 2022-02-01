@@ -187,6 +187,7 @@ public:
     status      set_cw_offset(double offset_hz);
     double      get_cw_offset(void) const;
     status      set_filter(double low, double high, filter_shape shape);
+    status      get_filter(double &low, double &high, filter_shape &shape);
     status      set_freq_corr(double ppm);
     float       get_signal_pwr() const;
     void        set_iq_fft_size(int newsize);
@@ -202,7 +203,9 @@ public:
 
     /* Squelch parameter */
     status      set_sql_level(double level_db);
+    double      get_sql_level();
     status      set_sql_alpha(double alpha);
+    double      get_sql_alpha();
 
     /* AGC */
     status      set_agc_on(bool agc_on);

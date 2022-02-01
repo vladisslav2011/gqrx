@@ -948,6 +948,20 @@ receiver::status receiver::set_filter(double low, double high, filter_shape shap
     return STATUS_OK;
 }
 
+receiver::status receiver::get_filter(double &low, double &high, filter_shape &shape)
+{
+    double tw;
+    rx[d_current]->get_filter(low, high, tw);
+    shape = FILTER_SHAPE_SOFT;
+
+    if(tw < std::abs(high - low) * 0.25)
+        shape = FILTER_SHAPE_NORMAL;
+    if(tw < std::abs(high - low) * 0.15)
+        shape = FILTER_SHAPE_SHARP;
+
+    return STATUS_OK;
+}
+
 receiver::status receiver::set_freq_corr(double ppm)
 {
     src->set_freq_corr(ppm);
@@ -1016,12 +1030,22 @@ receiver::status receiver::set_sql_level(double level_db)
     return STATUS_OK; // FIXME
 }
 
+double receiver::get_sql_level()
+{
+    return rx[d_current]->get_sql_level();
+}
+
 /** Set squelch alpha */
 receiver::status receiver::set_sql_alpha(double alpha)
 {
     rx[d_current]->set_sql_alpha(alpha);
 
     return STATUS_OK; // FIXME
+}
+
+double receiver::get_sql_alpha()
+{
+    return rx[d_current]->get_sql_alpha();
 }
 
 /**
