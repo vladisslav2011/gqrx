@@ -28,6 +28,7 @@
 #include "qtgui/agc_options.h"
 #include "qtgui/demod_options.h"
 #include "qtgui/nb_options.h"
+#include "receivers/defines.h"
 
 #define FILTER_PRESET_WIDE      0
 #define FILTER_PRESET_NORMAL    1
@@ -56,29 +57,6 @@ class DockRxOpt : public QDockWidget
 
 public:
 
-    /**
-     * Mode selector entries.
-     *
-     * @note If you change this enum, remember to update the TCP interface.
-     * @note Keep in same order as the Strings in ModulationStrings, see
-     *       DockRxOpt.cpp constructor.
-     */
-    enum rxopt_mode_idx {
-        MODE_OFF        = 0, /*!< Demodulator completely off. */
-        MODE_RAW        = 1, /*!< Raw I/Q passthrough. */
-        MODE_AM         = 2, /*!< Amplitude modulation. */
-        MODE_AM_SYNC    = 3, /*!< Amplitude modulation (synchronous demod). */
-        MODE_LSB        = 4, /*!< Lower side band. */
-        MODE_USB        = 5, /*!< Upper side band. */
-        MODE_CWL        = 6, /*!< CW using LSB filter. */
-        MODE_CWU        = 7, /*!< CW using USB filter. */
-        MODE_NFM        = 8, /*!< Narrow band FM. */
-        MODE_WFM_MONO   = 9, /*!< Broadcast FM (mono). */
-        MODE_WFM_STEREO = 10, /*!< Broadcast FM (stereo). */
-        MODE_WFM_STEREO_OIRT = 11, /*!< Broadcast FM (stereo oirt). */
-        MODE_LAST       = 12
-    };
-
     explicit DockRxOpt(qint64 filterOffsetRange = 90000, QWidget *parent = 0);
     ~DockRxOpt();
 
@@ -100,14 +78,14 @@ public:
     void setResetLowerDigits(bool enabled);
     void setInvertScrolling(bool enabled);
 
-    int  currentDemod() const;
+    Modulations::idx  currentDemod() const;
     QString currentDemodAsString();
 
     float currentMaxdev() const;
     double currentEmph() const;
     double currentSquelchLevel() const;
 
-    void    getFilterPreset(int mode, int preset, int * lo, int * hi) const;
+    void    getFilterPreset(Modulations::idx mode, int preset, int * lo, int * hi) const;
     int     getCwOffset() const;
 
     double  getSqlLevel(void) const;
@@ -119,20 +97,15 @@ public:
     int     getAgcDecay();
     int     getAgcHang();
 
-    static QStringList ModulationStrings;
-    static QString GetStringForModulationIndex(int iModulationIndex);
-    static int GetEnumForModulationString(QString param);
-    static bool IsModulationValid(QString strModulation);
-
 public slots:
     void setRxFreq(qint64 freq_hz);
-    void setCurrentDemod(int demod);
+    void setCurrentDemod(Modulations::idx demod);
     void setFilterOffset(qint64 freq_hz);
     void setSquelchLevel(double level);
 
 private:
     void updateHwFreq();
-    void updateDemodOptPage(int demod);
+    void updateDemodOptPage(Modulations::idx demod);
     unsigned int filterIdxFromLoHi(int lo, int hi) const;
 
     void modeOffShortcut();
@@ -159,7 +132,7 @@ signals:
     void filterOffsetChanged(qint64 freq_hz);
 
     /** Signal emitted when new demodulator is selected. */
-    void demodSelected(int demod);
+    void demodSelected(Modulations::idx demod);
 
     /** Signal emitted when new FM deviation is selected. */
     void fmMaxdevSelected(float max_dev);
@@ -251,6 +224,7 @@ private:
     CDemodOptions *demodOpt;  /** Demodulator options. */
     CAgcOptions   *agcOpt;    /** AGC options. */
     CNbOptions    *nbOpt;     /** Noise blanker options. */
+    Modulations   modulations;
 
     bool agc_is_on;
 

@@ -28,7 +28,6 @@
 #include <functional>
 
 
-#define TARGET_QUAD_RATE 1e6
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 2; /* Minimum number of output streams. */
@@ -44,7 +43,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_index(-1),
-      d_demod(RX_DEMOD_OFF),
+      d_demod(Modulations::MODE_OFF),
       d_filter_low(-5000),
       d_filter_high(5000),
       d_filter_tw(100),
@@ -104,9 +103,9 @@ int  receiver_base_cf::get_index()
     return d_index;
 }
 
-void receiver_base_cf::set_demod(rx_demod demod)
+void receiver_base_cf::set_demod(Modulations::idx demod)
 {
-    if ((d_demod == RX_DEMOD_OFF) && (demod != RX_DEMOD_OFF))
+    if ((d_demod == Modulations::MODE_OFF) && (demod != Modulations::MODE_OFF))
     {
         qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
         lock();
@@ -117,7 +116,7 @@ void receiver_base_cf::set_demod(rx_demod demod)
     d_demod = demod;
 }
 
-rx_demod receiver_base_cf::get_demod()
+Modulations::idx receiver_base_cf::get_demod()
 {
     return d_demod;
 }
@@ -130,7 +129,7 @@ void receiver_base_cf::set_quad_rate(double quad_rate)
         d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
         d_quad_rate = d_decim_rate / d_ddc_decim;
         //avoid triggering https://github.com/gnuradio/gnuradio/issues/5436
-        if (d_demod != RX_DEMOD_OFF)
+        if (d_demod != Modulations::MODE_OFF)
         {
             qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
             lock();
@@ -204,6 +203,13 @@ void receiver_base_cf::set_filter(double low, double high, double tw)
     d_filter_tw = tw;
 }
 
+void receiver_base_cf::get_filter(double &low, double &high, double &tw)
+{
+    low = d_filter_low;
+    high = d_filter_high;
+    tw = d_filter_tw;
+}
+
 bool receiver_base_cf::has_nb()
 {
     return false;
@@ -215,10 +221,24 @@ void receiver_base_cf::set_nb_on(int nbid, bool on)
         d_nb_on[nbid - 1] = on;
 }
 
+bool receiver_base_cf::get_nb_on(int nbid)
+{
+    if (nbid - 1 < RECEIVER_NB_COUNT)
+        return d_nb_on[nbid - 1];
+    return false;
+}
+
 void receiver_base_cf::set_nb_threshold(int nbid, float threshold)
 {
     if (nbid - 1 < RECEIVER_NB_COUNT)
         d_nb_threshold[nbid -1] = threshold;
+}
+
+float receiver_base_cf::get_nb_threshold(int nbid)
+{
+    if (nbid - 1 < RECEIVER_NB_COUNT)
+        return d_nb_threshold[nbid -1];
+    return 0.0;
 }
 
 void receiver_base_cf::set_sql_level(double level_db)
@@ -227,10 +247,20 @@ void receiver_base_cf::set_sql_level(double level_db)
     d_level_db = level_db;
 }
 
+double receiver_base_cf::get_sql_level()
+{
+    return d_level_db;
+}
+
 void receiver_base_cf::set_sql_alpha(double alpha)
 {
     sql->set_alpha(alpha);
     d_alpha = alpha;
+}
+
+double receiver_base_cf::get_sql_alpha()
+{
+    return d_alpha;
 }
 
 void receiver_base_cf::set_agc_on(bool agc_on)
@@ -239,10 +269,20 @@ void receiver_base_cf::set_agc_on(bool agc_on)
     d_agc_on = agc_on;
 }
 
+bool receiver_base_cf::get_agc_on()
+{
+    return d_agc_on;
+}
+
 void receiver_base_cf::set_agc_target_level(int target_level)
 {
     agc->set_target_level(target_level);
     d_agc_target_level = target_level;
+}
+
+int receiver_base_cf::get_agc_target_level()
+{
+    return d_agc_target_level;
 }
 
 void receiver_base_cf::set_agc_manual_gain(float gain)
@@ -251,10 +291,20 @@ void receiver_base_cf::set_agc_manual_gain(float gain)
     d_agc_manual_gain = gain;
 }
 
+float receiver_base_cf::get_agc_manual_gain()
+{
+    return d_agc_manual_gain;
+}
+
 void receiver_base_cf::set_agc_max_gain(int gain)
 {
     agc->set_max_gain(gain);
     d_agc_max_gain = gain;
+}
+
+int receiver_base_cf::get_agc_max_gain()
+{
+    return d_agc_max_gain;
 }
 
 void receiver_base_cf::set_agc_attack(int attack_ms)
@@ -263,16 +313,31 @@ void receiver_base_cf::set_agc_attack(int attack_ms)
     d_agc_attack_ms = attack_ms;
 }
 
+int receiver_base_cf::get_agc_attack()
+{
+    return d_agc_attack_ms;
+}
+
 void receiver_base_cf::set_agc_decay(int decay_ms)
 {
     agc->set_decay(decay_ms);
     d_agc_decay_ms = decay_ms;
 }
 
+int receiver_base_cf::get_agc_decay()
+{
+    return d_agc_decay_ms;
+}
+
 void receiver_base_cf::set_agc_hang(int hang_ms)
 {
     agc->set_hang(hang_ms);
     d_agc_hang_ms = hang_ms;
+}
+
+int receiver_base_cf::get_agc_hang()
+{
+    return d_agc_hang_ms;
 }
 
 float receiver_base_cf::get_agc_gain()
@@ -285,9 +350,19 @@ void receiver_base_cf::set_fm_maxdev(float maxdev_hz)
     d_fm_maxdev = maxdev_hz;
 }
 
+float receiver_base_cf::get_fm_maxdev()
+{
+    return d_fm_maxdev;
+}
+
 void receiver_base_cf::set_fm_deemph(double tau)
 {
     d_fm_deemph = tau;
+}
+
+double receiver_base_cf::get_fm_deemph()
+{
+    return d_fm_deemph;
 }
 
 void receiver_base_cf::set_am_dcr(bool enabled)
@@ -295,14 +370,29 @@ void receiver_base_cf::set_am_dcr(bool enabled)
     d_am_dcr = enabled;
 }
 
+bool receiver_base_cf::get_am_dcr()
+{
+    return d_am_dcr;
+}
+
 void receiver_base_cf::set_amsync_dcr(bool enabled)
 {
     d_amsync_dcr = enabled;
 }
 
+bool receiver_base_cf::get_amsync_dcr()
+{
+    return d_amsync_dcr;
+}
+
 void receiver_base_cf::set_amsync_pll_bw(float pll_bw)
 {
     d_amsync_pll_bw = pll_bw;
+}
+
+float receiver_base_cf::get_amsync_pll_bw()
+{
+    return d_amsync_pll_bw;
 }
 
 void receiver_base_cf::get_rds_data(std::string &outbuff, int &num)

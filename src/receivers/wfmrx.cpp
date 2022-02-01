@@ -26,26 +26,24 @@
 #include <QDebug>
 #include "receivers/wfmrx.h"
 
-#define PREF_QUAD_RATE   240e3 // Nominal channel spacing is 200 kHz
-
 wfmrx_sptr make_wfmrx(float quad_rate, float audio_rate)
 {
     return gnuradio::get_initial_sptr(new wfmrx(quad_rate, audio_rate));
 }
 
 wfmrx::wfmrx(float quad_rate, float audio_rate)
-    : receiver_base_cf("WFMRX", PREF_QUAD_RATE, quad_rate, audio_rate),
+    : receiver_base_cf("WFMRX", WFM_PREF_QUAD_RATE, quad_rate, audio_rate),
       d_running(false)
 {
 
-    filter = make_rx_filter(PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
-    demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 75000.0, 0.0);
-    stereo = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true);
-    stereo_oirt = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true, true);
-    mono = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, false);
+    filter = make_rx_filter(WFM_PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
+    demod_fm = make_rx_demod_fm(WFM_PREF_QUAD_RATE, 75000.0, 0.0);
+    stereo = make_stereo_demod(WFM_PREF_QUAD_RATE, d_audio_rate, true);
+    stereo_oirt = make_stereo_demod(WFM_PREF_QUAD_RATE, d_audio_rate, true, true);
+    mono = make_stereo_demod(WFM_PREF_QUAD_RATE, d_audio_rate, false);
 
     /* create rds blocks but dont connect them */
-    rds = make_rx_rds(PREF_QUAD_RATE);
+    rds = make_rx_rds(WFM_PREF_QUAD_RATE);
     rds_decoder = gr::rds::decoder::make(0, 0);
     rds_parser = gr::rds::parser::make(0, 0, 0);
     rds_store = make_rx_rds_store();
@@ -88,10 +86,10 @@ void wfmrx::set_filter(double low, double high, double tw)
     filter->set_param(low, high, tw);
 }
 
-void wfmrx::set_demod(rx_demod demod)
+void wfmrx::set_demod(Modulations::idx demod)
 {
     /* check if new demodulator selection is valid */
-    if ((demod < RX_DEMOD_WFM_M) || (demod > RX_DEMOD_WFM_S_OIRT))
+    if ((demod < Modulations::MODE_WFM_MONO) || (demod > Modulations::MODE_WFM_STEREO_OIRT))
         return;
 
     if (demod == d_demod) {
@@ -105,20 +103,20 @@ void wfmrx::set_demod(rx_demod demod)
     /* disconnect current demodulator */
     switch (d_demod) {
 
-    case RX_DEMOD_WFM_M:
+    case Modulations::MODE_WFM_MONO:
     default:
         disconnect(demod_fm, 0, mono, 0);
         disconnect(mono, 0, agc, 0); // left  channel
         disconnect(mono, 1, agc, 1); // right channel
         break;
 
-    case RX_DEMOD_WFM_S:
+    case Modulations::MODE_WFM_STEREO:
         disconnect(demod_fm, 0, stereo, 0);
         disconnect(stereo, 0, agc, 0); // left  channel
         disconnect(stereo, 1, agc, 1); // right channel
         break;
 
-    case RX_DEMOD_WFM_S_OIRT:
+    case Modulations::MODE_WFM_STEREO_OIRT:
         disconnect(demod_fm, 0, stereo_oirt, 0);
         disconnect(stereo_oirt, 0, agc, 0); // left  channel
         disconnect(stereo_oirt, 1, agc, 1); // right channel
@@ -127,20 +125,20 @@ void wfmrx::set_demod(rx_demod demod)
 
     switch (demod) {
 
-    case RX_DEMOD_WFM_M:
+    case Modulations::MODE_WFM_MONO:
     default:
         connect(demod_fm, 0, mono, 0);
         connect(mono, 0, agc, 0); // left  channel
         connect(mono, 1, agc, 1); // right channel
         break;
 
-    case RX_DEMOD_WFM_S:
+    case Modulations::MODE_WFM_STEREO:
         connect(demod_fm, 0, stereo, 0);
         connect(stereo, 0, agc, 0); // left  channel
         connect(stereo, 1, agc, 1); // right channel
         break;
 
-    case RX_DEMOD_WFM_S_OIRT:
+    case Modulations::MODE_WFM_STEREO_OIRT:
         connect(demod_fm, 0, stereo_oirt, 0);
         connect(stereo_oirt, 0, agc, 0); // left  channel
         connect(stereo_oirt, 1, agc, 1); // right channel

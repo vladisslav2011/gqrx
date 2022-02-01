@@ -65,7 +65,7 @@ public:
     void set_nb_on(int nbid, bool on) override;
     void set_nb_threshold(int nbid, float threshold) override;
 
-    void set_demod(rx_demod new_demod) override;
+    void set_demod(Modulations::idx new_demod) override;
 
     /* FM parameters */
     void set_fm_maxdev(float maxdev_hz) override;

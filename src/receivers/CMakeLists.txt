@@ -7,4 +7,7 @@ add_source_files(SRCS_LIST
 	receiver_base.h
 	wfmrx.cpp
 	wfmrx.h
+	defines.h
+	modulations.h
+	modulations.cpp
 )

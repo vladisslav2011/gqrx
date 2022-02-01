@@ -208,9 +208,9 @@ ComboBoxDelegateModulation::ComboBoxDelegateModulation(QObject *parent)
 QWidget *ComboBoxDelegateModulation::createEditor(QWidget *parent, const QStyleOptionViewItem &/* option */, const QModelIndex &index) const
 {
     QComboBox* comboBox = new QComboBox(parent);
-    for (int i = 0; i < DockRxOpt::ModulationStrings.size(); ++i)
+    for (int i = 0; i < Modulations::Strings.size(); ++i)
     {
-        comboBox->addItem(DockRxOpt::ModulationStrings[i]);
+        comboBox->addItem(Modulations::Strings[i]);
     }
     setEditorData(comboBox, index);
     return comboBox;
@@ -220,7 +220,7 @@ void ComboBoxDelegateModulation::setEditorData(QWidget *editor, const QModelInde
 {
     QComboBox *comboBox = static_cast<QComboBox*>(editor);
     QString value = index.model()->data(index, Qt::EditRole).toString();
-    int iModulation = DockRxOpt::GetEnumForModulationString(value);
+    int iModulation = modulations.GetEnumForModulationString(value);
     comboBox->setCurrentIndex(iModulation);
 }
 

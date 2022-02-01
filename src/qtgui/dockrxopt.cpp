@@ -28,26 +28,24 @@
 #include "ui_dockrxopt.h"
 
 
-QStringList DockRxOpt::ModulationStrings;
-
 // Lookup table for conversion from old settings
 static const int old2new[] = {
-    DockRxOpt::MODE_OFF,
-    DockRxOpt::MODE_RAW,
-    DockRxOpt::MODE_AM,
-    DockRxOpt::MODE_NFM,
-    DockRxOpt::MODE_WFM_MONO,
-    DockRxOpt::MODE_WFM_STEREO,
-    DockRxOpt::MODE_LSB,
-    DockRxOpt::MODE_USB,
-    DockRxOpt::MODE_CWL,
-    DockRxOpt::MODE_CWU,
-    DockRxOpt::MODE_WFM_STEREO_OIRT,
-    DockRxOpt::MODE_AM_SYNC
+    Modulations::MODE_OFF,
+    Modulations::MODE_RAW,
+    Modulations::MODE_AM,
+    Modulations::MODE_NFM,
+    Modulations::MODE_WFM_MONO,
+    Modulations::MODE_WFM_STEREO,
+    Modulations::MODE_LSB,
+    Modulations::MODE_USB,
+    Modulations::MODE_CWL,
+    Modulations::MODE_CWU,
+    Modulations::MODE_WFM_STEREO_OIRT,
+    Modulations::MODE_AM_SYNC
 };
 
 // Filter preset table per mode, preset and lo/hi
-static const int filter_preset_table[DockRxOpt::MODE_LAST][3][2] =
+static const int filter_preset_table[Modulations::MODE_LAST][3][2] =
 {   //     WIDE             NORMAL            NARROW
     {{      0,      0}, {     0,     0}, {     0,     0}},  // MODE_OFF
     {{ -15000,  15000}, { -5000,  5000}, { -1000,  1000}},  // MODE_RAW
@@ -71,23 +69,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    if (ModulationStrings.size() == 0)
-    {
-        // Keep in sync with rxopt_mode_idx and filter_preset_table
-        ModulationStrings.append("Demod Off");
-        ModulationStrings.append("Raw I/Q");
-        ModulationStrings.append("AM");
-        ModulationStrings.append("AM-Sync");
-        ModulationStrings.append("LSB");
-        ModulationStrings.append("USB");
-        ModulationStrings.append("CW-L");
-        ModulationStrings.append("CW-U");
-        ModulationStrings.append("Narrow FM");
-        ModulationStrings.append("WFM (mono)");
-        ModulationStrings.append("WFM (stereo)");
-        ModulationStrings.append("WFM (oirt)");
-    }
-    ui->modeSelector->addItems(ModulationStrings);
+    ui->modeSelector->addItems(Modulations::Strings);
 
 #ifdef Q_OS_LINUX
     ui->modeButton->setMinimumSize(32, 24);
@@ -317,9 +299,9 @@ int  DockRxOpt::currentFilterShape() const
  * @brief Select new demodulator.
  * @param demod Demodulator index corresponding to receiver::demod.
  */
-void DockRxOpt::setCurrentDemod(int demod)
+void DockRxOpt::setCurrentDemod(Modulations::idx demod)
 {
-    if ((demod >= MODE_OFF) && (demod < MODE_LAST))
+    if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_LAST))
     {
         ui->modeSelector->setCurrentIndex(demod);
         updateDemodOptPage(demod);
@@ -330,14 +312,14 @@ void DockRxOpt::setCurrentDemod(int demod)
  * @brief Get current demodulator selection.
  * @return The current demodulator corresponding to receiver::demod.
  */
-int  DockRxOpt::currentDemod() const
+Modulations::idx DockRxOpt::currentDemod() const
 {
-    return ui->modeSelector->currentIndex();
+    return Modulations::idx(ui->modeSelector->currentIndex());
 }
 
 QString DockRxOpt::currentDemodAsString()
 {
-    return GetStringForModulationIndex(currentDemod());
+    return modulations.GetStringForModulationIndex(currentDemod());
 }
 
 float DockRxOpt::currentMaxdev() const
@@ -375,12 +357,12 @@ double DockRxOpt::currentSquelchLevel() const
 
 
 /** Get filter lo/hi for a given mode and preset */
-void DockRxOpt::getFilterPreset(int mode, int preset, int * lo, int * hi) const
+void DockRxOpt::getFilterPreset(Modulations::idx mode, int preset, int * lo, int * hi) const
 {
-    if (mode < 0 || mode >= MODE_LAST)
+    if (mode < Modulations::MODE_OFF || mode >= Modulations::MODE_LAST)
     {
         qDebug() << __func__ << ": Invalid mode:" << mode;
-        mode = MODE_AM;
+        mode = Modulations::MODE_AM;
     }
     else if (preset < 0 || preset > 2)
     {
@@ -498,17 +480,17 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (settings->value("receiver/agc_off", false).toBool())
         ui->agcPresetCombo->setCurrentIndex(4);
 
-    int_val = MODE_AM;
+    int_val = Modulations::MODE_AM;
     if (settings->contains("receiver/demod")) {
         if (settings->value("configversion").toInt(&conv_ok) >= 3) {
-            int_val = GetEnumForModulationString(settings->value("receiver/demod").toString());
+            int_val = modulations.GetEnumForModulationString(settings->value("receiver/demod").toString());
         } else {
             int_val = old2new[settings->value("receiver/demod").toInt(&conv_ok)];
         }
     }
 
-    setCurrentDemod(int_val);
-    emit demodSelected(int_val);
+    setCurrentDemod(Modulations::idx(int_val));
+    emit demodSelected(Modulations::idx(int_val));
 
 }
 
@@ -647,7 +629,7 @@ void DockRxOpt::on_filterCombo_activated(int index)
 
     qDebug() << "New filter preset:" << ui->filterCombo->currentText();
     qDebug() << "            shape:" << ui->filterShapeCombo->currentIndex();
-    emit demodSelected(ui->modeSelector->currentIndex());
+    emit demodSelected(Modulations::idx(ui->modeSelector->currentIndex()));
 }
 
 /**
@@ -663,20 +645,20 @@ void DockRxOpt::on_filterCombo_activated(int index)
  */
 void DockRxOpt::on_modeSelector_activated(int index)
 {
-    updateDemodOptPage(index);
-    emit demodSelected(index);
+    updateDemodOptPage(Modulations::idx(index));
+    emit demodSelected(Modulations::idx(index));
 }
 
-void DockRxOpt::updateDemodOptPage(int demod)
+void DockRxOpt::updateDemodOptPage(Modulations::idx demod)
 {
     // update demodulator option widget
-    if (demod == MODE_NFM)
+    if (demod == Modulations::MODE_NFM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
-    else if (demod == MODE_AM)
+    else if (demod == Modulations::MODE_AM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_AM_OPT);
-    else if (demod == MODE_CWL || demod == MODE_CWU)
+    else if (demod == Modulations::MODE_CWL || demod == Modulations::MODE_CWU)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_CW_OPT);
-    else if (demod == MODE_AM_SYNC)
+    else if (demod == Modulations::MODE_AM_SYNC)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_AMSYNC_OPT);
     else
         demodOpt->setCurrentPage(CDemodOptions::PAGE_NO_OPT);
@@ -873,82 +855,52 @@ void DockRxOpt::on_nbOptButton_clicked()
     nbOpt->show();
 }
 
-int DockRxOpt::GetEnumForModulationString(QString param)
-{
-    int iModulation = -1;
-    for(int i=0; i<DockRxOpt::ModulationStrings.size(); ++i)
-    {
-        QString& strModulation = DockRxOpt::ModulationStrings[i];
-        if(param.compare(strModulation, Qt::CaseInsensitive)==0)
-        {
-            iModulation = i;
-            break;
-        }
-    }
-    if(iModulation == -1)
-    {
-        std::cout << "Modulation '" << param.toStdString() << "' is unknown." << std::endl;
-        iModulation = MODE_OFF;
-    }
-    return iModulation;
-}
-
-bool DockRxOpt::IsModulationValid(QString strModulation)
-{
-    return DockRxOpt::ModulationStrings.contains(strModulation, Qt::CaseInsensitive);
-}
-
-QString DockRxOpt::GetStringForModulationIndex(int iModulationIndex)
-{
-    return ModulationStrings[iModulationIndex];
-}
-
 void DockRxOpt::modeOffShortcut() {
-    on_modeSelector_activated(MODE_OFF);
+    on_modeSelector_activated(Modulations::MODE_OFF);
 }
 
 void DockRxOpt::modeRawShortcut() {
-    on_modeSelector_activated(MODE_RAW);
+    on_modeSelector_activated(Modulations::MODE_RAW);
 }
 
 void DockRxOpt::modeAMShortcut() {
-    on_modeSelector_activated(MODE_AM);
+    on_modeSelector_activated(Modulations::MODE_AM);
 }
 
 void DockRxOpt::modeNFMShortcut() {
-    on_modeSelector_activated(MODE_NFM);
+    on_modeSelector_activated(Modulations::MODE_NFM);
 }
 
 void DockRxOpt::modeWFMmonoShortcut() {
-    on_modeSelector_activated(MODE_WFM_MONO);
+    on_modeSelector_activated(Modulations::MODE_WFM_MONO);
 }
 
 void DockRxOpt::modeWFMstereoShortcut() {
-    on_modeSelector_activated(MODE_WFM_STEREO);
+    on_modeSelector_activated(Modulations::MODE_WFM_STEREO);
 }
 
 void DockRxOpt::modeLSBShortcut() {
-    on_modeSelector_activated(MODE_LSB);
+    on_modeSelector_activated(Modulations::MODE_LSB);
 }
 
 void DockRxOpt::modeUSBShortcut() {
-    on_modeSelector_activated(MODE_USB);
+    on_modeSelector_activated(Modulations::MODE_USB);
 }
 
 void DockRxOpt::modeCWLShortcut() {
-    on_modeSelector_activated(MODE_CWL);
+    on_modeSelector_activated(Modulations::MODE_CWL);
 }
 
 void DockRxOpt::modeCWUShortcut() {
-    on_modeSelector_activated(MODE_CWU);
+    on_modeSelector_activated(Modulations::MODE_CWU);
 }
 
 void DockRxOpt::modeWFMoirtShortcut() {
-    on_modeSelector_activated(MODE_WFM_STEREO_OIRT);
+    on_modeSelector_activated(Modulations::MODE_WFM_STEREO_OIRT);
 }
 
 void DockRxOpt::modeAMsyncShortcut() {
-    on_modeSelector_activated(MODE_AM_SYNC);
+    on_modeSelector_activated(Modulations::MODE_AM_SYNC);
 }
 
 void DockRxOpt::filterNarrowShortcut() {

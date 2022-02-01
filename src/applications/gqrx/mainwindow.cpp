@@ -224,8 +224,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
-    connect(uiDockRxOpt, SIGNAL(demodSelected(int)), this, SLOT(selectDemod(int)));
-    connect(uiDockRxOpt, SIGNAL(demodSelected(int)), remote, SLOT(setMode(int)));
+    connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
+    connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), remote, SLOT(setMode(Modulations::idx)));
     connect(uiDockRxOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(setFmMaxdev(float)));
     connect(uiDockRxOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(setFmEmph(double)));
     connect(uiDockRxOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(setAmDcr(bool)));
@@ -308,8 +308,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(remote, SIGNAL(newLnbLo(double)), uiDockInputCtl, SLOT(setLnbLo(double)));
     connect(remote, SIGNAL(newLnbLo(double)), this, SLOT(setLnbLo(double)));
-    connect(remote, SIGNAL(newMode(int)), this, SLOT(selectDemod(int)));
-    connect(remote, SIGNAL(newMode(int)), uiDockRxOpt, SLOT(setCurrentDemod(int)));
+    connect(remote, SIGNAL(newMode(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
+    connect(remote, SIGNAL(newMode(Modulations::idx)), uiDockRxOpt, SLOT(setCurrentDemod(Modulations::idx)));
     connect(remote, SIGNAL(newSquelchLevel(double)), this, SLOT(setSqlLevel(double)));
     connect(remote, SIGNAL(newSquelchLevel(double)), uiDockRxOpt, SLOT(setSquelchLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
@@ -661,7 +661,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         int flo = m_settings->value("receiver/filter_low_cut", 0).toInt(&conv_ok);
         int fhi = m_settings->value("receiver/filter_high_cut", 0).toInt(&conv_ok);
 
-        if (conv_ok && uiDockRxOpt->currentDemod() != DockRxOpt::MODE_OFF && flo != fhi)
+        if (conv_ok && uiDockRxOpt->currentDemod() != Modulations::MODE_OFF && flo != fhi)
         {
             on_plotter_newFilterFreq(flo, fhi);
         }
@@ -1081,9 +1081,9 @@ void MainWindow::setInvertScrolling(bool enabled)
  */
 void MainWindow::selectDemod(const QString& strModulation)
 {
-    int iDemodIndex;
+    Modulations::idx iDemodIndex;
 
-    iDemodIndex = DockRxOpt::GetEnumForModulationString(strModulation);
+    iDemodIndex = modulations.GetEnumForModulationString(strModulation);
     qDebug() << "selectDemod(str):" << strModulation << "-> IDX:" << iDemodIndex;
 
     return selectDemod(iDemodIndex);
@@ -1097,7 +1097,7 @@ void MainWindow::selectDemod(const QString& strModulation)
  * and configures the default channel filter.
  *
  */
-void MainWindow::selectDemod(int mode_idx)
+void MainWindow::selectDemod(Modulations::idx mode_idx)
 {
     double  cwofs = 0.0;
     int     filter_preset = uiDockRxOpt->currentFilter();
@@ -1105,10 +1105,10 @@ void MainWindow::selectDemod(int mode_idx)
     bool    rds_enabled;
 
     // validate mode_idx
-    if (mode_idx < DockRxOpt::MODE_OFF || mode_idx >= DockRxOpt::MODE_LAST)
+    if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_LAST)
     {
         qDebug() << "Invalid mode index:" << mode_idx;
-        mode_idx = DockRxOpt::MODE_OFF;
+        mode_idx = Modulations::MODE_OFF;
     }
     qDebug() << "New mode index:" << mode_idx;
 
@@ -1122,7 +1122,7 @@ void MainWindow::selectDemod(int mode_idx)
 
     switch (mode_idx) {
 
-    case DockRxOpt::MODE_OFF:
+    case Modulations::MODE_OFF:
         /* Spectrum analyzer only */
         if (rx->is_recording_audio())
         {
@@ -1133,88 +1133,83 @@ void MainWindow::selectDemod(int mode_idx)
         {
             dec_afsk1200->close();
         }
-        rx->set_demod(RX_DEMOD_OFF);
+        rx->set_demod(mode_idx);
         click_res = 1000;
         break;
 
-    case DockRxOpt::MODE_RAW:
+    case Modulations::MODE_RAW:
         /* Raw I/Q; max 96 ksps*/
-        rx->set_demod(RX_DEMOD_NONE);
+        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,24000);
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_AM:
-        rx->set_demod(RX_DEMOD_AM);
+    case Modulations::MODE_AM:
+        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_AM_SYNC:
-        rx->set_demod(RX_DEMOD_AMSYNC);
+    case Modulations::MODE_AM_SYNC:
+        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_NFM:
+    case Modulations::MODE_NFM:
         ui->plotter->setDemodRanges(-40000, -1000, 1000, 40000, true);
         uiDockAudio->setFftRange(0, 5000);
-        rx->set_demod(RX_DEMOD_NFM);
+        rx->set_demod(mode_idx);
         rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
         rx->set_fm_deemph(uiDockRxOpt->currentEmph());
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_WFM_MONO:
-    case DockRxOpt::MODE_WFM_STEREO:
-    case DockRxOpt::MODE_WFM_STEREO_OIRT:
+    case Modulations::MODE_WFM_MONO:
+    case Modulations::MODE_WFM_STEREO:
+    case Modulations::MODE_WFM_STEREO_OIRT:
         /* Broadcast FM */
         ui->plotter->setDemodRanges(-120e3, -10000, 10000, 120e3, true);
         uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
         click_res = 1000;
-        if (mode_idx == DockRxOpt::MODE_WFM_MONO)
-            rx->set_demod(RX_DEMOD_WFM_M);
-        else if (mode_idx == DockRxOpt::MODE_WFM_STEREO_OIRT)
-            rx->set_demod(RX_DEMOD_WFM_S_OIRT);
-        else
-            rx->set_demod(RX_DEMOD_WFM_S);
+        rx->set_demod(mode_idx);
 
         uiDockRDS->setEnabled();
         if (rds_enabled)
             setRdsDecoder(true);
         break;
 
-    case DockRxOpt::MODE_LSB:
+    case Modulations::MODE_LSB:
         /* LSB */
-        rx->set_demod(RX_DEMOD_SSB);
+        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -100, -5000, 0, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_USB:
+    case Modulations::MODE_USB:
         /* USB */
-        rx->set_demod(RX_DEMOD_SSB);
+        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(0, 5000, 100, 40000, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
         break;
 
-    case DockRxOpt::MODE_CWL:
+    case Modulations::MODE_CWL:
         /* CW-L */
-        rx->set_demod(RX_DEMOD_SSB);
+        rx->set_demod(mode_idx);
         cwofs = -uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
         click_res = 10;
         break;
 
-    case DockRxOpt::MODE_CWU:
+    case Modulations::MODE_CWU:
         /* CW-U */
-        rx->set_demod(RX_DEMOD_SSB);
+        rx->set_demod(mode_idx);
         cwofs = uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
@@ -1249,7 +1244,7 @@ void MainWindow::selectDemod(int mode_idx)
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
 
-    d_have_audio = (mode_idx != DockRxOpt::MODE_OFF);
+    d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
     uiDockRxOpt->setCurrentDemod(mode_idx);
 }
@@ -2626,10 +2621,14 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);
     uiDockRxOpt->setFilterOffset(new_offset);
+    
+    uiDockRxOpt->setCurrentDemod(rx->get_demod());
+    
     ui->freqCtrl->setFrequency(rx_freq);
     uiDockBookmarks->setNewFrequency(rx_freq);
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
+    
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
 }

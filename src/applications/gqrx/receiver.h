@@ -217,7 +217,8 @@ public:
     status      set_mute(bool mute);
     bool        get_mute();
 
-    status      set_demod(rx_demod demod);
+    status      set_demod(Modulations::idx demod);
+    Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
 
@@ -310,7 +311,7 @@ private:
     std::string output_devstr;      /*!< Current output device string. */
 
     gr::basic_block_sptr iq_src;    /*!< Points to the block, connected to rx[]. */
-    rx_demod    d_demod;            /*!< Current demodulator. */
+    Modulations::idx d_demod;            /*!< Current demodulator. */
 
     gr::top_block_sptr         tb;        /*!< The GNU Radio top block. */
 

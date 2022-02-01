@@ -47,7 +47,6 @@
 #include <gnuradio/audio/sink.h>
 #endif
 
-#define RX_MAX 256
 
 /**
  * @brief Public constructor.
@@ -74,7 +73,7 @@ receiver::receiver(const std::string input_device,
       d_mute(false),
       d_iq_fmt(FILE_FORMAT_NONE),
       d_last_format(FILE_FORMAT_NONE),
-      d_demod(RX_DEMOD_OFF)
+      d_demod(Modulations::MODE_OFF)
 {
 
     tb = gr::make_top_block("gqrx");
@@ -165,7 +164,7 @@ receiver::receiver(const std::string input_device,
     sniffer = make_sniffer_f();
     /* sniffer_rr is created at each activation. */
 
-    set_demod(RX_DEMOD_OFF);
+    set_demod(Modulations::MODE_OFF);
     reconnect_all();
 
     gr::prefs pref;
@@ -1123,7 +1122,7 @@ bool receiver::get_mute()
 }
 
 
-receiver::status receiver::set_demod(rx_demod demod)
+receiver::status receiver::set_demod(Modulations::idx demod)
 {
     status ret = STATUS_OK;
     rx_chain rxc = RX_CHAIN_NONE;
@@ -1148,21 +1147,24 @@ receiver::status receiver::set_demod(rx_demod demod)
 
     switch (demod)
     {
-    case RX_DEMOD_OFF:
+    case Modulations::MODE_OFF:
         rxc = RX_CHAIN_NONE;
         break;
 
-    case RX_DEMOD_NONE:
-    case RX_DEMOD_AM:
-    case RX_DEMOD_AMSYNC:
-    case RX_DEMOD_NFM:
-    case RX_DEMOD_SSB:
+    case Modulations::MODE_RAW:
+    case Modulations::MODE_AM:
+    case Modulations::MODE_AM_SYNC:
+    case Modulations::MODE_NFM:
+    case Modulations::MODE_LSB:
+    case Modulations::MODE_USB:
+    case Modulations::MODE_CWL:
+    case Modulations::MODE_CWU:
         rxc = RX_CHAIN_NBRX;
         break;
 
-    case RX_DEMOD_WFM_M:
-    case RX_DEMOD_WFM_S:
-    case RX_DEMOD_WFM_S_OIRT:
+    case Modulations::MODE_WFM_MONO:
+    case Modulations::MODE_WFM_STEREO:
+    case Modulations::MODE_WFM_STEREO_OIRT:
         rxc = RX_CHAIN_WFMRX;
         break;
 
@@ -1794,7 +1796,7 @@ void receiver::connect_rx(int n)
     if(!rx[n])
         return;
     std::cerr<<"connect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
-    if(rx[n]->get_demod() != RX_DEMOD_OFF)
+    if(rx[n]->get_demod() != Modulations::MODE_OFF)
     {
         tb->connect(iq_src, 0, rx[n], 0);
         if(d_active == 0)
@@ -1834,7 +1836,7 @@ void receiver::disconnect_rx()
 void receiver::disconnect_rx(int n)
 {
     std::cerr<<"disconnect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
-    if(rx[n]->get_demod() != RX_DEMOD_OFF)
+    if(rx[n]->get_demod() != Modulations::MODE_OFF)
     {
         tb->disconnect(iq_src, 0, rx[n], 0);
         tb->disconnect(rx[n], 0, add0, n);
@@ -1863,7 +1865,7 @@ void receiver::disconnect_rx(int n)
 void receiver::background_rx()
 {
     std::cerr<<"background_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
-    if(rx[d_current]->get_demod() != RX_DEMOD_OFF)
+    if(rx[d_current]->get_demod() != Modulations::MODE_OFF)
     {
         tb->disconnect(rx[d_current], 0, audio_fft, 0);
         tb->disconnect(rx[d_current], 0, audio_udp_sink, 0);
@@ -1879,7 +1881,7 @@ void receiver::background_rx()
 void receiver::foreground_rx()
 {
     std::cerr<<"foreground_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
-    if(rx[d_current]->get_demod() != RX_DEMOD_OFF)
+    if(rx[d_current]->get_demod() != Modulations::MODE_OFF)
     {
         tb->connect(rx[d_current], 0, audio_fft, 0);
         tb->connect(rx[d_current], 0, audio_udp_sink, 0);

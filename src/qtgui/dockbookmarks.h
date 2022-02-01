@@ -26,6 +26,7 @@
 #include <QTableWidgetItem>
 #include "qtgui/bookmarkstablemodel.h"
 #include <QItemDelegate>
+#include "receivers/defines.h"
 
 namespace Ui {
     class DockBookmarks;
@@ -39,6 +40,8 @@ public:
   QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
   void setEditorData(QWidget *editor, const QModelIndex &index) const;
   void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
+private:
+  Modulations        modulations;
 };
 
 class DockBookmarks : public QDockWidget

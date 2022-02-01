@@ -31,10 +31,11 @@
 #include "dsp/rx_squelch.h"
 #include "dsp/downconverter.h"
 #include "interfaces/wav_sink.h"
+#include "defines.h"
 
-#define RECEIVER_NB_COUNT 2
 class receiver_base_cf;
 
+#if 0
 /** Available demodulators. */
 enum rx_demod {
     RX_DEMOD_OFF   = 0,  /*!< No receiver. */
@@ -47,6 +48,7 @@ enum rx_demod {
     RX_DEMOD_SSB   = 7,  /*!< Single Side Band. */
     RX_DEMOD_AMSYNC = 8  /*!< Amplitude modulation (synchronous demod). */
 };
+#endif
 
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<receiver_base_cf> receiver_base_cf_sptr;
@@ -93,45 +95,62 @@ public:
     virtual int get_audio_rec_max_gap() { return wav_sink->get_max_gap(); }
 
     virtual void set_filter(double low, double high, double tw);
+    virtual void get_filter(double &low, double &high, double &tw);
     virtual void set_cw_offset(double offset);
     virtual double get_cw_offset();
 
     virtual float get_signal_level();
 
-    virtual void set_demod(rx_demod demod);
-    virtual rx_demod  get_demod();
+    virtual void set_demod(Modulations::idx demod);
+    virtual Modulations::idx get_demod();
 
     /* the rest is optional */
 
     /* Noise blanker */
     virtual bool has_nb();
     virtual void set_nb_on(int nbid, bool on);
+    virtual bool get_nb_on(int nbid);
     virtual void set_nb_threshold(int nbid, float threshold);
+    virtual float get_nb_threshold(int nbid);
 
     /* Squelch parameter */
     virtual void set_sql_level(double level_db);
+    virtual double get_sql_level();
     virtual void set_sql_alpha(double alpha);
+    virtual double get_sql_alpha();
 
     /* AGC */
-    virtual void set_agc_on(bool agc_on);
-    virtual void set_agc_target_level(int target_level);
-    virtual void set_agc_manual_gain(float gain);
-    virtual void set_agc_max_gain(int gain);
-    virtual void set_agc_attack(int attack_ms);
-    virtual void set_agc_decay(int decay_ms);
-    virtual void set_agc_hang(int hang_ms);
+    virtual void  set_agc_on(bool agc_on);
+    virtual bool  get_agc_on();
+    virtual void  set_agc_target_level(int target_level);
+    virtual int   get_agc_target_level();
+    virtual void  set_agc_manual_gain(float gain);
+    virtual float get_agc_manual_gain();
+    virtual void  set_agc_max_gain(int gain);
+    virtual int   get_agc_max_gain();
+    virtual void  set_agc_attack(int attack_ms);
+    virtual int   get_agc_attack();
+    virtual void  set_agc_decay(int decay_ms);
+    virtual int   get_agc_decay();
+    virtual void  set_agc_hang(int hang_ms);
+    virtual int   get_agc_hang();
     virtual float get_agc_gain();
 
     /* FM parameters */
-    virtual void set_fm_maxdev(float maxdev_hz);
-    virtual void set_fm_deemph(double tau);
+    virtual void  set_fm_maxdev(float maxdev_hz);
+    virtual float get_fm_maxdev();
+    virtual void  set_fm_deemph(double tau);
+    virtual double get_fm_deemph();
 
     /* AM parameters */
     virtual void set_am_dcr(bool enabled);
+    virtual bool get_am_dcr();
 
     /* AM-Sync parameters */
-    virtual void set_amsync_dcr(bool enabled);
-    virtual void set_amsync_pll_bw(float pll_bw);
+    virtual void  set_amsync_dcr(bool enabled);
+    virtual bool  get_amsync_dcr();
+    virtual void  set_amsync_pll_bw(float pll_bw);
+    virtual float get_amsync_pll_bw();
 
     virtual void get_rds_data(std::string &outbuff, int &num);
     virtual void start_rds_decoder();
@@ -159,7 +178,7 @@ protected:
     std::string d_rec_dir;
     std::string d_audio_filename;
     int         d_index;
-    rx_demod    d_demod;
+    Modulations::idx d_demod;
     double d_filter_low;
     double d_filter_high;
     double d_filter_tw;
@@ -190,6 +209,8 @@ private:
     float d_pref_quad_rate;
     rec_event_handler_t d_rec_event;
     static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
+    Modulations   modulations;
+
 };
 
 #endif // RECEIVER_BASE_H

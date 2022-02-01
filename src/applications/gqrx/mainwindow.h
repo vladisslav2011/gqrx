@@ -126,6 +126,7 @@ private:
     QSpinBox *rxSpinBox;
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
+    Modulations     modulations;
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);
@@ -159,7 +160,7 @@ private slots:
     void setFreqCtrlReset(bool enabled);
     void setInvertScrolling(bool enabled);
     void selectDemod(const QString& demod);
-    void selectDemod(int index);
+    void selectDemod(Modulations::idx index);
     void setFmMaxdev(float max_dev);
     void setFmEmph(double tau);
     void setAmDcr(bool enabled);

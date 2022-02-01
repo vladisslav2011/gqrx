@@ -25,8 +25,6 @@
 #include <QDebug>
 #include "receivers/nbrx.h"
 
-// NB: Remember to adjust filter ranges in MainWindow
-#define PREF_QUAD_RATE  96000.f
 
 nbrx_sptr make_nbrx(float quad_rate, float audio_rate)
 {
@@ -34,26 +32,26 @@ nbrx_sptr make_nbrx(float quad_rate, float audio_rate)
 }
 
 nbrx::nbrx(float quad_rate, float audio_rate)
-    : receiver_base_cf("NBRX", PREF_QUAD_RATE, quad_rate, audio_rate),
+    : receiver_base_cf("NBRX", NB_PREF_QUAD_RATE, quad_rate, audio_rate),
       d_running(false)
 {
 
-    nb = make_rx_nb_cc(PREF_QUAD_RATE, 3.3, 2.5);
-    filter = make_rx_filter(PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
+    nb = make_rx_nb_cc(NB_PREF_QUAD_RATE, 3.3, 2.5);
+    filter = make_rx_filter(NB_PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
-    demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 5000.0, 75.0e-6);
-    demod_am = make_rx_demod_am(PREF_QUAD_RATE, true);
-    demod_amsync = make_rx_demod_amsync(PREF_QUAD_RATE, true, 0.001);
+    demod_fm = make_rx_demod_fm(NB_PREF_QUAD_RATE, 5000.0, 75.0e-6);
+    demod_am = make_rx_demod_am(NB_PREF_QUAD_RATE, true);
+    demod_amsync = make_rx_demod_amsync(NB_PREF_QUAD_RATE, true, 0.001);
 
     audio_rr0.reset();
     audio_rr1.reset();
-    if (d_audio_rate != PREF_QUAD_RATE)
+    if (d_audio_rate != NB_PREF_QUAD_RATE)
     {
-        std::cout << "Resampling audio " << PREF_QUAD_RATE << " -> "
+        std::cout << "Resampling audio " << NB_PREF_QUAD_RATE << " -> "
                   << d_audio_rate << std::endl;
-        audio_rr0 = make_resampler_ff(d_audio_rate/PREF_QUAD_RATE);
-        audio_rr1 = make_resampler_ff(d_audio_rate/PREF_QUAD_RATE);
+        audio_rr0 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
+        audio_rr1 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
     }
 
     demod = demod_fm;
@@ -124,14 +122,13 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
         nb->set_threshold2(threshold);
 }
 
-void nbrx::set_demod(rx_demod new_demod)
+void nbrx::set_demod(Modulations::idx new_demod)
 {
-    rx_demod current_demod = d_demod;
+    Modulations::idx current_demod = d_demod;
 
     /* check if new demodulator selection is valid */
-    if ((new_demod < RX_DEMOD_NONE) || (new_demod > RX_DEMOD_NFM))
-        if((new_demod < RX_DEMOD_SSB) || (new_demod >RX_DEMOD_AMSYNC))
-            return;
+    if ((new_demod < Modulations::MODE_RAW) || (new_demod > Modulations::MODE_NFM))
+        return;
 
     if (new_demod == current_demod) {
         /* nothing to do */
@@ -141,7 +138,7 @@ void nbrx::set_demod(rx_demod new_demod)
     disconnect(sql, 0, demod, 0);
     if (audio_rr0)
     {
-        if (current_demod == RX_DEMOD_NONE)
+        if (current_demod == Modulations::MODE_RAW)
         {
             disconnect(demod, 0, audio_rr0, 0);
             disconnect(demod, 1, audio_rr1, 0);
@@ -159,7 +156,7 @@ void nbrx::set_demod(rx_demod new_demod)
     }
     else
     {
-        if (current_demod == RX_DEMOD_NONE)
+        if (current_demod == Modulations::MODE_RAW)
         {
             disconnect(demod, 0, agc, 0);
             disconnect(demod, 1, agc, 1);
@@ -173,23 +170,26 @@ void nbrx::set_demod(rx_demod new_demod)
 
     switch (new_demod) {
 
-    case RX_DEMOD_NONE:
+    case Modulations::MODE_RAW:
         demod = demod_raw;
         break;
 
-    case RX_DEMOD_SSB:
+    case Modulations::MODE_LSB:
+    case Modulations::MODE_USB:
+    case Modulations::MODE_CWL:
+    case Modulations::MODE_CWU:
         demod = demod_ssb;
         break;
 
-    case RX_DEMOD_AM:
+    case Modulations::MODE_AM:
         demod = demod_am;
         break;
 
-    case RX_DEMOD_AMSYNC:
+    case Modulations::MODE_AM_SYNC:
         demod = demod_amsync;
         break;
 
-    case RX_DEMOD_NFM:
+    case Modulations::MODE_NFM:
     default:
         demod = demod_fm;
         break;
@@ -198,7 +198,7 @@ void nbrx::set_demod(rx_demod new_demod)
     connect(sql, 0, demod, 0);
     if (audio_rr0)
     {
-        if (new_demod == RX_DEMOD_NONE)
+        if (new_demod == Modulations::MODE_RAW)
         {
             connect(demod, 0, audio_rr0, 0);
             connect(demod, 1, audio_rr1, 0);
@@ -216,7 +216,7 @@ void nbrx::set_demod(rx_demod new_demod)
     }
     else
     {
-        if (new_demod == RX_DEMOD_NONE)
+        if (new_demod == Modulations::MODE_RAW)
         {
             connect(demod, 0, agc, 0);
             connect(demod, 1, agc, 1);

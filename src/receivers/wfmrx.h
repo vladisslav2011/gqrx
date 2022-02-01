@@ -66,7 +66,7 @@ public:
     /* Noise blanker */
     bool has_nb() { return false; }
 
-    void set_demod(rx_demod demod);
+    void set_demod(Modulations::idx demod);
 
     void get_rds_data(std::string &outbuff, int &num);
     void start_rds_decoder();

@@ -25,6 +25,7 @@
 
 #include <QAbstractTableModel>
 #include <QList>
+#include "receivers/defines.h"
 
 #include "bookmarks.h"
 
@@ -58,6 +59,7 @@ public:
 private:
     QList<BookmarkInfo*> m_Bookmarks;
     QMap<int,int> m_mapRowToBookmarksIndex;
+    Modulations modulations;
 
 signals:
 public slots:
