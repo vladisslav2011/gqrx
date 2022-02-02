@@ -2643,6 +2643,16 @@ void MainWindow::loadRxToGUI()
     ui->plotter->setHiLowCutFrequencies(low, high);
     
     uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
+    
+    uiDockRxOpt->setAgcOn(rx->get_agc_on());
+    uiDockRxOpt->setAgcTargetLevel(rx->get_agc_target_level());
+    uiDockRxOpt->setAgcMaxGain(rx->get_agc_max_gain());
+    uiDockRxOpt->setAgcAttack(rx->get_agc_attack());
+    uiDockRxOpt->setAgcDecay(rx->get_agc_decay());
+    uiDockRxOpt->setAgcHang(rx->get_agc_hang());
+    if(!rx->get_agc_on())
+        uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.0);
+    
 }
 
 void MainWindow::updateClusterSpots()

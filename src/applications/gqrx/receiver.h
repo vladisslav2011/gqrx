@@ -209,12 +209,19 @@ public:
 
     /* AGC */
     status      set_agc_on(bool agc_on);
+    bool        get_agc_on();
     status      set_agc_target_level(int target_level);
+    int         get_agc_target_level();
     status      set_agc_manual_gain(float gain);
+    float       get_agc_manual_gain();
     status      set_agc_max_gain(int gain);
+    int         get_agc_max_gain();
     status      set_agc_attack(int attack_ms);
+    int         get_agc_attack();
     status      set_agc_decay(int decay_ms);
+    int         get_agc_decay();
     status      set_agc_hang(int hang_ms);
+    int         get_agc_hang();
     float       get_agc_gain();
 
     status      set_mute(bool mute);

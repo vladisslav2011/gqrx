@@ -91,11 +91,17 @@ public:
     double  getSqlLevel(void) const;
 
     bool    getAgcOn();
+    void    setAgcOn(bool on);
     int     getAgcTargetLevel();
+    void    setAgcTargetLevel(int level);
     int     getAgcMaxGain();
+    void    setAgcMaxGain(int gain);
     int     getAgcAttack();
+    void    setAgcAttack(int attack);
     int     getAgcDecay();
+    void    setAgcDecay(int decay);
     int     getAgcHang();
+    void    setAgcHang(int hang);
 
 public slots:
     void setRxFreq(qint64 freq_hz);
@@ -123,6 +129,7 @@ private:
     void filterNarrowShortcut();
     void filterNormalShortcut();
     void filterWideShortcut();
+    void setAgcPresetFromParams(int decay);
 
 signals:
     /** Signal emitted when receiver frequency has changed */

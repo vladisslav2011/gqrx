@@ -384,9 +384,23 @@ bool DockRxOpt::getAgcOn()
     return agc_is_on;
 }
 
+void DockRxOpt::setAgcOn(bool on)
+{
+    if(on)
+        setAgcPresetFromParams(getAgcDecay());
+    else
+        ui->agcPresetCombo->setCurrentIndex(4);
+    agc_is_on = on;
+}
+
 int DockRxOpt::getAgcTargetLevel()
 {
     return agcOpt->targetLevel();
+}
+
+void DockRxOpt::setAgcTargetLevel(int level)
+{
+    agcOpt->setTargetLevel(level);
 }
 
 int DockRxOpt::getAgcMaxGain()
@@ -394,9 +408,19 @@ int DockRxOpt::getAgcMaxGain()
     return agcOpt->maxGain();
 }
 
+void DockRxOpt::setAgcMaxGain(int gain)
+{
+    agcOpt->setMaxGain(gain);
+}
+
 int DockRxOpt::getAgcAttack()
 {
     return agcOpt->attack();
+}
+
+void DockRxOpt::setAgcAttack(int attack)
+{
+    agcOpt->setAttack(attack);
 }
 
 int DockRxOpt::getAgcDecay()
@@ -404,9 +428,32 @@ int DockRxOpt::getAgcDecay()
     return agcOpt->decay();
 }
 
+void DockRxOpt::setAgcDecay(int decay)
+{
+    agcOpt->setDecay(decay);
+    setAgcOn(agc_is_on);
+}
+
 int DockRxOpt::getAgcHang()
 {
     return agcOpt->hang();
+}
+
+void DockRxOpt::setAgcHang(int hang)
+{
+    agcOpt->setHang(hang);
+}
+
+void DockRxOpt::setAgcPresetFromParams(int decay)
+{
+    if (decay == 100)
+        ui->agcPresetCombo->setCurrentIndex(0);
+    else if (decay == 500)
+        ui->agcPresetCombo->setCurrentIndex(1);
+    else if (decay == 2000)
+        ui->agcPresetCombo->setCurrentIndex(2);
+    else
+        ui->agcPresetCombo->setCurrentIndex(3);
 }
 
 /** Read receiver configuration from settings data. */
@@ -455,14 +502,7 @@ void DockRxOpt::readSettings(QSettings *settings)
     if (conv_ok)
     {
         agcOpt->setDecay(int_val);
-        if (int_val == 100)
-            ui->agcPresetCombo->setCurrentIndex(0);
-        else if (int_val == 500)
-            ui->agcPresetCombo->setCurrentIndex(1);
-        else if (int_val == 2000)
-            ui->agcPresetCombo->setCurrentIndex(2);
-        else
-            ui->agcPresetCombo->setCurrentIndex(3);
+        setAgcPresetFromParams(int_val);
     }
 
     int_val = settings->value("receiver/agc_attack", 20).toInt(&conv_ok);

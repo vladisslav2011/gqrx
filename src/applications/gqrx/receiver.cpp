@@ -1063,12 +1063,22 @@ receiver::status receiver::set_agc_on(bool agc_on)
     return STATUS_OK; // FIXME
 }
 
+bool receiver::get_agc_on()
+{
+    return rx[d_current]->get_agc_on();
+}
+
 /** Set AGC hang. */
 receiver::status receiver::set_agc_hang(int hang_ms)
 {
     rx[d_current]->set_agc_hang(hang_ms);
 
     return STATUS_OK; // FIXME
+}
+
+int receiver::get_agc_hang()
+{
+    return rx[d_current]->get_agc_hang();
 }
 
 /** Set AGC target level. */
@@ -1079,12 +1089,22 @@ receiver::status receiver::set_agc_target_level(int target_level)
     return STATUS_OK; // FIXME
 }
 
+int receiver::get_agc_target_level()
+{
+    return rx[d_current]->get_agc_target_level();
+}
+
 /** Set fixed gain used when AGC is OFF. */
 receiver::status receiver::set_agc_manual_gain(float gain)
 {
     rx[d_current]->set_agc_manual_gain(gain);
 
     return STATUS_OK; // FIXME
+}
+
+float receiver::get_agc_manual_gain()
+{
+    return rx[d_current]->get_agc_manual_gain();
 }
 
 /** Set maximum gain used when AGC is ON. */
@@ -1095,6 +1115,11 @@ receiver::status receiver::set_agc_max_gain(int gain)
     return STATUS_OK; // FIXME
 }
 
+int receiver::get_agc_max_gain()
+{
+    return rx[d_current]->get_agc_max_gain();
+}
+
 /** Set AGC attack. */
 receiver::status receiver::set_agc_attack(int attack_ms)
 {
@@ -1103,12 +1128,22 @@ receiver::status receiver::set_agc_attack(int attack_ms)
     return STATUS_OK; // FIXME
 }
 
+int receiver::get_agc_attack()
+{
+    return rx[d_current]->get_agc_attack();
+}
+
 /** Set AGC decay time. */
 receiver::status receiver::set_agc_decay(int decay_ms)
 {
     rx[d_current]->set_agc_decay(decay_ms);
 
     return STATUS_OK; // FIXME
+}
+
+int receiver::get_agc_decay()
+{
+    return rx[d_current]->get_agc_decay();
 }
 
 /** Get AGC current gain. */
