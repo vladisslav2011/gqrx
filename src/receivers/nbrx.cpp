@@ -54,26 +54,12 @@ nbrx::nbrx(float quad_rate, float audio_rate)
         audio_rr1 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
     }
 
-    demod = demod_fm;
+    demod = demod_raw;
     connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, nb, 0);
     connect(nb, 0, filter, 0);
     connect(filter, 0, meter, 0);
     connect(filter, 0, sql, 0);
-    connect(sql, 0, demod, 0);
-
-    if (audio_rr0)
-    {
-        connect(demod, 0, audio_rr0, 0);
-
-        connect(audio_rr0, 0, agc, 0); // left  channel
-        connect(audio_rr0, 0, agc, 1); // right channel
-    }
-    else
-    {
-        connect(demod, 0, agc, 0);
-        connect(demod, 0, agc, 1);
-    }
     connect(agc, 0, self(), 0);
     connect(agc, 1, self(), 1);
 }
@@ -126,51 +112,56 @@ void nbrx::set_demod(Modulations::idx new_demod)
 {
     Modulations::idx current_demod = d_demod;
 
-    /* check if new demodulator selection is valid */
-    if ((new_demod < Modulations::MODE_RAW) || (new_demod > Modulations::MODE_NFM))
-        return;
-
     if (new_demod == current_demod) {
         /* nothing to do */
         return;
     }
 
-    disconnect(sql, 0, demod, 0);
-    if (audio_rr0)
-    {
-        if (current_demod == Modulations::MODE_RAW)
-        {
-            disconnect(demod, 0, audio_rr0, 0);
-            disconnect(demod, 1, audio_rr1, 0);
+    /* check if new demodulator selection is valid */
+    if ((new_demod < Modulations::MODE_OFF) || (new_demod > Modulations::MODE_NFM))
+        return;
 
-            disconnect(audio_rr0, 0, agc, 0);
-            disconnect(audio_rr1, 0, agc, 1);
+
+    if (current_demod > Modulations::MODE_OFF)
+    {
+        disconnect(sql, 0, demod, 0);
+        if (audio_rr0)
+        {
+            if (current_demod == Modulations::MODE_RAW)
+            {
+                disconnect(demod, 0, audio_rr0, 0);
+                disconnect(demod, 1, audio_rr1, 0);
+
+                disconnect(audio_rr0, 0, agc, 0);
+                disconnect(audio_rr1, 0, agc, 1);
+            }
+            else
+            {
+                disconnect(demod, 0, audio_rr0, 0);
+
+                disconnect(audio_rr0, 0, agc, 0);
+                disconnect(audio_rr0, 0, agc, 1);
+            }
         }
         else
         {
-            disconnect(demod, 0, audio_rr0, 0);
-
-            disconnect(audio_rr0, 0, agc, 0);
-            disconnect(audio_rr0, 0, agc, 1);
-        }
-    }
-    else
-    {
-        if (current_demod == Modulations::MODE_RAW)
-        {
-            disconnect(demod, 0, agc, 0);
-            disconnect(demod, 1, agc, 1);
-        }
-        else
-        {
-            disconnect(demod, 0, agc, 0);
-            disconnect(demod, 0, agc, 1);
+            if (current_demod == Modulations::MODE_RAW)
+            {
+                disconnect(demod, 0, agc, 0);
+                disconnect(demod, 1, agc, 1);
+            }
+            else
+            {
+                disconnect(demod, 0, agc, 0);
+                disconnect(demod, 0, agc, 1);
+            }
         }
     }
 
     switch (new_demod) {
 
     case Modulations::MODE_RAW:
+    case Modulations::MODE_OFF:
         demod = demod_raw;
         break;
 
@@ -195,36 +186,39 @@ void nbrx::set_demod(Modulations::idx new_demod)
         break;
     }
 
-    connect(sql, 0, demod, 0);
-    if (audio_rr0)
+    if (new_demod > Modulations::MODE_OFF)
     {
-        if (new_demod == Modulations::MODE_RAW)
+        connect(sql, 0, demod, 0);
+        if (audio_rr0)
         {
-            connect(demod, 0, audio_rr0, 0);
-            connect(demod, 1, audio_rr1, 0);
+            if (new_demod == Modulations::MODE_RAW)
+            {
+                connect(demod, 0, audio_rr0, 0);
+                connect(demod, 1, audio_rr1, 0);
 
-            connect(audio_rr0, 0, agc, 0);
-            connect(audio_rr1, 0, agc, 1);
+                connect(audio_rr0, 0, agc, 0);
+                connect(audio_rr1, 0, agc, 1);
+            }
+            else
+            {
+                connect(demod, 0, audio_rr0, 0);
+
+                connect(audio_rr0, 0, agc, 0);
+                connect(audio_rr0, 0, agc, 1);
+            }
         }
         else
         {
-            connect(demod, 0, audio_rr0, 0);
-
-            connect(audio_rr0, 0, agc, 0);
-            connect(audio_rr0, 0, agc, 1);
-        }
-    }
-    else
-    {
-        if (new_demod == Modulations::MODE_RAW)
-        {
-            connect(demod, 0, agc, 0);
-            connect(demod, 1, agc, 1);
-        }
-        else
-        {
-            connect(demod, 0, agc, 0);
-            connect(demod, 0, agc, 1);
+            if (new_demod == Modulations::MODE_RAW)
+            {
+                connect(demod, 0, agc, 0);
+                connect(demod, 1, agc, 1);
+            }
+            else
+            {
+                connect(demod, 0, agc, 0);
+                connect(demod, 0, agc, 1);
+            }
         }
     }
     receiver_base_cf::set_demod(new_demod);

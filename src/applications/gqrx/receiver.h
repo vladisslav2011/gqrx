@@ -315,7 +315,6 @@ private:
     std::string output_devstr;      /*!< Current output device string. */
 
     gr::basic_block_sptr iq_src;    /*!< Points to the block, connected to rx[]. */
-    Modulations::idx d_demod;            /*!< Current demodulator. */
 
     gr::top_block_sptr         tb;        /*!< The GNU Radio top block. */
 
