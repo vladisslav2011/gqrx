@@ -1353,11 +1353,21 @@ receiver::status receiver::set_fm_maxdev(float maxdev_hz)
     return STATUS_OK;
 }
 
+float receiver::get_fm_maxdev()
+{
+    return rx[d_current]->get_fm_maxdev();
+}
+
 receiver::status receiver::set_fm_deemph(double tau)
 {
     rx[d_current]->set_fm_deemph(tau);
 
     return STATUS_OK;
+}
+
+double receiver::get_fm_deemph()
+{
+    return rx[d_current]->get_fm_deemph();
 }
 
 receiver::status receiver::set_am_dcr(bool enabled)
@@ -1367,6 +1377,11 @@ receiver::status receiver::set_am_dcr(bool enabled)
     return STATUS_OK;
 }
 
+bool receiver::get_am_dcr()
+{
+    return rx[d_current]->get_am_dcr();
+}
+
 receiver::status receiver::set_amsync_dcr(bool enabled)
 {
     rx[d_current]->set_amsync_dcr(enabled);
@@ -1374,11 +1389,21 @@ receiver::status receiver::set_amsync_dcr(bool enabled)
     return STATUS_OK;
 }
 
+bool receiver::get_amsync_dcr()
+{
+    return rx[d_current]->get_amsync_dcr();
+}
+
 receiver::status receiver::set_amsync_pll_bw(float pll_bw)
 {
     rx[d_current]->set_amsync_pll_bw(pll_bw);
 
     return STATUS_OK;
+}
+
+float receiver::get_amsync_pll_bw()
+{
+    return rx[d_current]->get_amsync_pll_bw();
 }
 
 receiver::status receiver::set_audio_rec_dir(const std::string dir)

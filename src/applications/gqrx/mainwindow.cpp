@@ -2653,6 +2653,15 @@ void MainWindow::loadRxToGUI()
     if(!rx->get_agc_on())
         uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.0);
     
+    uiDockRxOpt->setAmDcr(rx->get_am_dcr());
+    uiDockRxOpt->setAmSyncDcr(rx->get_amsync_dcr());
+    uiDockRxOpt->setAmSyncPllBw(rx->get_amsync_pll_bw());
+    uiDockRxOpt->setFmMaxdev(rx->get_fm_maxdev());
+    uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
+    uiDockRxOpt->setCwOffset(rx->get_cw_offset());
+    
+    
+    
 }
 
 void MainWindow::updateClusterSpots()

@@ -235,14 +235,19 @@ public:
 
     /* FM parameters */
     status      set_fm_maxdev(float maxdev_hz);
+    float       get_fm_maxdev();
     status      set_fm_deemph(double tau);
+    double      get_fm_deemph();
 
     /* AM parameters */
     status      set_am_dcr(bool enabled);
+    bool        get_am_dcr();
 
     /* AM-Sync parameters */
     status      set_amsync_dcr(bool enabled);
+    bool        get_amsync_dcr();
     status      set_amsync_pll_bw(float pll_bw);
+    float       get_amsync_pll_bw();
 
     /* Audio parameters */
     status      set_audio_rec_dir(const std::string dir);

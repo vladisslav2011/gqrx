@@ -378,6 +378,11 @@ int DockRxOpt::getCwOffset() const
     return demodOpt->getCwOffset();
 }
 
+void DockRxOpt::setCwOffset(int offset)
+{
+    demodOpt->setCwOffset(offset);
+}
+
 /** Get agc settings */
 bool DockRxOpt::getAgcOn()
 {
@@ -454,6 +459,31 @@ void DockRxOpt::setAgcPresetFromParams(int decay)
         ui->agcPresetCombo->setCurrentIndex(2);
     else
         ui->agcPresetCombo->setCurrentIndex(3);
+}
+
+void DockRxOpt::setAmDcr(bool on)
+{
+    demodOpt->setAmDcr(on);
+}
+
+void DockRxOpt::setAmSyncDcr(bool on)
+{
+    demodOpt->setAmSyncDcr(on);
+}
+
+void DockRxOpt::setAmSyncPllBw(float bw)
+{
+    demodOpt->setPllBw(bw);
+}
+
+void DockRxOpt::setFmMaxdev(float max_hz)
+{
+    demodOpt->setMaxDev(max_hz);
+}
+
+void DockRxOpt::setFmEmph(double tau)
+{
+    demodOpt->setEmph(tau);
 }
 
 /** Read receiver configuration from settings data. */

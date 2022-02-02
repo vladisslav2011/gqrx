@@ -87,6 +87,7 @@ public:
 
     void    getFilterPreset(Modulations::idx mode, int preset, int * lo, int * hi) const;
     int     getCwOffset() const;
+    void    setCwOffset(int offset);
 
     double  getSqlLevel(void) const;
 
@@ -102,6 +103,12 @@ public:
     void    setAgcDecay(int decay);
     int     getAgcHang();
     void    setAgcHang(int hang);
+
+    void    setAmDcr(bool on);
+    void    setAmSyncDcr(bool on);
+    void    setAmSyncPllBw(float bw);
+    void    setFmMaxdev(float max_hz);
+    void    setFmEmph(double tau);
 
 public slots:
     void setRxFreq(qint64 freq_hz);
