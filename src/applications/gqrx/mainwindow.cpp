@@ -2621,6 +2621,7 @@ void MainWindow::loadRxToGUI()
     double low;
     double high;
     receiver::filter_shape fs;
+    auto mode_idx = rx->get_demod();
     
 
     ui->plotter->setFilterOffset(new_offset);
@@ -2636,7 +2637,7 @@ void MainWindow::loadRxToGUI()
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
 
-    uiDockRxOpt->setCurrentDemod(rx->get_demod());
+    uiDockRxOpt->setCurrentDemod(mode_idx);
     rx->get_filter(low, high, fs);
     uiDockRxOpt->setFilterParam(low, high);
     uiDockRxOpt->setCurrentFilterShape(fs);
@@ -2668,10 +2669,24 @@ void MainWindow::loadRxToGUI()
     uiDockAudio->setRecMinTime(rx->get_audio_rec_min_time());
     uiDockAudio->setRecMaxGap(rx->get_audio_rec_max_gap());
     
+    //FIXME Prevent playing incomplete audio or remove audio player
     if(rx->is_recording_audio())
         uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));
     else
         uiDockAudio->audioRecStopped();
+    d_have_audio = (mode_idx != Modulations::MODE_OFF);
+    switch(mode_idx)
+    {
+    case Modulations::MODE_WFM_MONO:
+    case Modulations::MODE_WFM_STEREO:
+    case Modulations::MODE_WFM_STEREO_OIRT:
+        uiDockRDS->setEnabled();
+        setRdsDecoder(rx->is_rds_decoder_active());
+        break;
+    default:
+        uiDockRDS->setDisabled();
+        setRdsDecoder(false);
+    }
 }
 
 void MainWindow::updateClusterSpots()
