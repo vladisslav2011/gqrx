@@ -109,6 +109,7 @@ public:
     void    setAmSyncPllBw(float bw);
     void    setFmMaxdev(float max_hz);
     void    setFmEmph(double tau);
+    void    setNoiseBlanker(int nbid, bool on, float threshold);
 
 public slots:
     void setRxFreq(qint64 freq_hz);

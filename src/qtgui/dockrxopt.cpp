@@ -486,6 +486,15 @@ void DockRxOpt::setFmEmph(double tau)
     demodOpt->setEmph(tau);
 }
 
+void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
+{
+    if(nbid == 1)
+        ui->nb1Button->setChecked(on);
+    else
+        ui->nb2Button->setChecked(on);
+    nbOpt->setNbThreshold(nbid, threshold);
+}
+
 /** Read receiver configuration from settings data. */
 void DockRxOpt::readSettings(QSettings *settings)
 {

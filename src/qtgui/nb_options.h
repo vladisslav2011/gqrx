@@ -41,6 +41,7 @@ public:
     void closeEvent(QCloseEvent *event);
 
     double nbThreshold(int nbid);
+    void setNbThreshold(int nbid, double threshold);
 
 signals:
     void thresholdChanged(int nb, double val);

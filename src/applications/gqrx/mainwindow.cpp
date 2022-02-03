@@ -2660,7 +2660,8 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
     uiDockRxOpt->setCwOffset(rx->get_cw_offset());
     
-    
+    for(int k = 1; k < 3; k++)
+        uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
     
 }
 
