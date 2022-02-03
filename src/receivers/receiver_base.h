@@ -71,7 +71,7 @@ public:
     /*! \brief Public constructor.
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
-    typedef std::function<void(std::string, bool)> rec_event_handler_t;
+    typedef std::function<void(int, std::string, bool)> rec_event_handler_t;
     receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate);
     virtual ~receiver_base_cf();
 
@@ -160,6 +160,7 @@ public:
     virtual int  start_audio_recording();
     virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);
+    virtual bool get_audio_recording();
     virtual std::string get_last_audio_filename();
     template <typename T> void set_rec_event_handler(T handler)
     {

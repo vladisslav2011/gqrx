@@ -65,7 +65,6 @@ receiver::receiver(const std::string input_device,
       d_decim(decimation),
       d_rf_freq(144800000.0),
       d_recording_iq(false),
-      d_recording_wav(false),
       d_sniffer_active(false),
       d_iq_rev(false),
       d_dc_cancel(false),
@@ -113,7 +112,11 @@ receiver::receiver(const std::string input_device,
     rx.clear();
     d_current = 0;
     rx.push_back(make_nbrx(d_decim_rate, d_audio_rate));
-    rx[0]->set_index(0);
+    rx[d_current]->set_index(d_current);
+    rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
+                                                   std::placeholders::_1,
+                                                   std::placeholders::_2,
+                                                   std::placeholders::_3));
 
     input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,1);
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex),192000.0);
@@ -1247,7 +1250,8 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 rx[d_current]->set_index(d_current);
                 rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
                                         std::placeholders::_1,
-                                        std::placeholders::_2));
+                                        std::placeholders::_2,
+                                        std::placeholders::_3));
             }
             break;
 
@@ -1259,7 +1263,8 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 rx[d_current]->set_index(d_current);
                 rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
                                         std::placeholders::_1,
-                                        std::placeholders::_2));
+                                        std::placeholders::_2,
+                                        std::placeholders::_3));
             }
             break;
 
@@ -1276,15 +1281,14 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             if(old_rx.get() != rx[d_current].get())
             {
                 if(old_idx == -1)
-                    if (d_recording_wav)
+                    if (old_rx->get_audio_recording())
                         rx[d_current]->continue_audio_recording(old_rx);
             }
             if(demod == Modulations::MODE_OFF)
             {
-                if (d_recording_wav)
+                if (rx[d_current]->get_audio_recording())
                 {
                     rx[d_current]->stop_audio_recording();
-                    d_recording_wav = false;
                 }
             }
         }
@@ -1418,9 +1422,15 @@ float receiver::get_amsync_pll_bw()
 
 receiver::status receiver::set_audio_rec_dir(const std::string dir)
 {
-    //FIXME is it a global option, that should be set with for-loop
+    //FIXME is it a global option, that should be set with for-loop?
     rx[d_current]->set_rec_dir(dir);
     return STATUS_OK;
+}
+
+std::string receiver::get_audio_rec_dir()
+{
+    //FIXME is it a global option, that should be set with for-loop?
+    return rx[d_current]->get_rec_dir();
 }
 
 receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
@@ -1429,16 +1439,31 @@ receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
     return STATUS_OK;
 }
 
+bool receiver::get_audio_rec_sql_triggered()
+{
+    return rx[d_current]->get_audio_rec_sql_triggered();
+}
+
 receiver::status receiver::set_audio_rec_min_time(const int time_ms)
 {
     rx[d_current]->set_audio_rec_min_time(time_ms);
     return STATUS_OK;
 }
 
+int receiver::get_audio_rec_min_time()
+{
+    return rx[d_current]->get_audio_rec_min_time();
+}
+
 receiver::status receiver::set_audio_rec_max_gap(const int time_ms)
 {
     rx[d_current]->set_audio_rec_max_gap(time_ms);
     return STATUS_OK;
+}
+
+int receiver::get_audio_rec_max_gap()
+{
+    return rx[d_current]->get_audio_rec_max_gap();
 }
 
 /**
@@ -1452,7 +1477,7 @@ receiver::status receiver::set_audio_rec_max_gap(const int time_ms)
  */
 receiver::status receiver::start_audio_recording()
 {
-    if (d_recording_wav)
+    if (is_recording_audio())
     {
         /* error - we are already recording */
         std::cout << "ERROR: Can not start audio recorder (already recording)" << std::endl;
@@ -1478,7 +1503,7 @@ receiver::status receiver::start_audio_recording()
 /** Stop WAV file recorder. */
 receiver::status receiver::stop_audio_recording()
 {
-    if (!d_recording_wav) {
+    if (!is_recording_audio()){
         /* error: we are not recording */
         std::cout << "ERROR: Can not stop audio recorder (not recording)" << std::endl;
 
@@ -2147,19 +2172,14 @@ std::string receiver::escape_filename(std::string filename)
     return ss2.str();
 }
 
-void receiver::audio_rec_event(receiver * self, std::string filename, bool is_running)
+void receiver::audio_rec_event(receiver * self, int idx, std::string filename, bool is_running)
 {
     if (is_running)
-    {
-        self->d_recording_wav = true;
         std::cout << "Recording audio to " << filename << std::endl;
-    }
     else
-    {
-        self->d_recording_wav = false;
         std::cout << "Audio recorder stopped" << std::endl;
-    }
 
-    if(self->d_audio_rec_event_handler)
-        self->d_audio_rec_event_handler(filename, is_running);
+    if (self->d_audio_rec_event_handler)
+        if (idx == self->d_current)
+            self->d_audio_rec_event_handler(filename, is_running);
 }

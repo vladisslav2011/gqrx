@@ -2663,6 +2663,15 @@ void MainWindow::loadRxToGUI()
     for(int k = 1; k < 3; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
     
+    uiDockAudio->setRecDir(QString(rx->get_audio_rec_dir().data()));
+    uiDockAudio->setSquelchTriggered(rx->get_audio_rec_sql_triggered());
+    uiDockAudio->setRecMinTime(rx->get_audio_rec_min_time());
+    uiDockAudio->setRecMaxGap(rx->get_audio_rec_max_gap());
+    
+    if(rx->is_recording_audio())
+        uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));
+    else
+        uiDockAudio->audioRecStopped();
 }
 
 void MainWindow::updateClusterSpots()

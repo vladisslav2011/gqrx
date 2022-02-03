@@ -424,6 +424,11 @@ int receiver_base_cf::start_audio_recording()
     return wav_sink->open_new();
 }
 
+bool receiver_base_cf::get_audio_recording()
+{
+    return wav_sink->is_active();
+}
+
 void receiver_base_cf::stop_audio_recording()
 {
     wav_sink->close();
@@ -453,7 +458,7 @@ void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, 
 {
     self->d_audio_filename = filename;
     if(self->d_rec_event)
-        self->d_rec_event(filename, is_running);
+        self->d_rec_event(self->d_index, filename, is_running);
 }
 
 void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)

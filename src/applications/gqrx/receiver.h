@@ -253,9 +253,13 @@ public:
 
     /* Audio parameters */
     status      set_audio_rec_dir(const std::string dir);
+    std::string get_audio_rec_dir();
     status      set_audio_rec_sql_triggered(const bool enabled);
+    bool        get_audio_rec_sql_triggered();
     status      set_audio_rec_min_time(const int time_ms);
+    int         get_audio_rec_min_time();
     status      set_audio_rec_max_gap(const int time_ms);
+    int         get_audio_rec_max_gap();
     status      start_audio_recording();
     status      stop_audio_recording();
     std::string get_last_audio_filename();
@@ -277,7 +281,7 @@ public:
     status      stop_sniffer();
     void        get_sniffer_data(float * outbuff, unsigned int &num);
 
-    bool        is_recording_audio(void) const { return d_recording_wav; }
+    bool        is_recording_audio(void) const { return rx[d_current]->get_audio_recording(); }
     bool        is_snifffer_active(void) const { return d_sniffer_active; }
 
     /* rds functions */
@@ -316,7 +320,6 @@ private:
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
-    bool        d_recording_wav;    /*!< Whether we are recording WAV file. */
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
@@ -385,7 +388,7 @@ private:
     audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
     static std::string get_zero_file(void);
-    static void audio_rec_event(receiver * self, std::string filename,
+    static void audio_rec_event(receiver * self, int idx, std::string filename,
                                 bool is_running);
 };
 
