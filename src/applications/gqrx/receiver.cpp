@@ -881,6 +881,18 @@ receiver::status receiver::select_rx(int no)
     return STATUS_ERROR;
 }
 
+receiver::status receiver::fake_select_rx(int no)
+{
+    if(no == d_current)
+        return STATUS_OK;
+    if(no < int(rx.size()))
+    {
+        d_current = no;
+        return STATUS_OK;
+    }
+    return STATUS_ERROR;
+}
+
 int receiver::get_current()
 {
     return d_current;

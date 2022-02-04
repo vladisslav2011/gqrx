@@ -314,13 +314,16 @@ void DockAudio::setAudioPlayButtonState(bool checked)
 void DockAudio::saveSettings(QSettings *settings)
 {
     int     ival, fft_min, fft_max;
+    bool    conv_ok = false;
 
     if (!settings)
         return;
 
+    bool isv4 = (settings->value("configversion").toInt(&conv_ok) >= 4);
     settings->beginGroup("audio");
 
-    settings->setValue("gain", audioGain());
+    if (!isv4)
+        settings->setValue("gain", audioGain());
 
     ival = audioOptions->getFftSplit();
     if (ival != DEFAULT_FFT_SPLIT)
@@ -353,11 +356,6 @@ void DockAudio::saveSettings(QSettings *settings)
     else
         settings->remove("db_ranges_locked");
 
-    if (rec_dir != QDir::homePath())
-        settings->setValue("rec_dir", rec_dir);
-    else
-        settings->remove("rec_dir");
-
     if (udp_host.isEmpty())
         settings->remove("udp_host");
     else
@@ -373,20 +371,28 @@ void DockAudio::saveSettings(QSettings *settings)
     else
         settings->remove("udp_stereo");
 
-    if (squelch_triggered != false)
-        settings->setValue("squelch_triggered_recording", squelch_triggered);
-    else
-        settings->remove("squelch_triggered_recording");
+    if (!isv4)
+    {
+        if (rec_dir != QDir::homePath())
+            settings->setValue("rec_dir", rec_dir);
+        else
+            settings->remove("rec_dir");
 
-    if(recMinTime != 0)
-        settings->setValue("rec_min_time", recMinTime);
-    else
-        settings->remove("rec_min_time");
+        if (squelch_triggered != false)
+            settings->setValue("squelch_triggered_recording", squelch_triggered);
+        else
+            settings->remove("squelch_triggered_recording");
 
-    if(recMaxGap != 0)
-        settings->setValue("rec_max_gap", recMaxGap);
-    else
-        settings->remove("rec_max_gap");
+        if(recMinTime != 0)
+            settings->setValue("rec_min_time", recMinTime);
+        else
+            settings->remove("rec_min_time");
+
+        if(recMaxGap != 0)
+            settings->setValue("rec_max_gap", recMaxGap);
+        else
+            settings->remove("rec_max_gap");
+    }
 
     settings->endGroup();
 }
@@ -399,11 +405,16 @@ void DockAudio::readSettings(QSettings *settings)
     if (!settings)
         return;
 
+    bool isv4 = (settings->value("configversion").toInt(&conv_ok) >= 4);
+
     settings->beginGroup("audio");
 
-    ival = settings->value("gain", QVariant(-60)).toInt(&conv_ok);
-    if (conv_ok)
-        setAudioGain(ival);
+    if(!isv4)
+    {
+        ival = settings->value("gain", QVariant(-60)).toInt(&conv_ok);
+        if (conv_ok)
+            setAudioGain(ival);
+    }
 
     ival = settings->value("fft_split", DEFAULT_FFT_SPLIT).toInt(&conv_ok);
     if (conv_ok)
@@ -428,10 +439,6 @@ void DockAudio::readSettings(QSettings *settings)
     bool_val = settings->value("db_ranges_locked", false).toBool();
     audioOptions->setLockButtonState(bool_val);
 
-    // Location of audio recordings
-    rec_dir = settings->value("rec_dir", QDir::homePath()).toString();
-    audioOptions->setRecDir(rec_dir);
-
     // Audio streaming host, port and stereo setting
     udp_host = settings->value("udp_host", "localhost").toString();
     udp_port = settings->value("udp_port", 7355).toInt(&conv_ok);
@@ -443,18 +450,24 @@ void DockAudio::readSettings(QSettings *settings)
     audioOptions->setUdpPort(udp_port);
     audioOptions->setUdpStereo(udp_stereo);
 
-    squelch_triggered = settings->value("squelch_triggered_recording", false).toBool();
-    audioOptions->setSquelchTriggered(squelch_triggered);
+    if(!isv4)
+    {
+        // Location of audio recordings
+        rec_dir = settings->value("rec_dir", QDir::homePath()).toString();
+        audioOptions->setRecDir(rec_dir);
 
-    recMinTime = settings->value("rec_min_time", 0).toInt(&conv_ok);
-    if (!conv_ok)
-        recMinTime = 0;
-    audioOptions->setRecMinTime(recMinTime);
-    recMaxGap = settings->value("rec_max_gap", 0).toInt(&conv_ok);
-    if (!conv_ok)
-        recMaxGap = 0;
-    audioOptions->setRecMaxGap(recMaxGap);
+        squelch_triggered = settings->value("squelch_triggered_recording", false).toBool();
+        audioOptions->setSquelchTriggered(squelch_triggered);
 
+        recMinTime = settings->value("rec_min_time", 0).toInt(&conv_ok);
+        if (!conv_ok)
+            recMinTime = 0;
+        audioOptions->setRecMinTime(recMinTime);
+        recMaxGap = settings->value("rec_max_gap", 0).toInt(&conv_ok);
+        if (!conv_ok)
+            recMaxGap = 0;
+        audioOptions->setRecMaxGap(recMaxGap);
+    }
     settings->endGroup();
 }
 

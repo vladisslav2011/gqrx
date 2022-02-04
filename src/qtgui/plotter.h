@@ -127,6 +127,7 @@ public:
     void    setCurrentVfo(int current);
     void    addVfo(const vfo &vfo);
     void    removeVfo(const vfo &vfo);
+    void    clearVfos();
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */

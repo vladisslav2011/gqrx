@@ -181,6 +181,7 @@ public:
     int         get_rx_count();
     int         delete_rx();
     status      select_rx(int no);
+    status      fake_select_rx(int no);
     int         get_current();
     vfo         get_current_vfo();
     vfo         get_vfo(int n);

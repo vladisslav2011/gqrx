@@ -634,6 +634,11 @@ void    CPlotter::removeVfo(const vfo &vfo)
     m_vfos.erase(vfo);
 }
 
+void    CPlotter::clearVfos()
+{
+    m_vfos.clear();
+}
+
 /** Get waterfall time resolution in milleconds / line. */
 quint64 CPlotter::getWfTimeRes() const
 {
