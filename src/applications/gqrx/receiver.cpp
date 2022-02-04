@@ -881,6 +881,30 @@ receiver::status receiver::select_rx(int no)
     return STATUS_ERROR;
 }
 
+int receiver::get_current()
+{
+    return d_current;
+}
+
+vfo receiver::get_current_vfo()
+{
+    return get_vfo(d_current);
+}
+
+vfo receiver::get_vfo(int n)
+{
+    vfo rxn;
+    auto &rxc = rx[n];
+    rxn.offset = rxc->get_offset();
+    double low, high, dummy;
+    rxc->get_filter(low, high, dummy);
+    rxn.low = int(low);
+    rxn.high = int(high);
+    rxn.mode = rxc->get_demod();
+    rxn.index = rxc->get_index();
+    return rxn;
+}
+
 std::vector<vfo> receiver::get_vfos()
 {
     std::vector<vfo> vfos;
@@ -889,9 +913,12 @@ std::vector<vfo> receiver::get_vfos()
     {
         vfo rxn;
         rxn.offset = rxc->get_offset();
-        double dummy;
-        rxc->get_filter(rxn.low, rxn.high, dummy);
+        double low, high, dummy;
+        rxc->get_filter(low, high, dummy);
+        rxn.low = int(low);
+        rxn.high = int(high);
         rxn.mode = rxc->get_demod();
+        rxn.index = rxc->get_index();
         vfos.push_back(rxn);
     }
     return vfos;

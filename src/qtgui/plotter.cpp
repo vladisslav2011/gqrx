@@ -161,6 +161,8 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     wf_span = 0;
     fft_rate = 15;
     memset(m_wfbuf, 255, MAX_SCREENSIZE);
+    m_currentVfo = 0;
+    m_capturedVfo = 0;
 }
 
 CPlotter::~CPlotter()
@@ -199,6 +201,16 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                     }
                 }
             }
+            if(!m_vfos.empty())
+            {
+                vfo t_vfo;
+                t_vfo.index = 0;
+                t_vfo.offset = freqFromX(pt.x()) - m_CenterFreq;
+                m_vfos_lb = m_vfos.lower_bound(t_vfo);
+                m_vfos_ub = m_vfos_lb--;
+                if(m_vfos_ub == m_vfos.begin())
+                    m_vfos_lb = m_vfos_ub;
+            }
             // if no mouse button monitor grab regions and change cursor icon
             if (onTag)
             {
@@ -226,9 +238,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 // in move demod box center frequency region
                 if (CENTER != m_CursorCaptured)
                     setCursor(QCursor(Qt::SizeHorCursor));
+                m_capturedVfo = m_currentVfo;
                 m_CursorCaptured = CENTER;
                 if (m_TooltipsEnabled)
-                    showToolTip(event, QString("Demod: %1 kHz").arg(m_DemodCenterFreq/1.e3, 0, 'f', 3));
+                    showToolTip(event, QString("Current demod %1: %2 kHz")
+                                               .arg(m_currentVfo)
+                                               .arg(m_DemodCenterFreq/1.e3, 0, 'f', 3));
             }
             else if (isPointCloseTo(pt.x(), m_DemodHiCutFreqX, m_CursorCaptureDelta))
             {
@@ -247,6 +262,28 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 m_CursorCaptured = LEFT;
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Low cut: %1 Hz").arg(m_DemodLowCutFreq));
+            }
+            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq(m_vfos_lb->offset + m_CenterFreq), m_CursorCaptureDelta))
+            {
+                if (CENTER != m_CursorCaptured)
+                    setCursor(QCursor(Qt::SizeHorCursor));
+                m_CursorCaptured = CENTER;
+                m_capturedVfo = m_vfos_lb->index;
+                if (m_TooltipsEnabled)
+                    showToolTip(event, QString("Demod %1: %2 kHz")
+                                               .arg(m_vfos_lb->index)
+                                               .arg((m_vfos_lb->offset + m_CenterFreq)/1.e3, 0, 'f', 3));
+            }
+            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq(m_vfos_ub->offset + m_CenterFreq), m_CursorCaptureDelta))
+            {
+                if (CENTER != m_CursorCaptured)
+                    setCursor(QCursor(Qt::SizeHorCursor));
+                m_CursorCaptured = CENTER;
+                m_capturedVfo = m_vfos_ub->index;
+                if (m_TooltipsEnabled)
+                    showToolTip(event, QString("Demod %1: %2 kHz")
+                                               .arg(m_vfos_ub->index)
+                                               .arg((m_vfos_ub->offset + m_CenterFreq)/1.e3, 0, 'f', 3));
             }
             else
             {	//if not near any grab boundaries
@@ -582,9 +619,19 @@ bool CPlotter::saveWaterfall(const QString & filename) const
     return pixmap.save(filename, nullptr, -1);
 }
 
-void CPlotter::setVfos(const std::vector<vfo> vfo_list)
+void CPlotter::setCurrentVfo(int current)
 {
-    m_vfos = vfo_list;
+    m_currentVfo = current;
+}
+
+void    CPlotter::addVfo(const vfo &vfo)
+{
+    m_vfos.insert(vfo);
+}
+
+void    CPlotter::removeVfo(const vfo &vfo)
+{
+    m_vfos.erase(vfo);
 }
 
 /** Get waterfall time resolution in milleconds / line. */
@@ -689,6 +736,11 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     break;
                 }
             }
+        }
+        else if (m_CursorCaptured == CENTER)
+        {
+            if (m_currentVfo != m_capturedVfo)
+                emit selectVfo(m_capturedVfo);
         }
     }
 }
@@ -1492,20 +1544,12 @@ void CPlotter::drawOverlay()
         for(auto &vfoc : m_vfos)
         {
             const qint64 vfoFreq = m_CenterFreq + qint64(vfoc.offset);
-            if (m_DemodCenterFreq == vfoFreq)
-                continue;
             const int demodFreqX = xFromFreq(vfoFreq);
             const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc.low));
             const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc.high));
 
             const int dw = demodHiCutFreqX - demodLowCutFreqX;
-            painter.setOpacity(0.3);
-            painter.fillRect(demodLowCutFreqX, 0, dw, h,
-                            QColor(PLOTTER_FILTER_BOX_COLOR));
-
-            painter.setOpacity(1.0);
-            painter.setPen(QColor(PLOTTER_FILTER_BOX_COLOR));
-            painter.drawLine(demodFreqX, 0, demodFreqX, h);
+            drawVfo(painter, demodFreqX, demodLowCutFreqX, dw, h, vfoc.index, false);
         }
 
         m_DemodFreqX = xFromFreq(m_DemodCenterFreq);
@@ -1513,14 +1557,7 @@ void CPlotter::drawOverlay()
         m_DemodHiCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodHiCutFreq);
 
         int dw = m_DemodHiCutFreqX - m_DemodLowCutFreqX;
-
-        painter.setOpacity(0.3);
-        painter.fillRect(m_DemodLowCutFreqX, 0, dw, h,
-                         QColor(PLOTTER_FILTER_BOX_COLOR));
-
-        painter.setOpacity(1.0);
-        painter.setPen(QColor(PLOTTER_FILTER_LINE_COLOR));
-        painter.drawLine(m_DemodFreqX, 0, m_DemodFreqX, h);
+        drawVfo(painter, m_DemodFreqX, m_DemodLowCutFreqX, dw, h, m_currentVfo, true);
     }
 
     if (!m_Running)
@@ -1534,6 +1571,22 @@ void CPlotter::drawOverlay()
     }
 
     painter.end();
+}
+
+void CPlotter::drawVfo(QPainter &painter, const int demodFreqX, const int demodLowCutFreqX, const int dw, const int h, const int index, const bool is_selected)
+{
+    QFontMetrics    metrics(m_Font);
+    QRect         br = metrics.boundingRect("+256+");
+    painter.setOpacity(0.3);
+    painter.fillRect(demodLowCutFreqX, br.height(), dw, h,
+                    QColor(PLOTTER_FILTER_BOX_COLOR));
+
+    painter.setOpacity(1.0);
+    painter.setPen(QColor(is_selected ? PLOTTER_FILTER_LINE_COLOR : PLOTTER_TEXT_COLOR));
+    painter.drawLine(demodFreqX, br.height(), demodFreqX, h);
+    painter.drawText(demodFreqX - br.width() / 2, 0, br.width(), br.height(),
+                     Qt::AlignVCenter | Qt::AlignHCenter,
+                     QString::number(index));
 }
 
 // Create frequency division strings based on start frequency, span frequency,

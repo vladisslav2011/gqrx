@@ -181,6 +181,10 @@ public:
     int         get_rx_count();
     int         delete_rx();
     status      select_rx(int no);
+    int         get_current();
+    vfo         get_current_vfo();
+    vfo         get_vfo(int n);
+    std::vector<vfo> get_vfos();
 
     status      set_filter_offset(double offset_hz);
     double      get_filter_offset(void) const;
@@ -235,7 +239,6 @@ public:
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
-    std::vector<vfo> get_vfos();
 
     /* FM parameters */
     status      set_fm_maxdev(float maxdev_hz);

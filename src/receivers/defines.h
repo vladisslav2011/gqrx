@@ -41,10 +41,16 @@
 
 typedef struct vfo_s
 {
-    double offset;
-    double low;
-    double high;
+    int offset;
+    int low;
+    int high;
     Modulations::idx mode;
+    int index;
 } vfo;
+
+static inline bool operator<(const vfo_s &self, const vfo_s &other)
+{
+    return (self.offset == other.offset) ? (self.index < other.index) : (self.offset < other.offset);
+}
 
 #endif // DEFINES_H

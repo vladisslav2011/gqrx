@@ -279,6 +279,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(ui->plotter, SIGNAL(newZoomLevel(float)),
             uiDockFft, SLOT(setZoomLevel(float)));
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
+    connect(ui->plotter, SIGNAL(selectVfo(int)), this, SLOT(on_plotter_selectVfo(int)));
 
     connect(uiDockFft, SIGNAL(fftColorChanged(QColor)), this, SLOT(setFftColor(QColor)));
     connect(uiDockFft, SIGNAL(fftFillToggled(bool)), this, SLOT(setFftFill(bool)));
@@ -907,7 +908,6 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     }
 
     // update widgets
-    ui->plotter->setVfos(rx->get_vfos());
     ui->plotter->setCenterFreq(center_freq);
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
@@ -1248,7 +1248,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
     uiDockRxOpt->setCurrentDemod(mode_idx);
-    ui->plotter->setVfos(rx->get_vfos());
 }
 
 
@@ -2173,7 +2172,6 @@ void MainWindow::on_plotter_newFilterFreq(int low, int high)
     /* Update filter range of plotter, in case this slot is triggered by
      * switching to a bookmark */
     ui->plotter->setHiLowCutFrequencies(low, high);
-    ui->plotter->setVfos(rx->get_vfos());
 
     if (retcode == receiver::STATUS_OK)
         uiDockRxOpt->setFilterParam(low, high);
@@ -2591,19 +2589,18 @@ void MainWindow::on_actionAddBookmark_triggered()
 
 void MainWindow::on_actionAddDemodulator_triggered()
 {
+    ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->add_rx();
     std::cerr<<"on_actionAddDemodulator_triggered() "<<n<<std::endl;
-    ui->plotter->setVfos(rx->get_vfos());
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     rxSpinBox->setValue(n);
-//    loadRxToGUI();
 }
 
 void MainWindow::on_actionRemoveDemodulator_triggered()
 {
+    ui->plotter->removeVfo(rx->get_vfo(rx->get_rx_count()-1));
     int n = rx->delete_rx();
     std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n<<std::endl;
-    ui->plotter->setVfos(rx->get_vfos());
     rxSpinBox->setValue(n);
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     loadRxToGUI();
@@ -2611,10 +2608,18 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
 
 void MainWindow::on_rxSpinBox_valueChanged(int i)
 {
+    ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->select_rx(i);
+    ui->plotter->removeVfo(rx->get_current_vfo());
+    ui->plotter->setCurrentVfo(i);
     std::cerr<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n<<std::endl;
     if(n == receiver::STATUS_OK)
         loadRxToGUI();
+}
+
+void MainWindow::on_plotter_selectVfo(int i)
+{
+    rxSpinBox->setValue(i);
 }
 
 void MainWindow::loadRxToGUI()

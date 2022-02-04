@@ -7,6 +7,7 @@
 #include <QFrame>
 #include <QImage>
 #include <vector>
+#include <set>
 #include <QMap>
 #include "receivers/defines.h"
 
@@ -123,7 +124,9 @@ public:
     void    setFftRate(int rate_hz);
     void    clearWaterfall();
     bool    saveWaterfall(const QString & filename) const;
-    void    setVfos(const std::vector<vfo> vfo_list);
+    void    setCurrentVfo(int current);
+    void    addVfo(const vfo &vfo);
+    void    removeVfo(const vfo &vfo);
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
@@ -133,6 +136,7 @@ signals:
     void pandapterRangeChanged(float min, float max);
     void newZoomLevel(float level);
     void newSize();
+    void selectVfo(int);
 
 public slots:
     // zoom functions
@@ -186,6 +190,9 @@ private:
     };
 
     void        drawOverlay();
+    void        drawVfo(QPainter &painter, const int demodFreqX,
+                        const int demodLowCutFreqX, const int dw, const int h,
+                        const int index, const bool is_selected);
     void        makeFrequencyStrs();
     int         xFromFreq(qint64 freq);
     qint64      freqFromX(int x);
@@ -288,7 +295,11 @@ private:
     QMap<int,int>   m_Peaks;
 
     QList< QPair<QRect, qint64> >     m_Taglist;
-    std::vector<vfo> m_vfos;
+    std::set<vfo> m_vfos;
+    std::set<vfo>::iterator m_vfos_ub;
+    std::set<vfo>::iterator m_vfos_lb;
+    int         m_currentVfo;
+    int         m_capturedVfo;
 
     // Waterfall averaging
     quint64     tlast_wf_ms;        // last time waterfall has been updated

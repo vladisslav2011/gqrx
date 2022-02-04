@@ -61,7 +61,4 @@ public:
     ~Modulations();
 };
 
-
-
-
 #endif // MODULATIONS_H

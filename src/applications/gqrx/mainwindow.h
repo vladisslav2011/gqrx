@@ -221,6 +221,7 @@ private slots:
     /* FFT plot */
     void on_plotter_newDemodFreq(qint64 freq, qint64 delta);   /*! New demod freq (aka. filter offset). */
     void on_plotter_newFilterFreq(int low, int high);    /*! New filter width */
+    void on_plotter_selectVfo(int i);
 
     /* RDS */
     void setRdsDecoder(bool checked);
