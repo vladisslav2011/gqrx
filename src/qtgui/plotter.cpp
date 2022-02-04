@@ -582,6 +582,11 @@ bool CPlotter::saveWaterfall(const QString & filename) const
     return pixmap.save(filename, nullptr, -1);
 }
 
+void CPlotter::setVfos(const std::vector<vfo> vfo_list)
+{
+    m_vfos = vfo_list;
+}
+
 /** Get waterfall time resolution in milleconds / line. */
 quint64 CPlotter::getWfTimeRes() const
 {
@@ -1302,7 +1307,7 @@ void CPlotter::drawOverlay()
         static const int fontHeight = fm.ascent() + 1;
         static const int slant = 5;
         static const int levelHeight = fontHeight + 5;
-        static const int nLevels = h / (levelHeight + slant);
+        static const int nLevels = h / (levelHeight + slant) + 1;
         if (m_BookmarksEnabled)
         {
             tags = Bookmarks::Get().getBookmarksInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
@@ -1333,13 +1338,13 @@ void CPlotter::drawOverlay()
             x = xFromFreq(tag.frequency);
             int nameWidth = fm.boundingRect(tag.name).width();
 
-            int level = 0;
+            int level = 1;
             while(level < nLevels && tagEnd[level] > x)
                 level++;
 
             if(level >= nLevels)
             {
-                level = 0;
+                level = 1;
                 if (tagEnd[level] > x)
                     continue; // no overwrite at level 0
             }
@@ -1484,6 +1489,25 @@ void CPlotter::drawOverlay()
     // Draw demod filter box
     if (m_FilterBoxEnabled)
     {
+        for(auto &vfoc : m_vfos)
+        {
+            const qint64 vfoFreq = m_CenterFreq + qint64(vfoc.offset);
+            if (m_DemodCenterFreq == vfoFreq)
+                continue;
+            const int demodFreqX = xFromFreq(vfoFreq);
+            const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc.low));
+            const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc.high));
+
+            const int dw = demodHiCutFreqX - demodLowCutFreqX;
+            painter.setOpacity(0.3);
+            painter.fillRect(demodLowCutFreqX, 0, dw, h,
+                            QColor(PLOTTER_FILTER_BOX_COLOR));
+
+            painter.setOpacity(1.0);
+            painter.setPen(QColor(PLOTTER_FILTER_BOX_COLOR));
+            painter.drawLine(demodFreqX, 0, demodFreqX, h);
+        }
+
         m_DemodFreqX = xFromFreq(m_DemodCenterFreq);
         m_DemodLowCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodLowCutFreq);
         m_DemodHiCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodHiCutFreq);

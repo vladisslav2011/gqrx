@@ -907,6 +907,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     }
 
     // update widgets
+    ui->plotter->setVfos(rx->get_vfos());
     ui->plotter->setCenterFreq(center_freq);
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
@@ -1247,6 +1248,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
     uiDockRxOpt->setCurrentDemod(mode_idx);
+    ui->plotter->setVfos(rx->get_vfos());
 }
 
 
@@ -2171,6 +2173,7 @@ void MainWindow::on_plotter_newFilterFreq(int low, int high)
     /* Update filter range of plotter, in case this slot is triggered by
      * switching to a bookmark */
     ui->plotter->setHiLowCutFrequencies(low, high);
+    ui->plotter->setVfos(rx->get_vfos());
 
     if (retcode == receiver::STATUS_OK)
         uiDockRxOpt->setFilterParam(low, high);
@@ -2590,6 +2593,7 @@ void MainWindow::on_actionAddDemodulator_triggered()
 {
     int n = rx->add_rx();
     std::cerr<<"on_actionAddDemodulator_triggered() "<<n<<std::endl;
+    ui->plotter->setVfos(rx->get_vfos());
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     rxSpinBox->setValue(n);
 //    loadRxToGUI();
@@ -2599,6 +2603,7 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
 {
     int n = rx->delete_rx();
     std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n<<std::endl;
+    ui->plotter->setVfos(rx->get_vfos());
     rxSpinBox->setValue(n);
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     loadRxToGUI();

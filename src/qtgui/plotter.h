@@ -8,6 +8,7 @@
 #include <QImage>
 #include <vector>
 #include <QMap>
+#include "receivers/defines.h"
 
 #define HORZ_DIVS_MAX 12    //50
 #define VERT_DIVS_MIN 5
@@ -122,6 +123,7 @@ public:
     void    setFftRate(int rate_hz);
     void    clearWaterfall();
     bool    saveWaterfall(const QString & filename) const;
+    void    setVfos(const std::vector<vfo> vfo_list);
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
@@ -286,6 +288,7 @@ private:
     QMap<int,int>   m_Peaks;
 
     QList< QPair<QRect, qint64> >     m_Taglist;
+    std::vector<vfo> m_vfos;
 
     // Waterfall averaging
     quint64     tlast_wf_ms;        // last time waterfall has been updated

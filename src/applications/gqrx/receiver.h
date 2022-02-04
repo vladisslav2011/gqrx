@@ -226,14 +226,16 @@ public:
     int         get_agc_hang();
     float       get_agc_gain();
 
+    /* Mute */
     status      set_mute(bool mute);
     bool        get_mute();
-
+    /* Demod */
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
+    std::vector<vfo> get_vfos();
 
     /* FM parameters */
     status      set_fm_maxdev(float maxdev_hz);

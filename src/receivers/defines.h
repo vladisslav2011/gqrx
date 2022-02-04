@@ -39,4 +39,12 @@
 
 #include "modulations.h"
 
+typedef struct vfo_s
+{
+    double offset;
+    double low;
+    double high;
+    Modulations::idx mode;
+} vfo;
+
 #endif // DEFINES_H

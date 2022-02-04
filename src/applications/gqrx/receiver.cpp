@@ -881,6 +881,22 @@ receiver::status receiver::select_rx(int no)
     return STATUS_ERROR;
 }
 
+std::vector<vfo> receiver::get_vfos()
+{
+    std::vector<vfo> vfos;
+    vfos.reserve(rx.size());
+    for(auto &rxc : rx)
+    {
+        vfo rxn;
+        rxn.offset = rxc->get_offset();
+        double dummy;
+        rxc->get_filter(rxn.low, rxn.high, dummy);
+        rxn.mode = rxc->get_demod();
+        vfos.push_back(rxn);
+    }
+    return vfos;
+}
+
 /**
  * @brief Set filter offset.
  * @param offset_hz The desired filter offset in Hz.
