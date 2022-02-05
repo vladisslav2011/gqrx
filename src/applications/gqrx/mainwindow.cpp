@@ -1007,17 +1007,14 @@ void MainWindow::readRXSettings(bool isv4)
         {
             m_settings->endGroup();
             m_settings->beginGroup("audio");
-            std::cerr<<"Not v4, entering audio"<<std::endl;
         }
         int_val = m_settings->value("gain", QVariant(-60)).toInt(&conv_ok);
         if (conv_ok)
             if(!rx->get_agc_on())
                 rx->set_agc_manual_gain(int_val);
-        std::cerr<<"Gain "<<int_val<<std::endl;
 
         QString rec_dir = m_settings->value("rec_dir", QDir::homePath()).toString();
         rx->set_audio_rec_dir(rec_dir.toStdString());
-        std::cerr<<"rec_dir "<<rec_dir.toStdString()<<std::endl;
 
         bool squelch_triggered = m_settings->value("squelch_triggered_recording", false).toBool();
         rx->set_audio_rec_sql_triggered(squelch_triggered);
@@ -1026,13 +1023,11 @@ void MainWindow::readRXSettings(bool isv4)
         if (!conv_ok)
             int_val = 0;
         rx->set_audio_rec_min_time(int_val);
-        std::cerr<<"rec_min_time "<<int_val<<std::endl;
 
         int_val = m_settings->value("rec_max_gap", 0).toInt(&conv_ok);
         if (!conv_ok)
             int_val = 0;
         rx->set_audio_rec_max_gap(int_val);
-        std::cerr<<"rec_max_gap "<<int_val<<std::endl;
 
         m_settings->endGroup();
         ui->plotter->addVfo(rx->get_current_vfo());
@@ -1392,7 +1387,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 {
     double  cwofs = 0.0;
     int     filter_preset = uiDockRxOpt->currentFilter();
-    int     flo=0, fhi=0, click_res=100;
+    int     flo=0, fhi=0;
     bool    rds_enabled;
 
     // validate mode_idx
@@ -1411,6 +1406,9 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
         setRdsDecoder(false);
     uiDockRDS->setDisabled();
 
+    if ((mode_idx > Modulations::MODE_OFF) && (mode_idx < Modulations::MODE_LAST))
+        rx->set_demod(mode_idx);
+
     switch (mode_idx) {
 
     case Modulations::MODE_OFF:
@@ -1425,26 +1423,82 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             dec_afsk1200->close();
         }
         rx->set_demod(mode_idx);
+        break;
+
+    case Modulations::MODE_NFM:
+        rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
+        rx->set_fm_deemph(uiDockRxOpt->currentEmph());
+        break;
+
+    case Modulations::MODE_WFM_MONO:
+    case Modulations::MODE_WFM_STEREO:
+    case Modulations::MODE_WFM_STEREO_OIRT:
+        /* Broadcast FM */
+        uiDockRDS->setEnabled();
+        if (rds_enabled)
+            setRdsDecoder(true);
+        break;
+
+    case Modulations::MODE_CWL:
+        /* CW-L */
+        cwofs = -uiDockRxOpt->getCwOffset();
+        break;
+
+    case Modulations::MODE_CWU:
+        /* CW-U */
+        cwofs = uiDockRxOpt->getCwOffset();
+        break;
+
+    default:
+        qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
+        flo = -5000;
+        fhi = 5000;
+        break;
+    }
+    rx->set_filter((double)flo, (double)fhi, d_filter_shape);
+    rx->set_cw_offset(cwofs);
+    updateDemodGUIRanges();
+}
+
+/**
+ * @brief Update GUI after demodulator selection.
+ *
+ * Update plotter demod ranges
+ * Update audio dock fft range
+ * Update plotter cut frequencies
+ * Update plotter click resolution
+ * Update plotter filter click resolution
+ * Update remote settings too
+ *
+ */
+void MainWindow::updateDemodGUIRanges()
+{
+    int click_res=100;
+    double     flo=0, fhi=0;
+    enum receiver::filter_shape filter_shape;
+    rx->get_filter(flo, fhi, filter_shape);
+    Modulations::idx mode_idx = rx->get_demod();
+    switch (mode_idx) {
+
+    case Modulations::MODE_OFF:
+        /* Spectrum analyzer only */
         click_res = 1000;
         break;
 
     case Modulations::MODE_RAW:
         /* Raw I/Q; max 96 ksps*/
-        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,24000);
         click_res = 100;
         break;
 
     case Modulations::MODE_AM:
-        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
     case Modulations::MODE_AM_SYNC:
-        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
@@ -1453,9 +1507,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     case Modulations::MODE_NFM:
         ui->plotter->setDemodRanges(-40000, -1000, 1000, 40000, true);
         uiDockAudio->setFftRange(0, 5000);
-        rx->set_demod(mode_idx);
-        rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
-        rx->set_fm_deemph(uiDockRxOpt->currentEmph());
         click_res = 100;
         break;
 
@@ -1466,16 +1517,10 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
         ui->plotter->setDemodRanges(-120e3, -10000, 10000, 120e3, true);
         uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
         click_res = 1000;
-        rx->set_demod(mode_idx);
-
-        uiDockRDS->setEnabled();
-        if (rds_enabled)
-            setRdsDecoder(true);
         break;
 
     case Modulations::MODE_LSB:
         /* LSB */
-        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(-40000, -100, -5000, 0, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
@@ -1483,7 +1528,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 
     case Modulations::MODE_USB:
         /* USB */
-        rx->set_demod(mode_idx);
         ui->plotter->setDemodRanges(0, 5000, 100, 40000, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
@@ -1491,8 +1535,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 
     case Modulations::MODE_CWL:
         /* CW-L */
-        rx->set_demod(mode_idx);
-        cwofs = -uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
         click_res = 10;
@@ -1500,17 +1542,12 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 
     case Modulations::MODE_CWU:
         /* CW-U */
-        rx->set_demod(mode_idx);
-        cwofs = uiDockRxOpt->getCwOffset();
         ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
         click_res = 10;
         break;
 
     default:
-        qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
-        flo = -5000;
-        fhi = 5000;
         click_res = 100;
         break;
     }
@@ -1519,8 +1556,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
     ui->plotter->setClickResolution(click_res);
     ui->plotter->setFilterClickResolution(click_res);
-    rx->set_filter((double)flo, (double)fhi, d_filter_shape);
-    rx->set_cw_offset(cwofs);
 
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
@@ -2883,7 +2918,7 @@ void MainWindow::on_actionAddDemodulator_triggered()
 {
     ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->add_rx();
-    std::cerr<<"on_actionAddDemodulator_triggered() "<<n<<std::endl;
+    qDebug()<<"on_actionAddDemodulator_triggered() "<<n;
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     rxSpinBox->setValue(n);
 }
@@ -2892,7 +2927,7 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
 {
     ui->plotter->removeVfo(rx->get_vfo(rx->get_rx_count()-1));
     int n = rx->delete_rx();
-    std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n<<std::endl;
+    qDebug()<<"on_actionRemoveDemodulator_triggered() "<<n;
     rxSpinBox->setValue(n);
     rxSpinBox->setMaximum(rx->get_rx_count()-1);
     loadRxToGUI();
@@ -2904,7 +2939,7 @@ void MainWindow::on_rxSpinBox_valueChanged(int i)
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
     ui->plotter->setCurrentVfo(i);
-    std::cerr<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n<<std::endl;
+    qDebug()<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n;
     if(n == receiver::STATUS_OK)
         loadRxToGUI();
 }
@@ -2919,34 +2954,33 @@ void MainWindow::loadRxToGUI()
     auto rf_freq = rx->get_rf_freq();
     auto new_offset = rx->get_filter_offset();
     auto rx_freq = (double)(rf_freq + d_lnb_lo + new_offset);
-    
+
     double low;
     double high;
     receiver::filter_shape fs;
     auto mode_idx = rx->get_demod();
-    
+
 
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);
     uiDockRxOpt->setFilterOffset(new_offset);
-    
+
     ui->freqCtrl->setFrequency(rx_freq);
     uiDockBookmarks->setNewFrequency(rx_freq);
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
-    
+
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
 
     rx->get_filter(low, high, fs);
-    uiDockRxOpt->setCurrentDemod(mode_idx);
+    updateDemodGUIRanges();
     uiDockRxOpt->setCurrentFilterShape(fs);
     uiDockRxOpt->setFilterParam(low, high);
-    ui->plotter->setHiLowCutFrequencies(low, high);
-    
+
     uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
-    
+
     uiDockRxOpt->setAgcOn(rx->get_agc_on());
     uiDockAudio->setGainEnabled(!rx->get_agc_on());
     uiDockRxOpt->setAgcTargetLevel(rx->get_agc_target_level());
@@ -2958,22 +2992,22 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setAgcPanningAuto(rx->get_agc_panning_auto());
     if(!rx->get_agc_on())
         uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.0);
-    
+
     uiDockRxOpt->setAmDcr(rx->get_am_dcr());
     uiDockRxOpt->setAmSyncDcr(rx->get_amsync_dcr());
     uiDockRxOpt->setAmSyncPllBw(rx->get_amsync_pll_bw());
     uiDockRxOpt->setFmMaxdev(rx->get_fm_maxdev());
     uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
     uiDockRxOpt->setCwOffset(rx->get_cw_offset());
-    
+
     for(int k = 1; k < 3; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
-    
+
     uiDockAudio->setRecDir(QString(rx->get_audio_rec_dir().data()));
     uiDockAudio->setSquelchTriggered(rx->get_audio_rec_sql_triggered());
     uiDockAudio->setRecMinTime(rx->get_audio_rec_min_time());
     uiDockAudio->setRecMaxGap(rx->get_audio_rec_max_gap());
-    
+
     //FIXME Prevent playing incomplete audio or remove audio player
     if(rx->is_recording_audio())
         uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));

@@ -162,6 +162,7 @@ private slots:
     void setInvertScrolling(bool enabled);
     void selectDemod(const QString& demod);
     void selectDemod(Modulations::idx index);
+    void updateDemodGUIRanges();
     void setFmMaxdev(float max_dev);
     void setFmEmph(double tau);
     void setAmDcr(bool enabled);
