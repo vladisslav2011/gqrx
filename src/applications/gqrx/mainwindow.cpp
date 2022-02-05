@@ -639,10 +639,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
 
     uiDockInputCtl->readSettings(m_settings); // this will also update freq range
     bool isv4 = (m_settings->value("configversion").toInt(&conv_ok) >= 4);
-    if (isv4)
-        readRXSettingsV4();
-    else
-        uiDockRxOpt->readSettings(m_settings);
+    readRXSettings(isv4);
     uiDockFft->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
@@ -772,8 +769,6 @@ void MainWindow::storeSession()
         m_settings->setValue("input/frequency", ui->freqCtrl->getFrequency());
 
         uiDockInputCtl->saveSettings(m_settings);
-        if(rx_count <= 1)
-            uiDockRxOpt->saveSettings(m_settings);
         uiDockFft->saveSettings(m_settings);
         uiDockAudio->saveSettings(m_settings);
 
@@ -781,137 +776,138 @@ void MainWindow::storeSession()
         iq_tool->saveSettings(m_settings);
         dxc_options->saveSettings(m_settings);
 
-        if(rx_count <= 1)
+        int old_current = rx->get_current();
+        int int_val;
+        for(int i = 0; i < rx_count; i++)
         {
-            int     flo, fhi;
-            ui->plotter->getHiLowCutFrequencies(&flo, &fhi);
+            if(rx_count <= 1)
+                m_settings->beginGroup("receiver");
+            else
+                m_settings->beginGroup(QString("rx%1").arg(i));
+            m_settings->remove("");
+            rx->fake_select_rx(i);
+
+            m_settings->setValue("demod", modulations.GetStringForModulationIndex(rx->get_demod()));
+
+            int cwofs = rx->get_cw_offset();
+            if (cwofs == 700)
+                m_settings->remove("cwoffset");
+            else
+                m_settings->setValue("cwoffset", cwofs);
+
+            // currently we do not need the decimal
+            int_val = (int)rx->get_fm_maxdev();
+            if (int_val == 2500)
+                m_settings->remove("fm_maxdev");
+            else
+                m_settings->setValue("fm_maxdev", int_val);
+
+            // save as usec
+            int_val = (int)(1.0e6 * rx->get_fm_deemph());
+            if (int_val == 75)
+                m_settings->remove("fm_deemph");
+            else
+                m_settings->setValue("fm_deemph", int_val);
+
+            qint64 offs = rx->get_filter_offset();
+            if (offs)
+                m_settings->setValue("offset", offs);
+            else
+                m_settings->remove("offset");
+
+            double sql_lvl = rx->get_sql_level();
+            if (sql_lvl > -150.0)
+                m_settings->setValue("sql_level", sql_lvl);
+            else
+                m_settings->remove("sql_level");
+
+            // AGC settings
+            int_val = rx->get_agc_target_level();
+            if (int_val != 0)
+                m_settings->setValue("agc_target_level", int_val);
+            else
+                m_settings->remove("agc_target_level");
+
+            int_val = rx->get_agc_attack();
+            if (int_val != 20)
+                m_settings->setValue("agc_attack", int_val);
+            else
+                m_settings->remove("agc_decay");
+
+            int_val = rx->get_agc_decay();
+            if (int_val != 500)
+                m_settings->setValue("agc_decay", int_val);
+            else
+                m_settings->remove("agc_decay");
+
+            int_val = rx->get_agc_hang();
+            if (int_val != 0)
+                m_settings->setValue("agc_hang", int_val);
+            else
+                m_settings->remove("agc_hang");
+
+            int_val = rx->get_agc_max_gain();
+            if (int_val != 100)
+                m_settings->setValue("agc_maxgain", int_val);
+            else
+                m_settings->remove("agc_maxgain");
+
+            // AGC Off
+            if (!rx->get_agc_on())
+                m_settings->setValue("agc_off", true);
+            else
+                m_settings->remove("agc_off");
+            //filter
+            //FIXME: store filter shape too
+            double     flo, fhi;
+            receiver::filter_shape fdw;
+            rx->get_filter(flo, fhi, fdw);
             if (flo != fhi)
             {
-                m_settings->setValue("receiver/filter_low_cut", flo);
-                m_settings->setValue("receiver/filter_high_cut", fhi);
+                m_settings->setValue("filter_low_cut", flo);
+                m_settings->setValue("filter_high_cut", fhi);
             }
-        }else{
-            int old_current = rx->get_current();
-            int int_val;
-            for(int i = 0; i < rx_count; i++)
+
+            if(rx_count <= 1)
             {
-                m_settings->beginGroup(QString("rx%1").arg(i));
-                m_settings->remove("");
-                //m_settings->setArrayIndex(i);
-                rx->fake_select_rx(i);
-
-                m_settings->setValue("demod", modulations.GetStringForModulationIndex(rx->get_demod()));
-
-                int cwofs = rx->get_cw_offset();
-                if (cwofs == 700)
-                    m_settings->remove("cwoffset");
-                else
-                    m_settings->setValue("cwoffset", cwofs);
-
-                // currently we do not need the decimal
-                int_val = (int)rx->get_fm_maxdev();
-                if (int_val == 2500)
-                    m_settings->remove("fm_maxdev");
-                else
-                    m_settings->setValue("fm_maxdev", int_val);
-
-                // save as usec
-                int_val = (int)(1.0e6 * rx->get_fm_deemph());
-                if (int_val == 75)
-                    m_settings->remove("fm_deemph");
-                else
-                    m_settings->setValue("fm_deemph", int_val);
-
-                qint64 offs = rx->get_filter_offset();
-                if (offs)
-                    m_settings->setValue("offset", offs);
-                else
-                    m_settings->remove("offset");
-
-                double sql_lvl = rx->get_sql_level();
-                if (sql_lvl > -150.0)
-                    m_settings->setValue("sql_level", sql_lvl);
-                else
-                    m_settings->remove("sql_level");
-
-                // AGC settings
-                int_val = rx->get_agc_target_level();
-                if (int_val != 0)
-                    m_settings->setValue("agc_target_level", int_val);
-                else
-                    m_settings->remove("agc_target_level");
-
-                int_val = rx->get_agc_attack();
-                if (int_val != 20)
-                    m_settings->setValue("agc_attack", int_val);
-                else
-                    m_settings->remove("agc_decay");
-
-                int_val = rx->get_agc_decay();
-                if (int_val != 500)
-                    m_settings->setValue("agc_decay", int_val);
-                else
-                    m_settings->remove("agc_decay");
-
-                int_val = rx->get_agc_hang();
-                if (int_val != 0)
-                    m_settings->setValue("agc_hang", int_val);
-                else
-                    m_settings->remove("agc_hang");
-
-                int_val = rx->get_agc_max_gain();
-                if (int_val != 100)
-                    m_settings->setValue("agc_maxgain", int_val);
-                else
-                    m_settings->remove("agc_maxgain");
-
-                // AGC Off
-                if (!rx->get_agc_on())
-                    m_settings->setValue("agc_off", true);
-                else
-                    m_settings->remove("agc_off");
-                //filter
-                //FIXME: store filter shape too
-                double     flo, fhi;
-                receiver::filter_shape fdw;
-                rx->get_filter(flo, fhi, fdw);
-                if (flo != fhi)
-                {
-                    m_settings->setValue("filter_low_cut", flo);
-                    m_settings->setValue("filter_high_cut", fhi);
-                }
-
-                if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
-                    m_settings->setValue("rec_dir", rx->get_audio_rec_dir().data());
-                else
-                    m_settings->remove("rec_dir");
-
-                if (rx->get_audio_rec_sql_triggered() != false)
-                    m_settings->setValue("squelch_triggered_recording", true);
-                else
-                    m_settings->remove("squelch_triggered_recording");
-
-                int_val = rx->get_audio_rec_min_time();
-                if(int_val != 0)
-                    m_settings->setValue("rec_min_time", int_val);
-                else
-                    m_settings->remove("rec_min_time");
-
-                int_val = rx->get_audio_rec_max_gap();
-                if(int_val != 0)
-                    m_settings->setValue("rec_max_gap", int_val);
-                else
-                    m_settings->remove("rec_max_gap");
-
-               m_settings->endGroup();
+                m_settings->endGroup();
+                m_settings->beginGroup("receiver");
             }
-            rx->fake_select_rx(old_current);
-            m_settings->setValue("gui/current_rx", old_current);
+            if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
+                m_settings->setValue("rec_dir", rx->get_audio_rec_dir().data());
+            else
+                m_settings->remove("rec_dir");
+
+            if (rx->get_audio_rec_sql_triggered() != false)
+                m_settings->setValue("squelch_triggered_recording", true);
+            else
+                m_settings->remove("squelch_triggered_recording");
+
+            int_val = rx->get_audio_rec_min_time();
+            if(int_val != 0)
+                m_settings->setValue("rec_min_time", int_val);
+            else
+                m_settings->remove("rec_min_time");
+
+            int_val = rx->get_audio_rec_max_gap();
+            if(int_val != 0)
+                m_settings->setValue("rec_max_gap", int_val);
+            else
+                m_settings->remove("rec_max_gap");
+
+            m_settings->endGroup();
+            if(rx_count <= 1)
+                break;
         }
+        rx->fake_select_rx(old_current);
+        if(rx_count > 1)
+            m_settings->setValue("gui/current_rx", old_current);
+        else
+            m_settings->remove("gui/current_rx");
     }
 }
 
-void MainWindow::readRXSettingsV4()
+void MainWindow::readRXSettings(bool isv4)
 {
     bool conv_ok;
     int int_val;
@@ -925,7 +921,10 @@ void MainWindow::readRXSettingsV4()
     QString grp = QString("rx%1").arg(i);
     while (1)
     {
-        m_settings->beginGroup(grp);
+        if(isv4)
+            m_settings->beginGroup(grp);
+        else
+            m_settings->beginGroup("receiver");
 
         qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
         if (offs)
@@ -984,6 +983,11 @@ void MainWindow::readRXSettingsV4()
         if (conv_ok && flo != fhi)
             rx->set_filter(flo, fhi, receiver::FILTER_SHAPE_NORMAL);
 
+        if(!isv4)
+        {
+            m_settings->endGroup();
+            m_settings->beginGroup("audio");
+        }
         int_val = m_settings->value("gain", QVariant(-60)).toInt(&conv_ok);
         if (conv_ok)
             if(!rx->get_agc_on())
@@ -1008,12 +1012,17 @@ void MainWindow::readRXSettingsV4()
         m_settings->endGroup();
         ui->plotter->addVfo(rx->get_current_vfo());
         i++;
+        if(!isv4)
+            break;
         grp = QString("rx%1").arg(i);
         if(!m_settings->contains(grp + "/offset"))
             break;
         rx->add_rx();
     }
-    int_val = m_settings->value("gui/current_rx", 0).toInt(&conv_ok);
+    if(isv4)
+        int_val = m_settings->value("gui/current_rx", 0).toInt(&conv_ok);
+    else
+        conv_ok = false;
     if(!conv_ok)
         int_val = 0;
     rxSpinBox->setMaximum(rx->get_rx_count() - 1);
