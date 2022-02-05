@@ -161,21 +161,25 @@ bool DockAudio::getSquelchTriggered()
 
 void DockAudio::setSquelchTriggered(bool mode)
 {
+    squelch_triggered = mode;
     audioOptions->setSquelchTriggered(mode);
 }
 
 void DockAudio::setRecDir(const QString &dir)
 {
+    rec_dir = dir;
     audioOptions->setRecDir(dir);
 }
 
 void DockAudio::setRecMinTime(int time_ms)
 {
+    recMinTime = time_ms;
     audioOptions->setRecMinTime(time_ms);
 }
 
 void DockAudio::setRecMaxGap(int time_ms)
 {
+    recMaxGap = time_ms;
     audioOptions->setRecMaxGap(time_ms);
 }
 

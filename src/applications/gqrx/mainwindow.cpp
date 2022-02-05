@@ -662,7 +662,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
     }
 
-    if (isv4)
+    if (!isv4)
     {
         int flo = m_settings->value("receiver/filter_low_cut", 0).toInt(&conv_ok);
         int fhi = m_settings->value("receiver/filter_high_cut", 0).toInt(&conv_ok);
@@ -757,6 +757,18 @@ void MainWindow::storeSession()
     if (m_settings)
     {
         int rx_count = rx->get_rx_count();
+        m_settings->setValue("configversion", (rx_count <= 1) ? 3 : 4);
+        for(int i = 0; true; i++)
+        {
+            QString grp = QString("rx%1").arg(i);
+            QString offset = QString("rx%1/offset").arg(i);
+            if(m_settings->contains(offset))
+                m_settings->remove(grp);
+            else
+                break;
+        }
+        m_settings->remove("audio");
+        m_settings->remove("receiver");
         m_settings->setValue("input/frequency", ui->freqCtrl->getFrequency());
 
         uiDockInputCtl->saveSettings(m_settings);
@@ -778,15 +790,14 @@ void MainWindow::storeSession()
                 m_settings->setValue("receiver/filter_low_cut", flo);
                 m_settings->setValue("receiver/filter_high_cut", fhi);
             }
-            m_settings->setValue("configversion", 3);
         }else{
-            m_settings->setValue("configversion", 4);
             int old_current = rx->get_current();
-            m_settings->beginWriteArray("rx");
             int int_val;
             for(int i = 0; i < rx_count; i++)
             {
-                m_settings->setArrayIndex(i);
+                m_settings->beginGroup(QString("rx%1").arg(i));
+                m_settings->remove("");
+                //m_settings->setArrayIndex(i);
                 rx->fake_select_rx(i);
 
                 m_settings->setValue("demod", modulations.GetStringForModulationIndex(rx->get_demod()));
@@ -892,8 +903,8 @@ void MainWindow::storeSession()
                 else
                     m_settings->remove("rec_max_gap");
 
+               m_settings->endGroup();
             }
-            m_settings->endArray();
             rx->fake_select_rx(old_current);
             m_settings->setValue("gui/current_rx", old_current);
         }
@@ -905,15 +916,24 @@ void MainWindow::readRXSettingsV4()
     bool conv_ok;
     int int_val;
     double  dbl_val;
-    int size = m_settings->beginReadArray("rx") - 1;
+    int i = 0;
     rxSpinBox->setMaximum(0);
     while (rx->get_rx_count() > 1)
         rx->delete_rx();
     ui->plotter->setCurrentVfo(0);
     ui->plotter->clearVfos();
-    for (int i = 0; i <= size; ++i)
+    QString grp = QString("rx%1").arg(i);
+    while (1)
     {
-        m_settings->setArrayIndex(i);
+        m_settings->beginGroup(grp);
+
+        qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
+        if (offs)
+            rx->set_filter_offset(offs);
+
+        int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
+        rx->set_demod(Modulations::idx(int_val));
+
         int_val = m_settings->value("cwoffset", 700).toInt(&conv_ok);
         if (conv_ok)
             rx->set_cw_offset(int_val);
@@ -925,10 +945,6 @@ void MainWindow::readRXSettingsV4()
         dbl_val = m_settings->value("fm_deemph", 75).toDouble(&conv_ok);
         if (conv_ok && dbl_val >= 0)
             rx->set_fm_deemph(1.0e-6 * dbl_val); // was stored as usec
-
-        qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
-        if (offs)
-            rx->set_filter_offset(offs);
 
         dbl_val = m_settings->value("sql_level", 1.0).toDouble(&conv_ok);
         if (conv_ok && dbl_val < 1.0)
@@ -961,10 +977,6 @@ void MainWindow::readRXSettingsV4()
         else
             rx->set_agc_on(true);
 
-        int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
-
-        rx->set_demod(Modulations::idx(int_val));
-
         int flo = m_settings->value("filter_low_cut", 0).toInt(&conv_ok);
         int fhi = m_settings->value("filter_high_cut", 0).toInt(&conv_ok);
 
@@ -993,11 +1005,14 @@ void MainWindow::readRXSettingsV4()
             int_val = 0;
         rx->set_audio_rec_max_gap(int_val);
 
+        m_settings->endGroup();
         ui->plotter->addVfo(rx->get_current_vfo());
-        if (i < size)
-            rx->add_rx();
+        i++;
+        grp = QString("rx%1").arg(i);
+        if(!m_settings->contains(grp + "/offset"))
+            break;
+        rx->add_rx();
     }
-    m_settings->endArray();
     int_val = m_settings->value("gui/current_rx", 0).toInt(&conv_ok);
     if(!conv_ok)
         int_val = 0;
@@ -1010,7 +1025,7 @@ void MainWindow::readRXSettingsV4()
     }
     else
     {
-    rxSpinBox->setValue(int_val);
+        rxSpinBox->setValue(int_val);
     }
     loadRxToGUI();
 }
@@ -2888,10 +2903,10 @@ void MainWindow::loadRxToGUI()
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
 
-    uiDockRxOpt->setCurrentDemod(mode_idx);
     rx->get_filter(low, high, fs);
-    uiDockRxOpt->setFilterParam(low, high);
+    uiDockRxOpt->setCurrentDemod(mode_idx);
     uiDockRxOpt->setCurrentFilterShape(fs);
+    uiDockRxOpt->setFilterParam(low, high);
     ui->plotter->setHiLowCutFrequencies(low, high);
     
     uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
