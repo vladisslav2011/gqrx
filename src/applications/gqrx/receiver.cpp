@@ -1214,6 +1214,32 @@ int receiver::get_agc_decay()
     return rx[d_current]->get_agc_decay();
 }
 
+/** Set AGC panning. */
+receiver::status receiver::set_agc_panning(int panning)
+{
+    rx[d_current]->set_agc_panning(panning);
+
+    return STATUS_OK; // FIXME
+}
+
+int receiver::get_agc_panning()
+{
+    return rx[d_current]->get_agc_panning();
+}
+
+/** Set AGC panning auto mode. */
+receiver::status receiver::set_agc_panning_auto(bool mode)
+{
+    rx[d_current]->set_agc_panning_auto(mode);
+
+    return STATUS_OK; // FIXME
+}
+
+bool receiver::get_agc_panning_auto()
+{
+    return rx[d_current]->get_agc_panning_auto();
+}
+
 /** Get AGC current gain. */
 float receiver::get_agc_gain()
 {

@@ -229,6 +229,10 @@ public:
     int         get_agc_decay();
     status      set_agc_hang(int hang_ms);
     int         get_agc_hang();
+    status      set_agc_panning(int panning);
+    int         get_agc_panning();
+    status      set_agc_panning_auto(bool mode);
+    bool        get_agc_panning_auto();
     float       get_agc_gain();
 
     /* Mute */

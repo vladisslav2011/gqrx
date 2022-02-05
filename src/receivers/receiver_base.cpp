@@ -57,6 +57,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_agc_attack_ms(0),
       d_agc_decay_ms(500),
       d_agc_hang_ms(0),
+      d_agc_panning(0),
+      d_agc_panning_auto(false),
       d_fm_maxdev(2500),
       d_fm_deemph(100),
       d_am_dcr(true),
@@ -75,7 +77,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     connect(self(), 0, ddc, 0);
 
     iq_resamp = make_resampler_cc(d_pref_quad_rate/d_quad_rate);
-    agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0);
+    agc = make_rx_agc_2f(d_audio_rate, false, 0, 0, 100, 500, 500, 0, 0);
     sql = make_rx_sql_cc(-150.0, 0.001);
     meter = make_rx_meter_c(d_pref_quad_rate);
     wav_sink = wavfile_sink_gqrx::make(0, 2, (unsigned int) d_audio_rate,
@@ -340,6 +342,29 @@ int receiver_base_cf::get_agc_hang()
 {
     return d_agc_hang_ms;
 }
+
+void receiver_base_cf::set_agc_panning(int panning)
+{
+    agc->set_panning(panning);
+    d_agc_panning = panning;
+}
+
+int receiver_base_cf::get_agc_panning()
+{
+    return d_agc_panning;
+}
+
+void receiver_base_cf::set_agc_panning_auto(bool mode)
+{
+    //TODO: implement auto panning
+    d_agc_panning_auto = mode;
+}
+
+bool receiver_base_cf::get_agc_panning_auto()
+{
+    return d_agc_panning_auto;
+}
+
 
 float receiver_base_cf::get_agc_gain()
 {

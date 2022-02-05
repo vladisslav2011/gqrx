@@ -134,6 +134,10 @@ public:
     virtual int   get_agc_decay();
     virtual void  set_agc_hang(int hang_ms);
     virtual int   get_agc_hang();
+    virtual void  set_agc_panning(int panning);
+    virtual int   get_agc_panning();
+    virtual void  set_agc_panning_auto(bool mode);
+    virtual bool  get_agc_panning_auto();
     virtual float get_agc_gain();
 
     /* FM parameters */
@@ -195,6 +199,8 @@ protected:
     int d_agc_attack_ms;
     int d_agc_decay_ms;
     int d_agc_hang_ms;
+    int d_agc_panning;
+    int d_agc_panning_auto;
     float d_fm_maxdev;
     double d_fm_deemph;
     bool d_am_dcr;

@@ -174,6 +174,8 @@ private slots:
     void setAgcAttack(int attack);
     void setAgcDecay(int msec);
     void setAgcMaxGain(int gain);
+    void setAgcPanning(int panning);
+    void setAgcPanningAuto(bool panningAuto);
     void setNoiseBlanker(int nbid, bool on, float threshold);
     void setSqlLevel(double level_db);
     double setSqlLevelAuto();

@@ -105,6 +105,8 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     connect(agcOpt, SIGNAL(attackChanged(int)), this, SLOT(agcOpt_attackChanged(int)));
     connect(agcOpt, SIGNAL(decayChanged(int)), this, SLOT(agcOpt_decayChanged(int)));
     connect(agcOpt, SIGNAL(hangChanged(int)), this, SLOT(agcOpt_hangChanged(int)));
+    connect(agcOpt, SIGNAL(panningChanged(int)), this, SLOT(agcOpt_panningChanged(int)));
+    connect(agcOpt, SIGNAL(panningAutoChanged(bool)), this, SLOT(agcOpt_panningAutoChanged(bool)));
 
     // Noise blanker options
     nbOpt = new CNbOptions(this);
@@ -449,6 +451,26 @@ void DockRxOpt::setAgcHang(int hang)
     agcOpt->setHang(hang);
 }
 
+int  DockRxOpt::getAgcPanning()
+{
+    return agcOpt->panning();
+}
+
+void DockRxOpt::setAgcPanning(int panning)
+{
+    agcOpt->setPanning(panning);
+}
+
+bool DockRxOpt::getAgcPanningAuto()
+{
+    return agcOpt->panningAuto();
+}
+
+void DockRxOpt::setAgcPanningAuto(bool panningAuto)
+{
+    agcOpt->setPanningAuto(panningAuto);
+}
+
 void DockRxOpt::setAgcPresetFromParams(int decay)
 {
     if (decay == 100)
@@ -690,6 +712,24 @@ void DockRxOpt::agcOpt_decayChanged(int value)
 void DockRxOpt::agcOpt_maxGainChanged(int gain)
 {
     emit agcMaxGainChanged(gain);
+}
+
+/**
+ * @brief AGC panning changed.
+ * @param value The new relative panning position.
+ */
+void DockRxOpt::agcOpt_panningChanged(int value)
+{
+    emit agcPanningChanged(value);
+}
+
+/**
+ * @brief AGC panning auto mode changed.
+ * @param value The new auto mode state.
+ */
+void DockRxOpt::agcOpt_panningAutoChanged(bool value)
+{
+    emit agcPanningAuto(value);
 }
 
 /**

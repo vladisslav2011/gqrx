@@ -100,6 +100,10 @@ public:
     void    setAgcDecay(int decay);
     int     getAgcHang();
     void    setAgcHang(int hang);
+    int     getAgcPanning();
+    void    setAgcPanning(int panning);
+    bool    getAgcPanningAuto();
+    void    setAgcPanningAuto(bool panningAuto);
 
     void    setAmDcr(bool on);
     void    setAmSyncDcr(bool on);
@@ -192,6 +196,12 @@ signals:
     /** Signal emitted when AGC hang is changed. Hang is in millisec.*/
     void agcHangChanged(int hang);
 
+    /** Signal emitted when AGC panning is changed. Panning is relative position -100...100 */
+    void agcPanningChanged(int panning);
+
+    /** Signal emitted when AGC panning auto mode is changed. */
+    void agcPanningAuto(bool panningAuto);
+
     /** Signal emitted when noise blanker status has changed. */
     void noiseBlankerChanged(int nbid, bool on, float threshold);
 
@@ -230,6 +240,8 @@ private slots:
     void agcOpt_attackChanged(int value);
     void agcOpt_decayChanged(int value);
     void agcOpt_hangChanged(int value);
+    void agcOpt_panningChanged(int value);
+    void agcOpt_panningAutoChanged(bool value);
 
 private:
     Ui::DockRxOpt *ui;        /** The Qt designer UI file. */

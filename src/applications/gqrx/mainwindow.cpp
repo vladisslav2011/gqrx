@@ -238,6 +238,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(agcAttackChanged(int)), this, SLOT(setAgcAttack(int)));
     connect(uiDockRxOpt, SIGNAL(agcDecayChanged(int)), this, SLOT(setAgcDecay(int)));
     connect(uiDockRxOpt, SIGNAL(agcHangChanged(int)), this, SLOT(setAgcHang(int)));
+    connect(uiDockRxOpt, SIGNAL(agcPanningChanged(int)), this, SLOT(setAgcPanning(int)));
+    connect(uiDockRxOpt, SIGNAL(agcPanningAuto(bool)), this, SLOT(setAgcPanningAuto(bool)));
     connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool,float)), this, SLOT(setNoiseBlanker(int,bool,float)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
@@ -846,6 +848,17 @@ void MainWindow::storeSession()
             else
                 m_settings->remove("agc_hang");
 
+            int_val = rx->get_agc_panning();
+            if (int_val != 0)
+                m_settings->setValue("agc_panning", int_val);
+            else
+                m_settings->remove("agc_panning");
+
+            if (rx->get_agc_panning_auto())
+                m_settings->setValue("agc_panning_auto", true);
+            else
+                m_settings->remove("agc_panning_auto");
+
             int_val = rx->get_agc_max_gain();
             if (int_val != 100)
                 m_settings->setValue("agc_maxgain", int_val);
@@ -966,6 +979,15 @@ void MainWindow::readRXSettings(bool isv4)
         int_val = m_settings->value("agc_hang", 0).toInt(&conv_ok);
         if (conv_ok)
             rx->set_agc_hang(int_val);
+
+        int_val = m_settings->value("agc_panning", 0).toInt(&conv_ok);
+        if (conv_ok)
+            rx->set_agc_panning(int_val);
+
+        if (m_settings->value("agc_panning_auto", false).toBool())
+            rx->set_agc_panning_auto(true);
+        else
+            rx->set_agc_panning_auto(false);
 
         int_val = m_settings->value("agc_maxgain", 100).toInt(&conv_ok);
         if (conv_ok)
@@ -1630,6 +1652,18 @@ void MainWindow::setAgcMaxGain(int gain)
 void MainWindow::setAgcDecay(int msec)
 {
     rx->set_agc_decay(msec);
+}
+
+/** AGC panning changed. */
+void MainWindow::setAgcPanning(int panning)
+{
+    rx->set_agc_panning(panning);
+}
+
+/** AGC panning auto changed. */
+void MainWindow::setAgcPanningAuto(bool panningAuto)
+{
+    rx->set_agc_panning_auto(panningAuto);
 }
 
 /**
@@ -2926,6 +2960,8 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setAgcAttack(rx->get_agc_attack());
     uiDockRxOpt->setAgcDecay(rx->get_agc_decay());
     uiDockRxOpt->setAgcHang(rx->get_agc_hang());
+    uiDockRxOpt->setAgcPanning(rx->get_agc_panning());
+    uiDockRxOpt->setAgcPanningAuto(rx->get_agc_panning_auto());
     if(!rx->get_agc_on())
         uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.0);
     
