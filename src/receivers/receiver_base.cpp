@@ -518,4 +518,6 @@ void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
     set_audio_rec_min_time(from->get_audio_rec_min_time());
     set_audio_rec_max_gap(from->get_audio_rec_max_gap());
     set_rec_dir(from->get_rec_dir());
+    set_agc_panning(from->get_agc_panning());
+    set_agc_panning_auto(from->get_agc_panning_auto());
 }

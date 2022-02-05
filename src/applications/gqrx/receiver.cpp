@@ -953,6 +953,8 @@ std::vector<vfo> receiver::get_vfos()
 receiver::status receiver::set_filter_offset(double offset_hz)
 {
     rx[d_current]->set_offset(offset_hz);//to generate audio filename from
+    if(rx[d_current]->get_agc_panning_auto())
+        rx[d_current]->set_agc_panning(offset_hz * 200.0 / d_decim_rate);
 
     return STATUS_OK;
 }
@@ -1231,6 +1233,8 @@ int receiver::get_agc_panning()
 receiver::status receiver::set_agc_panning_auto(bool mode)
 {
     rx[d_current]->set_agc_panning_auto(mode);
+    if(mode)
+        rx[d_current]->set_agc_panning(rx[d_current]->get_offset() * 200.0 / d_decim_rate);
 
     return STATUS_OK; // FIXME
 }
