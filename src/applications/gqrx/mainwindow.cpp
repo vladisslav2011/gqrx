@@ -454,6 +454,8 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     bool        conf_ok = false;
     bool        conv_ok;
     bool        skip_loading_cfg = false;
+    bool        isv4 = false;
+    qint64      hw_freq = 0;
 
     qDebug() << "Loading configuration from:" << cfgfile;
 
@@ -505,6 +507,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     // manual reconf (FIXME: check status)
     conv_ok = false;
 
+    isv4 = (m_settings->value("configversion").toInt(&conv_ok) >= 4);
     // hide toolbar
     bool_val = m_settings->value("gui/hide_toolbar", false).toBool();
     if (bool_val)
@@ -640,26 +643,24 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     }
 
     uiDockInputCtl->readSettings(m_settings); // this will also update freq range
-    bool isv4 = (m_settings->value("configversion").toInt(&conv_ok) >= 4);
+
+    int64_val = m_settings->value("input/frequency", 14236000).toLongLong(&conv_ok);
+
+    // If frequency is out of range set frequency to the center of the range.
+    hw_freq = int64_val - d_lnb_lo - (qint64)(rx->get_filter_offset());
+    if (hw_freq < d_hw_freq_start || hw_freq > d_hw_freq_stop)
+    {
+        hw_freq = (d_hw_freq_stop - d_hw_freq_start) / 2;
+        int64_val = hw_freq + (qint64)(rx->get_filter_offset()) + d_lnb_lo;
+    }
+
+    rx->set_rf_freq(hw_freq);
     readRXSettings(isv4);
     uiDockFft->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
-
-    {
-        int64_val = m_settings->value("input/frequency", 14236000).toLongLong(&conv_ok);
-
-        // If frequency is out of range set frequency to the center of the range.
-        qint64 hw_freq = int64_val - d_lnb_lo - (qint64)(rx->get_filter_offset());
-        if (hw_freq < d_hw_freq_start || hw_freq > d_hw_freq_stop)
-        {
-            int64_val = (d_hw_freq_stop - d_hw_freq_start) / 2 +
-                        (qint64)(rx->get_filter_offset()) + d_lnb_lo;
-        }
-
-        ui->freqCtrl->setFrequency(int64_val);
-        setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
-    }
+    ui->freqCtrl->setFrequency(int64_val);
+    setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
 
     if (!isv4)
     {
@@ -884,7 +885,7 @@ void MainWindow::storeSession()
             if(rx_count <= 1)
             {
                 m_settings->endGroup();
-                m_settings->beginGroup("receiver");
+                m_settings->beginGroup("audio");
             }
             if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
                 m_settings->setValue("rec_dir", rx->get_audio_rec_dir().data());
@@ -931,13 +932,10 @@ void MainWindow::readRXSettings(bool isv4)
         rx->delete_rx();
     ui->plotter->setCurrentVfo(0);
     ui->plotter->clearVfos();
-    QString grp = QString("rx%1").arg(i);
+    QString grp = isv4 ? QString("rx%1").arg(i) : "receiver";
     while (1)
     {
-        if(isv4)
-            m_settings->beginGroup(grp);
-        else
-            m_settings->beginGroup("receiver");
+        m_settings->beginGroup(grp);
 
         qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
         if (offs)
@@ -1009,14 +1007,17 @@ void MainWindow::readRXSettings(bool isv4)
         {
             m_settings->endGroup();
             m_settings->beginGroup("audio");
+            std::cerr<<"Not v4, entering audio"<<std::endl;
         }
         int_val = m_settings->value("gain", QVariant(-60)).toInt(&conv_ok);
         if (conv_ok)
             if(!rx->get_agc_on())
                 rx->set_agc_manual_gain(int_val);
+        std::cerr<<"Gain "<<int_val<<std::endl;
 
         QString rec_dir = m_settings->value("rec_dir", QDir::homePath()).toString();
         rx->set_audio_rec_dir(rec_dir.toStdString());
+        std::cerr<<"rec_dir "<<rec_dir.toStdString()<<std::endl;
 
         bool squelch_triggered = m_settings->value("squelch_triggered_recording", false).toBool();
         rx->set_audio_rec_sql_triggered(squelch_triggered);
@@ -1025,11 +1026,13 @@ void MainWindow::readRXSettings(bool isv4)
         if (!conv_ok)
             int_val = 0;
         rx->set_audio_rec_min_time(int_val);
+        std::cerr<<"rec_min_time "<<int_val<<std::endl;
 
         int_val = m_settings->value("rec_max_gap", 0).toInt(&conv_ok);
         if (!conv_ok)
             int_val = 0;
         rx->set_audio_rec_max_gap(int_val);
+        std::cerr<<"rec_max_gap "<<int_val<<std::endl;
 
         m_settings->endGroup();
         ui->plotter->addVfo(rx->get_current_vfo());
@@ -1518,16 +1521,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     ui->plotter->setFilterClickResolution(click_res);
     rx->set_filter((double)flo, (double)fhi, d_filter_shape);
     rx->set_cw_offset(cwofs);
-    rx->set_sql_level(uiDockRxOpt->currentSquelchLevel());
-
-    //Call wrapper to update enable/disabled state
-    setAgcOn(uiDockRxOpt->getAgcOn());
-    rx->set_agc_target_level(uiDockRxOpt->getAgcTargetLevel());
-    rx->set_agc_manual_gain(uiDockAudio->audioGain() / 10.0);
-    rx->set_agc_max_gain(uiDockRxOpt->getAgcMaxGain());
-    rx->set_agc_attack(uiDockRxOpt->getAgcAttack());
-    rx->set_agc_decay(uiDockRxOpt->getAgcDecay());
-    rx->set_agc_hang(uiDockRxOpt->getAgcHang());
 
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
@@ -2955,6 +2948,7 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
     
     uiDockRxOpt->setAgcOn(rx->get_agc_on());
+    uiDockAudio->setGainEnabled(!rx->get_agc_on());
     uiDockRxOpt->setAgcTargetLevel(rx->get_agc_target_level());
     uiDockRxOpt->setAgcMaxGain(rx->get_agc_max_gain());
     uiDockRxOpt->setAgcAttack(rx->get_agc_attack());

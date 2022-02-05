@@ -43,6 +43,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_cw_offset(0),
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
+      d_center_freq(145500000.0),
+      d_offset(0),
       d_index(-1),
       d_demod(Modulations::MODE_OFF),
       d_filter_low(-5000),

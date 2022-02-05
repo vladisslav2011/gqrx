@@ -33,6 +33,19 @@
       <property name="verticalSpacing">
        <number>5</number>
       </property>
+      <item row="6" column="2">
+       <widget class="QLabel" name="panningLabel">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="text">
+         <string>0</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="0">
        <widget class="QLabel" name="targetLevelTitle">
         <property name="text">
@@ -350,13 +363,13 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="2">
+      <item row="7" column="1">
        <widget class="QCheckBox" name="panningAutoCheckBox">
         <property name="toolTip">
          <string>Enable auto stereo panning mode depending on offset frequency.</string>
         </property>
         <property name="text">
-         <string>Auto</string>
+         <string>Auto panning</string>
         </property>
        </widget>
       </item>

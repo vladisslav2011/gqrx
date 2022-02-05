@@ -264,6 +264,7 @@ void CAgcOptions::on_hangSlider_valueChanged(int value)
 /*! \brief Panning slider value has changed. */
 void CAgcOptions::on_panningSlider_valueChanged(int value)
 {
+    ui->panningLabel->setText(QString::number(value));
     emit panningChanged(value);
 }
 
@@ -272,5 +273,6 @@ void CAgcOptions::on_panningAutoCheckBox_stateChanged(int state)
 {
     ui->panningSlider->setEnabled(!(state == Qt::Checked));
     ui->panningTitle->setEnabled(!(state == Qt::Checked));
+    ui->panningLabel->setEnabled(!(state == Qt::Checked));
     emit panningAutoChanged(state == Qt::Checked);
 }
