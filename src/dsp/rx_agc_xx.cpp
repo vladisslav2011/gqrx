@@ -34,6 +34,10 @@
 #define MIN_GAIN_DB (-20.0f)
 #define MIN_GAIN exp10f(MIN_GAIN_DB)
 #define MAX_SAMPLE_RATE 96000
+#define PANNING_DELAY_K 4000.0
+#define PANNING_GAIN_K  100.0
+//TODO Make this user-configurable as extra peak history time
+#define AGC_AVG_BUF_SCALE 2
 
 rx_agc_2f_sptr make_rx_agc_2f(double sample_rate, bool agc_on, int target_level,
                               int manual_gain, int max_gain, int attack,
@@ -86,7 +90,7 @@ rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
 
 {
     set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, d_panning, true);
-    set_history(MAX_SAMPLE_RATE + 1 + 1000);
+    set_history(MAX_SAMPLE_RATE + 1 + MAX_SAMPLE_RATE * 100 / PANNING_DELAY_K);
 }
 
 rx_agc_2f::~rx_agc_2f()
@@ -163,7 +167,7 @@ int rx_agc_2f::work(int noutput_items,
             max_out = get_peak();
 
             int buf_p_next = d_buf_p + 1;
-            if (buf_p_next >= d_buf_samples)
+            if (buf_p_next >= d_buf_size)
                 buf_p_next = 0;
 
             if (max_out > d_floor)
@@ -443,27 +447,26 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
         d_delay_r = 0;
         if(panning < 0)
         {
-            d_gain_r = exp10(panning / 100.0);
-            d_delay_r = (sample_rate * -panning)/4000.0;
+            d_gain_r = exp10(panning / PANNING_GAIN_K);
+            d_delay_r = (sample_rate * -panning)/PANNING_DELAY_K;
         }
         if(panning > 0)
         {
-            d_gain_l = exp10(-panning / 100.0);
-            d_delay_l = (sample_rate * panning)/4000.0;
+            d_gain_l = exp10(-panning / PANNING_GAIN_K);
+            d_delay_l = (sample_rate * panning)/PANNING_DELAY_K;
         }
     }
     if (samp_rate_changed || attack_changed)
     {
         d_buf_samples = sample_rate * d_attack / 1000.0;
+        int buf_samples = d_buf_samples * AGC_AVG_BUF_SCALE;
         int buf_size = 1;
         for(unsigned int k = 0; k < sizeof(int) * 8; k++)
         {
             buf_size *= 2;
-            if(buf_size >= d_buf_samples)
+            if(buf_size >= buf_samples)
                 break;
         }
-        if (d_buf_p >= d_buf_samples)
-            d_buf_p %= d_buf_samples;
         if(d_buf_size != buf_size)
         {
             d_buf_size = buf_size;
@@ -474,6 +477,8 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
             if(d_agc_on && d_running)
                 d_refill = true;
          }
+        if (d_buf_p >= d_buf_size)
+            d_buf_p %= d_buf_size;
     }
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = exp10(TYPEFLOAT(d_manual_gain) / 20.0);
