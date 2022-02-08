@@ -175,6 +175,7 @@ public:
     virtual void restore_settings(receiver_base_cf_sptr from);
     bool connected() { return d_connected; }
     void connected(bool value) { d_connected = value; }
+    vfo::sptr get_vfo() {return d_vfo; }
 
 protected:
     bool        d_connected;
@@ -184,14 +185,14 @@ protected:
     unsigned int    d_ddc_decim;    /*!< Down-conversion decimation. */
     int         d_audio_rate;       /*!< Audio output rate. */
     double      d_center_freq;
-    double      d_offset;
-    bool        d_freq_lock;
+    //double      d_offset;
+    //bool        d_freq_lock;
     std::string d_rec_dir;
     std::string d_audio_filename;
-    int         d_index;
-    Modulations::idx d_demod;
-    double d_filter_low;
-    double d_filter_high;
+    //int         d_index;
+    //Modulations::idx d_demod;
+    //double d_filter_low;
+    //double d_filter_high;
     double d_filter_tw;
     double d_level_db;
     double d_alpha;
@@ -211,6 +212,7 @@ protected:
     float d_amsync_pll_bw;
     bool d_nb_on[RECEIVER_NB_COUNT];
     float d_nb_threshold[RECEIVER_NB_COUNT];
+    vfo::sptr d_vfo;
 
     downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */

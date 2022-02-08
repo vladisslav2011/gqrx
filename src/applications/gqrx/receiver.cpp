@@ -896,41 +896,23 @@ int receiver::get_current()
     return d_current;
 }
 
-vfo receiver::get_current_vfo()
+vfo::sptr receiver::get_current_vfo()
 {
     return get_vfo(d_current);
 }
 
-vfo receiver::get_vfo(int n)
+vfo::sptr receiver::get_vfo(int n)
 {
-    vfo rxn;
-    auto &rxc = rx[n];
-    rxn.offset = rxc->get_offset();
-    double low, high, dummy;
-    rxc->get_filter(low, high, dummy);
-    rxn.low = int(low);
-    rxn.high = int(high);
-    rxn.mode = rxc->get_demod();
-    rxn.index = rxc->get_index();
-    rxn.locked = rxc->get_freq_lock();
-    return rxn;
+    return rx[n]->get_vfo();
 }
 
-std::vector<vfo> receiver::get_vfos()
+std::vector<vfo::sptr> receiver::get_vfos()
 {
-    std::vector<vfo> vfos;
+    std::vector<vfo::sptr> vfos;
     vfos.reserve(rx.size());
     for(auto &rxc : rx)
     {
-        vfo rxn;
-        rxn.offset = rxc->get_offset();
-        double low, high, dummy;
-        rxc->get_filter(low, high, dummy);
-        rxn.low = int(low);
-        rxn.high = int(high);
-        rxn.mode = rxc->get_demod();
-        rxn.index = rxc->get_index();
-        vfos.push_back(rxn);
+        vfos.push_back(rxc->get_vfo());
     }
     return vfos;
 }

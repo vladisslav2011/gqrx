@@ -183,9 +183,9 @@ public:
     status      select_rx(int no);
     status      fake_select_rx(int no);
     int         get_current();
-    vfo         get_current_vfo();
-    vfo         get_vfo(int n);
-    std::vector<vfo> get_vfos();
+    vfo::sptr   get_current_vfo();
+    vfo::sptr   get_vfo(int n);
+    std::vector<vfo::sptr> get_vfos();
 
     status      set_filter_offset(double offset_hz);
     status      set_filter_offset(int rx_index, double offset_hz);

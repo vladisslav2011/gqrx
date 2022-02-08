@@ -92,7 +92,7 @@ void wfmrx::set_demod(Modulations::idx demod)
     if ((demod < Modulations::MODE_WFM_MONO) || (demod > Modulations::MODE_WFM_STEREO_OIRT))
         return;
 
-    if (demod == d_demod) {
+    if (demod == d_vfo->mode) {
         /* nothing to do */
         return;
     }
@@ -101,7 +101,7 @@ void wfmrx::set_demod(Modulations::idx demod)
     lock();
 
     /* disconnect current demodulator */
-    switch (d_demod) {
+    switch (d_vfo->mode) {
 
     case Modulations::MODE_WFM_MONO:
     default:

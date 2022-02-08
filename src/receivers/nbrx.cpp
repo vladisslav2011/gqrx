@@ -110,7 +110,7 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
 
 void nbrx::set_demod(Modulations::idx new_demod)
 {
-    Modulations::idx current_demod = d_demod;
+    Modulations::idx current_demod = d_vfo->mode;
 
     if (new_demod == current_demod) {
         /* nothing to do */

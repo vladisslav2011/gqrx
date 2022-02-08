@@ -125,10 +125,10 @@ public:
     void    clearWaterfall();
     bool    saveWaterfall(const QString & filename) const;
     void    setCurrentVfo(int current);
-    void    addVfo(const vfo &vfo);
-    void    removeVfo(const vfo &vfo);
+    void    addVfo(vfo::sptr n_vfo);
+    void    removeVfo(vfo::sptr n_vfo);
     void    clearVfos();
-    void    getLockedVfos(std::vector<vfo> &to);
+    void    getLockedVfos(std::vector<vfo::sptr> &to);
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
@@ -297,9 +297,9 @@ private:
     QMap<int,int>   m_Peaks;
 
     QList< QPair<QRect, qint64> >     m_Taglist;
-    std::set<vfo> m_vfos;
-    std::set<vfo>::iterator m_vfos_ub;
-    std::set<vfo>::iterator m_vfos_lb;
+    vfo::set    m_vfos;
+    vfo::set::iterator m_vfos_ub;
+    vfo::set::iterator m_vfos_lb;
     int         m_currentVfo;
     int         m_capturedVfo;
 

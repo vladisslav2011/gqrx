@@ -44,12 +44,6 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
-      d_offset(0),
-      d_freq_lock(false),
-      d_index(-1),
-      d_demod(Modulations::MODE_OFF),
-      d_filter_low(-5000),
-      d_filter_high(5000),
       d_filter_tw(100),
       d_level_db(-150),
       d_alpha(0.001),
@@ -69,6 +63,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_amsync_pll_bw(0.01),
       d_pref_quad_rate(pref_quad_rate)
 {
+    d_vfo = vfo::make(0, -5000, 5000, Modulations::MODE_OFF, -1, false);
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
     {
         d_nb_on[k] = false;
@@ -101,17 +96,17 @@ receiver_base_cf::~receiver_base_cf()
 
 void receiver_base_cf::set_index(int index)
 {
-    d_index = index;
+    d_vfo->index = index;
 }
 
 int  receiver_base_cf::get_index()
 {
-    return d_index;
+    return d_vfo->index;
 }
 
 void receiver_base_cf::set_demod(Modulations::idx demod)
 {
-    if ((d_demod == Modulations::MODE_OFF) && (demod != Modulations::MODE_OFF))
+    if ((d_vfo->mode == Modulations::MODE_OFF) && (demod != Modulations::MODE_OFF))
     {
         qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
         lock();
@@ -119,12 +114,12 @@ void receiver_base_cf::set_demod(Modulations::idx demod)
         iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
         unlock();
     }
-    d_demod = demod;
+    d_vfo->mode = demod;
 }
 
 Modulations::idx receiver_base_cf::get_demod()
 {
-    return d_demod;
+    return d_vfo->mode;
 }
 
 void receiver_base_cf::set_quad_rate(double quad_rate)
@@ -135,7 +130,7 @@ void receiver_base_cf::set_quad_rate(double quad_rate)
         d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
         d_quad_rate = d_decim_rate / d_ddc_decim;
         //avoid triggering https://github.com/gnuradio/gnuradio/issues/5436
-        if (d_demod != Modulations::MODE_OFF)
+        if (d_vfo->mode != Modulations::MODE_OFF)
         {
             qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
             lock();
@@ -154,30 +149,30 @@ void receiver_base_cf::set_center_freq(double center_freq)
 
 void receiver_base_cf::set_offset(double offset)
 {
-    d_offset = offset;
-    ddc->set_center_freq(d_offset - d_cw_offset);
+    d_vfo->offset = offset;
+    ddc->set_center_freq(offset - d_cw_offset);
     wav_sink->set_offset(offset);
 }
 
 double receiver_base_cf::get_offset()
 {
-    return d_offset;
+    return d_vfo->offset;
 }
 
 void receiver_base_cf::set_freq_lock(bool on)
 {
-    d_freq_lock = on;
+    d_vfo->locked = on;
 }
 
 bool receiver_base_cf::get_freq_lock()
 {
-    return d_freq_lock;
+    return d_vfo->locked;
 }
 
 void receiver_base_cf::set_cw_offset(double offset)
 {
     d_cw_offset = offset;
-    ddc->set_center_freq(d_offset - d_cw_offset);
+    ddc->set_center_freq(d_vfo->offset - d_cw_offset);
 }
 
 double receiver_base_cf::get_cw_offset()
@@ -214,15 +209,15 @@ float receiver_base_cf::get_signal_level()
 
 void receiver_base_cf::set_filter(double low, double high, double tw)
 {
-    d_filter_low = low;
-    d_filter_high = high;
+    d_vfo->low = low;
+    d_vfo->high = high;
     d_filter_tw = tw;
 }
 
 void receiver_base_cf::get_filter(double &low, double &high, double &tw)
 {
-    low = d_filter_low;
-    high = d_filter_high;
+    low = d_vfo->low;
+    high = d_vfo->high;
     tw = d_filter_tw;
 }
 
@@ -496,14 +491,14 @@ void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, 
 {
     self->d_audio_filename = filename;
     if(self->d_rec_event)
-        self->d_rec_event(self->d_index, filename, is_running);
+        self->d_rec_event(self->d_vfo->index, filename, is_running);
 }
 
 void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
 {
-    set_offset(from->d_offset);
+    set_offset(from->d_vfo->offset);
     set_center_freq(from->d_center_freq);
-    set_filter(from->d_filter_low, from->d_filter_high, from->d_filter_tw);
+    set_filter(from->d_vfo->low, from->d_vfo->high, from->d_filter_tw);
     set_cw_offset(from->d_cw_offset);
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
     {
@@ -519,6 +514,7 @@ void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
     set_agc_attack(from->d_agc_attack_ms);
     set_agc_decay(from->d_agc_decay_ms);
     set_agc_hang(from->d_agc_hang_ms);
+
     set_fm_maxdev(from->d_fm_maxdev);
     set_fm_deemph(from->d_fm_deemph);
     set_am_dcr(from->d_am_dcr);

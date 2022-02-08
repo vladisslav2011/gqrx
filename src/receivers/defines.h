@@ -37,10 +37,51 @@
 
 #define WFM_PREF_QUAD_RATE   240e3 // Nominal channel spacing is 200 kHz
 
+#include <memory>
+#include <set>
+#include <iostream>
 #include "modulations.h"
 
-typedef struct vfo_s
+class vfo_s;
+static inline bool operator<(const vfo_s & a, const vfo_s & b);
+typedef class vfo_s
 {
+    public:
+    typedef std::shared_ptr<vfo_s> sptr;
+    static sptr make()
+    {
+        return sptr(new vfo_s());
+    }
+    static sptr make(int _offset, int _low, int _high, Modulations::idx _mode, int _index, bool _locked)
+    {
+        return sptr(new vfo_s(_offset, _low, _high, _mode, _index, _locked));
+    }
+    vfo_s():
+        offset(0),
+        low(0),
+        high(0),
+        mode(Modulations::MODE_OFF),
+        index(0),
+        locked(false)
+    {
+    }
+    vfo_s(int _offset, int _low, int _high, Modulations::idx _mode, int _index, bool _locked):
+        offset(_offset),
+        low(_low),
+        high(_high),
+        mode(_mode),
+        index(_index),
+        locked(_locked)
+    {
+    }
+    struct comp
+    {
+        inline bool operator()(const sptr lhs, const sptr rhs) const
+        {
+            return (*lhs) < (*rhs);
+        }
+    };
+    typedef std::set<sptr, comp> set;
     int offset;
     int low;
     int high;
@@ -49,9 +90,9 @@ typedef struct vfo_s
     bool locked;
 } vfo;
 
-static inline bool operator<(const vfo_s &self, const vfo_s &other)
+static inline bool operator<(const vfo_s &a, const vfo_s &b)
 {
-    return (self.offset == other.offset) ? (self.index < other.index) : (self.offset < other.offset);
+    return (a.offset == b.offset) ? (a.index < b.index) : (a.offset < b.offset);
 }
 
 

@@ -1232,18 +1232,18 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
         rx->reset_rds_parser();
     if(rx->get_rx_count() > 1)
     {
-        std::vector<vfo> locked_vfos;
+        std::vector<vfo::sptr> locked_vfos;
         int offset_lim = (int)(ui->plotter->getSampleRate() / 2);
         std::set<int> del_list;
         ui->plotter->getLockedVfos(locked_vfos);
         for(auto &cvfo : locked_vfos)
         {
             ui->plotter->removeVfo(cvfo);
-            cvfo.offset += delta_freq;
-            if((cvfo.offset > offset_lim) || (cvfo.offset < -offset_lim))
-                del_list.insert(cvfo.index);
+            int new_offset = cvfo->offset + delta_freq;
+            if((new_offset > offset_lim) || (new_offset < -offset_lim))
+                del_list.insert(cvfo->index);
             else{
-                rx->set_filter_offset(cvfo.index, cvfo.offset);
+                rx->set_filter_offset(cvfo->index, new_offset);
                 ui->plotter->addVfo(cvfo);
             }
         }
