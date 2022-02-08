@@ -622,6 +622,7 @@ bool CPlotter::saveWaterfall(const QString & filename) const
 void CPlotter::setCurrentVfo(int current)
 {
     m_currentVfo = current;
+    updateOverlay();
 }
 
 void    CPlotter::addVfo(const vfo &vfo)

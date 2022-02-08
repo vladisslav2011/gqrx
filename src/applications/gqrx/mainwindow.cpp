@@ -2996,19 +2996,25 @@ void MainWindow::on_actionAddDemodulator_triggered()
 {
     ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->add_rx();
-    qDebug()<<"on_actionAddDemodulator_triggered() "<<n;
-    rxSpinBox->setMaximum(rx->get_rx_count()-1);
+    std::cerr<<"on_actionAddDemodulator_triggered() "<<n;
+    ui->plotter->setCurrentVfo(rx->get_rx_count() - 1);
+    rxSpinBox->setMaximum(rx->get_rx_count() - 1);
     rxSpinBox->setValue(n);
 }
 
 void MainWindow::on_actionRemoveDemodulator_triggered()
 {
-    ui->plotter->removeVfo(rx->get_vfo(rx->get_rx_count()-1));
+    int old_current = rx->get_current();
+    if(old_current != rx->get_rx_count() - 1)
+        ui->plotter->removeVfo(rx->get_vfo(rx->get_rx_count() - 1));
     int n = rx->delete_rx();
-    qDebug()<<"on_actionRemoveDemodulator_triggered() "<<n;
+    std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n;
     rxSpinBox->setValue(n);
-    rxSpinBox->setMaximum(rx->get_rx_count()-1);
+    rxSpinBox->setMaximum(rx->get_rx_count() - 1);
     loadRxToGUI();
+    if(old_current != n)
+        ui->plotter->removeVfo(rx->get_vfo(n));
+    ui->plotter->setCurrentVfo(n);
 }
 
 void MainWindow::on_rxSpinBox_valueChanged(int i)
@@ -3019,7 +3025,7 @@ void MainWindow::on_rxSpinBox_valueChanged(int i)
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
     ui->plotter->setCurrentVfo(i);
-    qDebug()<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n;
+    std::cerr<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n;
     if(n == receiver::STATUS_OK)
         loadRxToGUI();
 }
