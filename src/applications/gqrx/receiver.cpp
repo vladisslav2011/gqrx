@@ -914,6 +914,7 @@ vfo receiver::get_vfo(int n)
     rxn.high = int(high);
     rxn.mode = rxc->get_demod();
     rxn.index = rxc->get_index();
+    rxn.locked = rxc->get_freq_lock();
     return rxn;
 }
 
@@ -952,9 +953,15 @@ std::vector<vfo> receiver::get_vfos()
  */
 receiver::status receiver::set_filter_offset(double offset_hz)
 {
-    rx[d_current]->set_offset(offset_hz);//to generate audio filename from
-    if(rx[d_current]->get_agc_panning_auto())
-        rx[d_current]->set_agc_panning(offset_hz * 200.0 / d_decim_rate);
+    set_filter_offset(d_current, offset_hz);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_filter_offset(int rx_index, double offset_hz)
+{
+    rx[rx_index]->set_offset(offset_hz);//to generate audio filename from
+    if(rx[rx_index]->get_agc_panning_auto())
+        rx[rx_index]->set_agc_panning(offset_hz * 200.0 / d_decim_rate);
 
     return STATUS_OK;
 }
@@ -968,6 +975,17 @@ double receiver::get_filter_offset(void) const
 {
     return rx[d_current]->get_offset();
 }
+
+void receiver::set_freq_lock(bool on)
+{
+    rx[d_current]->set_freq_lock(on);
+}
+
+bool receiver::get_freq_lock()
+{
+    return rx[d_current]->get_freq_lock();
+}
+
 
 /* CW offset can serve as a "BFO" if the GUI needs it */
 receiver::status receiver::set_cw_offset(double offset_hz)
@@ -1291,7 +1309,6 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         background_rx();
         disconnect_rx();
     }
-     std::cerr<<"set_demod_locked "<<demod<<" old "<<old_idx<<std::endl;
 
     switch (demod)
     {
@@ -1392,7 +1409,6 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
     status ret = STATUS_OK;
     if(rx[d_current]->get_demod() == demod)
         return ret;
-     std::cerr<<"set_demod "<<demod<<std::endl;
      bool restart_required = false;
      if((d_active <= 1) || (demod == Modulations::MODE_OFF) || (rx[d_current]->get_demod() == Modulations::MODE_OFF))
      {

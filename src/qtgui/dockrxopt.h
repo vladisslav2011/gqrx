@@ -112,6 +112,9 @@ public:
     void    setFmEmph(double tau);
     void    setNoiseBlanker(int nbid, bool on, float threshold);
 
+    void    setFreqLock(bool lock);
+    bool    getFreqLock();
+
 public slots:
     void setRxFreq(qint64 freq_hz);
     void setCurrentDemod(Modulations::idx demod);
@@ -205,6 +208,9 @@ signals:
     /** Signal emitted when noise blanker status has changed. */
     void noiseBlankerChanged(int nbid, bool on, float threshold);
 
+    /** Signal emitted when freq lock mode changed. */
+    void freqLock(bool lock);
+
     void cwOffsetChanged(int offset);
 
 private slots:
@@ -222,6 +228,7 @@ private slots:
     void on_nb1Button_toggled(bool checked);
     void on_nb2Button_toggled(bool checked);
     void on_nbOptButton_clicked();
+    void on_freqLockButton_clicked();
 
     // Signals coming from noise blanker pop-up
     void nbOpt_thresholdChanged(int nbid, double value);

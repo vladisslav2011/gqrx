@@ -45,6 +45,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
       d_offset(0),
+      d_freq_lock(false),
       d_index(-1),
       d_demod(Modulations::MODE_OFF),
       d_filter_low(-5000),
@@ -161,6 +162,16 @@ void receiver_base_cf::set_offset(double offset)
 double receiver_base_cf::get_offset()
 {
     return d_offset;
+}
+
+void receiver_base_cf::set_freq_lock(bool on)
+{
+    d_freq_lock = on;
+}
+
+bool receiver_base_cf::get_freq_lock()
+{
+    return d_freq_lock;
 }
 
 void receiver_base_cf::set_cw_offset(double offset)

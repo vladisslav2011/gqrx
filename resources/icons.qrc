@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="/icons">
+    <file>icons/lock.svg</file>
     <file>icons/remove.svg</file>
     <file>icons/add.svg</file>
     <file>icons/audio-card.svg</file>

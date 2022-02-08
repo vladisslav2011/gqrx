@@ -188,7 +188,11 @@ public:
     std::vector<vfo> get_vfos();
 
     status      set_filter_offset(double offset_hz);
+    status      set_filter_offset(int rx_index, double offset_hz);
     double      get_filter_offset(void) const;
+    void        set_freq_lock(bool on);
+    bool        get_freq_lock();
+
     status      set_cw_offset(double offset_hz);
     double      get_cw_offset(void) const;
     status      set_filter(double low, double high, filter_shape shape);

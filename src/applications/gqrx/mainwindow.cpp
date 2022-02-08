@@ -243,6 +243,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool,float)), this, SLOT(setNoiseBlanker(int,bool,float)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
+    connect(uiDockRxOpt, SIGNAL(freqLock(bool)), this, SLOT(setFreqLock(bool)));
     connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool)), this, SLOT(setAudioMute(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted(QString,int,bool)), this, SLOT(startAudioStream(QString,int,bool)));
@@ -647,22 +648,32 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     int64_val = m_settings->value("input/frequency", 14236000).toLongLong(&conv_ok);
 
     // If frequency is out of range set frequency to the center of the range.
-    hw_freq = int64_val - d_lnb_lo - (qint64)(rx->get_filter_offset());
+    hw_freq = int64_val - d_lnb_lo;
     if (hw_freq < d_hw_freq_start || hw_freq > d_hw_freq_stop)
     {
         hw_freq = (d_hw_freq_stop - d_hw_freq_start) / 2;
-        int64_val = hw_freq + (qint64)(rx->get_filter_offset()) + d_lnb_lo;
+        int64_val = hw_freq + d_lnb_lo;
     }
 
     rx->set_rf_freq(hw_freq);
+    if(isv4)
+    {
+        ui->freqCtrl->setFrequency(int64_val  + (qint64)(rx->get_filter_offset()));
+        setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
+    }
     readRXSettings(isv4);
+    if(!isv4)
+    {
+        rx->set_rf_freq(hw_freq - rx->get_filter_offset());
+        ui->freqCtrl->setFrequency(hw_freq + d_lnb_lo);
+        setNewFrequency(hw_freq + d_lnb_lo);
+    }
+
     uiDockFft->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
-    ui->freqCtrl->setFrequency(int64_val);
-    setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
 
-    if (!isv4)
+    if (false)
     {
         int flo = m_settings->value("receiver/filter_low_cut", 0).toInt(&conv_ok);
         int fhi = m_settings->value("receiver/filter_high_cut", 0).toInt(&conv_ok);
@@ -769,7 +780,10 @@ void MainWindow::storeSession()
         }
         m_settings->remove("audio");
         m_settings->remove("receiver");
-        m_settings->setValue("input/frequency", ui->freqCtrl->getFrequency());
+        if(rx_count <= 1)
+            m_settings->setValue("input/frequency", qint64(rx->get_rf_freq() + d_lnb_lo + rx->get_filter_offset()));
+        else
+            m_settings->setValue("input/frequency", qint64(rx->get_rf_freq() + d_lnb_lo));
 
         uiDockInputCtl->saveSettings(m_settings);
         uiDockFft->saveSettings(m_settings);
@@ -814,9 +828,17 @@ void MainWindow::storeSession()
 
             qint64 offs = rx->get_filter_offset();
             if (offs)
+            {
                 m_settings->setValue("offset", offs);
+                m_settings->setValue("frequency", qint64(offs + rx->get_rf_freq()));
+            }
             else
                 m_settings->remove("offset");
+
+            if (rx->get_freq_lock())
+                m_settings->setValue("freq_locked", true);
+            else
+                m_settings->remove("freq_locked");
 
             double sql_lvl = rx->get_sql_level();
             if (sql_lvl > -150.0)
@@ -925,6 +947,7 @@ void MainWindow::readRXSettings(bool isv4)
 {
     bool conv_ok;
     int int_val;
+    qint64 int64_val;
     double  dbl_val;
     int i = 0;
     rxSpinBox->setMaximum(0);
@@ -938,8 +961,15 @@ void MainWindow::readRXSettings(bool isv4)
         m_settings->beginGroup(grp);
 
         qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
-        if (offs)
+        if (conv_ok)
             rx->set_filter_offset(offs);
+        int64_val = m_settings->value("frequency", 0).toInt(&conv_ok);
+        std::cerr<<"readRXSettings offset="<<offs<<" frequency "<<int64_val<<" center"<<(int64_val - offs)<<std::endl;
+
+        if (m_settings->value("freq_locked", false).toBool())
+            rx->set_freq_lock(true);
+        else
+            rx->set_freq_lock(false);
 
         int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
         rx->set_demod(Modulations::idx(int_val));
@@ -1046,16 +1076,11 @@ void MainWindow::readRXSettings(bool isv4)
     if(!conv_ok)
         int_val = 0;
     rxSpinBox->setMaximum(rx->get_rx_count() - 1);
-    if(rxSpinBox->value() == int_val)
-    {
-        ui->plotter->removeVfo(rx->get_vfo(int_val));
-        rx->select_rx(int_val);
-        ui->plotter->setCurrentVfo(int_val);
-    }
-    else
-    {
+    ui->plotter->removeVfo(rx->get_vfo(int_val));
+    rx->select_rx(int_val);
+    ui->plotter->setCurrentVfo(int_val);
+    if(rxSpinBox->value() != int_val)
         rxSpinBox->setValue(int_val);
-    }
     loadRxToGUI();
 }
 
@@ -1157,12 +1182,12 @@ void MainWindow::updateGainStages(bool read_from_device)
  */
 void MainWindow::setNewFrequency(qint64 rx_freq)
 {
-
     auto new_offset = rx->get_filter_offset();
     auto hw_freq = (double)(rx_freq - d_lnb_lo) - new_offset;
     auto center_freq = rx_freq - (qint64)new_offset;
     auto max_offset = rx->get_input_rate() / 2;
     bool update_offset = rx->is_playing_iq();
+    auto delta_freq = d_hw_freq;
 
     rx->set_rf_freq(hw_freq);
     d_hw_freq = d_ignore_limits ? hw_freq : (qint64)rx->get_rf_freq();
@@ -1191,6 +1216,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
             rx_freq = center_freq + new_offset;
          }
     }
+    delta_freq -= d_hw_freq;
 
     // update widgets
     ui->plotter->setCenterFreq(center_freq);
@@ -1204,6 +1230,53 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     uiDockAudio->setRxFrequency(rx_freq);
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
+    if(rx->get_rx_count() > 1)
+    {
+        std::vector<vfo> locked_vfos;
+        int offset_lim = (int)(ui->plotter->getSampleRate() / 2);
+        std::set<int> del_list;
+        ui->plotter->getLockedVfos(locked_vfos);
+        for(auto &cvfo : locked_vfos)
+        {
+            ui->plotter->removeVfo(cvfo);
+            cvfo.offset += delta_freq;
+            if((cvfo.offset > offset_lim) || (cvfo.offset < -offset_lim))
+                del_list.insert(cvfo.index);
+            else{
+                rx->set_filter_offset(cvfo.index, cvfo.offset);
+                ui->plotter->addVfo(cvfo);
+            }
+        }
+        if(del_list.size() > 0)
+        {
+            int lastCurrent = rx->get_current();
+            for(auto i = del_list.rbegin(); i != del_list.rend(); ++i)
+            {
+                int last = rx->get_rx_count() - 1;
+                rx->select_rx(*i);
+                if(lastCurrent == last)
+                {
+                    lastCurrent = *i;
+                    last = -1;
+                }
+                else
+                    if(*i != last)
+                    {
+                        ui->plotter->removeVfo(rx->get_vfo(last));
+                        last = *i;
+                    }
+                    else
+                        last = -1;
+                rx->delete_rx();
+                if(last != -1)
+                    ui->plotter->addVfo(rx->get_vfo(last));
+            }
+            rx->select_rx(lastCurrent);
+            ui->plotter->setCurrentVfo(lastCurrent);
+            rxSpinBox->setMaximum(rx->get_rx_count() - 1);
+            rxSpinBox->setValue(lastCurrent);
+        }
+    }
 }
 
 /**
@@ -2157,7 +2230,7 @@ void MainWindow::stopIqPlayback()
     qint64 oldOffset = m_settings->value("receiver/offset", 0).toLongLong(&offsetOK);
     if (centerOK && offsetOK)
     {
-        on_plotter_newDemodFreq(oldCenter, oldOffset);
+        on_plotter_newDemodFreq(oldCenter + oldOffset, oldOffset);
     }
 
     if (ui->actionDSP->isChecked())
@@ -2708,6 +2781,11 @@ void MainWindow::setPassband(int bandwidth)
     on_plotter_newFilterFreq(lo, hi);
 }
 
+void MainWindow::setFreqLock(bool lock)
+{
+    rx->set_freq_lock(lock);
+}
+
 /** Launch Gqrx google group website. */
 void MainWindow::on_actionUserGroup_triggered()
 {
@@ -2935,6 +3013,8 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
 
 void MainWindow::on_rxSpinBox_valueChanged(int i)
 {
+    if(i == rx->get_current())
+        return;
     ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
@@ -2960,7 +3040,6 @@ void MainWindow::loadRxToGUI()
     receiver::filter_shape fs;
     auto mode_idx = rx->get_demod();
 
-
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);
@@ -2976,6 +3055,7 @@ void MainWindow::loadRxToGUI()
 
     rx->get_filter(low, high, fs);
     updateDemodGUIRanges();
+    uiDockRxOpt->setFreqLock(rx->get_freq_lock());
     uiDockRxOpt->setCurrentFilterShape(fs);
     uiDockRxOpt->setFilterParam(low, high);
 

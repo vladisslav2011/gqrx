@@ -85,6 +85,8 @@ public:
     virtual void set_center_freq(double center_freq);
     virtual void set_offset(double offset);
     virtual double get_offset();
+    virtual void set_freq_lock(bool on);
+    virtual bool get_freq_lock();
     virtual void set_rec_dir(std::string dir);
     virtual std::string get_rec_dir() { return d_rec_dir; }
     virtual void set_audio_rec_sql_triggered(bool enabled);
@@ -183,6 +185,7 @@ protected:
     int         d_audio_rate;       /*!< Audio output rate. */
     double      d_center_freq;
     double      d_offset;
+    bool        d_freq_lock;
     std::string d_rec_dir;
     std::string d_audio_filename;
     int         d_index;

@@ -639,6 +639,14 @@ void    CPlotter::clearVfos()
     m_vfos.clear();
 }
 
+void    CPlotter::getLockedVfos(std::vector<vfo> &to)
+{
+    to.clear();
+    for(auto &cvfo : m_vfos)
+        if(cvfo.locked)
+            to.push_back(cvfo);
+}
+
 /** Get waterfall time resolution in milleconds / line. */
 quint64 CPlotter::getWfTimeRes() const
 {

@@ -517,6 +517,16 @@ void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
     nbOpt->setNbThreshold(nbid, threshold);
 }
 
+void DockRxOpt::setFreqLock(bool lock)
+{
+    ui->freqLockButton->setChecked(lock);
+}
+
+bool DockRxOpt::getFreqLock()
+{
+    return ui->freqLockButton->isChecked();
+}
+
 /** RX frequency changed through spin box */
 void DockRxOpt::on_freqSpinBox_valueChanged(double freq)
 {
@@ -801,6 +811,11 @@ void DockRxOpt::on_nb1Button_toggled(bool checked)
 void DockRxOpt::on_nb2Button_toggled(bool checked)
 {
     emit noiseBlankerChanged(2, checked, (float) nbOpt->nbThreshold(2));
+}
+
+void DockRxOpt::on_freqLockButton_clicked()
+{
+    emit freqLock(ui->freqLockButton->isChecked());
 }
 
 /** Noise blanker threshold has been changed. */
