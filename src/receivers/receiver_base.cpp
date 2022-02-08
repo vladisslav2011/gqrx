@@ -499,6 +499,7 @@ void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
     set_offset(from->d_vfo->offset);
     set_center_freq(from->d_center_freq);
     set_filter(from->d_vfo->low, from->d_vfo->high, from->d_filter_tw);
+    set_freq_lock(from->get_freq_lock());
     set_cw_offset(from->d_cw_offset);
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
     {
