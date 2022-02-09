@@ -25,6 +25,7 @@
 
 #include <QDockWidget>
 #include <QSettings>
+#include <QMenu>
 #include "qtgui/agc_options.h"
 #include "qtgui/demod_options.h"
 #include "qtgui/nb_options.h"
@@ -209,7 +210,7 @@ signals:
     void noiseBlankerChanged(int nbid, bool on, float threshold);
 
     /** Signal emitted when freq lock mode changed. */
-    void freqLock(bool lock);
+    void freqLock(bool lock, bool all);
 
     void cwOffsetChanged(int offset);
 
@@ -229,6 +230,9 @@ private slots:
     void on_nb2Button_toggled(bool checked);
     void on_nbOptButton_clicked();
     void on_freqLockButton_clicked();
+    void on_freqLockButton_customContextMenuRequested(const QPoint& pos);
+    void menuFreqLockAll();
+    void menuFreqUnlockAll();
 
     // Signals coming from noise blanker pop-up
     void nbOpt_thresholdChanged(int nbid, double value);
@@ -255,7 +259,8 @@ private:
     CDemodOptions *demodOpt;  /** Demodulator options. */
     CAgcOptions   *agcOpt;    /** AGC options. */
     CNbOptions    *nbOpt;     /** Noise blanker options. */
-    Modulations   modulations;
+    Modulations    modulations;
+    QMenu         *freqLockButtonMenu;
 
     bool agc_is_on;
 

@@ -243,7 +243,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool,float)), this, SLOT(setNoiseBlanker(int,bool,float)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
-    connect(uiDockRxOpt, SIGNAL(freqLock(bool)), this, SLOT(setFreqLock(bool)));
+    connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
     connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool)), this, SLOT(setAudioMute(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted(QString,int,bool)), this, SLOT(startAudioStream(QString,int,bool)));
@@ -2781,9 +2781,9 @@ void MainWindow::setPassband(int bandwidth)
     on_plotter_newFilterFreq(lo, hi);
 }
 
-void MainWindow::setFreqLock(bool lock)
+void MainWindow::setFreqLock(bool lock, bool all)
 {
-    rx->set_freq_lock(lock);
+    rx->set_freq_lock(lock, all);
 }
 
 /** Launch Gqrx google group website. */

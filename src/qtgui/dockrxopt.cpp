@@ -70,6 +70,20 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     ui->setupUi(this);
 
     ui->modeSelector->addItems(Modulations::Strings);
+    freqLockButtonMenu = new QMenu(this);
+    // MenuItem Lock all
+    {
+        QAction* action = new QAction("Lock all", this);
+        freqLockButtonMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(menuFreqLockAll()));
+    }
+    // MenuItem Unlock all
+    {
+        QAction* action = new QAction("Unlock all", this);
+        freqLockButtonMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(menuFreqUnlockAll()));
+    }
+    ui->freqLockButton->setContextMenuPolicy(Qt::CustomContextMenu);
 
 #ifdef Q_OS_LINUX
     ui->modeButton->setMinimumSize(32, 24);
@@ -815,7 +829,24 @@ void DockRxOpt::on_nb2Button_toggled(bool checked)
 
 void DockRxOpt::on_freqLockButton_clicked()
 {
-    emit freqLock(ui->freqLockButton->isChecked());
+    emit freqLock(ui->freqLockButton->isChecked(), false);
+}
+
+void DockRxOpt::on_freqLockButton_customContextMenuRequested(const QPoint& pos)
+{
+    freqLockButtonMenu->popup(ui->freqLockButton->mapToGlobal(pos));
+}
+
+void DockRxOpt::menuFreqLockAll()
+{
+    emit freqLock(true, true);
+    ui->freqLockButton->setChecked(true);
+}
+
+void DockRxOpt::menuFreqUnlockAll()
+{
+    emit freqLock(false, true);
+    ui->freqLockButton->setChecked(false);
 }
 
 /** Noise blanker threshold has been changed. */

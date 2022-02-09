@@ -956,9 +956,13 @@ double receiver::get_filter_offset(void) const
     return rx[d_current]->get_offset();
 }
 
-void receiver::set_freq_lock(bool on)
+void receiver::set_freq_lock(bool on, bool all)
 {
-    rx[d_current]->set_freq_lock(on);
+    if(all)
+        for(auto & rxc : rx)
+            rxc->set_freq_lock(on);
+    else
+        rx[d_current]->set_freq_lock(on);
 }
 
 bool receiver::get_freq_lock()
