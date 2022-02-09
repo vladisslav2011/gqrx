@@ -258,7 +258,7 @@ private slots:
     void on_actionDX_Cluster_triggered();
     void on_actionAddDemodulator_triggered();
     void on_actionRemoveDemodulator_triggered();
-    void on_rxSpinBox_valueChanged(int i);
+    void rxSpinBox_valueChanged(int i);
 
 
     /* window close signals */

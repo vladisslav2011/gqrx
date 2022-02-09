@@ -206,7 +206,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->mainToolBar->insertWidget(ui->actionAddDemodulator, rxSpinBox);
 
     /* connect signals and slots */
-    connect(rxSpinBox, SIGNAL(valueChanged(int)), this, SLOT(on_rxSpinBox_valueChanged(int)));
+    connect(rxSpinBox, SIGNAL(valueChanged(int)), this, SLOT(rxSpinBox_valueChanged(int)));
     connect(ui->freqCtrl, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), this, SLOT(setLnbLo(double)));
     connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), remote, SLOT(setLnbLo(double)));
@@ -3017,7 +3017,7 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
     ui->plotter->setCurrentVfo(n);
 }
 
-void MainWindow::on_rxSpinBox_valueChanged(int i)
+void MainWindow::rxSpinBox_valueChanged(int i)
 {
     if(i == rx->get_current())
         return;
