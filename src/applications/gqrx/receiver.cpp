@@ -1105,6 +1105,17 @@ receiver::status receiver::set_sql_level(double level_db)
     return STATUS_OK; // FIXME
 }
 
+receiver::status receiver::set_sql_level(double level_offset, bool global, bool relative)
+{
+    if (global)
+        for(auto & rxc: rx)
+            rxc->set_sql_level((relative ? rxc->get_signal_level() : 0) + level_offset);
+    else
+        rx[d_current]->set_sql_level((relative ? rx[d_current]->get_signal_level() : 0) + level_offset);
+
+    return STATUS_OK; // FIXME
+}
+
 double receiver::get_sql_level()
 {
     return rx[d_current]->get_sql_level();

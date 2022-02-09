@@ -179,7 +179,8 @@ private slots:
     void setAgcPanningAuto(bool panningAuto);
     void setNoiseBlanker(int nbid, bool on, float threshold);
     void setSqlLevel(double level_db);
-    double setSqlLevelAuto();
+    double setSqlLevelAuto(bool global);
+    void resetSqlLevelGlobal();
     void setAudioGain(float gain);
     void setAudioMute(bool mute);
     void setPassband(int bandwidth);

@@ -180,7 +180,10 @@ signals:
      *
      * @note Need current signal/noise level returned
      */
-    double sqlAutoClicked();
+    double sqlAutoClicked(bool global);
+
+    /** Signal emitted when squelch reset all popup menu item is clicked. */
+    void sqlResetAllClicked();
 
     /** Signal emitted when AGC is togglen ON/OFF. */
     void agcToggled(bool agc_on);
@@ -222,7 +225,10 @@ private slots:
     void on_modeButton_clicked();
     void on_agcButton_clicked();
     void on_autoSquelchButton_clicked();
+    void on_autoSquelchButton_customContextMenuRequested(const QPoint& pos);
+    void menuSquelchAutoAll();
     void on_resetSquelchButton_clicked();
+    void menuSquelchResetAll();
     //void on_agcPresetCombo_activated(int index);
     void on_agcPresetCombo_currentIndexChanged(int index);
     void on_sqlSpinBox_valueChanged(double value);
@@ -261,6 +267,7 @@ private:
     CNbOptions    *nbOpt;     /** Noise blanker options. */
     Modulations    modulations;
     QMenu         *freqLockButtonMenu;
+    QMenu         *squelchButtonMenu;
 
     bool agc_is_on;
 

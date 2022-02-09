@@ -84,6 +84,20 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
         connect(action, SIGNAL(triggered()), this, SLOT(menuFreqUnlockAll()));
     }
     ui->freqLockButton->setContextMenuPolicy(Qt::CustomContextMenu);
+    squelchButtonMenu = new QMenu(this);
+    // MenuItem Auto all
+    {
+        QAction* action = new QAction("AUTO all", this);
+        squelchButtonMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(menuSquelchAutoAll()));
+    }
+    // MenuItem Reset all
+    {
+        QAction* action = new QAction("Reset all", this);
+        squelchButtonMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(menuSquelchResetAll()));
+    }
+    ui->autoSquelchButton->setContextMenuPolicy(Qt::CustomContextMenu);
 
 #ifdef Q_OS_LINUX
     ui->modeButton->setMinimumSize(32, 24);
@@ -651,13 +665,30 @@ void DockRxOpt::on_agcButton_clicked()
  */
 void DockRxOpt::on_autoSquelchButton_clicked()
 {
-    double newval = sqlAutoClicked(); // FIXME: We rely on signal only being connected to one slot
+    double newval = sqlAutoClicked(false); // FIXME: We rely on signal only being connected to one slot
+    ui->sqlSpinBox->setValue(newval);
+}
+
+void DockRxOpt::on_autoSquelchButton_customContextMenuRequested(const QPoint& pos)
+{
+    squelchButtonMenu->popup(ui->autoSquelchButton->mapToGlobal(pos));
+}
+
+void DockRxOpt::menuSquelchAutoAll()
+{
+    double newval = sqlAutoClicked(true); // FIXME: We rely on signal only being connected to one slot
     ui->sqlSpinBox->setValue(newval);
 }
 
 void DockRxOpt::on_resetSquelchButton_clicked()
 {
     ui->sqlSpinBox->setValue(-150.0);
+}
+
+void DockRxOpt::menuSquelchResetAll()
+{
+    ui->sqlSpinBox->setValue(-150.0);
+    emit sqlResetAllClicked();
 }
 
 /** AGC preset has changed. */

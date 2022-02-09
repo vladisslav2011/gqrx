@@ -242,7 +242,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(agcPanningAuto(bool)), this, SLOT(setAgcPanningAuto(bool)));
     connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool,float)), this, SLOT(setNoiseBlanker(int,bool,float)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
-    connect(uiDockRxOpt, SIGNAL(sqlAutoClicked()), this, SLOT(setSqlLevelAuto()));
+    connect(uiDockRxOpt, SIGNAL(sqlAutoClicked(bool)), this, SLOT(setSqlLevelAuto(bool)));
+    connect(uiDockRxOpt, SIGNAL(sqlResetAllClicked()), this, SLOT(resetSqlLevelGlobal()));
     connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
     connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool)), this, SLOT(setAudioMute(bool)));
@@ -1796,14 +1797,24 @@ void MainWindow::setSqlLevel(double level_db)
  * @brief Squelch level auto clicked.
  * @return The new squelch level.
  */
-double MainWindow::setSqlLevelAuto()
+double MainWindow::setSqlLevelAuto(bool global)
 {
+    if  (global)
+        rx->set_sql_level(3.0, true, true);
     double level = rx->get_signal_pwr() + 3.0;
     if (level > -10.0)  // avoid 0 dBFS
         level = uiDockRxOpt->getSqlLevel();
 
     setSqlLevel(level);
     return level;
+}
+
+/**
+ * @brief Squelch level reset all clicked.
+ */
+void MainWindow::resetSqlLevelGlobal()
+{
+    rx->set_sql_level(-150.0, true, false);
 }
 
 /** Signal strength meter timeout. */
