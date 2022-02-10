@@ -2575,6 +2575,35 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
 
 }
 
+/* CPlotter::NewDemodFreqLoad() is emitted */
+/* tune and load demodulator settings */
+void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
+{
+    // set RX filter
+    if (delta != qint64(rx->get_filter_offset()))
+    {
+        rx->set_filter_offset((double) delta);
+        updateFrequencyRange();
+    }
+
+    QList<BookmarkInfo> tags =
+        Bookmarks::Get().getBookmarksInRange(freq, freq);
+    if(tags.size() > 0)
+    {
+        BookmarkInfo & first = tags.first();
+        onBookmarkActivated(freq, first.modulation, first.bandwidth);
+    }else
+        setNewFrequency(freq);
+}
+
+/* CPlotter::NewDemodFreqLoad() is emitted */
+/* new demodulator here */
+void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
+{
+    on_actionAddDemodulator_triggered();
+    on_plotter_newDemodFreqLoad(freq, delta);
+}
+
 /* CPlotter::NewfilterFreq() is emitted or bookmark activated */
 void MainWindow::on_plotter_newFilterFreq(int low, int high)
 {   /* parameter correctness will be checked in receiver class */

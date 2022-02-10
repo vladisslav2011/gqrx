@@ -752,9 +752,27 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
             {
                 if (tag.first.contains(event->pos()))
                 {
-                    m_DemodCenterFreq = tag.second;
-                    emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
-                    break;
+                    if (event->buttons() == Qt::LeftButton)
+                    {
+                        //just tune
+                        m_DemodCenterFreq = tag.second;
+                        emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        break;
+                    }
+                    else if (event->buttons() == Qt::MidButton)
+                    {
+                        //tune and load settings
+                        m_DemodCenterFreq = tag.second;
+                        emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        break;
+                    }
+                    else if (event->buttons() == Qt::RightButton)
+                    {
+                        //new demod here
+                        m_DemodCenterFreq = tag.second;
+                        emit newDemodFreqLoad(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        break;
+                    }
                 }
             }
         }
