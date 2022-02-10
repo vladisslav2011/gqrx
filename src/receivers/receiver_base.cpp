@@ -491,7 +491,10 @@ void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, 
 {
     self->d_audio_filename = filename;
     if(self->d_rec_event)
+    {
         self->d_rec_event(self->d_vfo->index, filename, is_running);
+        std::cerr<<"d_rec_event("<<self->d_vfo->index<<","<<filename<<","<<is_running<<")\n";
+    }
 }
 
 void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)

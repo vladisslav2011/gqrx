@@ -173,10 +173,6 @@ receiver::receiver(const std::string input_device,
     qDebug() << "Using audio backend:"
              << pref.get_string("audio", "audio_module", "N/A").c_str();
 
-/*    rx->set_rec_event_handler(std::bind(audio_rec_event, this,
-                              std::placeholders::_1,
-                              std::placeholders::_2));
-*/
 }
 
 receiver::~receiver()
@@ -796,6 +792,10 @@ int receiver::add_rx()
     int old = d_current;
     d_current = rx.size() - 1;
     rx[d_current]->set_index(d_current);
+    rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
+                            std::placeholders::_1,
+                            std::placeholders::_2,
+                            std::placeholders::_3));
     set_demod_locked(rx[old]->get_demod(), old);
     if(d_running)
     {
