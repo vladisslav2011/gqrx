@@ -64,6 +64,24 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
         contextmenu->addAction(action);
         connect(action, SIGNAL(triggered()), this, SLOT(DeleteSelectedBookmark()));
     }
+    // MenuItem Tune
+    {
+        QAction* action = new QAction("Tune", this);
+        contextmenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(tuneHere()));
+    }
+    // MenuItem Tune and load
+    {
+        QAction* action = new QAction("Tune and load settings", this);
+        contextmenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(tuneAndLoad()));
+    }
+    // MenuItem New demodulator
+    {
+        QAction* action = new QAction("New demodulator", this);
+        contextmenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(newDemod()));
+    }
     // MenuItem Add
     {
         actionAddBookmark = new QAction("Add Bookmark", this);
@@ -184,6 +202,36 @@ bool DockBookmarks::DeleteSelectedBookmark()
         Bookmarks::Get().remove(iIndex);
         bookmarksTableModel->update();
     }
+    return true;
+}
+
+bool DockBookmarks::tuneHere()
+{
+    QModelIndexList selected = ui->tableViewFrequencyList->selectionModel()->selectedRows();
+    if (selected.empty())
+        return true;
+    BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(selected.first().row());
+    emit newBookmarkActivated(info->frequency);
+    return true;
+}
+
+bool DockBookmarks::tuneAndLoad()
+{
+    QModelIndexList selected = ui->tableViewFrequencyList->selectionModel()->selectedRows();
+    if (selected.empty())
+        return true;
+    BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(selected.first().row());
+    emit newBookmarkActivated(info->frequency, info->modulation, info->bandwidth);
+    return true;
+}
+
+bool DockBookmarks::newDemod()
+{
+    QModelIndexList selected = ui->tableViewFrequencyList->selectionModel()->selectedRows();
+    if (selected.empty())
+        return true;
+    BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(selected.first().row());
+    emit newBookmarkActivatedAddDemod(info->frequency, info->modulation, info->bandwidth);
     return true;
 }
 

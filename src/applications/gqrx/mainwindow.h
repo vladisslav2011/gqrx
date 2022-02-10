@@ -236,6 +236,7 @@ private slots:
 
     /* Bookmarks */
     void onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth);
+    void onBookmarkActivatedAddDemod(qint64 freq, const QString& demod, int bandwidth);
 
     /* DXC Spots */
     void updateClusterSpots();

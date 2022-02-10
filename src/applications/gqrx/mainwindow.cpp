@@ -293,6 +293,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     // Bookmarks
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64, QString, int)), this, SLOT(onBookmarkActivated(qint64, QString, int)));
+    //FIXME: create a new slot that would avoid changing hw frequency if the bookmark is in the current bandwidth
+    connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64)), this, SLOT(setNewFrequency(qint64)));
+    connect(uiDockBookmarks, SIGNAL(newBookmarkActivatedAddDemod(qint64, QString, int)), this, SLOT(onBookmarkActivatedAddDemod(qint64, QString, int)));
     connect(uiDockBookmarks->actionAddBookmark, SIGNAL(triggered()), this, SLOT(on_actionAddBookmark_triggered()));
 
     //DXC Spots
@@ -2791,6 +2794,12 @@ void MainWindow::onBookmarkActivated(qint64 freq, const QString& demod, int band
     }
 
     on_plotter_newFilterFreq(lo, hi);
+}
+
+void MainWindow::onBookmarkActivatedAddDemod(qint64 freq, const QString& demod, int bandwidth)
+{
+    on_actionAddDemodulator_triggered();
+    onBookmarkActivated(freq, demod, bandwidth);
 }
 
 void MainWindow::setPassband(int bandwidth)

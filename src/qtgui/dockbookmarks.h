@@ -71,6 +71,8 @@ public:
 
 signals:
     void newBookmarkActivated(qint64, QString, int);
+    void newBookmarkActivated(qint64);
+    void newBookmarkActivatedAddDemod(qint64, QString, int);
 
 public slots:
     void setNewFrequency(qint64 rx_freq);
@@ -83,5 +85,8 @@ private slots:
     void on_tableWidgetTagList_itemChanged(QTableWidgetItem* item);
     void ShowContextMenu(const QPoint&pos);
     bool DeleteSelectedBookmark();
+    bool tuneHere();
+    bool tuneAndLoad();
+    bool newDemod();
     void doubleClicked(const QModelIndex & index);
 };
