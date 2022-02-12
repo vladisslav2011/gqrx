@@ -2603,7 +2603,14 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
 /* new demodulator here */
 void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
 {
-    on_actionAddDemodulator_triggered();
+    vfo::sptr found = rx->find_vfo(freq - d_lnb_lo);
+    if(!found)
+        on_actionAddDemodulator_triggered();
+    else
+    {
+        rxSpinBox->setValue(found->get_index());
+        rxSpinBox_valueChanged(found->get_index());
+    }
     on_plotter_newDemodFreqLoad(freq, delta);
 }
 
@@ -2798,8 +2805,11 @@ void MainWindow::onBookmarkActivated(qint64 freq, const QString& demod, int band
 
 void MainWindow::onBookmarkActivatedAddDemod(qint64 freq, const QString& demod, int bandwidth)
 {
-    on_actionAddDemodulator_triggered();
-    onBookmarkActivated(freq, demod, bandwidth);
+    if(!rx->find_vfo(freq - d_lnb_lo))
+    {
+        on_actionAddDemodulator_triggered();
+        onBookmarkActivated(freq, demod, bandwidth);
+    }
 }
 
 void MainWindow::setPassband(int bandwidth)
@@ -3074,7 +3084,7 @@ void MainWindow::rxSpinBox_valueChanged(int i)
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
     ui->plotter->setCurrentVfo(i);
-    std::cerr<<"on_rxSpinBox_valueChanged("<<i<<") => "<<n;
+    std::cerr<<"rxSpinBox_valueChanged("<<i<<") => "<<n;
     if(n == receiver::STATUS_OK)
         loadRxToGUI();
 }

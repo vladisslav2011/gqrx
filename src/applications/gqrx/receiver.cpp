@@ -901,6 +901,17 @@ vfo::sptr receiver::get_current_vfo()
     return get_vfo(d_current);
 }
 
+vfo::sptr receiver::find_vfo(int64_t freq)
+{
+    vfo::sptr notfound;
+    int64_t offset = freq - d_rf_freq;
+    //FIXME: speedup with index???
+    for(auto & rxc: rx)
+        if(rxc->get_offset() == offset)
+            return rxc;
+    return notfound;
+}
+
 vfo::sptr receiver::get_vfo(int n)
 {
     return rx[n];

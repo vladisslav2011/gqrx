@@ -185,6 +185,7 @@ public:
     int         get_current();
     vfo::sptr   get_current_vfo();
     vfo::sptr   get_vfo(int n);
+    vfo::sptr   find_vfo(int64_t freq);
     std::vector<vfo::sptr> get_vfos();
 
     status      set_filter_offset(double offset_hz);
