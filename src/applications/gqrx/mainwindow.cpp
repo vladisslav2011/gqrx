@@ -899,7 +899,7 @@ void MainWindow::storeSession()
                 m_settings->remove("agc_off");
             //filter
             //FIXME: store filter shape too
-            double     flo, fhi;
+            int     flo, fhi;
             receiver::filter_shape fdw;
             rx->get_filter(flo, fhi, fdw);
             if (flo != fhi)
@@ -1243,11 +1243,11 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
         for(auto &cvfo : locked_vfos)
         {
             ui->plotter->removeVfo(cvfo);
-            int new_offset = cvfo->offset + delta_freq;
+            int new_offset = cvfo->get_offset() + delta_freq;
             if((new_offset > offset_lim) || (new_offset < -offset_lim))
-                del_list.insert(cvfo->index);
+                del_list.insert(cvfo->get_index());
             else{
-                rx->set_filter_offset(cvfo->index, new_offset);
+                rx->set_filter_offset(cvfo->get_index(), new_offset);
                 ui->plotter->addVfo(cvfo);
             }
         }
@@ -1551,7 +1551,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 void MainWindow::updateDemodGUIRanges()
 {
     int click_res=100;
-    double     flo=0, fhi=0;
+    int     flo=0, fhi=0;
     enum receiver::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::idx mode_idx = rx->get_demod();
@@ -3090,8 +3090,7 @@ void MainWindow::loadRxToGUI()
     auto new_offset = rx->get_filter_offset();
     auto rx_freq = (double)(rf_freq + d_lnb_lo + new_offset);
 
-    double low;
-    double high;
+    int low, high;
     receiver::filter_shape fs;
     auto mode_idx = rx->get_demod();
 

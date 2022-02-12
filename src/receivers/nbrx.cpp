@@ -78,10 +78,10 @@ bool nbrx::stop()
     return true;
 }
 
-void nbrx::set_filter(double low, double high, double tw)
+void nbrx::set_filter(int low, int high, int tw)
 {
     receiver_base_cf::set_filter(low, high, tw);
-    filter->set_param(low, high, tw);
+    filter->set_param(double(low), double(high), double(tw));
 }
 
 void nbrx::set_cw_offset(double offset)
@@ -110,7 +110,7 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
 
 void nbrx::set_demod(Modulations::idx new_demod)
 {
-    Modulations::idx current_demod = d_vfo->mode;
+    Modulations::idx current_demod = receiver_base_cf::get_demod();
 
     if (new_demod == current_demod) {
         /* nothing to do */

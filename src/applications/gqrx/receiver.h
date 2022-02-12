@@ -195,8 +195,8 @@ public:
 
     status      set_cw_offset(double offset_hz);
     double      get_cw_offset(void) const;
-    status      set_filter(double low, double high, filter_shape shape);
-    status      get_filter(double &low, double &high, filter_shape &shape);
+    status      set_filter(int low, int high, filter_shape shape);
+    status      get_filter(int &low, int &high, filter_shape &shape);
     status      set_freq_corr(double ppm);
     float       get_signal_pwr() const;
     void        set_iq_fft_size(int newsize);

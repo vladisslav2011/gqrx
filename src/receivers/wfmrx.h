@@ -60,7 +60,7 @@ public:
     bool stop();
 
 
-    void set_filter(double low, double high, double tw);
+    void set_filter(int low, int high, int tw);
     void set_cw_offset(double offset) { (void)offset; }
 
     /* Noise blanker */

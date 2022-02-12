@@ -10,6 +10,7 @@
 #include <set>
 #include <QMap>
 #include "receivers/defines.h"
+#include "receivers/vfo.h"
 
 #define HORZ_DIVS_MAX 12    //50
 #define VERT_DIVS_MIN 5

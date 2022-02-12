@@ -204,9 +204,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             if(!m_vfos.empty())
             {
                 m_vfos_lb = 
-                    m_vfos.lower_bound(vfo::make(freqFromX(pt.x()) - m_CenterFreq,
-                                       -5000, 5000, Modulations::MODE_OFF, 0,
-                                       false));
+                    m_vfos.lower_bound(vfo::make(freqFromX(pt.x()) - m_CenterFreq, 0));
                 if(m_vfos_lb == m_vfos.end())
                 {
                     m_vfos_ub = --m_vfos_lb;
@@ -270,23 +268,23 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Low cut: %1 Hz").arg(m_DemodLowCutFreq));
             }
-            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq((*m_vfos_lb)->offset + m_CenterFreq), m_CursorCaptureDelta))
+            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq((*m_vfos_lb)->get_offset() + m_CenterFreq), m_CursorCaptureDelta))
             {
                 if (CENTER != m_CursorCaptured)
                     setCursor(QCursor(Qt::SizeHorCursor));
                 m_CursorCaptured = CENTER;
-                m_capturedVfo = (*m_vfos_lb)->index;
+                m_capturedVfo = (*m_vfos_lb)->get_index();
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Demod %1: %2 kHz")
                                                .arg(m_capturedVfo)
                                                .arg(((*m_vfos_lb)->offset + m_CenterFreq)/1.e3, 0, 'f', 3));
             }
-            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq((*m_vfos_ub)->offset + m_CenterFreq), m_CursorCaptureDelta))
+            else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq((*m_vfos_ub)->get_offset() + m_CenterFreq), m_CursorCaptureDelta))
             {
                 if (CENTER != m_CursorCaptured)
                     setCursor(QCursor(Qt::SizeHorCursor));
                 m_CursorCaptured = CENTER;
-                m_capturedVfo = (*m_vfos_ub)->index;
+                m_capturedVfo = (*m_vfos_ub)->get_index();
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Demod %1: %2 kHz")
                                                .arg(m_capturedVfo)
@@ -651,7 +649,7 @@ void    CPlotter::getLockedVfos(std::vector<vfo::sptr> &to)
 {
     to.clear();
     for(auto &cvfo : m_vfos)
-        if(cvfo->locked)
+        if(cvfo->get_freq_lock())
             to.push_back(cvfo);
 }
 
@@ -1582,13 +1580,13 @@ void CPlotter::drawOverlay()
     {
         for(auto &vfoc : m_vfos)
         {
-            const qint64 vfoFreq = m_CenterFreq + qint64(vfoc->offset);
+            const qint64 vfoFreq = m_CenterFreq + qint64(vfoc->get_offset());
             const int demodFreqX = xFromFreq(vfoFreq);
-            const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->low));
-            const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->high));
+            const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_low()));
+            const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_high()));
 
             const int dw = demodHiCutFreqX - demodLowCutFreqX;
-            drawVfo(painter, demodFreqX, demodLowCutFreqX, dw, h, vfoc->index, false);
+            drawVfo(painter, demodFreqX, demodLowCutFreqX, dw, h, vfoc->get_index(), false);
         }
 
         m_DemodFreqX = xFromFreq(m_DemodCenterFreq);

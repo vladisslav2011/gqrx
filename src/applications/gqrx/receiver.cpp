@@ -903,7 +903,7 @@ vfo::sptr receiver::get_current_vfo()
 
 vfo::sptr receiver::get_vfo(int n)
 {
-    return rx[n]->get_vfo();
+    return rx[n];
 }
 
 std::vector<vfo::sptr> receiver::get_vfos()
@@ -912,7 +912,7 @@ std::vector<vfo::sptr> receiver::get_vfos()
     vfos.reserve(rx.size());
     for(auto &rxc : rx)
     {
-        vfos.push_back(rxc->get_vfo());
+        vfos.push_back(rxc);
     }
     return vfos;
 }
@@ -984,7 +984,7 @@ double receiver::get_cw_offset(void) const
     return rx[d_current]->get_cw_offset();
 }
 
-receiver::status receiver::set_filter(double low, double high, filter_shape shape)
+receiver::status receiver::set_filter(int low, int high, filter_shape shape)
 {
     double trans_width;
 
@@ -1013,9 +1013,9 @@ receiver::status receiver::set_filter(double low, double high, filter_shape shap
     return STATUS_OK;
 }
 
-receiver::status receiver::get_filter(double &low, double &high, filter_shape &shape)
+receiver::status receiver::get_filter(int &low, int &high, filter_shape &shape)
 {
-    double tw;
+    int tw;
     rx[d_current]->get_filter(low, high, tw);
     shape = FILTER_SHAPE_SOFT;
 
@@ -1507,14 +1507,14 @@ float receiver::get_amsync_pll_bw()
 receiver::status receiver::set_audio_rec_dir(const std::string dir)
 {
     //FIXME is it a global option, that should be set with for-loop?
-    rx[d_current]->set_rec_dir(dir);
+    rx[d_current]->set_audio_rec_dir(dir);
     return STATUS_OK;
 }
 
 std::string receiver::get_audio_rec_dir()
 {
     //FIXME is it a global option, that should be set with for-loop?
-    return rx[d_current]->get_rec_dir();
+    return rx[d_current]->get_audio_rec_dir();
 }
 
 receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)

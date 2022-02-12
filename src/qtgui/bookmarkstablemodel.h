@@ -26,6 +26,7 @@
 #include <QAbstractTableModel>
 #include <QList>
 #include "receivers/defines.h"
+#include "receivers/modulations.h"
 
 #include "bookmarks.h"
 

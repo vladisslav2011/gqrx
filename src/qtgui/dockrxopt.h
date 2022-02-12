@@ -30,6 +30,7 @@
 #include "qtgui/demod_options.h"
 #include "qtgui/nb_options.h"
 #include "receivers/defines.h"
+#include "receivers/modulations.h"
 
 #define FILTER_PRESET_WIDE      0
 #define FILTER_PRESET_NORMAL    1

@@ -31,6 +31,7 @@
 #include <QTcpSocket>
 #include <QtNetwork>
 #include "receivers/defines.h"
+#include "receivers/modulations.h"
 
 /* For gain_t and gain_list_t */
 #include "qtgui/dockinputctl.h"

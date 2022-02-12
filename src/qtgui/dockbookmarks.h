@@ -27,6 +27,7 @@
 #include "qtgui/bookmarkstablemodel.h"
 #include <QItemDelegate>
 #include "receivers/defines.h"
+#include "receivers/modulations.h"
 
 namespace Ui {
     class DockBookmarks;

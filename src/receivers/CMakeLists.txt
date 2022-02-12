@@ -10,4 +10,6 @@ add_source_files(SRCS_LIST
 	defines.h
 	modulations.h
 	modulations.cpp
+	vfo.h
+	vfo.cpp
 )

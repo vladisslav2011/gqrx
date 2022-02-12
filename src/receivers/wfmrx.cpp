@@ -80,10 +80,10 @@ bool wfmrx::stop()
     return true;
 }
 
-void wfmrx::set_filter(double low, double high, double tw)
+void wfmrx::set_filter(int low, int high, int tw)
 {
     receiver_base_cf::set_filter(low, high, tw);
-    filter->set_param(low, high, tw);
+    filter->set_param(double(low), double(high), double(tw));
 }
 
 void wfmrx::set_demod(Modulations::idx demod)
@@ -92,7 +92,7 @@ void wfmrx::set_demod(Modulations::idx demod)
     if ((demod < Modulations::MODE_WFM_MONO) || (demod > Modulations::MODE_WFM_STEREO_OIRT))
         return;
 
-    if (demod == d_vfo->mode) {
+    if (demod == receiver_base_cf::get_demod()) {
         /* nothing to do */
         return;
     }
@@ -101,7 +101,7 @@ void wfmrx::set_demod(Modulations::idx demod)
     lock();
 
     /* disconnect current demodulator */
-    switch (d_vfo->mode) {
+    switch (receiver_base_cf::get_demod()) {
 
     case Modulations::MODE_WFM_MONO:
     default:

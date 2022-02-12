@@ -4,6 +4,7 @@
  *           https://gqrx.dk/
  *
  * Copyright 2011-2016 Alexandru Csete OZ9AEC.
+ * Copyright 2022 vladisslav2011@gmail.com.
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
