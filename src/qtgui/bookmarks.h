@@ -83,6 +83,10 @@ struct BookmarkInfo
     {
         return frequency < other.frequency;
     }
+    bool operator==(const BookmarkInfo &other) const
+    {
+        return frequency == other.frequency;
+    }
 /*
     void setTags(QString tagString);
     QString getTagString();
@@ -104,6 +108,7 @@ public:
 
     void add(BookmarkInfo& info);
     void remove(int index);
+    void remove(const BookmarkInfo &info);
     bool load();
     bool save();
     int size() { return m_BookmarkList.size(); }

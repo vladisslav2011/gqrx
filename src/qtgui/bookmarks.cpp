@@ -71,6 +71,13 @@ void Bookmarks::remove(int index)
     emit BookmarksChanged();
 }
 
+void Bookmarks::remove(const BookmarkInfo &info)
+{
+    m_BookmarkList.removeOne(info);
+    save();
+    emit BookmarksChanged();
+}
+
 bool Bookmarks::load()
 {
     QFile file(m_bookmarksFile);

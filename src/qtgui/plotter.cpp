@@ -279,7 +279,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Demod %1: %2 kHz")
                                                .arg(m_capturedVfo)
-                                               .arg(((*m_vfos_lb)->offset + m_CenterFreq)/1.e3, 0, 'f', 3));
+                                               .arg(((*m_vfos_lb)->get_offset() + m_CenterFreq)/1.e3, 0, 'f', 3));
             }
             else if (!m_vfos.empty() && isPointCloseTo(pt.x(), xFromFreq((*m_vfos_ub)->get_offset() + m_CenterFreq), m_CursorCaptureDelta))
             {
@@ -290,7 +290,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_TooltipsEnabled)
                     showToolTip(event, QString("Demod %1: %2 kHz")
                                                .arg(m_capturedVfo)
-                                               .arg(((*m_vfos_ub)->offset + m_CenterFreq)/1.e3, 0, 'f', 3));
+                                               .arg(((*m_vfos_ub)->get_offset() + m_CenterFreq)/1.e3, 0, 'f', 3));
             }
             else
             {	//if not near any grab boundaries

@@ -2979,7 +2979,9 @@ void MainWindow::on_actionAddBookmark_triggered()
     bool ok=false;
     QString name;
     QStringList tags;
+    const qint64 freq = ui->freqCtrl->getFrequency();
 
+    QList<BookmarkInfo> bookmarkFound = Bookmarks::Get().getBookmarksInRange(freq, freq);
     // Create and show the Dialog for a new Bookmark.
     // Write the result into variable 'name'.
     {
@@ -3012,6 +3014,11 @@ void MainWindow::on_actionAddBookmark_triggered()
         mainLayout->addWidget(taglist);
         mainLayout->addWidget(buttonBox);
 
+        if(bookmarkFound.size())
+        {
+            textfield->setText(bookmarkFound.first().name);
+            taglist->setSelectedTags(bookmarkFound.first().tags);
+        }
         ok = dialog.exec();
         if (ok)
         {
@@ -3044,6 +3051,9 @@ void MainWindow::on_actionAddBookmark_triggered()
         for (i = 0; i < tags.size(); ++i)
             info.tags.append(&Bookmarks::Get().findOrAddTag(tags[i]));
 
+        //FIXME: implement Bookmarks::replace(&BookmarkInfo, &BookmarkInfo) method
+        if(bookmarkFound.size())
+            Bookmarks::Get().remove(bookmarkFound.first());
         Bookmarks::Get().add(info);
         uiDockBookmarks->updateTags();
         uiDockBookmarks->updateBookmarks();
