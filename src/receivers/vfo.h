@@ -45,14 +45,6 @@ typedef class vfo_s
         return sptr(new vfo_s());
     }
 
-    static sptr make(int offset, int index)
-    {
-        sptr ret = sptr(new vfo_s());
-        ret->set_offset(offset);
-        ret->set_index(index);
-        return ret;
-    }
-
     vfo_s():
         d_offset(0),
         d_filter_low(-5000),
