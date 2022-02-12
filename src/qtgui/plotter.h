@@ -303,6 +303,7 @@ private:
     vfo::set    m_vfos;
     vfo::set::iterator m_vfos_ub;
     vfo::set::iterator m_vfos_lb;
+    vfo::sptr   m_lookup_vfo;
     int         m_currentVfo;
     int         m_capturedVfo;
 

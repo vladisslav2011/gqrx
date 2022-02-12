@@ -163,6 +163,8 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     memset(m_wfbuf, 255, MAX_SCREENSIZE);
     m_currentVfo = 0;
     m_capturedVfo = 0;
+    m_lookup_vfo = vfo::make();
+    m_lookup_vfo->set_index(0);
 }
 
 CPlotter::~CPlotter()
@@ -203,8 +205,8 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             }
             if(!m_vfos.empty())
             {
-                m_vfos_lb = 
-                    m_vfos.lower_bound(vfo::make(freqFromX(pt.x()) - m_CenterFreq, 0));
+                m_lookup_vfo->set_offset(freqFromX(pt.x()) - m_CenterFreq);
+                m_vfos_lb = m_vfos.lower_bound(m_lookup_vfo);
                 if(m_vfos_lb == m_vfos.end())
                 {
                     m_vfos_ub = --m_vfos_lb;
