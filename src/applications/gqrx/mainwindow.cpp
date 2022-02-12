@@ -297,6 +297,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivatedAddDemod(qint64, QString, int)), this, SLOT(onBookmarkActivatedAddDemod(qint64, QString, int)));
     connect(uiDockBookmarks->actionAddBookmark, SIGNAL(triggered()), this, SLOT(on_actionAddBookmark_triggered()));
+    connect(&Bookmarks::Get(), SIGNAL(BookmarksChanged()), ui->plotter, SLOT(updateOverlay()));
 
     //DXC Spots
     connect(&DXCSpots::Get(), SIGNAL(dxcSpotsUpdated()), this, SLOT(updateClusterSpots()));
@@ -3056,8 +3057,6 @@ void MainWindow::on_actionAddBookmark_triggered()
             Bookmarks::Get().remove(bookmarkFound.first());
         Bookmarks::Get().add(info);
         uiDockBookmarks->updateTags();
-        uiDockBookmarks->updateBookmarks();
-        ui->plotter->updateOverlay();
     }
 }
 
