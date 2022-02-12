@@ -1234,7 +1234,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     uiDockAudio->setRxFrequency(rx_freq);
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
-    if(rx->get_rx_count() > 1)
+    if(delta_freq && (rx->get_rx_count() > 1))
     {
         std::vector<vfo::sptr> locked_vfos;
         int offset_lim = (int)(ui->plotter->getSampleRate() / 2);
