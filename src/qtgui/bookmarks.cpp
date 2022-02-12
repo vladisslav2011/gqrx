@@ -288,8 +288,8 @@ bool Bookmarks::removeTag(QString tagName)
     // Delete Tag.
     m_TagList.removeAt(idx);
 
-    emit BookmarksChanged();
     emit TagListChanged();
+    save();
 
     return true;
 }
