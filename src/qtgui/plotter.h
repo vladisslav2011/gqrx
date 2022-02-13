@@ -91,7 +91,7 @@ public:
             m_Span = (qint32)s;
             setFftCenterFreq(m_FftCenter);
         }
-        drawOverlay();
+        updateOverlay();
     }
 
     void setHdivDelta(int delta) { m_HdivDelta = delta; }

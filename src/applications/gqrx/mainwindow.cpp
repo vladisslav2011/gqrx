@@ -824,7 +824,6 @@ void MainWindow::storeSession()
             if (offs)
             {
                 m_settings->setValue("offset", offs);
-                m_settings->setValue("frequency", qint64(offs + rx->get_rf_freq()));
             }
             else
                 m_settings->remove("offset");
@@ -941,7 +940,6 @@ void MainWindow::readRXSettings(bool isv4)
 {
     bool conv_ok;
     int int_val;
-    qint64 int64_val;
     double  dbl_val;
     int i = 0;
     rxSpinBox->setMaximum(0);
@@ -957,8 +955,6 @@ void MainWindow::readRXSettings(bool isv4)
         qint64 offs = m_settings->value("offset", 0).toInt(&conv_ok);
         if (conv_ok)
             rx->set_filter_offset(offs);
-        int64_val = m_settings->value("frequency", 0).toInt(&conv_ok);
-        std::cerr<<"readRXSettings offset="<<offs<<" frequency "<<int64_val<<" center"<<(int64_val - offs)<<std::endl;
 
         if (m_settings->value("freq_locked", false).toBool())
             rx->set_freq_lock(true);
@@ -1454,6 +1450,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 {
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0;
+    enum receiver::filter_shape filter_shape;
     bool    rds_enabled;
 
     // validate mode_idx
@@ -1464,59 +1461,81 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     }
     qDebug() << "New mode index:" << mode_idx;
 
-    uiDockRxOpt->getFilterPreset(mode_idx, filter_preset, &flo, &fhi);
     d_filter_shape = (receiver::filter_shape)uiDockRxOpt->currentFilterShape();
-
-    rds_enabled = rx->is_rds_decoder_active();
-    if (rds_enabled)
-        setRdsDecoder(false);
-    uiDockRDS->setDisabled();
-
-    if ((mode_idx > Modulations::MODE_OFF) && (mode_idx < Modulations::MODE_LAST))
-        rx->set_demod(mode_idx);
-
-    switch (mode_idx) {
-
-    case Modulations::MODE_OFF:
-        /* Spectrum analyzer only */
-        if (rx->is_recording_audio())
+    rx->get_filter(flo, fhi, filter_shape);
+    if(filter_preset == FILTER_PRESET_USER)
+    {
+        if(((rx->get_demod() == Modulations::MODE_USB) &&
+            (mode_idx == Modulations::MODE_LSB))
+            ||
+           ((rx->get_demod() == Modulations::MODE_LSB) &&
+             (mode_idx == Modulations::MODE_USB)))
         {
-            stopAudioRec();
-            uiDockAudio->setAudioRecButtonState(false);
+            std::swap(flo, fhi);
+            flo = -flo;
+            fhi = -fhi;
+            filter_preset = FILTER_PRESET_USER;
         }
-        if (dec_afsk1200 != nullptr)
-        {
-            dec_afsk1200->close();
-        }
-        rx->set_demod(mode_idx);
-        break;
-    case Modulations::MODE_AM:
-    case Modulations::MODE_AM_SYNC:
-    case Modulations::MODE_USB:
-    case Modulations::MODE_LSB:
-    case Modulations::MODE_CWL:
-    case Modulations::MODE_CWU:
-        break;
+        modulations.UpdateFilterRange(mode_idx, flo, fhi);
+    }
+    if(filter_preset != FILTER_PRESET_USER)
+    {
+        modulations.GetFilterPreset(mode_idx, filter_preset, flo, fhi);
+    }
 
-    case Modulations::MODE_NFM:
-        rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
-        rx->set_fm_deemph(uiDockRxOpt->currentEmph());
-        break;
-
-    case Modulations::MODE_WFM_MONO:
-    case Modulations::MODE_WFM_STEREO:
-    case Modulations::MODE_WFM_STEREO_OIRT:
-        /* Broadcast FM */
-        uiDockRDS->setEnabled();
+    if(mode_idx != rx->get_demod())
+    {
+        rds_enabled = rx->is_rds_decoder_active();
         if (rds_enabled)
-            setRdsDecoder(true);
-        break;
+            setRdsDecoder(false);
+        uiDockRDS->setDisabled();
 
-    default:
-        qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
-        flo = -5000;
-        fhi = 5000;
-        break;
+        if ((mode_idx >Modulations::MODE_OFF) && (mode_idx <Modulations::MODE_LAST))
+            rx->set_demod(mode_idx);
+
+        switch (mode_idx) {
+
+        case Modulations::MODE_OFF:
+            /* Spectrum analyzer only */
+            if (rx->is_recording_audio())
+            {
+                stopAudioRec();
+                uiDockAudio->setAudioRecButtonState(false);
+            }
+            if (dec_afsk1200 != nullptr)
+            {
+                dec_afsk1200->close();
+            }
+            rx->set_demod(mode_idx);
+            break;
+        case Modulations::MODE_AM:
+        case Modulations::MODE_AM_SYNC:
+        case Modulations::MODE_USB:
+        case Modulations::MODE_LSB:
+        case Modulations::MODE_CWL:
+        case Modulations::MODE_CWU:
+            break;
+
+        case Modulations::MODE_NFM:
+            rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
+            rx->set_fm_deemph(uiDockRxOpt->currentEmph());
+            break;
+
+        case Modulations::MODE_WFM_MONO:
+        case Modulations::MODE_WFM_STEREO:
+        case Modulations::MODE_WFM_STEREO_OIRT:
+            /* Broadcast FM */
+            uiDockRDS->setEnabled();
+            if (rds_enabled)
+                setRdsDecoder(true);
+            break;
+
+        default:
+            qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
+            flo = -5000;
+            fhi = 5000;
+            break;
+        }
     }
     rx->set_filter(flo, fhi, d_filter_shape);
     updateDemodGUIRanges();
@@ -1541,7 +1560,7 @@ void MainWindow::updateDemodGUIRanges()
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::idx mode_idx = rx->get_demod();
     modulations.GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
-    ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, true);
+    ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, hiMax == -loMin);
     switch (mode_idx) {
 
     case Modulations::MODE_OFF:
@@ -1611,6 +1630,7 @@ void MainWindow::updateDemodGUIRanges()
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
     ui->plotter->setClickResolution(click_res);
     ui->plotter->setFilterClickResolution(click_res);
+    uiDockRxOpt->setFilterParam(flo, fhi);
 
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
@@ -2589,7 +2609,6 @@ void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
         rxSpinBox->setValue(found->get_index());
         rxSpinBox_valueChanged(found->get_index());
     }
-    std::cerr<<"calling on_plotter_newDemodFreqLoad("<<freq<<", "<<delta<<");\n";
     on_plotter_newDemodFreqLoad(freq, delta);
 }
 
@@ -2772,9 +2791,7 @@ void MainWindow::onBookmarkActivatedAddDemod(BookmarkInfo & bm)
 {
     if(!rx->find_vfo(bm.frequency - d_lnb_lo))
     {
-        std::cerr<<"on_actionAddDemodulator_triggered()\n";
         on_actionAddDemodulator_triggered();
-        std::cerr<<"onBookmarkActivated()\n";
         onBookmarkActivated(bm);
     }
 }
@@ -2786,7 +2803,7 @@ void MainWindow::setPassband(int bandwidth)
     auto preset = uiDockRxOpt->currentFilter();
 
     int lo, hi;
-    uiDockRxOpt->getFilterPreset(mode, preset, &lo, &hi);
+    modulations.GetFilterPreset(mode, preset, lo, hi);
 
     if(lo + hi == 0)
     {
@@ -3030,7 +3047,6 @@ void MainWindow::on_actionAddDemodulator_triggered()
 {
     ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->add_rx();
-    std::cerr<<"on_actionAddDemodulator_triggered() "<<n;
     ui->plotter->setCurrentVfo(rx->get_rx_count() - 1);
     rxSpinBox->setMaximum(rx->get_rx_count() - 1);
     rxSpinBox->setValue(n);
@@ -3042,7 +3058,6 @@ void MainWindow::on_actionRemoveDemodulator_triggered()
     if(old_current != rx->get_rx_count() - 1)
         ui->plotter->removeVfo(rx->get_vfo(rx->get_rx_count() - 1));
     int n = rx->delete_rx();
-    std::cerr<<"on_actionRemoveDemodulator_triggered() "<<n;
     rxSpinBox->setValue(n);
     rxSpinBox->setMaximum(rx->get_rx_count() - 1);
     loadRxToGUI();
@@ -3059,7 +3074,6 @@ void MainWindow::rxSpinBox_valueChanged(int i)
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
     ui->plotter->setCurrentVfo(i);
-    std::cerr<<"rxSpinBox_valueChanged("<<i<<") => "<<n;
     if(n == receiver::STATUS_OK)
         loadRxToGUI();
 }

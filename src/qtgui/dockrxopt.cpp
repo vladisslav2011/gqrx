@@ -340,23 +340,6 @@ double DockRxOpt::currentSquelchLevel() const
     return ui->sqlSpinBox->value();
 }
 
-
-/** Get filter lo/hi for a given mode and preset */
-void DockRxOpt::getFilterPreset(Modulations::idx mode, int preset, int * lo, int * hi) const
-{
-    if (mode < Modulations::MODE_OFF || mode >= Modulations::MODE_LAST)
-    {
-        qDebug() << __func__ << ": Invalid mode:" << mode;
-        mode = Modulations::MODE_AM;
-    }
-    else if (preset < 0 || preset > 2)
-    {
-        qDebug() << __func__ << ": Invalid preset:" << preset;
-        preset = FILTER_PRESET_NORMAL;
-    }
-    modulations.GetFilterPreset(mode, preset, *lo, *hi);
-}
-
 int DockRxOpt::getCwOffset() const
 {
     return demodOpt->getCwOffset();

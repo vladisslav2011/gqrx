@@ -79,7 +79,6 @@ public:
     double currentEmph() const;
     double currentSquelchLevel() const;
 
-    void    getFilterPreset(Modulations::idx mode, int preset, int * lo, int * hi) const;
     int     getCwOffset() const;
     void    setCwOffset(int offset);
 

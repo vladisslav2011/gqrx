@@ -146,6 +146,14 @@ bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
     bool updated = false;
     if(iModulationIndex >= MODE_LAST)
         iModulationIndex = MODE_AM;
+    if(-filter_ranges_table[iModulationIndex][0][0] == filter_ranges_table[iModulationIndex][1][1])
+        if(high != (high - low) / 2)
+        {
+            if(high > -low)
+                low = -high;
+            else
+                high = -low;
+        }
     if(low < filter_ranges_table[iModulationIndex][0][0])
     {
         low = filter_ranges_table[iModulationIndex][0][0];
