@@ -26,6 +26,12 @@
 #include <iostream>
 #include <QStringList>
 
+//FIXME: Convert to enum?
+#define FILTER_PRESET_WIDE      0
+#define FILTER_PRESET_NORMAL    1
+#define FILTER_PRESET_NARROW    2
+#define FILTER_PRESET_USER      3
+
 class Modulations
 {
 public:
@@ -58,6 +64,10 @@ public:
     QString GetStringForModulationIndex(int iModulationIndex);
     bool IsModulationValid(QString strModulation);
     idx GetEnumForModulationString(QString param) const;
+    bool GetFilterPreset(idx iModulationIndex, int preset, int& low, int& high) const;
+    int FindFilterPreset(idx mode_index, int lo, int hi) const;
+    void GetFilterRanges(idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax) const;
+    bool UpdateFilterRange(idx iModulationIndex, int& low, int& high) const;
     Modulations();
     ~Modulations();
 };

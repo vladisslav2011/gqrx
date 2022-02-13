@@ -27,40 +27,6 @@
 #include "dockrxopt.h"
 #include "ui_dockrxopt.h"
 
-
-// Lookup table for conversion from old settings
-static const int old2new[] = {
-    Modulations::MODE_OFF,
-    Modulations::MODE_RAW,
-    Modulations::MODE_AM,
-    Modulations::MODE_NFM,
-    Modulations::MODE_WFM_MONO,
-    Modulations::MODE_WFM_STEREO,
-    Modulations::MODE_LSB,
-    Modulations::MODE_USB,
-    Modulations::MODE_CWL,
-    Modulations::MODE_CWU,
-    Modulations::MODE_WFM_STEREO_OIRT,
-    Modulations::MODE_AM_SYNC
-};
-
-// Filter preset table per mode, preset and lo/hi
-static const int filter_preset_table[Modulations::MODE_LAST][3][2] =
-{   //     WIDE             NORMAL            NARROW
-    {{      0,      0}, {     0,     0}, {     0,     0}},  // MODE_OFF
-    {{ -15000,  15000}, { -5000,  5000}, { -1000,  1000}},  // MODE_RAW
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_AM
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_AMSYNC
-    {{  -4000,   -100}, { -2800,  -100}, { -2400,  -300}},  // MODE_LSB
-    {{    100,   4000}, {   100,  2800}, {   300,  2400}},  // MODE_USB
-    {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWL
-    {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWU
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_NFM
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_MONO
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}}   // MODE_WFM_STEREO_OIRT
-};
-
 DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::DockRxOpt),
@@ -259,19 +225,8 @@ void DockRxOpt::updateHwFreq()
  */
 unsigned int DockRxOpt::filterIdxFromLoHi(int lo, int hi) const
 {
-    int mode_index = ui->modeSelector->currentIndex();
-
-    if (lo == filter_preset_table[mode_index][FILTER_PRESET_WIDE][0] &&
-        hi == filter_preset_table[mode_index][FILTER_PRESET_WIDE][1])
-        return FILTER_PRESET_WIDE;
-    else if (lo == filter_preset_table[mode_index][FILTER_PRESET_NORMAL][0] &&
-             hi == filter_preset_table[mode_index][FILTER_PRESET_NORMAL][1])
-        return FILTER_PRESET_NORMAL;
-    else if (lo == filter_preset_table[mode_index][FILTER_PRESET_NARROW][0] &&
-             hi == filter_preset_table[mode_index][FILTER_PRESET_NARROW][1])
-        return FILTER_PRESET_NARROW;
-
-    return FILTER_PRESET_USER;
+    Modulations::idx mode_index = Modulations::idx(ui->modeSelector->currentIndex());
+    return modulations.FindFilterPreset(mode_index, lo, hi);
 }
 
 /**
@@ -399,8 +354,7 @@ void DockRxOpt::getFilterPreset(Modulations::idx mode, int preset, int * lo, int
         qDebug() << __func__ << ": Invalid preset:" << preset;
         preset = FILTER_PRESET_NORMAL;
     }
-    *lo = filter_preset_table[mode][preset][0];
-    *hi = filter_preset_table[mode][preset][1];
+    modulations.GetFilterPreset(mode, preset, *lo, *hi);
 }
 
 int DockRxOpt::getCwOffset() const

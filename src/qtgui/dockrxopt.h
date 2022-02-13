@@ -32,11 +32,6 @@
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
 
-#define FILTER_PRESET_WIDE      0
-#define FILTER_PRESET_NORMAL    1
-#define FILTER_PRESET_NARROW    2
-#define FILTER_PRESET_USER      3
-
 namespace Ui {
     class DockRxOpt;
 }

@@ -1452,7 +1452,6 @@ void MainWindow::selectDemod(const QString& strModulation)
  */
 void MainWindow::selectDemod(Modulations::idx mode_idx)
 {
-    double  cwofs = 0.0;
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0;
     bool    rds_enabled;
@@ -1491,6 +1490,13 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
         }
         rx->set_demod(mode_idx);
         break;
+    case Modulations::MODE_AM:
+    case Modulations::MODE_AM_SYNC:
+    case Modulations::MODE_USB:
+    case Modulations::MODE_LSB:
+    case Modulations::MODE_CWL:
+    case Modulations::MODE_CWU:
+        break;
 
     case Modulations::MODE_NFM:
         rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
@@ -1506,24 +1512,13 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             setRdsDecoder(true);
         break;
 
-    case Modulations::MODE_CWL:
-        /* CW-L */
-        cwofs = -uiDockRxOpt->getCwOffset();
-        break;
-
-    case Modulations::MODE_CWU:
-        /* CW-U */
-        cwofs = uiDockRxOpt->getCwOffset();
-        break;
-
     default:
         qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
         flo = -5000;
         fhi = 5000;
         break;
     }
-    rx->set_filter((double)flo, (double)fhi, d_filter_shape);
-    rx->set_cw_offset(cwofs);
+    rx->set_filter(flo, fhi, d_filter_shape);
     updateDemodGUIRanges();
 }
 
@@ -1541,10 +1536,12 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 void MainWindow::updateDemodGUIRanges()
 {
     int click_res=100;
-    int     flo=0, fhi=0;
+    int     flo=0, fhi=0, loMin, loMax, hiMin,hiMax;
     enum receiver::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::idx mode_idx = rx->get_demod();
+    modulations.GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
+    ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, true);
     switch (mode_idx) {
 
     case Modulations::MODE_OFF:
@@ -1554,25 +1551,21 @@ void MainWindow::updateDemodGUIRanges()
 
     case Modulations::MODE_RAW:
         /* Raw I/Q; max 96 ksps*/
-        ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,24000);
         click_res = 100;
         break;
 
     case Modulations::MODE_AM:
-        ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
     case Modulations::MODE_AM_SYNC:
-        ui->plotter->setDemodRanges(-40000, -200, 200, 40000, true);
         uiDockAudio->setFftRange(0,6000);
         click_res = 100;
         break;
 
     case Modulations::MODE_NFM:
-        ui->plotter->setDemodRanges(-40000, -1000, 1000, 40000, true);
         uiDockAudio->setFftRange(0, 5000);
         click_res = 100;
         break;
@@ -1581,35 +1574,30 @@ void MainWindow::updateDemodGUIRanges()
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
         /* Broadcast FM */
-        ui->plotter->setDemodRanges(-120e3, -10000, 10000, 120e3, true);
         uiDockAudio->setFftRange(0,24000);  /** FIXME: get audio rate from rx **/
         click_res = 1000;
         break;
 
     case Modulations::MODE_LSB:
         /* LSB */
-        ui->plotter->setDemodRanges(-40000, -100, -5000, 0, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
         break;
 
     case Modulations::MODE_USB:
         /* USB */
-        ui->plotter->setDemodRanges(0, 5000, 100, 40000, false);
         uiDockAudio->setFftRange(0,3000);
         click_res = 100;
         break;
 
     case Modulations::MODE_CWL:
         /* CW-L */
-        ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
         click_res = 10;
         break;
 
     case Modulations::MODE_CWU:
         /* CW-U */
-        ui->plotter->setDemodRanges(-5000, -100, 100, 5000, true);
         uiDockAudio->setFftRange(0,1500);
         click_res = 10;
         break;

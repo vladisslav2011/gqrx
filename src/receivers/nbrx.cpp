@@ -86,8 +86,38 @@ void nbrx::set_filter(int low, int high, int tw)
 
 void nbrx::set_cw_offset(int offset)
 {
-    receiver_base_cf::set_cw_offset(offset);
-    filter->set_cw_offset(offset);
+    vfo_s::set_cw_offset(offset);
+    switch (get_demod())
+    {
+    case Modulations::MODE_CWL:
+        ddc->set_center_freq(get_offset() + get_cw_offset());
+        filter->set_cw_offset(-get_cw_offset());
+        break;
+    case Modulations::MODE_CWU:
+        ddc->set_center_freq(get_offset() - get_cw_offset());
+        filter->set_cw_offset(get_cw_offset());
+        break;
+    default:
+        ddc->set_center_freq(get_offset());
+        filter->set_cw_offset(0);
+    }
+}
+
+void nbrx::set_offset(int offset)
+{
+    vfo_s::set_offset(offset);
+    switch (get_demod())
+    {
+    case Modulations::MODE_CWL:
+        ddc->set_center_freq(offset + get_cw_offset());
+        break;
+    case Modulations::MODE_CWU:
+        ddc->set_center_freq(offset - get_cw_offset());
+        break;
+    default:
+        ddc->set_center_freq(offset);
+    }
+    wav_sink->set_offset(offset);
 }
 
 void nbrx::set_nb_on(int nbid, bool on)
@@ -222,6 +252,20 @@ void nbrx::set_demod(Modulations::idx new_demod)
         }
     }
     receiver_base_cf::set_demod(new_demod);
+    switch (get_demod())
+    {
+    case Modulations::MODE_CWL:
+        ddc->set_center_freq(get_offset() + get_cw_offset());
+        filter->set_cw_offset(-get_cw_offset());
+        break;
+    case Modulations::MODE_CWU:
+        ddc->set_center_freq(get_offset() - get_cw_offset());
+        filter->set_cw_offset(get_cw_offset());
+        break;
+    default:
+        ddc->set_center_freq(get_offset());
+        filter->set_cw_offset(0);
+    }
 }
 
 void nbrx::set_fm_maxdev(float maxdev_hz)

@@ -114,14 +114,13 @@ void receiver_base_cf::set_center_freq(double center_freq)
 void receiver_base_cf::set_offset(int offset)
 {
     vfo_s::set_offset(offset);
-    ddc->set_center_freq(offset - get_cw_offset());
+    ddc->set_center_freq(offset);
     wav_sink->set_offset(offset);
 }
 
 void receiver_base_cf::set_cw_offset(int offset)
 {
     vfo_s::set_cw_offset(offset);
-    ddc->set_center_freq(get_offset() - get_cw_offset());
 }
 
 void receiver_base_cf::set_audio_rec_dir(std::string dir)
