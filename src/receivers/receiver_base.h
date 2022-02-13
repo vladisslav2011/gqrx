@@ -112,7 +112,7 @@ public:
     virtual float get_agc_gain();
 
     /* CW parameters */
-    void set_cw_offset(double offset) override;
+    void set_cw_offset(int offset) override;
 
     virtual void get_rds_data(std::string &outbuff, int &num);
     virtual void start_rds_decoder();
@@ -128,7 +128,7 @@ public:
     {
         d_rec_event = handler;
     }
-    virtual void restore_settings(receiver_base_cf_sptr from);
+    virtual void restore_settings(receiver_base_cf& from);
     bool connected() { return d_connected; }
     void connected(bool value) { d_connected = value; }
 

@@ -1384,7 +1384,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         // End temporary workaronud
         if(old_rx.get() != rx[d_current].get())
         {
-            rx[d_current]->restore_settings(old_rx);
+            rx[d_current]->restore_settings(*old_rx.get());
             // Recorders
             if(old_rx.get() != rx[d_current].get())
             {

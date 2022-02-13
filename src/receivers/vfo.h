@@ -120,7 +120,7 @@ typedef class vfo_s
     inline int   get_agc_panning(){ return d_agc_panning;}
     inline bool  get_agc_panning_auto(){ return d_agc_panning_auto;}
     /* CW parameters */
-    inline double get_cw_offset(){ return d_cw_offset;}
+    inline int   get_cw_offset(){ return d_cw_offset;}
     /* FM parameters */
     inline float get_fm_maxdev(){ return d_fm_maxdev;}
     inline double get_fm_deemph(){ return d_fm_deemph;}
@@ -164,7 +164,7 @@ typedef class vfo_s
     virtual void  set_agc_panning(int panning);
     virtual void  set_agc_panning_auto(bool mode);
     /* CW parameters */
-    virtual void set_cw_offset(double offset);
+    virtual void set_cw_offset(int offset);
     /* FM parameters */
     virtual void  set_fm_maxdev(float maxdev_hz);
     virtual void  set_fm_deemph(double tau);
@@ -183,7 +183,7 @@ typedef class vfo_s
     virtual void set_audio_rec_max_gap(const int time_ms);
     
 
-    virtual void restore_settings(sptr from);
+    virtual void restore_settings(vfo_s& from);
 
     protected:
     int              d_offset;
@@ -207,7 +207,7 @@ typedef class vfo_s
     int              d_agc_panning;
     int              d_agc_panning_auto;
 
-    double           d_cw_offset;        /*!< CW offset */
+    int              d_cw_offset;        /*!< CW offset */
 
     float            d_fm_maxdev;
     double           d_fm_deemph;

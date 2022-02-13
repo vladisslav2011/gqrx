@@ -119,7 +119,7 @@ void vfo_s::set_agc_panning_auto(bool mode)
     d_agc_panning_auto = mode;
 }
 
-void vfo_s::set_cw_offset(double offset)
+void vfo_s::set_cw_offset(int offset)
 {
     d_cw_offset = offset;
 }
@@ -197,41 +197,41 @@ void vfo_s::set_audio_rec_max_gap(const int time_ms)
 
 
 
-void vfo_s::restore_settings(vfo_s::sptr from)
+void vfo_s::restore_settings(vfo_s& from)
 {
-    set_offset(from->get_offset());
-    set_filter(from->get_filter_low(), from->get_filter_high(), from->get_filter_tw());
-    set_freq_lock(from->get_freq_lock());
-    //set_demod(from->get_demod());
-    set_sql_level(from->get_sql_level());
-    set_sql_alpha(from->get_sql_alpha());
+    set_offset(from.get_offset());
+    set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
+    set_freq_lock(from.get_freq_lock());
+    set_demod(from.get_demod());
+    set_sql_level(from.get_sql_level());
+    set_sql_alpha(from.get_sql_alpha());
 
-    set_agc_on(from->get_agc_on());
-    set_agc_target_level(from->get_agc_target_level());
-    set_agc_manual_gain(from->get_agc_manual_gain());
-    set_agc_max_gain(from->get_agc_max_gain());
-    set_agc_attack(from->get_agc_attack());
-    set_agc_decay(from->get_agc_decay());
-    set_agc_hang(from->get_agc_hang());
-    set_agc_panning(from->get_agc_panning());
-    set_agc_panning_auto(from->get_agc_panning_auto());
+    set_agc_on(from.get_agc_on());
+    set_agc_target_level(from.get_agc_target_level());
+    set_agc_manual_gain(from.get_agc_manual_gain());
+    set_agc_max_gain(from.get_agc_max_gain());
+    set_agc_attack(from.get_agc_attack());
+    set_agc_decay(from.get_agc_decay());
+    set_agc_hang(from.get_agc_hang());
+    set_agc_panning(from.get_agc_panning());
+    set_agc_panning_auto(from.get_agc_panning_auto());
 
-    set_cw_offset(from->get_cw_offset());
+    set_cw_offset(from.get_cw_offset());
 
-    set_fm_maxdev(from->get_fm_maxdev());
-    set_fm_deemph(from->get_fm_deemph());
+    set_fm_maxdev(from.get_fm_maxdev());
+    set_fm_deemph(from.get_fm_deemph());
 
-    set_am_dcr(from->d_am_dcr);
-    set_amsync_dcr(from->d_amsync_dcr);
-    set_amsync_pll_bw(from->d_amsync_pll_bw);
+    set_am_dcr(from.get_am_dcr());
+    set_amsync_dcr(from.get_amsync_dcr());
+    set_amsync_pll_bw(from.get_amsync_pll_bw());
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
     {
-        set_nb_on(k + 1, from->get_nb_on(k + 1));
-        set_nb_threshold(k + 1, from->get_nb_threshold(k + 1));
+        set_nb_on(k + 1, from.get_nb_on(k + 1));
+        set_nb_threshold(k + 1, from.get_nb_threshold(k + 1));
     }
-    set_audio_rec_sql_triggered(from->get_audio_rec_sql_triggered());
-    set_audio_rec_min_time(from->get_audio_rec_min_time());
-    set_audio_rec_max_gap(from->get_audio_rec_max_gap());
-    set_audio_rec_dir(from->get_audio_rec_dir());
+    set_audio_rec_dir(from.get_audio_rec_dir());
+    set_audio_rec_min_time(from.get_audio_rec_min_time());
+    set_audio_rec_max_gap(from.get_audio_rec_max_gap());
+    set_audio_rec_sql_triggered(from.get_audio_rec_sql_triggered());
 }

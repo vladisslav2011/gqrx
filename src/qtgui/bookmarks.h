@@ -30,6 +30,7 @@
 #include <QList>
 #include <QStringList>
 #include <QColor>
+#include "receivers/vfo.h"
 
 struct TagInfo
 {
@@ -57,18 +58,21 @@ struct TagInfo
     }
 };
 
-struct BookmarkInfo
+class BookmarkInfo:public vfo_s
 {
-    qint64  frequency;
-    QString name;
-    QString modulation;
-    qint64  bandwidth;
-    QList<TagInfo*> tags;
-
-    BookmarkInfo()
+    public:
+#if GNURADIO_VERSION < 0x030900
+    typedef boost::shared_ptr<BookmarkInfo> sptr;
+#else
+    typedef std::shared_ptr<BookmarkInfo> sptr;
+#endif
+    static sptr make()
     {
-        this->frequency = 0;
-        this->bandwidth = 0;
+        return sptr(new BookmarkInfo());
+    }
+
+    BookmarkInfo():vfo_s(),frequency(0)
+    {
     }
 
 /*    BookmarkInfo( qint64 frequency, QString name, qint64 bandwidth, QString modulation )
@@ -96,6 +100,11 @@ struct BookmarkInfo
 
     const QColor GetColor() const;
     bool IsActive() const;
+
+    qint64  frequency;
+    QString name;
+    QString modulation;
+    QList<TagInfo*> tags;
 };
 
 class Bookmarks : public QObject

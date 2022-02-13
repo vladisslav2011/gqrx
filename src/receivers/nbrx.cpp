@@ -84,7 +84,7 @@ void nbrx::set_filter(int low, int high, int tw)
     filter->set_param(double(low), double(high), double(tw));
 }
 
-void nbrx::set_cw_offset(double offset)
+void nbrx::set_cw_offset(int offset)
 {
     receiver_base_cf::set_cw_offset(offset);
     filter->set_cw_offset(offset);

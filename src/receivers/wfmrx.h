@@ -60,19 +60,18 @@ public:
     bool stop();
 
 
-    void set_filter(int low, int high, int tw);
-    void set_cw_offset(double offset) { (void)offset; }
+    void set_filter(int low, int high, int tw) override;
 
     /* Noise blanker */
     bool has_nb() { return false; }
 
-    void set_demod(Modulations::idx demod);
+    void set_demod(Modulations::idx demod) override;
 
-    void get_rds_data(std::string &outbuff, int &num);
-    void start_rds_decoder();
-    void stop_rds_decoder();
-    void reset_rds_parser();
-    bool is_rds_decoder_active();
+    void get_rds_data(std::string &outbuff, int &num) override;
+    void start_rds_decoder() override;
+    void stop_rds_decoder() override;
+    void reset_rds_parser() override;
+    bool is_rds_decoder_active() override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */

@@ -118,7 +118,7 @@ void receiver_base_cf::set_offset(int offset)
     wav_sink->set_offset(offset);
 }
 
-void receiver_base_cf::set_cw_offset(double offset)
+void receiver_base_cf::set_cw_offset(int offset)
 {
     vfo_s::set_cw_offset(offset);
     ddc->set_center_freq(get_offset() - get_cw_offset());
@@ -292,9 +292,9 @@ void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, 
     }
 }
 
-void receiver_base_cf::restore_settings(receiver_base_cf_sptr from)
+void receiver_base_cf::restore_settings(receiver_base_cf& from)
 {
     vfo_s::restore_settings(from);
 
-    set_center_freq(from->d_center_freq);
+    set_center_freq(from.d_center_freq);
 }

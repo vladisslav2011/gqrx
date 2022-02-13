@@ -58,7 +58,7 @@ public:
     bool stop() override;
 
     void set_filter(int low, int high, int tw) override;
-    void set_cw_offset(double offset) override;
+    void set_cw_offset(int offset) override;
 
     /* Noise blanker */
     bool has_nb() override { return true; }

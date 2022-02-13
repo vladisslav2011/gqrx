@@ -71,9 +71,9 @@ public:
     void changeBookmarkTags(int row, int /*column*/);
 
 signals:
-    void newBookmarkActivated(qint64, QString, int);
+    void newBookmarkActivated(BookmarkInfo& bookmark);
     void newBookmarkActivated(qint64);
-    void newBookmarkActivatedAddDemod(qint64, QString, int);
+    void newBookmarkActivatedAddDemod(BookmarkInfo& bookmark);
 
 public slots:
     void setNewFrequency(qint64 rx_freq);

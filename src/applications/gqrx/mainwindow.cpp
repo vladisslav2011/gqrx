@@ -292,10 +292,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRDS, SIGNAL(rdsDecoderToggled(bool)), this, SLOT(setRdsDecoder(bool)));
 
     // Bookmarks
-    connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64, QString, int)), this, SLOT(onBookmarkActivated(qint64, QString, int)));
+    connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(BookmarkInfo &)), this, SLOT(onBookmarkActivated(BookmarkInfo &)));
     //FIXME: create a new slot that would avoid changing hw frequency if the bookmark is in the current bandwidth
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64)), this, SLOT(setNewFrequency(qint64)));
-    connect(uiDockBookmarks, SIGNAL(newBookmarkActivatedAddDemod(qint64, QString, int)), this, SLOT(onBookmarkActivatedAddDemod(qint64, QString, int)));
+    connect(uiDockBookmarks, SIGNAL(newBookmarkActivatedAddDemod(BookmarkInfo &)), this, SLOT(onBookmarkActivatedAddDemod(BookmarkInfo &)));
     connect(uiDockBookmarks->actionAddBookmark, SIGNAL(triggered()), this, SLOT(on_actionAddBookmark_triggered()));
     connect(&Bookmarks::Get(), SIGNAL(BookmarksChanged()), ui->plotter, SLOT(updateOverlay()));
 
@@ -2594,9 +2594,9 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
         Bookmarks::Get().getBookmarksInRange(freq, freq);
     if(tags.size() > 0)
     {
-        BookmarkInfo & first = tags.first();
-        onBookmarkActivated(freq, first.modulation, first.bandwidth);
-    }else
+        onBookmarkActivated(tags.first());
+    }
+    else
         setNewFrequency(freq);
 }
 
@@ -2612,6 +2612,7 @@ void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
         rxSpinBox->setValue(found->get_index());
         rxSpinBox_valueChanged(found->get_index());
     }
+    std::cerr<<"calling on_plotter_newDemodFreqLoad("<<freq<<", "<<delta<<");\n";
     on_plotter_newDemodFreqLoad(freq, delta);
 }
 
@@ -2775,41 +2776,29 @@ void MainWindow::setRdsDecoder(bool checked)
     remote->setRDSstatus(checked);
 }
 
-void MainWindow::onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth)
+void MainWindow::onBookmarkActivated(BookmarkInfo & bm)
 {
-    setNewFrequency(freq);
-    selectDemod(demod);
-
-    /* Check if filter is symmetric or not by checking the presets */
-    auto mode = uiDockRxOpt->currentDemod();
-    auto preset = uiDockRxOpt->currentFilter();
-
-    int lo, hi;
-    uiDockRxOpt->getFilterPreset(mode, preset, &lo, &hi);
-
-    if(lo + hi == 0)
-    {
-        lo = -bandwidth / 2;
-        hi =  bandwidth / 2;
-    }
-    else if(lo >= 0 && hi >= 0)
-    {
-        hi = lo + bandwidth;
-    }
-    else if(lo <= 0 && hi <= 0)
-    {
-        lo = hi - bandwidth;
-    }
-
-    on_plotter_newFilterFreq(lo, hi);
+    setNewFrequency(bm.frequency);
+    selectDemod(bm.get_demod());
+    // preserve offset, squelch level, force locked state
+    auto old_vfo = rx->get_current_vfo();
+    auto old_offset = old_vfo->get_offset();
+    auto old_sql = old_vfo->get_sql_level();
+    rx->get_current_vfo()->restore_settings(bm);
+    old_vfo->set_sql_level(old_sql);
+    old_vfo->set_offset(old_offset);
+    old_vfo->set_freq_lock(true);
+    loadRxToGUI();
 }
 
-void MainWindow::onBookmarkActivatedAddDemod(qint64 freq, const QString& demod, int bandwidth)
+void MainWindow::onBookmarkActivatedAddDemod(BookmarkInfo & bm)
 {
-    if(!rx->find_vfo(freq - d_lnb_lo))
+    if(!rx->find_vfo(bm.frequency - d_lnb_lo))
     {
+        std::cerr<<"on_actionAddDemodulator_triggered()\n";
         on_actionAddDemodulator_triggered();
-        onBookmarkActivated(freq, demod, bandwidth);
+        std::cerr<<"onBookmarkActivated()\n";
+        onBookmarkActivated(bm);
     }
 }
 
@@ -3040,8 +3029,8 @@ void MainWindow::on_actionAddBookmark_triggered()
         int i;
 
         BookmarkInfo info;
+        info.restore_settings(*rx->get_current_vfo().get());
         info.frequency = ui->freqCtrl->getFrequency();
-        info.bandwidth = ui->plotter->getFilterBw();
         info.modulation = uiDockRxOpt->currentDemodAsString();
         info.name=name;
         info.tags.clear();

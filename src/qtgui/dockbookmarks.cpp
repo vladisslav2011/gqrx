@@ -122,7 +122,7 @@ DockBookmarks::~DockBookmarks()
 void DockBookmarks::activated(const QModelIndex & index)
 {
     BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(index.row());
-    emit newBookmarkActivated(info->frequency, info->modulation, info->bandwidth);
+    emit newBookmarkActivated(*info);
 }
 
 void DockBookmarks::setNewFrequency(qint64 rx_freq)
@@ -132,7 +132,7 @@ void DockBookmarks::setNewFrequency(qint64 rx_freq)
     for (int row = 0; row < iRowCount; ++row)
     {
         BookmarkInfo& info = *(bookmarksTableModel->getBookmarkAtRow(row));
-        if (std::abs(rx_freq - info.frequency) <= ((info.bandwidth / 2 ) + 1))
+        if (std::abs(rx_freq - info.frequency) <= info.get_filter_high() - info.get_filter_low() + 1)
         {
             ui->tableViewFrequencyList->selectRow(row);
             ui->tableViewFrequencyList->scrollTo(ui->tableViewFrequencyList->currentIndex(), QAbstractItemView::EnsureVisible );
@@ -221,7 +221,7 @@ bool DockBookmarks::tuneAndLoad()
     if (selected.empty())
         return true;
     BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(selected.first().row());
-    emit newBookmarkActivated(info->frequency, info->modulation, info->bandwidth);
+    emit newBookmarkActivated(*info);
     return true;
 }
 
@@ -231,7 +231,7 @@ bool DockBookmarks::newDemod()
     if (selected.empty())
         return true;
     BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(selected.first().row());
-    emit newBookmarkActivatedAddDemod(info->frequency, info->modulation, info->bandwidth);
+    emit newBookmarkActivatedAddDemod(*info);
     return true;
 }
 

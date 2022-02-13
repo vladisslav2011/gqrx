@@ -235,8 +235,8 @@ private slots:
     void setRdsDecoder(bool checked);
 
     /* Bookmarks */
-    void onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth);
-    void onBookmarkActivatedAddDemod(qint64 freq, const QString& demod, int bandwidth);
+    void onBookmarkActivated(BookmarkInfo & bm);
+    void onBookmarkActivatedAddDemod(BookmarkInfo & bm);
 
     /* DXC Spots */
     void updateClusterSpots();

@@ -38,7 +38,7 @@ int BookmarksTableModel::rowCount ( const QModelIndex & /*parent*/ ) const
 }
 int BookmarksTableModel::columnCount ( const QModelIndex & /*parent*/ ) const
 {
-    return 5;
+    return COLUMN_COUNT;
 }
 
 QVariant BookmarksTableModel::headerData ( int section, Qt::Orientation orientation, int role ) const
@@ -53,14 +53,92 @@ QVariant BookmarksTableModel::headerData ( int section, Qt::Orientation orientat
         case COL_NAME:
             return QString("Name");
             break;
+        case COL_TAGS:
+            return QString("Tag");
+            break;
+        case COL_LOCKED:
+            return QString("Auto");
+            break;
         case COL_MODULATION:
             return QString("Modulation");
             break;
-        case COL_BANDWIDTH:
-            return QString("Bandwidth");
+        case COL_FILTER_LOW:
+            return QString("Filter Low");
             break;
-        case COL_TAGS:
-            return QString("Tag");
+        case COL_FILTER_HIGH:
+            return QString("Filter High");
+            break;
+        case COL_FILTER_TW:
+            return QString("Filter Tw");
+            break;
+        case COL_AGC_ON:
+            return QString("AGC");
+            break;
+        case COL_AGC_TARGET:
+            return QString("AGC Target");
+            break;
+        case COL_AGC_MANUAL:
+            return QString("AGC Manual");
+            break;
+        case COL_AGC_MAX:
+            return QString("AGC Max Gain");
+            break;
+        case COL_AGC_ATTACK:
+            return QString("AGC Attack");
+            break;
+        case COL_AGC_DECAY:
+            return QString("AGC Decay");
+            break;
+        case COL_AGC_HANG:
+            return QString("AGC Hang");
+            break;
+        case COL_AGC_PANNING:
+            return QString("Panning");
+            break;
+        case COL_AGC_PANNING_AUTO:
+            return QString("Autopanning");
+            break;
+        case COL_CW_OFFSET:
+            return QString("CW Offset");
+            break;
+        case COL_FM_MAXDEV:
+            return QString("FM Deviation");
+            break;
+        case COL_FM_DEEMPH:
+            return QString("FM Deemphasis");
+            break;
+        case COL_AM_DCR:
+            return QString("AM DCR");
+            break;
+        case COL_AMSYNC_DCR:
+            return QString("AM SYNC DCR");
+            break;
+        case COL_AMSYNC_PLL_BW:
+            return QString("AM SYNC PLL BW");
+            break;
+        case COL_NB1_ON:
+            return QString("NB1 ON");
+            break;
+        case COL_NB1_THRESHOLD:
+            return QString("NB1 Threshold");
+            break;
+        case COL_NB2_ON:
+            return QString("NB2 ON");
+            break;
+        case COL_NB2_THRESHOLD:
+            return QString("NB2 Threshold");
+            break;
+        case COL_REC_DIR:
+            return QString("REC Directory");
+            break;
+        case COL_REC_SQL_TRIGGERED:
+            return QString("REC SQL-triggered");
+            break;
+        case COL_REC_MIN_TIME:
+            return QString("REC Min Time");
+            break;
+        case COL_REC_MAX_GAP:
+            return QString("REC Max Gap");
             break;
         }
     }
@@ -81,6 +159,7 @@ QVariant BookmarksTableModel::data ( const QModelIndex & index, int role ) const
         bg.setAlpha(0x60);
         return bg;
     }
+
     else if(role == Qt::DisplayRole || role==Qt::EditRole)
     {
         switch(index.column())
@@ -89,22 +168,76 @@ QVariant BookmarksTableModel::data ( const QModelIndex & index, int role ) const
                 return info.frequency;
         case COL_NAME:
                 return (role==Qt::EditRole)?QString(info.name):info.name;
+        case COL_TAGS:
+            {
+                QString strTags;
+                for(int iTag=0; iTag<info.tags.size(); ++iTag)
+                {
+                    if(iTag!=0)
+                    {
+                        strTags.append(",");
+                    }
+                    TagInfo& tag = *info.tags[iTag];
+                    strTags.append(tag.name);
+                }
+                return strTags;
+            }
+        case COL_LOCKED:
+                return info.get_freq_lock();
         case COL_MODULATION:
                 return info.modulation;
-        case COL_BANDWIDTH:
-            return (info.bandwidth==0)?QVariant(""):QVariant(info.bandwidth);
-         case COL_TAGS:
-            QString strTags;
-            for(int iTag=0; iTag<info.tags.size(); ++iTag)
-            {
-                if(iTag!=0)
-                {
-                    strTags.append(",");
-                }
-                TagInfo& tag = *info.tags[iTag];
-                strTags.append(tag.name);
-            }
-            return strTags;
+        case COL_FILTER_LOW:
+                return info.get_filter_low();
+        case COL_FILTER_HIGH:
+                return info.get_filter_high();
+        case COL_FILTER_TW:
+                return info.get_filter_tw();
+        case COL_AGC_ON:
+                return info.get_agc_on();
+        case COL_AGC_TARGET:
+                return info.get_agc_target_level();
+        case COL_AGC_MANUAL:
+                return info.get_agc_manual_gain();
+        case COL_AGC_MAX:
+                return info.get_agc_max_gain();
+        case COL_AGC_ATTACK:
+                return info.get_agc_attack();
+        case COL_AGC_DECAY:
+                return info.get_agc_decay();
+        case COL_AGC_HANG:
+                return info.get_agc_hang();
+        case COL_AGC_PANNING:
+                return info.get_agc_panning();
+        case COL_AGC_PANNING_AUTO:
+                return info.get_agc_panning_auto();
+        case COL_CW_OFFSET:
+                return info.get_cw_offset();
+        case COL_FM_MAXDEV:
+                return info.get_fm_maxdev();
+        case COL_FM_DEEMPH:
+                return info.get_fm_deemph();
+        case COL_AM_DCR:
+                return info.get_am_dcr();
+        case COL_AMSYNC_DCR:
+                return info.get_amsync_dcr();
+        case COL_AMSYNC_PLL_BW:
+                return info.get_amsync_pll_bw();
+        case COL_NB1_ON:
+                return info.get_nb_on(1);
+        case COL_NB1_THRESHOLD:
+                return info.get_nb_threshold(1);
+        case COL_NB2_ON:
+                return info.get_nb_on(2);
+        case COL_NB2_THRESHOLD:
+                return info.get_nb_threshold(2);
+        case COL_REC_DIR:
+                return QString::fromStdString(info.get_audio_rec_dir());
+        case COL_REC_SQL_TRIGGERED:
+                return info.get_audio_rec_sql_triggered();
+        case COL_REC_MIN_TIME:
+                return info.get_audio_rec_min_time();
+        case COL_REC_MAX_GAP:
+                return info.get_audio_rec_max_gap();
         }
     }
     return QVariant();
@@ -130,22 +263,6 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 return true;
             }
             break;
-        case COL_MODULATION:
-            {
-                Q_ASSERT(!value.toString().contains(";")); // may not contain a comma because tablemodel is saved as comma-separated file (csv).
-                if(modulations.IsModulationValid(value.toString()))
-                {
-                    info.modulation = value.toString();
-                    emit dataChanged(index, index);
-                }
-            }
-            break;
-        case COL_BANDWIDTH:
-            {
-                info.bandwidth = value.toInt();
-                emit dataChanged(index, index);
-            }
-            break;
         case COL_TAGS:
             {
                 info.tags.clear();
@@ -160,6 +277,178 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 return true;
             }
             break;
+        case COL_LOCKED:
+            {
+                info.set_freq_lock(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_MODULATION:
+            {
+                Q_ASSERT(!value.toString().contains(";")); // may not contain a comma because tablemodel is saved as comma-separated file (csv).
+                if(modulations.IsModulationValid(value.toString()))
+                {
+                    info.modulation = value.toString();
+                    emit dataChanged(index, index);
+                }
+            }
+            break;
+        case COL_FILTER_LOW:
+            {
+                info.set_filter_low(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_FILTER_HIGH:
+            {
+                info.set_filter_high(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_FILTER_TW:
+            {
+                info.set_filter_tw(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_ON:
+            {
+                info.set_agc_on(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_TARGET:
+            {
+                info.set_agc_target_level(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_MANUAL:
+            {
+                info.set_agc_manual_gain(value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_MAX:
+            {
+                info.set_agc_max_gain(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_ATTACK:
+            {
+                info.set_agc_attack(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_DECAY:
+            {
+                info.set_agc_decay(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_HANG:
+            {
+                info.set_agc_hang(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_PANNING:
+            {
+                info.set_agc_panning(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AGC_PANNING_AUTO:
+            {
+                info.set_agc_panning_auto(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_CW_OFFSET:
+            {
+                info.set_cw_offset(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_FM_MAXDEV:
+            {
+                info.set_fm_maxdev(value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_FM_DEEMPH:
+            {
+                info.set_fm_deemph(value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AM_DCR:
+            {
+                info.set_am_dcr(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AMSYNC_DCR:
+            {
+                info.set_amsync_dcr(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_AMSYNC_PLL_BW:
+            {
+                info.set_amsync_pll_bw(value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_NB1_ON:
+            {
+                info.set_nb_on(1, value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_NB1_THRESHOLD:
+            {
+                info.set_nb_threshold(1, value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_NB2_ON:
+            {
+                info.set_nb_on(2, value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_NB2_THRESHOLD:
+            {
+                info.set_nb_threshold(2, value.toFloat());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_REC_DIR:
+            {
+                info.set_audio_rec_dir(value.toString().toStdString());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_REC_SQL_TRIGGERED:
+            {
+                info.set_audio_rec_sql_triggered(value.toBool());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_REC_MIN_TIME:
+            {
+                info.set_audio_rec_min_time(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
+        case COL_REC_MAX_GAP:
+            {
+                info.set_audio_rec_max_gap(value.toInt());
+                emit dataChanged(index, index);
+            }
+            break;
         }
         return true; // return true means success
     }
@@ -172,14 +461,17 @@ Qt::ItemFlags BookmarksTableModel::flags ( const QModelIndex& index ) const
 
     switch(index.column())
     {
-    case COL_FREQUENCY:
-    case COL_NAME:
-    case COL_BANDWIDTH:
-    case COL_MODULATION:
-        flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
-        break;
     case COL_TAGS:
         flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
+        break;
+    case COL_FREQUENCY:
+    case COL_NAME:
+    case COL_MODULATION:
+    case COL_FILTER_LOW:
+    case COL_FILTER_HIGH:
+// FIXME: implement editor for all parameters and uncomment next line
+//    default:
+        flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
         break;
     }
     return flags;
