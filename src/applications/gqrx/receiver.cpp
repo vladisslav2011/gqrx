@@ -257,8 +257,6 @@ void receiver::set_input_device(const std::string device)
         error = x.what();
         src = osmosdr::source::make("file=" + escape_filename(get_zero_file()) + ",freq=428e6,rate=96000,repeat=true,throttle=true");
     }
-
-    //set_demod(d_demod, FILE_FORMAT_NONE, true);
     reconnect_all(FILE_FORMAT_NONE, true);
     if(src->get_sample_rate() != 0)
         set_input_rate(src->get_sample_rate());
@@ -1409,26 +1407,14 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
     status ret = STATUS_OK;
     if(rx[d_current]->get_demod() == demod)
         return ret;
-     bool restart_required = false;
-     if((d_active <= 1) || (demod == Modulations::MODE_OFF) || (rx[d_current]->get_demod() == Modulations::MODE_OFF))
-     {
-        restart_required = true;
-        if(d_running)
-        {
-            tb->stop();
-            tb->wait();
-        }
-    }
-    else
-        tb->lock();
-    ret = set_demod_locked(demod, old_idx);
-    if(restart_required)
+    if(d_running)
     {
-        if(d_running)
-            tb->start();
+        tb->stop();
+        tb->wait();
     }
-    else
-        tb->unlock();
+    ret = set_demod_locked(demod, old_idx);
+    if(d_running)
+        tb->start();
 
     return ret;
 }
