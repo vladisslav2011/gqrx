@@ -470,7 +470,7 @@ Qt::ItemFlags BookmarksTableModel::flags ( const QModelIndex& index ) const
     case COL_FILTER_LOW:
     case COL_FILTER_HIGH:
 // FIXME: implement editor for all parameters and uncomment next line
-//    default:
+    default:
         flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
         break;
     }

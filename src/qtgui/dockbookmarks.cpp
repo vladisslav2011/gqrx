@@ -54,7 +54,7 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
 
     // Demod Selection in Frequency List Table.
     ComboBoxDelegateModulation* delegateModulation = new ComboBoxDelegateModulation(this);
-    ui->tableViewFrequencyList->setItemDelegateForColumn(2, delegateModulation);
+    ui->tableViewFrequencyList->setItemDelegateForColumn(BookmarksTableModel::COL_MODULATION, delegateModulation);
 
     // Bookmarks Context menu
     contextmenu = new QMenu(this);
@@ -121,8 +121,16 @@ DockBookmarks::~DockBookmarks()
 
 void DockBookmarks::activated(const QModelIndex & index)
 {
-    BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(index.row());
-    emit newBookmarkActivated(*info);
+    bool activate = false;
+    if(index.column() == BookmarksTableModel::COL_NAME)
+        activate = true;
+    if(index.column() == BookmarksTableModel::COL_FREQUENCY)
+        activate = true;
+    if(activate)
+    {
+        BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(index.row());
+        emit newBookmarkActivated(*info);
+    }
 }
 
 void DockBookmarks::setNewFrequency(qint64 rx_freq)
