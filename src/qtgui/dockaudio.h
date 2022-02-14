@@ -122,6 +122,9 @@ signals:
     /*! \brief Signal emitted when squelch triggered recording max gap time is changed. */
     void recMaxGapChanged(int time_ms);
 
+    /*! \brief Signal emitted when toAllVFOs button is clicked. */
+    void copyRecSettingsToAllVFOs();
+
 private slots:
     void on_audioGainSlider_valueChanged(int value);
     void on_audioStreamButton_clicked(bool checked);
@@ -138,6 +141,7 @@ private slots:
     void squelchTriggered_changed(bool enabled);
     void recMinTime_changed(int time_ms);
     void recMaxGap_changed(int time_ms);
+    void copyRecSettingsToAllVFOs_clicked();
 
 
 private:

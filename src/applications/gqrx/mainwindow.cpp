@@ -260,6 +260,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(recMinTimeChanged(int)), this, SLOT(recMinTimeChanged(int)));
     connect(uiDockAudio, SIGNAL(recMaxGapChanged(int)), this, SLOT(recMaxGapChanged(int)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
+    connect(uiDockAudio, SIGNAL(copyRecSettingsToAllVFOs()), this, SLOT(copyRecSettingsToAllVFOs()));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
     connect(uiDockFft, SIGNAL(fftWindowChanged(int)), this, SLOT(setIqFftWindow(int)));
@@ -2071,6 +2072,18 @@ void MainWindow::stopAudioPlayback()
     {
         ui->statusBar->showMessage(tr("Audio playback stopped"), 5000);
     }
+}
+
+void MainWindow::copyRecSettingsToAllVFOs()
+{
+    std::vector<vfo::sptr> vfos = rx->get_vfos();
+    for(auto& cvfo : vfos)
+        if(cvfo->get_index() != rx->get_current())
+        {
+            cvfo->set_audio_rec_dir(rx->get_audio_rec_dir());
+            cvfo->set_audio_rec_min_time(rx->get_audio_rec_min_time());
+            cvfo->set_audio_rec_max_gap(rx->get_audio_rec_max_gap());
+        }
 }
 
 /** Start streaming audio over UDP. */

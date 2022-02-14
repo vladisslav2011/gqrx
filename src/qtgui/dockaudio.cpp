@@ -59,6 +59,7 @@ DockAudio::DockAudio(QWidget *parent) :
     connect(audioOptions, SIGNAL(newSquelchTriggered(bool)), this, SLOT(squelchTriggered_changed(bool)));
     connect(audioOptions, SIGNAL(newRecMinTime(int)), this, SLOT(recMinTime_changed(int)));
     connect(audioOptions, SIGNAL(newRecMaxGap(int)), this, SLOT(recMaxGap_changed(int)));
+    connect(audioOptions, SIGNAL(copyRecSettingsToAllVFOs()), this, SLOT(copyRecSettingsToAllVFOs_clicked()));
 
     connect(ui->audioSpectrum, SIGNAL(pandapterRangeChanged(float,float)), audioOptions, SLOT(setPandapterSliderValues(float,float)));
 
@@ -514,4 +515,9 @@ void DockAudio::increaseAudioGainShortcut() {
 
 void DockAudio::decreaseAudioGainShortcut() {
 	ui->audioGainSlider->triggerAction(QSlider::SliderPageStepSub);
+}
+
+void DockAudio::copyRecSettingsToAllVFOs_clicked()
+{
+    emit copyRecSettingsToAllVFOs();
 }
