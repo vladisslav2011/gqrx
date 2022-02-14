@@ -1277,25 +1277,20 @@ float receiver::get_agc_gain()
 /** Set audio mute. */
 receiver::status receiver::set_mute(bool mute)
 {
-    //FIXME disconnect audio_snk correctly
     if (d_mute == mute)
         return STATUS_OK;
-    if(d_active > 0)
-    {
-        tb->lock();
-        if (mute)
-        {
-            tb->disconnect(mc0, 0, audio_snk, 0);
-            tb->disconnect(mc1, 0, audio_snk, 1);
-        }
-        else
-        {
-            tb->connect(mc0, 0, audio_snk, 0);
-            tb->connect(mc1, 0, audio_snk, 1);
-        }
-        tb->unlock();
-    }
     d_mute = mute;
+    if (d_mute)
+    {
+        mc0->set_k(0);
+        mc1->set_k(0);
+    }
+    else
+    {
+        float mul_k = get_rx_count() ? 1.0 / float(get_rx_count()) : 1.0;
+        mc0->set_k(mul_k);
+        mc1->set_k(mul_k);
+    }
     return STATUS_OK;
 }
 
@@ -1664,21 +1659,17 @@ receiver::status receiver::start_audio_playback(const std::string filename)
     stop();
     /* route demodulator output to null sink */
     if(d_active > 0)
-        if (!d_mute)
-        {
-            tb->disconnect(mc0, 0, audio_snk, 0);
-            tb->disconnect(mc1, 0, audio_snk, 1);
-        }
+    {
+        tb->disconnect(mc0, 0, audio_snk, 0);
+        tb->disconnect(mc1, 0, audio_snk, 1);
+    }
     tb->disconnect(rx[d_current], 0, audio_fft, 0);
     tb->disconnect(rx[d_current], 0, audio_udp_sink, 0);
     tb->disconnect(rx[d_current], 1, audio_udp_sink, 1);
     tb->connect(rx[d_current], 0, audio_null_sink0, 0); /** FIXME: other channel? */
     tb->connect(rx[d_current], 1, audio_null_sink1, 0); /** FIXME: other channel? */
-    if (!d_mute)
-    {
-        tb->connect(wav_src, 0, audio_snk, 0);
-        tb->connect(wav_src, 1, audio_snk, 1);
-    }
+    tb->connect(wav_src, 0, audio_snk, 0);
+    tb->connect(wav_src, 1, audio_snk, 1);
     tb->connect(wav_src, 0, audio_fft, 0);
     tb->connect(wav_src, 0, audio_udp_sink, 0);
     tb->connect(wav_src, 1, audio_udp_sink, 1);
@@ -1694,22 +1685,18 @@ receiver::status receiver::stop_audio_playback()
 {
     /* disconnect wav source and reconnect receiver */
     stop();
-    if (!d_mute)
-    {
-        tb->disconnect(wav_src, 0, audio_snk, 0);
-        tb->disconnect(wav_src, 1, audio_snk, 1);
-    }
+    tb->disconnect(wav_src, 0, audio_snk, 0);
+    tb->disconnect(wav_src, 1, audio_snk, 1);
     tb->disconnect(wav_src, 0, audio_fft, 0);
     tb->disconnect(wav_src, 0, audio_udp_sink, 0);
     tb->disconnect(wav_src, 1, audio_udp_sink, 1);
     tb->disconnect(rx[d_current], 0, audio_null_sink0, 0);
     tb->disconnect(rx[d_current], 1, audio_null_sink1, 0);
     if(d_active > 0)
-        if (!d_mute)
-        {
-            tb->connect(mc0, 0, audio_snk, 0);
-            tb->connect(mc1, 0, audio_snk, 1);
-        }
+    {
+        tb->connect(mc0, 0, audio_snk, 0);
+        tb->connect(mc1, 0, audio_snk, 1);
+    }
     tb->connect(rx[d_current], 0, audio_fft, 0);  /** FIXME: other channel? */
     tb->connect(rx[d_current], 0, audio_udp_sink, 0);
     tb->connect(rx[d_current], 1, audio_udp_sink, 1);
@@ -2058,12 +2045,9 @@ void receiver::connect_rx(int n)
             std::cerr<<"connect_rx connect add"<<std::endl;
             tb->connect(add0, 0, mc0, 0);
             tb->connect(add1, 0, mc1, 0);
-            if (!d_mute)
-            {
-                std::cerr<<"connect audio_snk "<<d_active<<std::endl;
-                tb->connect(mc0, 0, audio_snk, 0);
-                tb->connect(mc1, 0, audio_snk, 1);
-            }
+            std::cerr<<"connect audio_snk "<<d_active<<std::endl;
+            tb->connect(mc0, 0, audio_snk, 0);
+            tb->connect(mc1, 0, audio_snk, 1);
         }else{
             std::cerr<<"connect_rx d_active > 0"<<std::endl;
             tb->connect(iq_src, 0, rx[n], 0);
@@ -2123,12 +2107,9 @@ void receiver::disconnect_rx(int n)
             std::cerr<<"disconnect_rx disconnect add"<<std::endl;
             tb->disconnect(add0, 0, mc0, 0);
             tb->disconnect(add1, 0, mc1, 0);
-            if (!d_mute)
-            {
-                std::cerr<<"disconnect audio_snk "<<d_active<<std::endl;
-                tb->disconnect(mc0, 0, audio_snk, 0);
-                tb->disconnect(mc1, 0, audio_snk, 1);
-            }
+            std::cerr<<"disconnect audio_snk "<<d_active<<std::endl;
+            tb->disconnect(mc0, 0, audio_snk, 0);
+            tb->disconnect(mc1, 0, audio_snk, 1);
         }else{
             std::cerr<<"disconnect_rx d_active > 0"<<std::endl;
             tb->disconnect(iq_src, 0, rx[n], 0);
@@ -2187,9 +2168,8 @@ void receiver::foreground_rx()
             sniffer_rr.reset();
         }
     }
-    float mul_k = get_rx_count() ? 1.0 / float(get_rx_count()) : 1;
-    mc0->set_k(mul_k);
-    mc1->set_k(mul_k);
+    d_mute = !d_mute;
+    set_mute(!d_mute);
 }
 
 void receiver::get_rds_data(std::string &outbuff, int &num)
