@@ -84,7 +84,7 @@ public:
     void set_offset(int offset) override;
 
     /* Audio recording */
-    void set_audio_rec_dir(std::string dir) override;
+    void set_audio_rec_dir(const std::string& dir) override;
     void set_audio_rec_sql_triggered(bool enabled) override;
     void set_audio_rec_min_time(const int time_ms) override;
     void set_audio_rec_max_gap(const int time_ms) override;

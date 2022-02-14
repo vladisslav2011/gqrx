@@ -134,7 +134,7 @@ typedef class vfo_s
     bool get_nb_on(int nbid);
     float get_nb_threshold(int nbid);
     /* Audio recorder */
-    inline std::string get_audio_rec_dir() { return d_rec_dir; }
+    inline const std::string& get_audio_rec_dir() { return d_rec_dir; }
     inline bool get_audio_rec_sql_triggered() { return d_rec_sql_triggered; }
     inline int get_audio_rec_min_time() { return d_rec_min_time; }
     inline int get_audio_rec_max_gap() { return d_rec_max_gap; }
@@ -177,13 +177,12 @@ typedef class vfo_s
     virtual void set_nb_on(int nbid, bool on);
     virtual void set_nb_threshold(int nbid, float threshold);
     /* Audio recorder */
-    virtual void set_audio_rec_dir(std::string dir);
+    virtual void set_audio_rec_dir(const std::string& dir);
     virtual void set_audio_rec_sql_triggered(bool enabled);
     virtual void set_audio_rec_min_time(const int time_ms);
     virtual void set_audio_rec_max_gap(const int time_ms);
-    
 
-    virtual void restore_settings(vfo_s& from);
+    virtual void restore_settings(vfo_s& from, bool force = true);
 
     protected:
     int              d_offset;

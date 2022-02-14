@@ -2789,7 +2789,7 @@ void MainWindow::onBookmarkActivated(BookmarkInfo & bm)
     auto old_vfo = rx->get_current_vfo();
     auto old_offset = old_vfo->get_offset();
     auto old_sql = old_vfo->get_sql_level();
-    rx->get_current_vfo()->restore_settings(bm);
+    rx->get_current_vfo()->restore_settings(bm, false);
     old_vfo->set_sql_level(old_sql);
     old_vfo->set_offset(old_offset);
     old_vfo->set_freq_lock(true);

@@ -27,7 +27,6 @@
 #include <QDir>
 #include <functional>
 
-
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 2; /* Minimum number of output streams. */
@@ -123,7 +122,7 @@ void receiver_base_cf::set_cw_offset(int offset)
     vfo_s::set_cw_offset(offset);
 }
 
-void receiver_base_cf::set_audio_rec_dir(std::string dir)
+void receiver_base_cf::set_audio_rec_dir(const std::string& dir)
 {
     vfo_s::set_audio_rec_dir(dir);
     wav_sink->set_rec_dir(dir);

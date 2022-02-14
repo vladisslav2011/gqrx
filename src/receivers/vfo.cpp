@@ -175,7 +175,7 @@ float vfo_s::get_nb_threshold(int nbid)
     return 0.0;
 }
 
-void vfo_s::set_audio_rec_dir(std::string dir)
+void vfo_s::set_audio_rec_dir(const std::string& dir)
 {
     d_rec_dir = dir;
 }
@@ -195,9 +195,7 @@ void vfo_s::set_audio_rec_max_gap(const int time_ms)
     d_rec_max_gap = time_ms;
 }
 
-
-
-void vfo_s::restore_settings(vfo_s& from)
+void vfo_s::restore_settings(vfo_s& from, bool force)
 {
     set_offset(from.get_offset());
     set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
@@ -230,8 +228,11 @@ void vfo_s::restore_settings(vfo_s& from)
         set_nb_on(k + 1, from.get_nb_on(k + 1));
         set_nb_threshold(k + 1, from.get_nb_threshold(k + 1));
     }
-    set_audio_rec_dir(from.get_audio_rec_dir());
-    set_audio_rec_min_time(from.get_audio_rec_min_time());
-    set_audio_rec_max_gap(from.get_audio_rec_max_gap());
+    if(force || (from.get_audio_rec_dir() != ""))
+        set_audio_rec_dir(from.get_audio_rec_dir());
+    if(force || (from.get_audio_rec_min_time() > 0))
+        set_audio_rec_min_time(from.get_audio_rec_min_time());
+    if(force || (from.get_audio_rec_max_gap() > 0))
+        set_audio_rec_max_gap(from.get_audio_rec_max_gap());
     set_audio_rec_sql_triggered(from.get_audio_rec_sql_triggered());
 }
