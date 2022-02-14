@@ -207,6 +207,9 @@
        </item>
        <item>
         <widget class="QCheckBox" name="squelchTriggered">
+         <property name="toolTip">
+          <string>Squelch-triggered recording mode</string>
+         </property>
          <property name="text">
           <string>Squelch triggered</string>
          </property>
@@ -228,6 +231,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Minimum squelch open time to triggere recording start</string>
            </property>
            <property name="suffix">
             <string>ms</string>
@@ -254,6 +260,9 @@
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
+           </property>
+           <property name="toolTip">
+            <string>Maximum squelch closed time to keep recording running</string>
            </property>
            <property name="suffix">
             <string>ms</string>
