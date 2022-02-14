@@ -68,6 +68,7 @@ public:
     int FindFilterPreset(idx mode_index, int lo, int hi) const;
     void GetFilterRanges(idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax) const;
     bool UpdateFilterRange(idx iModulationIndex, int& low, int& high) const;
+    idx ConvertFromOld(int old) const;
     Modulations();
     ~Modulations();
 };

@@ -460,7 +460,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     bool        conf_ok = false;
     bool        conv_ok;
     bool        skip_loading_cfg = false;
-    bool        isv4 = false;
+    int         ver = 0;
     qint64      hw_freq = 0;
 
     qDebug() << "Loading configuration from:" << cfgfile;
@@ -513,7 +513,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     // manual reconf (FIXME: check status)
     conv_ok = false;
 
-    isv4 = (m_settings->value("configversion").toInt(&conv_ok) >= 4);
+    ver = m_settings->value("configversion").toInt(&conv_ok);
     // hide toolbar
     bool_val = m_settings->value("gui/hide_toolbar", false).toBool();
     if (bool_val)
@@ -661,13 +661,13 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     }
 
     rx->set_rf_freq(hw_freq);
-    if(isv4)
+    if(ver >= 4)
     {
         ui->freqCtrl->setFrequency(int64_val  + (qint64)(rx->get_filter_offset()));
         setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
     }
-    readRXSettings(isv4);
-    if(!isv4)
+    readRXSettings(ver);
+    if(ver < 4)
     {
         rx->set_rf_freq(hw_freq - rx->get_filter_offset());
         ui->freqCtrl->setFrequency(hw_freq + d_lnb_lo);
@@ -936,7 +936,7 @@ void MainWindow::storeSession()
     }
 }
 
-void MainWindow::readRXSettings(bool isv4)
+void MainWindow::readRXSettings(int ver)
 {
     bool conv_ok;
     int int_val;
@@ -947,7 +947,7 @@ void MainWindow::readRXSettings(bool isv4)
         rx->delete_rx();
     ui->plotter->setCurrentVfo(0);
     ui->plotter->clearVfos();
-    QString grp = isv4 ? QString("rx%1").arg(i) : "receiver";
+    QString grp = (ver >= 4) ? QString("rx%1").arg(i) : "receiver";
     while (1)
     {
         m_settings->beginGroup(grp);
@@ -961,7 +961,14 @@ void MainWindow::readRXSettings(bool isv4)
         else
             rx->set_freq_lock(false);
 
-        int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
+        int_val = Modulations::MODE_AM;
+        if (m_settings->contains("demod")) {
+            if (ver >= 3) {
+                int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
+            } else {
+                int_val = modulations.ConvertFromOld(m_settings->value("demod").toInt(&conv_ok));
+            }
+        }
         rx->set_demod(Modulations::idx(int_val));
 
         int_val = m_settings->value("cwoffset", 700).toInt(&conv_ok);
@@ -1023,7 +1030,7 @@ void MainWindow::readRXSettings(bool isv4)
         if (conv_ok && flo != fhi)
             rx->set_filter(flo, fhi, receiver::FILTER_SHAPE_NORMAL);
 
-        if(!isv4)
+        if(ver < 4)
         {
             m_settings->endGroup();
             m_settings->beginGroup("audio");
@@ -1052,14 +1059,14 @@ void MainWindow::readRXSettings(bool isv4)
         m_settings->endGroup();
         ui->plotter->addVfo(rx->get_current_vfo());
         i++;
-        if(!isv4)
+        if(ver < 4)
             break;
         grp = QString("rx%1").arg(i);
         if(!m_settings->contains(grp + "/offset"))
             break;
         rx->add_rx();
     }
-    if(isv4)
+    if(ver >= 4)
         int_val = m_settings->value("gui/current_rx", 0).toInt(&conv_ok);
     else
         conv_ok = false;

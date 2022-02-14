@@ -4,6 +4,7 @@
  *           https://gqrx.dk/
  *
  * Copyright 2011-2016 Alexandru Csete OZ9AEC.
+ * Copyright 2022 vladisslav2011@gmail.com.
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +25,7 @@
 
 QStringList Modulations::Strings;
 // Lookup table for conversion from old settings
-static const int old2new[] = {
+static const Modulations::idx old2new[] = {
     Modulations::MODE_OFF,
     Modulations::MODE_RAW,
     Modulations::MODE_AM,
@@ -175,6 +176,15 @@ bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
         updated = true;
     }
     return updated;
+}
+
+Modulations::idx Modulations::ConvertFromOld(int old) const
+{
+    if(old < 0)
+        return old2new[0];
+    if(old >= int(sizeof(old2new) / sizeof(old2new[0])))
+        return old2new[2];
+    return old2new[old];
 }
 
 Modulations::Modulations()
