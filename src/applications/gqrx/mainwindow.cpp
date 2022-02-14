@@ -887,7 +887,6 @@ void MainWindow::storeSession()
             else
                 m_settings->remove("agc_off");
             //filter
-            //FIXME: store filter shape too
             int     flo, fhi;
             receiver::filter_shape fdw;
             rx->get_filter(flo, fhi, fdw);
@@ -895,6 +894,7 @@ void MainWindow::storeSession()
             {
                 m_settings->setValue("filter_low_cut", flo);
                 m_settings->setValue("filter_high_cut", fhi);
+                m_settings->setValue("filter_shape", fdw);
             }
 
             if(rx_count <= 1)
@@ -1023,12 +1023,14 @@ void MainWindow::readRXSettings(int ver)
         else
             rx->set_agc_on(true);
 
-        int flo = m_settings->value("filter_low_cut", 0).toInt(&conv_ok);
-        int fhi = m_settings->value("filter_high_cut", 0).toInt(&conv_ok);
+        bool flo_ok = false;
+        bool fhi_ok = false;
+        int flo = m_settings->value("filter_low_cut", 0).toInt(&flo_ok);
+        int fhi = m_settings->value("filter_high_cut", 0).toInt(&fhi_ok);
+        int_val = m_settings->value("filter_shape", receiver::FILTER_SHAPE_NORMAL).toInt(&conv_ok);
 
-        //FIXME: restore filter shape too
-        if (conv_ok && flo != fhi)
-            rx->set_filter(flo, fhi, receiver::FILTER_SHAPE_NORMAL);
+        if (flo != fhi)
+            rx->set_filter(flo, fhi, receiver::filter_shape(int_val));
 
         if(ver < 4)
         {
