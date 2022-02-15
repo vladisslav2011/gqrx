@@ -20,6 +20,7 @@
  * the Free Software Foundation, Inc., 51 Franklin Street,
  * Boston, MA 02110-1301, USA.
  */
+#include <functional>
 #include <QFile>
 #include <QStringList>
 #include "bookmarks.h"
@@ -28,7 +29,9 @@
 
 
 BookmarksTableModel::BookmarksTableModel(QObject *parent) :
-    QAbstractTableModel(parent)
+    QAbstractTableModel(parent),
+    m_sortCol(0),
+    m_sortDir(Qt::AscendingOrder)
 {
 }
 
@@ -149,9 +152,91 @@ QVariant BookmarksTableModel::headerData ( int section, Qt::Orientation orientat
     return QVariant();
 }
 
+QVariant BookmarksTableModel::dataFromBookmark(BookmarkInfo &info, int index)
+{
+    switch(index)
+    {
+    case COL_FREQUENCY:
+            return info.frequency;
+    case COL_NAME:
+            return info.name;
+    case COL_TAGS:
+        {
+            QString strTags;
+            for(int iTag=0; iTag<info.tags.size(); ++iTag)
+            {
+                if(iTag!=0)
+                {
+                    strTags.append(",");
+                }
+                TagInfo& tag = *info.tags[iTag];
+                strTags.append(tag.name);
+            }
+            return strTags;
+        }
+    case COL_LOCKED:
+            return info.get_freq_lock();
+    case COL_MODULATION:
+            return info.modulation;
+    case COL_FILTER_LOW:
+            return info.get_filter_low();
+    case COL_FILTER_HIGH:
+            return info.get_filter_high();
+    case COL_FILTER_TW:
+            return info.get_filter_tw();
+    case COL_AGC_ON:
+            return info.get_agc_on();
+    case COL_AGC_TARGET:
+            return info.get_agc_target_level();
+    case COL_AGC_MANUAL:
+            return info.get_agc_manual_gain();
+    case COL_AGC_MAX:
+            return info.get_agc_max_gain();
+    case COL_AGC_ATTACK:
+            return info.get_agc_attack();
+    case COL_AGC_DECAY:
+            return info.get_agc_decay();
+    case COL_AGC_HANG:
+            return info.get_agc_hang();
+    case COL_AGC_PANNING:
+            return info.get_agc_panning();
+    case COL_AGC_PANNING_AUTO:
+            return info.get_agc_panning_auto();
+    case COL_CW_OFFSET:
+            return info.get_cw_offset();
+    case COL_FM_MAXDEV:
+            return info.get_fm_maxdev();
+    case COL_FM_DEEMPH:
+            return info.get_fm_deemph();
+    case COL_AM_DCR:
+            return info.get_am_dcr();
+    case COL_AMSYNC_DCR:
+            return info.get_amsync_dcr();
+    case COL_AMSYNC_PLL_BW:
+            return info.get_amsync_pll_bw();
+    case COL_NB1_ON:
+            return info.get_nb_on(1);
+    case COL_NB1_THRESHOLD:
+            return info.get_nb_threshold(1);
+    case COL_NB2_ON:
+            return info.get_nb_on(2);
+    case COL_NB2_THRESHOLD:
+            return info.get_nb_threshold(2);
+    case COL_REC_DIR:
+            return QString::fromStdString(info.get_audio_rec_dir());
+    case COL_REC_SQL_TRIGGERED:
+            return info.get_audio_rec_sql_triggered();
+    case COL_REC_MIN_TIME:
+            return info.get_audio_rec_min_time();
+    case COL_REC_MAX_GAP:
+            return info.get_audio_rec_max_gap();
+    }
+    return 0;
+}
+
 QVariant BookmarksTableModel::data ( const QModelIndex & index, int role ) const
 {
-    BookmarkInfo& info = *m_Bookmarks[index.row()];
+    BookmarkInfo &info = *getBookmarkAtRow(index.row());
 
     if(role==Qt::BackgroundRole)
     {
@@ -162,83 +247,7 @@ QVariant BookmarksTableModel::data ( const QModelIndex & index, int role ) const
 
     else if(role == Qt::DisplayRole || role==Qt::EditRole)
     {
-        switch(index.column())
-        {
-        case COL_FREQUENCY:
-                return info.frequency;
-        case COL_NAME:
-                return (role==Qt::EditRole)?QString(info.name):info.name;
-        case COL_TAGS:
-            {
-                QString strTags;
-                for(int iTag=0; iTag<info.tags.size(); ++iTag)
-                {
-                    if(iTag!=0)
-                    {
-                        strTags.append(",");
-                    }
-                    TagInfo& tag = *info.tags[iTag];
-                    strTags.append(tag.name);
-                }
-                return strTags;
-            }
-        case COL_LOCKED:
-                return info.get_freq_lock();
-        case COL_MODULATION:
-                return info.modulation;
-        case COL_FILTER_LOW:
-                return info.get_filter_low();
-        case COL_FILTER_HIGH:
-                return info.get_filter_high();
-        case COL_FILTER_TW:
-                return info.get_filter_tw();
-        case COL_AGC_ON:
-                return info.get_agc_on();
-        case COL_AGC_TARGET:
-                return info.get_agc_target_level();
-        case COL_AGC_MANUAL:
-                return info.get_agc_manual_gain();
-        case COL_AGC_MAX:
-                return info.get_agc_max_gain();
-        case COL_AGC_ATTACK:
-                return info.get_agc_attack();
-        case COL_AGC_DECAY:
-                return info.get_agc_decay();
-        case COL_AGC_HANG:
-                return info.get_agc_hang();
-        case COL_AGC_PANNING:
-                return info.get_agc_panning();
-        case COL_AGC_PANNING_AUTO:
-                return info.get_agc_panning_auto();
-        case COL_CW_OFFSET:
-                return info.get_cw_offset();
-        case COL_FM_MAXDEV:
-                return info.get_fm_maxdev();
-        case COL_FM_DEEMPH:
-                return info.get_fm_deemph();
-        case COL_AM_DCR:
-                return info.get_am_dcr();
-        case COL_AMSYNC_DCR:
-                return info.get_amsync_dcr();
-        case COL_AMSYNC_PLL_BW:
-                return info.get_amsync_pll_bw();
-        case COL_NB1_ON:
-                return info.get_nb_on(1);
-        case COL_NB1_THRESHOLD:
-                return info.get_nb_threshold(1);
-        case COL_NB2_ON:
-                return info.get_nb_on(2);
-        case COL_NB2_THRESHOLD:
-                return info.get_nb_threshold(2);
-        case COL_REC_DIR:
-                return QString::fromStdString(info.get_audio_rec_dir());
-        case COL_REC_SQL_TRIGGERED:
-                return info.get_audio_rec_sql_triggered();
-        case COL_REC_MIN_TIME:
-                return info.get_audio_rec_min_time();
-        case COL_REC_MAX_GAP:
-                return info.get_audio_rec_max_gap();
-        }
+        return BookmarksTableModel::dataFromBookmark(info, index.column());
     }
     return QVariant();
 }
@@ -247,7 +256,7 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
 {
     if(role==Qt::EditRole)
     {
-        BookmarkInfo &info = *m_Bookmarks[index.row()];
+        BookmarkInfo &info = *getBookmarkAtRow(index.row());
         switch(index.column())
         {
         case COL_FREQUENCY:
@@ -479,39 +488,52 @@ Qt::ItemFlags BookmarksTableModel::flags ( const QModelIndex& index ) const
 
 void BookmarksTableModel::update()
 {
-    int iRow = 0;
     m_Bookmarks.clear();
     for(int iBookmark=0; iBookmark<Bookmarks::Get().size(); iBookmark++)
     {
         BookmarkInfo& info = Bookmarks::Get().getBookmark(iBookmark);
 
-        bool bActive = false;
         for(int iTag=0; iTag<info.tags.size(); ++iTag)
         {
             TagInfo& tag = *info.tags[iTag];
             if(tag.active)
             {
-                bActive = true;
+                m_Bookmarks.append(iBookmark);
                 break;
             }
         }
-        if(bActive)
-        {
-            m_mapRowToBookmarksIndex[iRow]=iBookmark;
-            m_Bookmarks.append(&info);
-            ++iRow;
-        }
     }
-
-    emit layoutChanged();
+    sort(m_sortCol, m_sortDir);
 }
 
-BookmarkInfo *BookmarksTableModel::getBookmarkAtRow(int row)
+BookmarkInfo *BookmarksTableModel::getBookmarkAtRow(int row) const
 {
-    return m_Bookmarks[row];
+    return & Bookmarks::Get().getBookmark(m_Bookmarks[row]);
 }
 
 int BookmarksTableModel::GetBookmarksIndexForRow(int iRow)
 {
-  return m_mapRowToBookmarksIndex[iRow];
+  return m_Bookmarks[iRow];
+}
+
+bool BookmarksTableModel::bmCompare(const int a, const int b, int column, int order)
+{
+    if (order)
+        return dataFromBookmark(Bookmarks::Get().getBookmark(a), column) >=
+               dataFromBookmark(Bookmarks::Get().getBookmark(b), column);
+    else
+        return dataFromBookmark(Bookmarks::Get().getBookmark(a), column) <
+               dataFromBookmark(Bookmarks::Get().getBookmark(b), column);
+}
+
+void BookmarksTableModel::sort(int column, Qt::SortOrder order)
+{
+    if (column < 0)
+        return;
+    m_sortCol = column;
+    m_sortDir = order;
+    std::stable_sort(m_Bookmarks.begin(), m_Bookmarks.end(),
+                     std::bind(bmCompare, std::placeholders::_1,
+                               std::placeholders::_2, column, order));
+    emit layoutChanged();
 }

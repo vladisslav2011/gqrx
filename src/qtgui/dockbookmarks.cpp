@@ -51,6 +51,8 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
     ui->tableViewFrequencyList->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->tableViewFrequencyList->setSelectionMode(QAbstractItemView::SingleSelection);
     ui->tableViewFrequencyList->installEventFilter(this);
+    ui->tableViewFrequencyList->setSortingEnabled(true);
+    ui->tableViewFrequencyList->sortByColumn(0, Qt::AscendingOrder);
 
     // Demod Selection in Frequency List Table.
     ComboBoxDelegateModulation* delegateModulation = new ComboBoxDelegateModulation(this);

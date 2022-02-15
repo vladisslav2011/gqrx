@@ -72,7 +72,7 @@ public:
     };
 
     explicit BookmarksTableModel(QObject *parent = 0);
-    
+
     int rowCount ( const QModelIndex & parent = QModelIndex() ) const;
     int columnCount ( const QModelIndex & parent = QModelIndex() ) const;
     QVariant headerData ( int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const;
@@ -80,13 +80,18 @@ public:
     bool setData ( const QModelIndex & index, const QVariant & value, int role = Qt::EditRole );
     Qt::ItemFlags flags ( const QModelIndex & index ) const;
 
-    BookmarkInfo* getBookmarkAtRow(int row);
+    BookmarkInfo* getBookmarkAtRow(int row) const;
     int GetBookmarksIndexForRow(int iRow);
+    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
 private:
-    QList<BookmarkInfo*> m_Bookmarks;
-    QMap<int,int> m_mapRowToBookmarksIndex;
+    static QVariant dataFromBookmark(BookmarkInfo &info, int index);
+    static bool bmCompare(const int a, const int b, int column, int order);
+private:
+    QList<int> m_Bookmarks;
     Modulations modulations;
+    int m_sortCol;
+    Qt::SortOrder m_sortDir;
 
 signals:
 public slots:
