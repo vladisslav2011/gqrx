@@ -146,6 +146,7 @@ typedef class vfo_s
     virtual void set_filter_high(int high);
     virtual void set_filter_tw(int tw);
     virtual void set_filter(int low, int high, int tw);
+    virtual void filter_adjust();
 
     virtual void set_demod(Modulations::idx demod);
     virtual void set_index(int index);

@@ -95,7 +95,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->freqCtrl->setup(0, 0, 9999e6, 1, FCTL_UNIT_NONE);
     ui->freqCtrl->setFrequency(144500000);
 
-    d_filter_shape = receiver::FILTER_SHAPE_NORMAL;
+    d_filter_shape = Modulations::FILTER_SHAPE_NORMAL;
 
     /* create receiver object */
     rx = new receiver("", "", 1);
@@ -799,7 +799,7 @@ void MainWindow::storeSession()
             m_settings->remove("");
             rx->fake_select_rx(i);
 
-            m_settings->setValue("demod", modulations.GetStringForModulationIndex(rx->get_demod()));
+            m_settings->setValue("demod", Modulations::GetStringForModulationIndex(rx->get_demod()));
 
             int cwofs = rx->get_cw_offset();
             if (cwofs == 700)
@@ -965,9 +965,9 @@ void MainWindow::readRXSettings(int ver)
         int_val = Modulations::MODE_AM;
         if (m_settings->contains("demod")) {
             if (ver >= 3) {
-                int_val = modulations.GetEnumForModulationString(m_settings->value("demod").toString());
+                int_val = Modulations::GetEnumForModulationString(m_settings->value("demod").toString());
             } else {
-                int_val = modulations.ConvertFromOld(m_settings->value("demod").toInt(&conv_ok));
+                int_val = Modulations::ConvertFromOld(m_settings->value("demod").toInt(&conv_ok));
             }
         }
         rx->set_demod(Modulations::idx(int_val));
@@ -1028,7 +1028,7 @@ void MainWindow::readRXSettings(int ver)
         bool fhi_ok = false;
         int flo = m_settings->value("filter_low_cut", 0).toInt(&flo_ok);
         int fhi = m_settings->value("filter_high_cut", 0).toInt(&fhi_ok);
-        int_val = m_settings->value("filter_shape", receiver::FILTER_SHAPE_NORMAL).toInt(&conv_ok);
+        int_val = m_settings->value("filter_shape", Modulations::FILTER_SHAPE_NORMAL).toInt(&conv_ok);
 
         if (flo != fhi)
             rx->set_filter(flo, fhi, receiver::filter_shape(int_val));
@@ -1442,7 +1442,7 @@ void MainWindow::selectDemod(const QString& strModulation)
 {
     Modulations::idx iDemodIndex;
 
-    iDemodIndex = modulations.GetEnumForModulationString(strModulation);
+    iDemodIndex = Modulations::GetEnumForModulationString(strModulation);
     qDebug() << "selectDemod(str):" << strModulation << "-> IDX:" << iDemodIndex;
 
     return selectDemod(iDemodIndex);
@@ -1460,7 +1460,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 {
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0;
-    enum receiver::filter_shape filter_shape;
+    Modulations::filter_shape filter_shape;
     bool    rds_enabled;
 
     // validate mode_idx
@@ -1486,11 +1486,11 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             fhi = -fhi;
             filter_preset = FILTER_PRESET_USER;
         }
-        modulations.UpdateFilterRange(mode_idx, flo, fhi);
+        Modulations::UpdateFilterRange(mode_idx, flo, fhi);
     }
     if(filter_preset != FILTER_PRESET_USER)
     {
-        modulations.GetFilterPreset(mode_idx, filter_preset, flo, fhi);
+        Modulations::GetFilterPreset(mode_idx, filter_preset, flo, fhi);
     }
 
     if(mode_idx != rx->get_demod())
@@ -1566,10 +1566,10 @@ void MainWindow::updateDemodGUIRanges()
 {
     int click_res=100;
     int     flo=0, fhi=0, loMin, loMax, hiMin,hiMax;
-    enum receiver::filter_shape filter_shape;
+    Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::idx mode_idx = rx->get_demod();
-    modulations.GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
+    Modulations::GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
     ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, hiMax == -loMin);
     switch (mode_idx) {
 
@@ -2825,7 +2825,7 @@ void MainWindow::setPassband(int bandwidth)
     auto preset = uiDockRxOpt->currentFilter();
 
     int lo, hi;
-    modulations.GetFilterPreset(mode, preset, lo, hi);
+    Modulations::GetFilterPreset(mode, preset, lo, hi);
 
     if(lo + hi == 0)
     {

@@ -151,7 +151,6 @@ private:
     float d_pref_quad_rate;
     rec_event_handler_t d_rec_event;
     static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
-    Modulations   modulations;
 
 };
 

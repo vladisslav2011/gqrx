@@ -21,9 +21,22 @@
  * the Free Software Foundation, Inc., 51 Franklin Street,
  * Boston, MA 02110-1301, USA.
  */
+#include "receivers/defines.h"
 #include "receivers/modulations.h"
 
+class ModulationsInitializer:public Modulations
+{
+public:
+    ModulationsInitializer():Modulations()
+    {
+    }
+    ~ModulationsInitializer()
+    {
+    }
+};
+
 QStringList Modulations::Strings;
+static ModulationsInitializer modulations = ModulationsInitializer();
 // Lookup table for conversion from old settings
 static const Modulations::idx old2new[] = {
     Modulations::MODE_OFF,
@@ -86,7 +99,7 @@ bool Modulations::IsModulationValid(QString strModulation)
     return Modulations::Strings.contains(strModulation, Qt::CaseInsensitive);
 }
 
-Modulations::idx Modulations::GetEnumForModulationString(QString param) const
+Modulations::idx Modulations::GetEnumForModulationString(QString param)
 {
     int iModulation = -1;
     for(int i=0; i<Modulations::Strings.size(); ++i)
@@ -106,7 +119,7 @@ Modulations::idx Modulations::GetEnumForModulationString(QString param) const
     return idx(iModulation);
 }
 
-bool Modulations::GetFilterPreset(Modulations::idx iModulationIndex, int preset, int& low, int& high) const
+bool Modulations::GetFilterPreset(Modulations::idx iModulationIndex, int preset, int& low, int& high)
 {
     if(iModulationIndex >= MODE_LAST)
         iModulationIndex = MODE_AM;
@@ -117,7 +130,7 @@ bool Modulations::GetFilterPreset(Modulations::idx iModulationIndex, int preset,
     return true;
 }
 
-int Modulations::FindFilterPreset(Modulations::idx mode_index, int lo, int hi) const
+int Modulations::FindFilterPreset(Modulations::idx mode_index, int lo, int hi)
 {
     if (lo == filter_preset_table[mode_index][FILTER_PRESET_WIDE][0] &&
         hi == filter_preset_table[mode_index][FILTER_PRESET_WIDE][1])
@@ -132,7 +145,7 @@ int Modulations::FindFilterPreset(Modulations::idx mode_index, int lo, int hi) c
     return FILTER_PRESET_USER;
 }
 
-void Modulations::GetFilterRanges(Modulations::idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax) const
+void Modulations::GetFilterRanges(Modulations::idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax)
 {
     if(iModulationIndex >= MODE_LAST)
         iModulationIndex = MODE_AM;
@@ -142,7 +155,14 @@ void Modulations::GetFilterRanges(Modulations::idx iModulationIndex, int& lowMin
     highMax = filter_ranges_table[iModulationIndex][1][1];
 }
 
-bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high) const
+bool Modulations::IsFilterSymmetric(idx iModulationIndex)
+{
+    if(iModulationIndex >= MODE_LAST)
+        iModulationIndex = MODE_AM;
+    return (-filter_ranges_table[iModulationIndex][0][0] == filter_ranges_table[iModulationIndex][1][1]);
+}
+
+bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high)
 {
     bool updated = false;
     if(iModulationIndex >= MODE_LAST)
@@ -178,13 +198,76 @@ bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
     return updated;
 }
 
-Modulations::idx Modulations::ConvertFromOld(int old) const
+Modulations::idx Modulations::ConvertFromOld(int old)
 {
     if(old < 0)
         return old2new[0];
     if(old >= int(sizeof(old2new) / sizeof(old2new[0])))
         return old2new[2];
     return old2new[old];
+}
+
+bool Modulations::UpdateTw(const int low, const int high, int& tw)
+{
+    int sharp = std::abs(high - low) * 0.1;
+    if(tw == sharp)
+        return false;
+    if(tw < std::abs(high - low) * 0.15)
+    {
+        tw = sharp;
+        return true;
+    }
+    int normal = std::abs(high - low) * 0.2;
+    if(tw == normal)
+        return false;
+    if(tw < std::abs(high - low) * 0.25)
+    {
+        tw = normal;
+        return true;
+    }
+    int soft = std::abs(high - low) * 0.5;
+    if(tw == soft)
+        return false;
+    tw = soft;
+    return true;
+}
+
+Modulations::filter_shape Modulations::FilterShapeFromTw(const int low, const int high, const int tw)
+{
+    Modulations::filter_shape shape = FILTER_SHAPE_SOFT;
+
+    if(tw < std::abs(high - low) * 0.25)
+        shape = FILTER_SHAPE_NORMAL;
+    if(tw < std::abs(high - low) * 0.15)
+        shape = FILTER_SHAPE_SHARP;
+
+    return shape;
+}
+
+int Modulations::TwFromFilterShape(const int low, const int high, const Modulations::filter_shape shape)
+{
+    float trans_width = RX_FILTER_MIN_WIDTH * 0.1;
+    if ((low >= high) || (std::abs(high-low) < RX_FILTER_MIN_WIDTH))
+        return trans_width;
+
+    switch (shape) {
+
+    case Modulations::FILTER_SHAPE_SOFT:
+        trans_width = std::abs(high - low) * 0.5;
+        break;
+
+    case Modulations::FILTER_SHAPE_SHARP:
+        trans_width = std::abs(high - low) * 0.1;
+        break;
+
+    case Modulations::FILTER_SHAPE_NORMAL:
+    default:
+        trans_width = std::abs(high - low) * 0.2;
+        break;
+
+    }
+
+    return trans_width;
 }
 
 Modulations::Modulations()

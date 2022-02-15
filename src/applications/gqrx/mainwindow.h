@@ -88,7 +88,7 @@ private:
 
     bool d_ignore_limits;
 
-    enum receiver::filter_shape d_filter_shape;
+    Modulations::filter_shape d_filter_shape;
     std::complex<float>* d_fftData;
     float          *d_realFftData;
     float          *d_iirFftData;
@@ -127,7 +127,6 @@ private:
     QSpinBox *rxSpinBox;
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
-    Modulations     modulations;
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);

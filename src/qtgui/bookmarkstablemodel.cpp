@@ -295,9 +295,10 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
         case COL_MODULATION:
             {
                 Q_ASSERT(!value.toString().contains(";")); // may not contain a comma because tablemodel is saved as comma-separated file (csv).
-                if(modulations.IsModulationValid(value.toString()))
+                if(Modulations::IsModulationValid(value.toString()))
                 {
                     info.modulation = value.toString();
+                    info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
                     emit dataChanged(index, index);
                 }
             }
@@ -305,19 +306,26 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
         case COL_FILTER_LOW:
             {
                 info.set_filter_low(value.toInt());
-                emit dataChanged(index, index);
+                if(Modulations::IsFilterSymmetric(info.get_demod()))
+                    info.set_filter_high(-value.toInt());
+                info.filter_adjust();
+                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
             }
             break;
         case COL_FILTER_HIGH:
             {
                 info.set_filter_high(value.toInt());
-                emit dataChanged(index, index);
+                if(Modulations::IsFilterSymmetric(info.get_demod()))
+                    info.set_filter_low(-value.toInt());
+                info.filter_adjust();
+                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
             }
             break;
         case COL_FILTER_TW:
             {
                 info.set_filter_tw(value.toInt());
-                emit dataChanged(index, index);
+                info.filter_adjust();
+                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
             }
             break;
         case COL_AGC_ON:

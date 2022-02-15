@@ -37,6 +37,8 @@
 
 #define WFM_PREF_QUAD_RATE   240e3 // Nominal channel spacing is 200 kHz
 
+#define RX_FILTER_MIN_WIDTH 100  /*! Minimum width of filter */
+
 #include <memory>
 #include <set>
 #include <iostream>

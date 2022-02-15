@@ -35,6 +35,12 @@
 class Modulations
 {
 public:
+    /** Filter shape (convenience wrappers for "transition width"). */
+    enum filter_shape {
+        FILTER_SHAPE_SOFT = 0,   /*!< Soft: Transition band is TBD of width. */
+        FILTER_SHAPE_NORMAL = 1, /*!< Normal: Transition band is TBD of width. */
+        FILTER_SHAPE_SHARP = 2   /*!< Sharp: Transition band is TBD of width. */
+    };
     /**
      * Mode selector entries.
      *
@@ -61,16 +67,21 @@ public:
 
     static QStringList Strings;
 
-    QString GetStringForModulationIndex(int iModulationIndex);
-    bool IsModulationValid(QString strModulation);
-    idx GetEnumForModulationString(QString param) const;
-    bool GetFilterPreset(idx iModulationIndex, int preset, int& low, int& high) const;
-    int FindFilterPreset(idx mode_index, int lo, int hi) const;
-    void GetFilterRanges(idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax) const;
-    bool UpdateFilterRange(idx iModulationIndex, int& low, int& high) const;
-    idx ConvertFromOld(int old) const;
-    Modulations();
+    static QString GetStringForModulationIndex(int iModulationIndex);
+    static bool IsModulationValid(QString strModulation);
+    static idx GetEnumForModulationString(QString param);
+    static idx ConvertFromOld(int old);
+    static bool GetFilterPreset(idx iModulationIndex, int preset, int& low, int& high);
+    static int FindFilterPreset(idx mode_index, int lo, int hi);
+    static void GetFilterRanges(idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax);
+    static bool IsFilterSymmetric(idx iModulationIndex);
+    static bool UpdateFilterRange(idx iModulationIndex, int& low, int& high);
+    static bool UpdateTw(const int low, const int high, int& tw);
+    static filter_shape FilterShapeFromTw(const int low, const int high, const int tw);
+    static int TwFromFilterShape(const int low, const int high, const filter_shape shape);
     ~Modulations();
+protected:
+    Modulations();
 };
 
 #endif // MODULATIONS_H

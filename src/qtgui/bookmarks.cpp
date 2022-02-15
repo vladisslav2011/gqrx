@@ -79,7 +79,6 @@ void Bookmarks::remove(const BookmarkInfo &info)
 bool Bookmarks::load()
 {
     QFile file(m_bookmarksFile);
-    Modulations modulations;
     if (file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
         m_BookmarkList.clear();
@@ -127,7 +126,7 @@ bool Bookmarks::load()
                 info.frequency  = strings[0].toLongLong();
                 info.name       = strings[1].trimmed();
                 info.modulation = strings[2].trimmed();
-                info.set_demod(modulations.GetEnumForModulationString(info.modulation));
+                info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
                 int bandwidth  = strings[3].toInt();
                 switch(info.get_demod())
                 {
@@ -167,7 +166,7 @@ bool Bookmarks::load()
                 }
                 info.set_freq_lock(strings[i++].trimmed() == "true");
                 info.modulation = strings[i++].trimmed();
-                info.set_demod(modulations.GetEnumForModulationString(info.modulation));
+                info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
                 info.set_filter_low(strings[i++].toInt());
                 info.set_filter_high(strings[i++].toInt());
                 info.set_filter_tw(strings[i++].toInt());

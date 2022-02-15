@@ -49,6 +49,12 @@ void vfo_s::set_filter(int low, int high, int tw)
     d_filter_tw = tw;
 }
 
+void vfo_s::filter_adjust()
+{
+    Modulations::UpdateFilterRange(d_demod, d_filter_low, d_filter_high);
+    Modulations::UpdateTw(d_filter_low, d_filter_high, d_filter_tw);
+}
+
 void vfo_s::set_demod(Modulations::idx demod)
 {
     d_demod = demod;

@@ -997,30 +997,10 @@ double receiver::get_cw_offset(void) const
 
 receiver::status receiver::set_filter(int low, int high, filter_shape shape)
 {
-    double trans_width;
-
     if ((low >= high) || (std::abs(high-low) < RX_FILTER_MIN_WIDTH))
         return STATUS_ERROR;
 
-    switch (shape) {
-
-    case FILTER_SHAPE_SOFT:
-        trans_width = std::abs(high - low) * 0.5;
-        break;
-
-    case FILTER_SHAPE_SHARP:
-        trans_width = std::abs(high - low) * 0.1;
-        break;
-
-    case FILTER_SHAPE_NORMAL:
-    default:
-        trans_width = std::abs(high - low) * 0.2;
-        break;
-
-    }
-
-    rx[d_current]->set_filter(low, high, trans_width);
-
+    rx[d_current]->set_filter(low, high, Modulations::TwFromFilterShape(low, high, shape));
     return STATUS_OK;
 }
 
@@ -1028,13 +1008,7 @@ receiver::status receiver::get_filter(int &low, int &high, filter_shape &shape)
 {
     int tw;
     rx[d_current]->get_filter(low, high, tw);
-    shape = FILTER_SHAPE_SOFT;
-
-    if(tw < std::abs(high - low) * 0.25)
-        shape = FILTER_SHAPE_NORMAL;
-    if(tw < std::abs(high - low) * 0.15)
-        shape = FILTER_SHAPE_SHARP;
-
+    shape = Modulations::FilterShapeFromTw(low, high, tw);
     return STATUS_OK;
 }
 

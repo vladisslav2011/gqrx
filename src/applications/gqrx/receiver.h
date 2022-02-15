@@ -99,11 +99,7 @@ public:
     };
 
     /** Filter shape (convenience wrappers for "transition width"). */
-    enum filter_shape {
-        FILTER_SHAPE_SOFT = 0,   /*!< Soft: Transition band is TBD of width. */
-        FILTER_SHAPE_NORMAL = 1, /*!< Normal: Transition band is TBD of width. */
-        FILTER_SHAPE_SHARP = 2   /*!< Sharp: Transition band is TBD of width. */
-    };
+    typedef Modulations::filter_shape filter_shape;
 
     enum file_formats {
         FILE_FORMAT_LAST=0,

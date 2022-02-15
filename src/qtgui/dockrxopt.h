@@ -260,7 +260,6 @@ private:
     CDemodOptions *demodOpt;  /** Demodulator options. */
     CAgcOptions   *agcOpt;    /** AGC options. */
     CNbOptions    *nbOpt;     /** Noise blanker options. */
-    Modulations    modulations;
     QMenu         *freqLockButtonMenu;
     QMenu         *squelchButtonMenu;
 

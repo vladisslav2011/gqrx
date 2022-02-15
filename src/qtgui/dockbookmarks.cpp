@@ -278,7 +278,7 @@ void ComboBoxDelegateModulation::setEditorData(QWidget *editor, const QModelInde
 {
     QComboBox *comboBox = static_cast<QComboBox*>(editor);
     QString value = index.model()->data(index, Qt::EditRole).toString();
-    int iModulation = modulations.GetEnumForModulationString(value);
+    int iModulation = Modulations::GetEnumForModulationString(value);
     comboBox->setCurrentIndex(iModulation);
 }
 

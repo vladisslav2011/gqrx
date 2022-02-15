@@ -89,7 +89,6 @@ private:
     static bool bmCompare(const int a, const int b, int column, int order);
 private:
     QList<int> m_Bookmarks;
-    Modulations modulations;
     int m_sortCol;
     Qt::SortOrder m_sortDir;
 

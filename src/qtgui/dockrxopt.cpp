@@ -226,7 +226,7 @@ void DockRxOpt::updateHwFreq()
 unsigned int DockRxOpt::filterIdxFromLoHi(int lo, int hi) const
 {
     Modulations::idx mode_index = Modulations::idx(ui->modeSelector->currentIndex());
-    return modulations.FindFilterPreset(mode_index, lo, hi);
+    return Modulations::FindFilterPreset(mode_index, lo, hi);
 }
 
 /**
@@ -304,7 +304,7 @@ Modulations::idx DockRxOpt::currentDemod() const
 
 QString DockRxOpt::currentDemodAsString()
 {
-    return modulations.GetStringForModulationIndex(currentDemod());
+    return Modulations::GetStringForModulationIndex(currentDemod());
 }
 
 float DockRxOpt::currentMaxdev() const
