@@ -524,6 +524,11 @@ int BookmarksTableModel::GetBookmarksIndexForRow(int iRow)
   return m_Bookmarks[iRow];
 }
 
+int BookmarksTableModel::GetRowForBookmarkIndex(int index)
+{
+    return m_Bookmarks.indexOf(index);
+}
+
 bool BookmarksTableModel::bmCompare(const int a, const int b, int column, int order)
 {
     if (order)

@@ -82,6 +82,7 @@ public:
 
     BookmarkInfo* getBookmarkAtRow(int row) const;
     int GetBookmarksIndexForRow(int iRow);
+    int GetRowForBookmarkIndex(int index);
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override;
 
 private:

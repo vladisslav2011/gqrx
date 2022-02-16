@@ -144,19 +144,22 @@ void DockBookmarks::activated(const QModelIndex & index)
 
 void DockBookmarks::setNewFrequency(qint64 rx_freq)
 {
-    ui->tableViewFrequencyList->clearSelection();
-    const int iRowCount = bookmarksTableModel->rowCount();
-    for (int row = 0; row < iRowCount; ++row)
+    m_currentFrequency = rx_freq;
+    BookmarkInfo bi;
+    bi.frequency = rx_freq;
+    const int iBookmarkIndex = Bookmarks::Get().find(bi);
+    if(iBookmarkIndex > 0)
     {
-        BookmarkInfo& info = *(bookmarksTableModel->getBookmarkAtRow(row));
-        if (std::abs(rx_freq - info.frequency) <= info.get_filter_high() - info.get_filter_low() + 1)
+        int iRow = bookmarksTableModel->GetRowForBookmarkIndex(iBookmarkIndex);
+        if(iRow > 0)
         {
-            ui->tableViewFrequencyList->selectRow(row);
+            ui->tableViewFrequencyList->selectRow(iRow);
             ui->tableViewFrequencyList->scrollTo(ui->tableViewFrequencyList->currentIndex(), QAbstractItemView::EnsureVisible );
-            break;
+            return;
         }
     }
-    m_currentFrequency = rx_freq;
+    ui->tableViewFrequencyList->clearSelection();
+    return;
 }
 
 void DockBookmarks::updateTags()

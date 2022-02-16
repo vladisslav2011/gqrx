@@ -351,6 +351,12 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high)
 
 }
 
+int Bookmarks::find(const BookmarkInfo &info)
+{
+    return m_BookmarkList.indexOf(info);
+}
+
+
 TagInfo &Bookmarks::findOrAddTag(QString tagName)
 {
     tagName = tagName.trimmed();
