@@ -676,6 +676,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     }
 
     uiDockFft->readSettings(m_settings);
+    uiDockBookmarks->readSettings(m_settings);
     uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
 
@@ -783,6 +784,7 @@ void MainWindow::storeSession()
         uiDockInputCtl->saveSettings(m_settings);
         uiDockFft->saveSettings(m_settings);
         uiDockAudio->saveSettings(m_settings);
+        uiDockBookmarks->saveSettings(m_settings);
 
         remote->saveSettings(m_settings);
         iq_tool->saveSettings(m_settings);

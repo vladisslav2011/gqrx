@@ -26,6 +26,7 @@
 #include <QTableWidgetItem>
 #include "qtgui/bookmarkstablemodel.h"
 #include <QItemDelegate>
+#include <QSettings>
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
 
@@ -67,6 +68,8 @@ public:
     void updateTags();
     void updateBookmarks();
     void changeBookmarkTags(int row, int /*column*/);
+    void saveSettings(QSettings *settings);
+    void readSettings(QSettings *settings);
 
 signals:
     void newBookmarkActivated(BookmarkInfo& bookmark);
@@ -88,4 +91,5 @@ private slots:
     bool tuneAndLoad();
     bool newDemod();
     void doubleClicked(const QModelIndex & index);
+    void changeVisibleColumns();
 };

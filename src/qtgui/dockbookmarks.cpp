@@ -28,6 +28,7 @@
 #include <QInputDialog>
 #include <QMenu>
 #include <QMessageBox>
+#include <QListWidget>
 
 #include "bookmarks.h"
 #include "bookmarkstaglist.h"
@@ -88,6 +89,12 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
     {
         actionAddBookmark = new QAction("Add Bookmark", this);
         contextmenu->addAction(actionAddBookmark);
+    }
+    // MenuItem Select Columns
+    {
+        QAction* action = new QAction("Select columns...", this);
+        contextmenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(changeVisibleColumns()));
     }
     ui->tableViewFrequencyList->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->tableViewFrequencyList, SIGNAL(customContextMenuRequested(const QPoint&)),
@@ -334,4 +341,69 @@ void DockBookmarks::changeBookmarkTags(int row, int /*column*/)
             Bookmarks::Get().save();
         }
     }
+}
+
+void DockBookmarks::changeVisibleColumns()
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle("Change Visible Columns");
+
+    QListWidget* colList = new QListWidget(&dialog);
+    QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok
+                                            | QDialogButtonBox::Cancel);
+    connect(buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
+    connect(buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
+
+    QVBoxLayout *mainLayout = new QVBoxLayout(&dialog);
+    mainLayout->addWidget(colList);
+    mainLayout->addWidget(buttonBox);
+    for (int k = 0 ; k < BookmarksTableModel::COLUMN_COUNT ; k++)
+    {
+        QListWidgetItem* qi = new QListWidgetItem(ui->tableViewFrequencyList->model()->headerData(k, Qt::Horizontal, Qt::DisplayRole).toString(), colList, 0);
+        qi->setCheckState(ui->tableViewFrequencyList->isColumnHidden(k) ? Qt::Unchecked : Qt::Checked);
+        if (k <= BookmarksTableModel::COL_NAME)
+            qi->setFlags(qi->flags() & ~Qt::ItemIsEnabled);
+        colList->addItem(qi);
+    }
+
+    if (dialog.exec())
+    {
+        for (int k = 0 ; k < BookmarksTableModel::COLUMN_COUNT ; k++)
+            ui->tableViewFrequencyList->setColumnHidden(k, colList->item(k)->checkState() == Qt::Unchecked);
+    }
+}
+
+void DockBookmarks::saveSettings(QSettings *settings)
+{
+    QStringList list;
+    if (!settings)
+        return;
+
+    settings->beginGroup("bookmarks");
+
+    for (int k = 0 ; k < BookmarksTableModel::COLUMN_COUNT ; k++)
+        if (ui->tableViewFrequencyList->isColumnHidden(k))
+            list.append(ui->tableViewFrequencyList->model()->headerData(k, Qt::Horizontal, Qt::DisplayRole).toString());
+    if (list.size() > 0)
+        settings->setValue("hidden_columns", list.join(","));
+    else
+        settings->remove("hidden_columns");
+    settings->setValue("splitter_sizes",ui->splitter->saveState());
+    settings->endGroup();
+}
+
+void DockBookmarks::readSettings(QSettings *settings)
+{
+    if (!settings)
+        return;
+
+    settings->beginGroup("bookmarks");
+
+    QString strval = settings->value("hidden_columns", "").toString();
+    QStringList list = strval.split(",");
+    for (int k = 0 ; k < BookmarksTableModel::COLUMN_COUNT ; k++)
+        ui->tableViewFrequencyList->setColumnHidden(k, list.contains(ui->tableViewFrequencyList->model()->headerData(k, Qt::Horizontal, Qt::DisplayRole).toString()));
+
+    ui->splitter->restoreState(settings->value("splitter_sizes").toByteArray());
+    settings->endGroup();
 }
