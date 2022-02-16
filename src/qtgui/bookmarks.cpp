@@ -151,7 +151,7 @@ bool Bookmarks::load()
 
                 m_BookmarkList.append(info);
             }
-            else if(strings.count() == BookmarksTableModel::COLUMN_COUNT)
+            else if (strings.count() == BookmarksTableModel::COLUMN_COUNT)
             {
                 BookmarkInfo info;
                 int i = 0;
@@ -160,10 +160,10 @@ bool Bookmarks::load()
                 // Multiple Tags may be separated by comma.
                 QString strTags = strings[i++];
                 QStringList TagList = strTags.split(",");
-                for(int iTag=0; iTag<TagList.size(); ++iTag)
-                {
+
+                for (int iTag = 0; iTag < TagList.size(); ++iTag)
                   info.tags.append(&findOrAddTag(TagList[iTag].trimmed()));
-                }
+
                 info.set_freq_lock(strings[i++].trimmed() == "true");
                 info.modulation = strings[i++].trimmed();
                 info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
@@ -279,13 +279,11 @@ bool Bookmarks::save()
             QString line =
                 QString::number(info.frequency).rightJustified(12) + "; " +
                 info.name.leftJustified(25) + "; ";
-            for(int iTag = 0; iTag<info.tags.size(); ++iTag)
+            for (int iTag = 0; iTag < info.tags.size(); ++iTag)
             {
                 TagInfo& tag = *info.tags[iTag];
-                if(iTag!=0)
-                {
+                if (iTag!=0)
                     line.append(",");
-                }
                 line.append(tag.name);
             }
             line.append(
@@ -330,7 +328,7 @@ bool Bookmarks::save()
 QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high, bool autoAdded)
 {
     BookmarkInfo info;
-    info.frequency=low;
+    info.frequency = low;
     QList<BookmarkInfo>::const_iterator lb = std::lower_bound(m_BookmarkList.begin(), m_BookmarkList.end(), info);
     info.frequency=high;
     QList<BookmarkInfo>::const_iterator ub = std::upper_bound(m_BookmarkList.begin(), m_BookmarkList.end(), info);
@@ -340,7 +338,7 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high, bool
     while (lb != ub)
     {
         const BookmarkInfo& info = *lb;
-        if(!autoAdded || lb->get_freq_lock())
+        if (!autoAdded || lb->get_freq_lock())
             found.append(info);
         lb++;
     }

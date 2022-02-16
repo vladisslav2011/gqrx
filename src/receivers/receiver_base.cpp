@@ -68,7 +68,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
 receiver_base_cf::~receiver_base_cf()
 {
     //Prevent segfault
-    if(wav_sink)
+    if (wav_sink)
         wav_sink->set_rec_event_handler(nullptr);
 }
 
@@ -263,7 +263,7 @@ void receiver_base_cf::stop_audio_recording()
 //FIXME Reimplement wavfile_sink correctly to make this work as expected
 void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
 {
-    if(from.get() == this)
+    if (from.get() == this)
         return;
     from->disconnect(from->agc, 0, from->wav_sink, 0);
     from->disconnect(from->agc, 1, from->wav_sink, 1);
@@ -283,7 +283,7 @@ std::string receiver_base_cf::get_last_audio_filename()
 void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, bool is_running)
 {
     self->d_audio_filename = filename;
-    if(self->d_rec_event)
+    if (self->d_rec_event)
     {
         self->d_rec_event(self->get_index(), filename, is_running);
         std::cerr<<"d_rec_event("<<self->get_index()<<","<<filename<<","<<is_running<<")\n";

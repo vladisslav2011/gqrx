@@ -254,10 +254,10 @@ QVariant BookmarksTableModel::data ( const QModelIndex & index, int role ) const
 
 bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &value, int role)
 {
-    if(role==Qt::EditRole)
+    if (role==Qt::EditRole)
     {
         BookmarkInfo &info = *getBookmarkAtRow(index.row());
-        switch(index.column())
+        switch (index.column())
         {
         case COL_FREQUENCY:
             {
@@ -277,7 +277,7 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 info.tags.clear();
                 QString strValue = value.toString();
                 QStringList strList = strValue.split(",");
-                for(int i=0; i<strList.size(); ++i)
+                for (int i = 0; i < strList.size(); ++i)
                 {
                     QString strTag = strList[i].trimmed();
                     info.tags.append( &Bookmarks::Get().findOrAddTag(strTag) );
@@ -306,10 +306,11 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
         case COL_FILTER_LOW:
             {
                 info.set_filter_low(value.toInt());
-                if(Modulations::IsFilterSymmetric(info.get_demod()))
+                if (Modulations::IsFilterSymmetric(info.get_demod()))
                     info.set_filter_high(-value.toInt());
                 info.filter_adjust();
-                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
+                emit dataChanged(index.sibling(index.row(), COL_FILTER_LOW),
+                                 index.sibling(index.row(), COL_FILTER_TW));
             }
             break;
         case COL_FILTER_HIGH:
@@ -318,14 +319,16 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 if(Modulations::IsFilterSymmetric(info.get_demod()))
                     info.set_filter_low(-value.toInt());
                 info.filter_adjust();
-                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
+                emit dataChanged(index.sibling(index.row(), COL_FILTER_LOW),
+                                 index.sibling(index.row(), COL_FILTER_TW));
             }
             break;
         case COL_FILTER_TW:
             {
                 info.set_filter_tw(value.toInt());
                 info.filter_adjust();
-                emit dataChanged(index.sibling(index.row(),COL_FILTER_LOW), index.sibling(index.row(),COL_FILTER_TW));
+                emit dataChanged(index.sibling(index.row(), COL_FILTER_LOW),
+                                 index.sibling(index.row(), COL_FILTER_TW));
             }
             break;
         case COL_AGC_ON:
@@ -481,12 +484,6 @@ Qt::ItemFlags BookmarksTableModel::flags ( const QModelIndex& index ) const
     case COL_TAGS:
         flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
         break;
-    case COL_FREQUENCY:
-    case COL_NAME:
-    case COL_MODULATION:
-    case COL_FILTER_LOW:
-    case COL_FILTER_HIGH:
-// FIXME: implement editor for all parameters and uncomment next line
     default:
         flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable;
         break;

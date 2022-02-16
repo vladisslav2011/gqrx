@@ -92,44 +92,44 @@ typedef class vfo_s
     };
     typedef std::set<sptr, comp> set;
     //getters
-    inline int get_offset() const { return d_offset;}
+    inline int get_offset() const { return d_offset; }
     /* Filter parameter */
     inline int get_filter_low() const { return d_filter_low;}
     inline int get_filter_high() const { return d_filter_high;}
-    inline int get_filter_tw() const { return d_filter_tw;}
+    inline int get_filter_tw() const { return d_filter_tw; }
     inline void get_filter(int &low, int &high, int &tw) const
     {
         low = d_filter_low;
         high = d_filter_high;
         tw = d_filter_tw;
     }
-    inline Modulations::idx get_demod() const { return d_demod;}
-    inline int get_index() const { return d_index;}
-    inline bool get_freq_lock() const { return d_locked;}
+    inline Modulations::idx get_demod() const { return d_demod; }
+    inline int get_index() const { return d_index; }
+    inline bool get_freq_lock() const { return d_locked; }
     /* Squelch parameter */
-    inline double get_sql_level() const { return d_level_db;}
+    inline double get_sql_level() const { return d_level_db; }
     inline double get_sql_alpha() const { return d_alpha; }
     /* AGC */
-    inline bool  get_agc_on() const { return d_agc_on;}
-    inline int   get_agc_target_level() const { return d_agc_target_level;}
-    inline float get_agc_manual_gain() const { return d_agc_manual_gain;}
-    inline int   get_agc_max_gain() const { return d_agc_max_gain;}
-    inline int   get_agc_attack() const { return d_agc_attack_ms;}
-    inline int   get_agc_decay() const { return d_agc_decay_ms;}
-    inline int   get_agc_hang() const { return d_agc_hang_ms;}
-    inline int   get_agc_panning() const { return d_agc_panning;}
-    inline bool  get_agc_panning_auto() const { return d_agc_panning_auto;}
+    inline bool  get_agc_on() const { return d_agc_on; }
+    inline int   get_agc_target_level() const { return d_agc_target_level; }
+    inline float get_agc_manual_gain() const { return d_agc_manual_gain; }
+    inline int   get_agc_max_gain() const { return d_agc_max_gain; }
+    inline int   get_agc_attack() const { return d_agc_attack_ms; }
+    inline int   get_agc_decay() const { return d_agc_decay_ms; }
+    inline int   get_agc_hang() const { return d_agc_hang_ms; }
+    inline int   get_agc_panning() const { return d_agc_panning; }
+    inline bool  get_agc_panning_auto() const { return d_agc_panning_auto; }
     /* CW parameters */
-    inline int   get_cw_offset() const { return d_cw_offset;}
+    inline int   get_cw_offset() const { return d_cw_offset; }
     /* FM parameters */
-    inline float get_fm_maxdev() const { return d_fm_maxdev;}
-    inline double get_fm_deemph() const { return d_fm_deemph;}
+    inline float get_fm_maxdev() const { return d_fm_maxdev; }
+    inline double get_fm_deemph() const { return d_fm_deemph; }
     /* AM parameters */
-    inline bool get_am_dcr() const { return d_am_dcr;}
+    inline bool get_am_dcr() const { return d_am_dcr; }
 
     /* AM-Sync parameters */
-    inline bool  get_amsync_dcr() const { return d_amsync_dcr;}
-    inline float get_amsync_pll_bw() const { return d_amsync_pll_bw;}
+    inline bool  get_amsync_dcr() const { return d_amsync_dcr; }
+    inline float get_amsync_pll_bw() const { return d_amsync_pll_bw; }
     /* Noise blanker */
     bool get_nb_on(int nbid);
     float get_nb_threshold(int nbid);
@@ -223,7 +223,7 @@ typedef class vfo_s
     bool             d_rec_sql_triggered;
     int              d_rec_min_time;
     int              d_rec_max_gap;
-    
+
 
 } vfo;
 

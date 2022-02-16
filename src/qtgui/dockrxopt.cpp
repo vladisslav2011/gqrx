@@ -358,7 +358,7 @@ bool DockRxOpt::getAgcOn()
 
 void DockRxOpt::setAgcOn(bool on)
 {
-    if(on)
+    if (on)
         setAgcPresetFromParams(getAgcDecay());
     else
         ui->agcPresetCombo->setCurrentIndex(4);
@@ -475,7 +475,7 @@ void DockRxOpt::setFmEmph(double tau)
 
 void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
 {
-    if(nbid == 1)
+    if (nbid == 1)
         ui->nb1Button->setChecked(on);
     else
         ui->nb2Button->setChecked(on);

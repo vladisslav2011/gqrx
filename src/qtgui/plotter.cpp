@@ -202,14 +202,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                     }
                 }
             }
-            if(!m_vfos.empty())
+            if (!m_vfos.empty())
             {
                 m_lookup_vfo->set_offset(freqFromX(pt.x()) - m_CenterFreq);
                 m_vfos_lb = m_vfos.lower_bound(m_lookup_vfo);
-                if(m_vfos_lb == m_vfos.end())
-                {
+                if (m_vfos_lb == m_vfos.end())
                     m_vfos_ub = --m_vfos_lb;
-                }
                 else
                 {
                     m_vfos_ub = m_vfos_lb--;
@@ -649,8 +647,8 @@ void    CPlotter::clearVfos()
 void    CPlotter::getLockedVfos(std::vector<vfo::sptr> &to)
 {
     to.clear();
-    for(auto &cvfo : m_vfos)
-        if(cvfo->get_freq_lock())
+    for (auto& cvfo : m_vfos)
+        if (cvfo->get_freq_lock())
             to.push_back(cvfo);
 }
 

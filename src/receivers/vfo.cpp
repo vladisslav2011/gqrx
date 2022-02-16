@@ -171,13 +171,13 @@ bool vfo_s::get_nb_on(int nbid)
 void vfo_s::set_nb_threshold(int nbid, float threshold)
 {
     if (nbid - 1 < RECEIVER_NB_COUNT)
-        d_nb_threshold[nbid -1] = threshold;
+        d_nb_threshold[nbid - 1] = threshold;
 }
 
 float vfo_s::get_nb_threshold(int nbid)
 {
     if (nbid - 1 < RECEIVER_NB_COUNT)
-        return d_nb_threshold[nbid -1];
+        return d_nb_threshold[nbid - 1];
     return 0.0;
 }
 
@@ -234,11 +234,11 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
         set_nb_on(k + 1, from.get_nb_on(k + 1));
         set_nb_threshold(k + 1, from.get_nb_threshold(k + 1));
     }
-    if(force || (from.get_audio_rec_dir() != ""))
+    if (force || (from.get_audio_rec_dir() != ""))
         set_audio_rec_dir(from.get_audio_rec_dir());
-    if(force || (from.get_audio_rec_min_time() > 0))
+    if (force || (from.get_audio_rec_min_time() > 0))
         set_audio_rec_min_time(from.get_audio_rec_min_time());
-    if(force || (from.get_audio_rec_max_gap() > 0))
+    if (force || (from.get_audio_rec_max_gap() > 0))
         set_audio_rec_max_gap(from.get_audio_rec_max_gap());
     set_audio_rec_sql_triggered(from.get_audio_rec_sql_triggered());
 }

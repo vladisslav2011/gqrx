@@ -89,8 +89,8 @@ private:
     static QVariant dataFromBookmark(BookmarkInfo &info, int index);
     static bool bmCompare(const int a, const int b, int column, int order);
 private:
-    QList<int> m_Bookmarks;
-    int m_sortCol;
+    QList<int>    m_Bookmarks;
+    int           m_sortCol;
     Qt::SortOrder m_sortDir;
 
 signals:

@@ -131,11 +131,11 @@ DockBookmarks::~DockBookmarks()
 void DockBookmarks::activated(const QModelIndex & index)
 {
     bool activate = false;
-    if(index.column() == BookmarksTableModel::COL_NAME)
+    if (index.column() == BookmarksTableModel::COL_NAME)
         activate = true;
-    if(index.column() == BookmarksTableModel::COL_FREQUENCY)
+    if (index.column() == BookmarksTableModel::COL_FREQUENCY)
         activate = true;
-    if(activate)
+    if (activate)
     {
         BookmarkInfo *info = bookmarksTableModel->getBookmarkAtRow(index.row());
         emit newBookmarkActivated(*info);
@@ -148,13 +148,13 @@ void DockBookmarks::setNewFrequency(qint64 rx_freq)
     BookmarkInfo bi;
     bi.frequency = rx_freq;
     const int iBookmarkIndex = Bookmarks::Get().find(bi);
-    if(iBookmarkIndex > 0)
+    if (iBookmarkIndex > 0)
     {
         int iRow = bookmarksTableModel->GetRowForBookmarkIndex(iBookmarkIndex);
-        if(iRow > 0)
+        if (iRow > 0)
         {
             ui->tableViewFrequencyList->selectRow(iRow);
-            ui->tableViewFrequencyList->scrollTo(ui->tableViewFrequencyList->currentIndex(), QAbstractItemView::EnsureVisible );
+            ui->tableViewFrequencyList->scrollTo(ui->tableViewFrequencyList->currentIndex(), QAbstractItemView::EnsureVisible);
             return;
         }
     }

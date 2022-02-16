@@ -138,9 +138,9 @@ public:
 private:
     Bookmarks(); // Singleton Constructor is private.
     QList<BookmarkInfo> m_BookmarkList;
-    QList<TagInfo> m_TagList;
-    QString        m_bookmarksFile;
-    static Bookmarks* m_pThis;
+    QList<TagInfo>      m_TagList;
+    QString             m_bookmarksFile;
+    static Bookmarks*   m_pThis;
 
 signals:
     void BookmarksChanged(void);
