@@ -9,6 +9,7 @@
 #include <vector>
 #include <set>
 #include <QMap>
+#include "bookmarks.h"
 #include "receivers/defines.h"
 #include "receivers/vfo.h"
 

@@ -327,7 +327,7 @@ bool Bookmarks::save()
     return false;
 }
 
-QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high)
+QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high, bool autoAdded)
 {
     BookmarkInfo info;
     info.frequency=low;
@@ -340,10 +340,8 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high)
     while (lb != ub)
     {
         const BookmarkInfo& info = *lb;
-        //if(info.IsActive())
-        {
-          found.append(info);
-        }
+        if(!autoAdded || lb->get_freq_lock())
+            found.append(info);
         lb++;
     }
 

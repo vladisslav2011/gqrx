@@ -87,6 +87,7 @@ private:
     qint64 d_hw_freq_stop{};
 
     bool d_ignore_limits;
+    bool d_auto_bookmarks;
 
     Modulations::filter_shape d_filter_shape;
     std::complex<float>* d_fftData;
@@ -159,6 +160,7 @@ private slots:
     void setIgnoreLimits(bool ignore_limits);
     void setFreqCtrlReset(bool enabled);
     void setInvertScrolling(bool enabled);
+    void setAutoBookmarks(bool enabled);
     void selectDemod(const QString& demod);
     void selectDemod(Modulations::idx index);
     void updateDemodGUIRanges();

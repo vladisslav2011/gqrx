@@ -68,6 +68,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_lnb_lo(0),
     d_hw_freq(0),
     d_ignore_limits(false),
+    d_auto_bookmarks(false),
     d_fftAvg(0.25),
     d_have_audio(true),
     dec_afsk1200(nullptr)
@@ -221,6 +222,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(antennaSelected(QString)), this, SLOT(setAntenna(QString)));
     connect(uiDockInputCtl, SIGNAL(freqCtrlResetChanged(bool)), this, SLOT(setFreqCtrlReset(bool)));
     connect(uiDockInputCtl, SIGNAL(invertScrollingChanged(bool)), this, SLOT(setInvertScrolling(bool)));
+    connect(uiDockInputCtl, SIGNAL(autoBookmarksChanged(bool)), this, SLOT(setAutoBookmarks(bool)));
     connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
@@ -1190,6 +1192,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     auto max_offset = rx->get_input_rate() / 2;
     bool update_offset = rx->is_playing_iq();
     auto delta_freq = d_hw_freq;
+    QList<BookmarkInfo> bml;
 
     rx->set_rf_freq(hw_freq);
     d_hw_freq = d_ignore_limits ? hw_freq : (qint64)rx->get_rf_freq();
@@ -1232,51 +1235,116 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     uiDockAudio->setRxFrequency(rx_freq);
     if (rx->is_rds_decoder_active())
         rx->reset_rds_parser();
-    if(delta_freq && (rx->get_rx_count() > 1))
+    if (delta_freq)
     {
-        std::vector<vfo::sptr> locked_vfos;
-        int offset_lim = (int)(ui->plotter->getSampleRate() / 2);
         std::set<int> del_list;
-        ui->plotter->getLockedVfos(locked_vfos);
-        for(auto &cvfo : locked_vfos)
+        if (rx->get_rx_count() > 1)
         {
-            ui->plotter->removeVfo(cvfo);
-            int new_offset = cvfo->get_offset() + delta_freq;
-            if((new_offset > offset_lim) || (new_offset < -offset_lim))
-                del_list.insert(cvfo->get_index());
-            else{
-                rx->set_filter_offset(cvfo->get_index(), new_offset);
-                ui->plotter->addVfo(cvfo);
+            std::vector<vfo::sptr> locked_vfos;
+            int offset_lim = (int)(ui->plotter->getSampleRate() / 2);
+            ui->plotter->getLockedVfos(locked_vfos);
+            for(auto &cvfo : locked_vfos)
+            {
+                ui->plotter->removeVfo(cvfo);
+                int new_offset = cvfo->get_offset() + delta_freq;
+                if((new_offset > offset_lim) || (new_offset < -offset_lim))
+                    del_list.insert(cvfo->get_index());
+                else{
+                    rx->set_filter_offset(cvfo->get_index(), new_offset);
+                    ui->plotter->addVfo(cvfo);
+                }
             }
         }
-        if(del_list.size() > 0)
+
+        if (d_auto_bookmarks)
         {
-            int lastCurrent = rx->get_current();
-            for(auto i = del_list.rbegin(); i != del_list.rend(); ++i)
+            //calculate frequency range to search for auto bookmarks
+            qint64 from = 0, to = 0;
+            qint64 sr = ui->plotter->getSampleRate();
+            if (delta_freq > 0)
             {
-                int last = rx->get_rx_count() - 1;
-                rx->select_rx(*i);
-                if(lastCurrent == last)
+                if (delta_freq > sr)
                 {
-                    lastCurrent = *i;
-                    last = -1;
+                    from = center_freq - sr / 2;
+                    to = center_freq + sr / 2;
                 }
                 else
-                    if(*i != last)
+                {
+                    from = center_freq - sr / 2;
+                    to = center_freq - sr / 2 + delta_freq;
+                }
+            }
+            else
+            {
+                if (-delta_freq > sr)
+                {
+                    from = center_freq - sr / 2;
+                    to = center_freq + sr / 2;
+                }
+                else
+                {
+                    from = center_freq + sr / 2 + delta_freq;
+                    to = center_freq + sr / 2;
+                }
+            }
+            bml = Bookmarks::Get().getBookmarksInRange(from, to, true);
+        }
+
+        if((del_list.size() > 0)||(bml.size() > 0))
+        {
+            int current = rx->get_current();
+            if(ui->actionDSP->isChecked())
+                rx->stop();
+            for(auto& bm : bml)
+            {
+                int n = rx->add_rx();
+                if(n > 0)
+                {
+                    rxSpinBox->setMaximum(rx->get_rx_count() - 1);
+                    rx->set_demod(bm.get_demod());
+                    // preserve squelch level, force locked state
+                    auto old_vfo = rx->get_current_vfo();
+                    auto old_sql = old_vfo->get_sql_level();
+                    old_vfo->restore_settings(bm, false);
+                    old_vfo->set_sql_level(old_sql);
+                    old_vfo->set_offset(bm.frequency - center_freq);
+                    old_vfo->set_freq_lock(true);
+                    ui->plotter->addVfo(old_vfo);
+                    rx->select_rx(current);
+                }
+            }
+            if(del_list.size() > 0)
+            {
+                int lastCurrent = rx->get_current();
+                for(auto i = del_list.rbegin(); i != del_list.rend(); ++i)
+                {
+                    int last = rx->get_rx_count() - 1;
+                    rx->select_rx(*i);
+                    if(lastCurrent == last)
                     {
-                        ui->plotter->removeVfo(rx->get_vfo(last));
-                        last = *i;
+                        lastCurrent = *i;
+                        last = -1;
                     }
                     else
-                        last = -1;
-                rx->delete_rx();
-                if(last != -1)
-                    ui->plotter->addVfo(rx->get_vfo(last));
+                        if(*i != last)
+                        {
+                            ui->plotter->removeVfo(rx->get_vfo(last));
+                            last = *i;
+                        }
+                        else
+                            last = -1;
+                    rx->delete_rx();
+                    if(last != -1)
+                        ui->plotter->addVfo(rx->get_vfo(last));
+                }
+                rx->select_rx(lastCurrent);
+                ui->plotter->setCurrentVfo(lastCurrent);
+                rxSpinBox->setMaximum(rx->get_rx_count() - 1);
+                rxSpinBox->setValue(lastCurrent);
             }
-            rx->select_rx(lastCurrent);
-            ui->plotter->setCurrentVfo(lastCurrent);
-            rxSpinBox->setMaximum(rx->get_rx_count() - 1);
-            rxSpinBox->setValue(lastCurrent);
+            if(ui->actionDSP->isChecked())
+                rx->start();
+            ui->plotter->updateOverlay();
         }
     }
 }
@@ -1434,6 +1502,12 @@ void MainWindow::setInvertScrolling(bool enabled)
     ui->plotter->setInvertScrolling(enabled);
     uiDockRxOpt->setInvertScrolling(enabled);
     uiDockAudio->setInvertScrolling(enabled);
+}
+
+/** Invert scroll wheel direction */
+void MainWindow::setAutoBookmarks(bool enabled)
+{
+    d_auto_bookmarks = enabled;
 }
 
 /**
@@ -3055,13 +3129,16 @@ void MainWindow::on_actionAddBookmark_triggered()
         if (tags.empty())
             info.tags.append(&Bookmarks::Get().findOrAddTag(""));
 
-
         for (i = 0; i < tags.size(); ++i)
             info.tags.append(&Bookmarks::Get().findOrAddTag(tags[i]));
 
         //FIXME: implement Bookmarks::replace(&BookmarkInfo, &BookmarkInfo) method
         if(bookmarkFound.size())
+        {
+            info.set_freq_lock(bookmarkFound.first().get_freq_lock());
             Bookmarks::Get().remove(bookmarkFound.first());
+        }else
+            info.set_freq_lock(false);
         Bookmarks::Get().add(info);
         uiDockBookmarks->updateTags();
     }

@@ -122,7 +122,7 @@ public:
     bool save();
     int size() { return m_BookmarkList.size(); }
     BookmarkInfo& getBookmark(int i) { return m_BookmarkList[i]; }
-    QList<BookmarkInfo> getBookmarksInRange(qint64 low, qint64 high);
+    QList<BookmarkInfo> getBookmarksInRange(qint64 low, qint64 high, bool autoAdded = false);
     int find(const BookmarkInfo &info);
     //int lowerBound(qint64 low);
     //int upperBound(qint64 high);

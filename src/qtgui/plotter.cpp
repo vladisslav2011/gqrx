@@ -37,7 +37,6 @@
 #include <QToolTip>
 #include "plotter.h"
 #include "bandplan.h"
-#include "bookmarks.h"
 #include "dxc_spots.h"
 
 Q_LOGGING_CATEGORY(plotter, "plotter")
