@@ -66,7 +66,7 @@ typedef class vfo_s
         d_agc_panning_auto(false),
         d_cw_offset(700),
         d_fm_maxdev(2500),
-        d_fm_deemph(75),
+        d_fm_deemph(7.5e-5),
         d_am_dcr(true),
         d_amsync_dcr(true),
         d_amsync_pll_bw(0.01),
