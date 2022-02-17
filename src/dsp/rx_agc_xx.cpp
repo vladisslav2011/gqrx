@@ -73,7 +73,9 @@ rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
       d_target_gain(1.0),
       d_decay_step(1.01),
       d_attack_step(0.99),
-      d_floor(0.0001)
+      d_floor(0.0001),
+      d_refill(false),
+      d_running(false)
 
 {
     set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, true);
@@ -82,6 +84,18 @@ rx_agc_2f::rx_agc_2f(double sample_rate, bool agc_on, int target_level,
 
 rx_agc_2f::~rx_agc_2f()
 {
+}
+
+bool rx_agc_2f::start()
+{
+    d_running = true;
+    return gr::sync_block::start();
+}
+
+bool rx_agc_2f::stop()
+{
+    d_running = false;
+    return gr::sync_block::stop();
 }
 
 /**
@@ -115,6 +129,19 @@ int rx_agc_2f::work(int noutput_items,
         for (const auto& tag : work_tags)
             add_item_tag(1, tag.offset + d_buf_samples, tag.key, tag.value);
 #endif
+        if (d_refill)
+        {
+            d_refill = false;
+            int p = history() - 1 - d_buf_size;
+            for (k = 0; k < d_buf_size; k++, p++)
+            {
+                float sample_in0 = in0[p];
+                float sample_in1 = in1[p];
+                mag_in = std::max(fabs(sample_in0),fabs(sample_in1));
+                d_mag_buf[k] = mag_in;
+                update_buffer(k);
+            }
+        }
         for (k = 0; k < noutput_items; k++)
         {
             int k_hist = k + history() - 1;
@@ -160,10 +187,10 @@ int rx_agc_2f::work(int noutput_items,
                 if (d_hang_counter <= 0)
                 {
                     //decay, increase gain one step per sample until we reach d_max_gain
-                    if (d_current_gain < d_max_gain_mag)
+                    if (d_current_gain < d_target_gain)
                         d_current_gain *= d_decay_step;
-                    if (d_current_gain > d_max_gain_mag)
-                        d_current_gain = d_max_gain_mag;
+                    if (d_current_gain > d_target_gain)
+                        d_current_gain = d_target_gain;
                 }
             }
             if (d_hang_counter > 0)
@@ -347,6 +374,8 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
     {
         d_agc_on = agc_on;
         agc_on_changed = true;
+        if(d_agc_on && d_running)
+            d_refill = true;
 #if GNURADIO_VERSION < 0x030800
         if(d_agc_on)
             set_tag_propagation_policy(TPP_DONT);
@@ -407,6 +436,8 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
             d_mag_buf.resize(d_buf_size * 2, 0);
             d_buf_p = 0;
             d_max_idx = d_buf_size * 2 - 2;
+            if(d_agc_on && d_running)
+                d_refill = true;
          }
     }
     if ((manual_gain_changed || agc_on_changed) && !agc_on)

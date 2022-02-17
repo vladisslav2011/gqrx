@@ -83,6 +83,8 @@ protected:
 public:
     ~rx_agc_2f();
 
+    bool start() override;
+    bool stop() override;
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
              gr_vector_void_star &output_items);
@@ -130,6 +132,8 @@ private:
     TYPEFLOAT d_floor;
 
     std::vector<float>   d_mag_buf;
+    bool d_refill;
+    bool d_running;
 
     TYPEFLOAT d_prev_dbg;
 };
