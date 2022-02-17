@@ -92,7 +92,7 @@ public slots:
     void setMode(int mode);
     void setPassband(int passband_lo, int passband_hi);
     void setSquelchLevel(double level);
-    void startAudioRecorder(QString unused);
+    void startAudioRecorder();
     void stopAudioRecorder();
     bool setGain(QString name, double gain);
     void setRDSstatus(bool enabled);
