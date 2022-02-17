@@ -147,6 +147,9 @@ receiver::receiver(const std::string input_device,
     gr::prefs pref;
     qDebug() << "Using audio backend:"
              << pref.get_string("audio", "audio_module", "N/A").c_str();
+    rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                              std::placeholders::_1,
+                              std::placeholders::_2));
 }
 
 receiver::~receiver()
@@ -619,6 +622,7 @@ receiver::status receiver::set_rf_freq(double freq_hz)
     d_rf_freq = freq_hz;
 
     src->set_center_freq(d_rf_freq);
+    rx->set_center_freq(d_rf_freq);//to generate audio filename
     // FIXME: read back frequency?
 
     return STATUS_OK;
@@ -736,6 +740,7 @@ receiver::status receiver::set_filter_offset(double offset_hz)
 {
     d_filter_offset = offset_hz;
     ddc->set_center_freq(d_filter_offset - d_cw_offset);
+    rx->set_offset(offset_hz);//to generate audio filename from
 
     return STATUS_OK;
 }
@@ -1096,6 +1101,30 @@ receiver::status receiver::set_amsync_pll_bw(float pll_bw)
     return STATUS_OK;
 }
 
+receiver::status receiver::set_audio_rec_dir(const std::string dir)
+{
+    rx->set_rec_dir(dir);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
+{
+    rx->set_audio_rec_sql_triggered(enabled);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_audio_rec_min_time(const int time_ms)
+{
+    rx->set_audio_rec_min_time(time_ms);
+    return STATUS_OK;
+}
+
+receiver::status receiver::set_audio_rec_max_gap(const int time_ms)
+{
+    rx->set_audio_rec_max_gap(time_ms);
+    return STATUS_OK;
+}
+
 /**
  * @brief Start WAV file recorder.
  * @param filename The filename where to record.
@@ -1105,7 +1134,7 @@ receiver::status receiver::set_amsync_pll_bw(float pll_bw)
  * file names does not work with WAV files (the initial /tmp/gqrx.wav will not be stopped
  * because the wav file can not be empty). See https://github.com/gqrx-sdr/gqrx/issues/36
  */
-receiver::status receiver::start_audio_recording(const std::string filename)
+receiver::status receiver::start_audio_recording()
 {
     if (d_recording_wav)
     {
@@ -1122,32 +1151,12 @@ receiver::status receiver::start_audio_recording(const std::string filename)
         return STATUS_ERROR;
     }
 
-    // if this fails, we don't want to go and crash now, do we
-    try {
-#if GNURADIO_VERSION < 0x030900
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
-                                                  (unsigned int) d_audio_rate,
-                                                  16);
-#else
-        wav_sink = gr::blocks::wavfile_sink::make(filename.c_str(), 2,
-                                                  (unsigned int) d_audio_rate,
-                                                  gr::blocks::FORMAT_WAV, gr::blocks::FORMAT_PCM_16);
-#endif
+    if(rx->start_audio_recording() == 0)
+    {
+        return STATUS_OK;
     }
-    catch (std::runtime_error &e) {
-        std::cout << "Error opening " << filename << ": " << e.what() << std::endl;
+    else
         return STATUS_ERROR;
-    }
-
-    tb->lock();
-    tb->connect(rx, 0, wav_sink, 0);
-    tb->connect(rx, 1, wav_sink, 1);
-    tb->unlock();
-    d_recording_wav = true;
-
-    std::cout << "Recording audio to " << filename << std::endl;
-
-    return STATUS_OK;
 }
 
 /** Stop WAV file recorder. */
@@ -1166,25 +1175,15 @@ receiver::status receiver::stop_audio_recording()
 
         return STATUS_ERROR;
     }
-
-    // not strictly necessary to lock but I think it is safer
-    tb->lock();
-    wav_sink->close();
-    tb->disconnect(rx, 0, wav_sink, 0);
-    tb->disconnect(rx, 1, wav_sink, 1);
-
-    // Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-    tb->disconnect(ddc, 0, rx, 0);
-    tb->connect(ddc, 0, rx, 0);
-    // End temporary workaround
-
-    tb->unlock();
-    wav_sink.reset();
-    d_recording_wav = false;
-
-    std::cout << "Audio recorder stopped" << std::endl;
+    rx->stop_audio_recording();
 
     return STATUS_OK;
+}
+
+/** get last recorded audio file name. */
+std::string receiver::get_last_audio_filename()
+{
+    return rx->get_last_audio_filename();
 }
 
 /** Start audio playback. */
@@ -1491,6 +1490,7 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
     // Visualization
     tb->connect(b, 0, iq_fft, 0);
 
+    receiver_base_cf_sptr old_rx = rx;
     // RX demod chain
     switch (type)
     {
@@ -1499,6 +1499,9 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
         {
             rx.reset();
             rx = make_nbrx(d_quad_rate, d_audio_rate);
+            rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
         }
         break;
 
@@ -1507,6 +1510,9 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
         {
             rx.reset();
             rx = make_wfmrx(d_quad_rate, d_audio_rate);
+            rx->set_rec_event_handler(std::bind(audio_rec_event, this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
         }
         break;
 
@@ -1514,6 +1520,21 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
         break;
     }
 
+    if(old_rx.get() != rx.get())
+    {
+        //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
+        tb->connect(ddc, 0, rx, 0);
+        // End temporary workaronud
+        rx->set_center_freq(d_rf_freq);
+        rx->set_offset(d_filter_offset);
+        rx->set_audio_rec_sql_triggered(old_rx->get_audio_rec_sql_triggered());
+        rx->set_audio_rec_min_time(old_rx->get_audio_rec_min_time());
+        rx->set_audio_rec_max_gap(old_rx->get_audio_rec_max_gap());
+        rx->set_rec_dir(old_rx->get_rec_dir());
+        //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
+        tb->disconnect(ddc, 0, rx, 0);
+        // End temporary workaronud
+    }
     // Audio path (if there is a receiver)
     if (type != RX_CHAIN_NONE)
     {
@@ -1528,10 +1549,10 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
             tb->connect(rx, 1, audio_snk, 1);
         }
         // Recorders and sniffers
-        if (d_recording_wav)
+        if(old_rx.get() != rx.get())
         {
-            tb->connect(rx, 0, wav_sink, 0);
-            tb->connect(rx, 1, wav_sink, 1);
+            if (d_recording_wav)
+                rx->continue_audio_recording(old_rx);
         }
 
         if (d_sniffer_active)
@@ -1544,8 +1565,7 @@ void receiver::connect_all(rx_chain type, file_formats fmt)
     {
         if (d_recording_wav)
         {
-            wav_sink->close();
-            wav_sink.reset();
+            rx->stop_audio_recording();
             d_recording_wav = false;
         }
 
@@ -1611,4 +1631,21 @@ std::string receiver::escape_filename(std::string filename)
     ss1 << std::quoted(filename, '\'', '\\');
     ss2 << std::quoted(ss1.str(), '\'', '\\');
     return ss2.str();
+}
+
+void receiver::audio_rec_event(receiver * self, std::string filename, bool is_running)
+{
+    if (is_running)
+    {
+        self->d_recording_wav = true;
+        std::cout << "Recording audio to " << filename << std::endl;
+    }
+    else
+    {
+        self->d_recording_wav = false;
+        std::cout << "Audio recorder stopped" << std::endl;
+    }
+
+    if(self->d_audio_rec_event_handler)
+        self->d_audio_rec_event_handler(filename, is_running);
 }
