@@ -35,7 +35,7 @@ class rx_agc_2f;
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<rx_agc_2f> rx_agc_2f_sptr;
 #else
-typedef std::shared_ptr<rx_agc_cc> rx_agc_cc_sptr;
+typedef std::shared_ptr<rx_agc_2f> rx_agc_2f_sptr;
 #endif
 
 
