@@ -81,6 +81,11 @@ typedef class vfo_s
             d_nb_threshold[k] = 2;
         }
     }
+
+    virtual ~vfo_s()
+    {
+    }
+
     struct comp
     {
         inline bool operator()(const sptr lhs, const sptr rhs) const

@@ -56,8 +56,8 @@ public:
     wfmrx(float quad_rate, float audio_rate);
     ~wfmrx();
 
-    bool start();
-    bool stop();
+    bool start() override;
+    bool stop() override;
 
 
     void set_filter(int low, int high, int tw) override;

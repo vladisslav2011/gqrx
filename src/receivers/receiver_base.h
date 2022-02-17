@@ -128,6 +128,7 @@ public:
     {
         d_rec_event = handler;
     }
+    using vfo_s::restore_settings;
     virtual void restore_settings(receiver_base_cf& from);
     bool connected() { return d_connected; }
     void connected(bool value) { d_connected = value; }
