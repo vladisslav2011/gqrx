@@ -253,10 +253,10 @@ void CAgc::ProcessData(TYPECPX * pOutData, const TYPECPX * pInData, int Length)
                 if (d_hang_counter <= 0)
                 {
                     //decay, increase gain one step per sample until we reach d_max_gain
-                    if (d_current_gain < d_max_gain_mag)
+                    if (d_current_gain < d_target_gain)
                         d_current_gain *= d_decay_step;
-                    if (d_current_gain > d_max_gain_mag)
-                        d_current_gain = d_max_gain_mag;
+                    if (d_current_gain > d_target_gain)
+                        d_current_gain = d_target_gain;
                 }
             }
             if (d_hang_counter > 0)
