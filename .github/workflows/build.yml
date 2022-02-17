@@ -51,7 +51,8 @@ jobs:
             soapysdr-module-remote \
             libuhd-dev \
             liborc-0.4-dev \
-            libhidapi-dev
+            libhidapi-dev \
+            libsndfile-dev
 
           cd /tmp
           git clone https://gitea.osmocom.org/sdr/rtl-sdr.git
@@ -171,7 +172,7 @@ jobs:
         run: |
           brew update
           brew install --HEAD librtlsdr
-          brew install airspy airspyhf boost dylibbundler gnuradio hackrf libbladerf libserialport portaudio pybind11 six uhd qt@6 || true
+          brew install airspy airspyhf boost dylibbundler gnuradio hackrf libbladerf libserialport portaudio pybind11 six uhd libsndfile qt@6 || true
           brew tap pothosware/homebrew-pothos
           brew install soapyremote
 
