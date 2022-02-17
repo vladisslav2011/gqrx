@@ -48,4 +48,6 @@ add_source_files(SRCS_LIST
 	stereo_demod.cpp
 	stereo_demod.h
 	format_converter.h
+	rx_squelch.cpp
+	rx_squelch.h
 )
