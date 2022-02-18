@@ -756,7 +756,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                         emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
                         break;
                     }
-                    else if (event->buttons() == Qt::MidButton)
+                    else if (event->buttons() == Qt::MiddleButton)
                     {
                         //tune and load settings
                         m_DemodCenterFreq = tag.second;

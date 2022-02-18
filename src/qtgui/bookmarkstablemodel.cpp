@@ -528,76 +528,76 @@ int BookmarksTableModel::GetRowForBookmarkIndex(int index)
 
 bool BookmarksTableModel::bmCompare(const int a, const int b, int column, int order)
 {
-        switch (column)
-        {
-        case COL_FREQUENCY://LongLong
-            if (order)
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toLongLong() >=
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toLongLong();
-            else
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toLongLong() <
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toLongLong();
+    switch (column)
+    {
+    case COL_FREQUENCY://LongLong
+        if (order)
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toLongLong() >=
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toLongLong();
+        else
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toLongLong() <
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toLongLong();
 
-        case COL_FILTER_LOW://int
-        case COL_FILTER_HIGH:
-        case COL_FILTER_TW:
-        case COL_AGC_TARGET:
-        case COL_AGC_MAX:
-        case COL_AGC_ATTACK:
-        case COL_AGC_DECAY:
-        case COL_AGC_HANG:
-        case COL_AGC_PANNING:
-        case COL_CW_OFFSET:
-        case COL_REC_MIN_TIME:
-        case COL_REC_MAX_GAP:
-            if (order)
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toInt() >=
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toInt();
-            else
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toInt() <
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toInt();
+    case COL_FILTER_LOW://int
+    case COL_FILTER_HIGH:
+    case COL_FILTER_TW:
+    case COL_AGC_TARGET:
+    case COL_AGC_MAX:
+    case COL_AGC_ATTACK:
+    case COL_AGC_DECAY:
+    case COL_AGC_HANG:
+    case COL_AGC_PANNING:
+    case COL_CW_OFFSET:
+    case COL_REC_MIN_TIME:
+    case COL_REC_MAX_GAP:
+        if (order)
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toInt() >=
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toInt();
+        else
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toInt() <
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toInt();
 
-        case COL_LOCKED://bool
-        case COL_AGC_ON:
-        case COL_AGC_PANNING_AUTO:
-        case COL_AM_DCR:
-        case COL_AMSYNC_DCR:
-        case COL_NB1_ON:
-        case COL_NB2_ON:
-        case COL_REC_SQL_TRIGGERED:
-            if (order)
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toBool() >=
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toBool();
-            else
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toBool() <
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toBool();
+    case COL_LOCKED://bool
+    case COL_AGC_ON:
+    case COL_AGC_PANNING_AUTO:
+    case COL_AM_DCR:
+    case COL_AMSYNC_DCR:
+    case COL_NB1_ON:
+    case COL_NB2_ON:
+    case COL_REC_SQL_TRIGGERED:
+        if (order)
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toBool() >=
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toBool();
+        else
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toBool() <
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toBool();
 
-        case COL_AGC_MANUAL://float
-        case COL_FM_MAXDEV:
-        case COL_FM_DEEMPH:
-        case COL_AMSYNC_PLL_BW:
-        case COL_NB1_THRESHOLD:
-        case COL_NB2_THRESHOLD:
-            if (order)
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toFloat() >=
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toFloat();
-            else
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toFloat() <
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toFloat();
+    case COL_AGC_MANUAL://float
+    case COL_FM_MAXDEV:
+    case COL_FM_DEEMPH:
+    case COL_AMSYNC_PLL_BW:
+    case COL_NB1_THRESHOLD:
+    case COL_NB2_THRESHOLD:
+        if (order)
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toFloat() >=
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toFloat();
+        else
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toFloat() <
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toFloat();
 
-        case COL_NAME://string
-        case COL_TAGS:
-        case COL_MODULATION:
-        case COL_REC_DIR:
-        default:
-            if (order)
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toString() >=
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toString();
-            else
-                return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toString() <
-                    dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toString();
+    case COL_NAME://string
+    case COL_TAGS:
+    case COL_MODULATION:
+    case COL_REC_DIR:
+    default:
+        if (order)
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toString() >=
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toString();
+        else
+            return dataFromBookmark(Bookmarks::Get().getBookmark(a), column).toString() <
+                dataFromBookmark(Bookmarks::Get().getBookmark(b), column).toString();
 
-        }
+    }
 }
 
 void BookmarksTableModel::sort(int column, Qt::SortOrder order)
