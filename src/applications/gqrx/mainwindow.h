@@ -187,7 +187,9 @@ private slots:
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
     void startIqRecording(const QString& recdir, file_formats fmt);
     void stopIqRecording();
-    void startIqPlayback(const QString& filename, float samprate, qint64 center_freq, file_formats fmt);
+    void startIqPlayback(const QString& filename, float samprate,
+                         qint64 center_freq, file_formats fmt,
+                         bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
 
