@@ -63,7 +63,7 @@ public:
     void set_filter(int low, int high, int tw) override;
 
     /* Noise blanker */
-    bool has_nb() { return false; }
+    bool has_nb() override { return false; }
 
     void set_demod(Modulations::idx demod) override;
 

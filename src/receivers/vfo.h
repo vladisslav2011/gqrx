@@ -34,12 +34,15 @@
 class vfo_s;
 typedef class vfo_s
 {
-    public:
+public:
 #if GNURADIO_VERSION < 0x030900
     typedef boost::shared_ptr<vfo_s> sptr;
 #else
     typedef std::shared_ptr<vfo_s> sptr;
 #endif
+    struct comp;
+    typedef std::set<sptr, comp> set;
+public:
     static sptr make()
     {
         return sptr(new vfo_s());
@@ -86,16 +89,6 @@ typedef class vfo_s
     {
     }
 
-    struct comp
-    {
-        inline bool operator()(const sptr lhs, const sptr rhs) const
-        {
-            const vfo_s *a = lhs.get();
-            const vfo_s *b = rhs.get();
-            return (a->d_offset == b->d_offset) ? (a->d_index < b->d_index) : (a->d_offset < b->d_offset);
-        }
-    };
-    typedef std::set<sptr, comp> set;
     //getters
     inline int get_offset() const { return d_offset; }
     /* Filter parameter */
@@ -190,7 +183,18 @@ typedef class vfo_s
 
     virtual void restore_settings(vfo_s& from, bool force = true);
 
-    protected:
+public:
+    struct comp
+    {
+        inline bool operator()(const sptr lhs, const sptr rhs) const
+        {
+            const vfo_s *a = lhs.get();
+            const vfo_s *b = rhs.get();
+            return (a->d_offset == b->d_offset) ? (a->d_index < b->d_index) : (a->d_offset < b->d_offset);
+        }
+    };
+
+protected:
     int              d_offset;
     int              d_filter_low;
     int              d_filter_high;
