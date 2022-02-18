@@ -1308,7 +1308,7 @@ receiver::status receiver::connect_iq_recorder()
  * @param filename The filename where to record.
 + * @param bytes_per_sample A hint to choose correct sample format.
  */
-receiver::status receiver::start_iq_recording(const std::string filename, const file_formats fmt)
+receiver::status receiver::start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max)
 {
     int sink_bytes_per_chunk = any_to_any_base::fmt[fmt].size;
 
@@ -1319,7 +1319,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = gr::blocks::file_sink::make(sink_bytes_per_chunk, filename.c_str(), true);
+        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate / any_to_any_base::fmt[fmt].nsamples, true, buffers_max);
     }
     catch (std::runtime_error &e)
     {
@@ -1374,6 +1374,17 @@ receiver::status receiver::seek_iq_file(long pos)
     tb->unlock();
 
     return status;
+}
+
+void receiver::get_iq_recorder_stats(struct iq_tool_stats &stats)
+{
+    stats.active = d_recording_iq;
+    if(d_recording_iq && iq_sink)
+    {
+        stats.failed = iq_sink->get_failed();
+        stats.buffers_used = iq_sink->get_buffer_usage();
+        stats.file_size = iq_sink->get_written();
+    }
 }
 
 /**
