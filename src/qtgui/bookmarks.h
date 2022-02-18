@@ -30,6 +30,7 @@
 #include <QList>
 #include <QStringList>
 #include <QColor>
+#include "receivers/vfo.h"
 
 struct TagInfo
 {
@@ -57,18 +58,21 @@ struct TagInfo
     }
 };
 
-struct BookmarkInfo
+class BookmarkInfo:public vfo_s
 {
-    qint64  frequency;
-    QString name;
-    QString modulation;
-    qint64  bandwidth;
-    QList<TagInfo*> tags;
-
-    BookmarkInfo()
+    public:
+#if GNURADIO_VERSION < 0x030900
+    typedef boost::shared_ptr<BookmarkInfo> sptr;
+#else
+    typedef std::shared_ptr<BookmarkInfo> sptr;
+#endif
+    static sptr make()
     {
-        this->frequency = 0;
-        this->bandwidth = 0;
+        return sptr(new BookmarkInfo());
+    }
+
+    BookmarkInfo():vfo_s(),frequency(0)
+    {
     }
 
 /*    BookmarkInfo( qint64 frequency, QString name, qint64 bandwidth, QString modulation )
@@ -83,6 +87,10 @@ struct BookmarkInfo
     {
         return frequency < other.frequency;
     }
+    bool operator==(const BookmarkInfo &other) const
+    {
+        return frequency == other.frequency;
+    }
 /*
     void setTags(QString tagString);
     QString getTagString();
@@ -92,6 +100,11 @@ struct BookmarkInfo
 
     const QColor GetColor() const;
     bool IsActive() const;
+
+    qint64  frequency;
+    QString name;
+    QString modulation;
+    QList<TagInfo*> tags;
 };
 
 class Bookmarks : public QObject
@@ -104,11 +117,13 @@ public:
 
     void add(BookmarkInfo& info);
     void remove(int index);
+    void remove(const BookmarkInfo &info);
     bool load();
     bool save();
     int size() { return m_BookmarkList.size(); }
     BookmarkInfo& getBookmark(int i) { return m_BookmarkList[i]; }
-    QList<BookmarkInfo> getBookmarksInRange(qint64 low, qint64 high);
+    QList<BookmarkInfo> getBookmarksInRange(qint64 low, qint64 high, bool autoAdded = false);
+    int find(const BookmarkInfo &info);
     //int lowerBound(qint64 low);
     //int upperBound(qint64 high);
 
@@ -123,9 +138,9 @@ public:
 private:
     Bookmarks(); // Singleton Constructor is private.
     QList<BookmarkInfo> m_BookmarkList;
-    QList<TagInfo> m_TagList;
-    QString        m_bookmarksFile;
-    static Bookmarks* m_pThis;
+    QList<TagInfo>      m_TagList;
+    QString             m_bookmarksFile;
+    static Bookmarks*   m_pThis;
 
 signals:
     void BookmarksChanged(void);

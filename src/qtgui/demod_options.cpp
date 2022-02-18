@@ -231,3 +231,13 @@ void CDemodOptions::on_pllBwSelector_activated(int index)
 {
     emit amSyncPllBwSelected(pll_bw_from_index(index));
 }
+
+void CDemodOptions::setAmDcr(bool on)
+{
+    ui->dcrCheckBox->setChecked(on);
+}
+
+void CDemodOptions::setAmSyncDcr(bool on)
+{
+    ui->syncdcrCheckBox->setChecked(on);
+}
