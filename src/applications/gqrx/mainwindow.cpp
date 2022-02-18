@@ -285,7 +285,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(&DXCSpots::Get(), SIGNAL(dxcSpotsUpdated()), this, SLOT(updateClusterSpots()));
 
     // I/Q playback
-    connect(iq_tool, SIGNAL(startRecording(QString, file_formats)), this, SLOT(startIqRecording(QString, file_formats)));
+    connect(iq_tool, SIGNAL(startRecording(QString, file_formats, int)), this, SLOT(startIqRecording(QString, file_formats, int)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
     connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, file_formats, bool)), this, SLOT(startIqPlayback(QString, float, qint64, file_formats, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
@@ -1387,10 +1387,26 @@ double MainWindow::setSqlLevelAuto()
 void MainWindow::meterTimeout()
 {
     float level;
+    struct receiver::iq_tool_stats iq_stats;
 
     level = rx->get_signal_pwr();
     ui->sMeter->setLevel(level);
     remote->setSignalLevel(level);
+    // As it looks like this timer is always active (when the DSP is running),
+    // check iq recorder state here too
+    rx->get_iq_recorder_stats(iq_stats);
+    if(iq_stats.active)
+    {
+        if(iq_stats.failed)
+        {
+            //stop the recorder
+            iq_tool->updateStats(iq_stats.failed, iq_stats.buffers_used, iq_stats.file_size);
+            iq_tool->cancelRecording();
+        }else{
+            //update status
+            iq_tool->updateStats(iq_stats.failed, iq_stats.buffers_used, iq_stats.file_size);
+        }
+    }
 }
 
 #define LOG2_10 3.321928094887362
@@ -1592,14 +1608,14 @@ QString MainWindow::makeIQFilename(const QString& recdir, file_formats fmt, cons
 }
 
 /** Start I/Q recording. */
-void MainWindow::startIqRecording(const QString& recdir, file_formats fmt)
+void MainWindow::startIqRecording(const QString& recdir, file_formats fmt, int buffers_max)
 {
 
     auto lastRec = makeIQFilename(recdir, fmt, QDateTime::currentDateTimeUtc());
     ui->actionIoConfig->setDisabled(true);
     ui->actionLoadSettings->setDisabled(true);
     // start recorder; fails if recording already in progress
-    if (rx->start_iq_recording(lastRec.toStdString(), fmt))
+    if (rx->start_iq_recording(lastRec.toStdString(), fmt, buffers_max))
     {
         // reset action status
         ui->statusBar->showMessage(tr("Error starting I/Q recoder"));

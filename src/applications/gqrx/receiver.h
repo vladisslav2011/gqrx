@@ -53,6 +53,7 @@
 #include "dsp/resampler_xx.h"
 #include "dsp/format_converter.h"
 #include "interfaces/udp_sink_f.h"
+#include "interfaces/file_sink.h"
 #include "receivers/receiver_base.h"
 
 #ifdef WITH_PULSEAUDIO
@@ -112,6 +113,14 @@ public:
         FILTER_SHAPE_NORMAL = 1, /*!< Normal: Transition band is TBD of width. */
         FILTER_SHAPE_SHARP = 2   /*!< Sharp: Transition band is TBD of width. */
     };
+
+    struct iq_tool_stats
+    {
+        bool active;
+        bool failed;
+        int buffers_used;
+        size_t file_size;
+     };
 
     receiver(const std::string input_device="",
              const std::string audio_device="",
@@ -217,9 +226,10 @@ public:
     status      stop_udp_streaming();
 
     /* I/Q recording and playback */
-    status      start_iq_recording(const std::string filename, const file_formats fmt);
+    status      start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
+    void        get_iq_recorder_stats(struct iq_tool_stats &stats);
     bool        is_playing_iq() const { return !(d_iq_fmt == FILE_FORMAT_NONE); }
 
     /* sample sniffer */
@@ -287,7 +297,7 @@ private:
     gr::blocks::multiply_const_ff::sptr audio_gain0; /*!< Audio gain block. */
     gr::blocks::multiply_const_ff::sptr audio_gain1; /*!< Audio gain block. */
 
-    gr::blocks::file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
+    file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
 
     //Format converters to/from different sample formats
     std::vector<any_to_any_base::sptr> convert_to
