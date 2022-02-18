@@ -207,6 +207,7 @@ int rx_agc_2f::work(int noutput_items,
         volk_32f_s32f_multiply_32f((float *)out1, (float *)&in1[history() - 1], d_current_gain, noutput_items);
     }
     #ifdef AGC_DEBUG2
+    static TYPEFLOAT d_prev_dbg = 0.0;
     if(d_prev_dbg != d_target_gain)
     {
         std::cerr<<"------ d_target_gain="<<d_target_gain<<" d_current_gain="<<d_current_gain<<" d_hang_counter="<<d_hang_counter<<  std::endl;

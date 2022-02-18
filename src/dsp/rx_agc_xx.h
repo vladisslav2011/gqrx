@@ -87,7 +87,7 @@ public:
     bool stop() override;
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items);
+             gr_vector_void_star &output_items) override;
 
     void set_agc_on(bool agc_on);
     void set_sample_rate(double sample_rate);
@@ -134,8 +134,6 @@ private:
     std::vector<float>   d_mag_buf;
     bool d_refill;
     bool d_running;
-
-    TYPEFLOAT d_prev_dbg;
 };
 
 #endif /* RX_AGC_XX_H */
