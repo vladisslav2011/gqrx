@@ -20,30 +20,44 @@
  * the Free Software Foundation, Inc., 51 Franklin Street,
  * Boston, MA 02110-1301, USA.
  */
-#ifndef DEFINES_H
-#define DEFINES_H
+#ifndef DOCKPROBE_H
+#define DOCKPROBE_H
 
-/* Maximum number of receivers */
-#define RX_MAX 256
+#include <QColor>
+#include <QDockWidget>
+#include <QSettings>
 
-
-#define TARGET_QUAD_RATE 4e5
-// Channelizer target quad rate
-#define TARGET_CHAN_RATE 4e5
-
-/* Number of noice blankers */
-#define RECEIVER_NB_COUNT 2
-
-// NB: Remember to adjust filter ranges in MainWindow
-#define NB_PREF_QUAD_RATE  96000.f
-
-#define WFM_PREF_QUAD_RATE   240e3 // Nominal channel spacing is 200 kHz
-
-#define RX_FILTER_MIN_WIDTH 100  /*! Minimum width of filter */
-
-#include <memory>
-#include <set>
-#include <iostream>
+namespace Ui {
+    class DockProbe;
+}
 
 
-#endif // DEFINES_H
+class DockProbe : public QDockWidget
+{
+    Q_OBJECT
+
+public:
+    explicit DockProbe(QWidget *parent = 0);
+    ~DockProbe();
+
+    void setNewFftData(float *fftData, int size);
+    void setInvertScrolling(bool enabled);
+    void setFftColor(QColor color);
+    void setFftFill(bool enabled);
+    void setDecimOsr(int,int);
+    void setCenterOffset(qint64 freq, qint64 ofs);
+    void setSampleRate(int sampleRate);
+    void setWfColormap(const QString &cmap);
+
+private:
+    void updateCenter();
+private:
+    Ui::DockProbe *ui;
+    int m_sampleRate;
+    int m_decim;
+    int m_osr;
+    qint64 m_offset;
+    qint64 m_center;
+};
+
+#endif // DOCKPROBE_H

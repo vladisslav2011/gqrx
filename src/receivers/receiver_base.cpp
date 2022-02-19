@@ -39,6 +39,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof(float))),
       vfo_s(),
       d_connected(false),
+      d_port(-1),
       d_decim_rate(quad_rate),
       d_quad_rate(0),
       d_ddc_decim(1),

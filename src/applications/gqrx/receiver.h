@@ -191,6 +191,19 @@ public:
     void        get_audio_fft_data(std::complex<float>* fftPoints,
                                    unsigned int &fftsize);
 
+    /* FFT Probe */
+    void        get_probe_fft_data(std::complex<float>* fftPoints,
+                                   unsigned int &fftsize);
+    void        set_probe_channel(int c);
+    int         get_probe_channel();
+    int         get_probe_channel_count();
+    void        set_chan_decim(int n);
+    void        set_chan_osr(int n);
+    int         get_chan_decim(){return chan->decim();}
+    int         get_chan_osr(){return chan->osr();}
+    void        set_chan_filter_param(float n);
+    void        set_channelizer(bool on);
+
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
     bool        get_nb_on(int nbid);
@@ -317,6 +330,7 @@ private:
     void        background_rx();
     gr::basic_block_sptr setup_source(file_formats fmt);
     status      connect_iq_recorder();
+    void        set_channelizer_int(bool use_chan);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
@@ -324,6 +338,8 @@ private:
     bool        d_running;          /*!< Whether receiver is running or not. */
     double      d_input_rate;       /*!< Input sample rate. */
     double      d_decim_rate;       /*!< Rate after decimation (input_rate / decim) */
+    bool        d_use_chan;         /*!< Use channelizer instead of direct connection */
+    bool        d_enable_chan;      /*!< Enable channelizer usage when input rate is high enough */
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
@@ -355,6 +371,8 @@ private:
     dc_corr_cc_sptr           dc_corr;   /*!< DC corrector block. */
     iq_swap_cc_sptr           iq_swap;   /*!< I/Q swapping block. */
 
+    fft_channelizer_cc::sptr  chan;
+    rx_fft_c_sptr             probe_fft;  /*!< Probe FFT block. */
     rx_fft_c_sptr             iq_fft;     /*!< Baseband FFT block. */
     rx_fft_f_sptr             audio_fft;  /*!< Audio FFT block. */
 
