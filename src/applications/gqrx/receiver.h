@@ -203,6 +203,16 @@ public:
     void        get_audio_fft_data(std::complex<float>* fftPoints,
                                    unsigned int &fftsize);
 
+    /* FFT Probe */
+    void        get_probe_fft_data(std::complex<float>* fftPoints,
+                                   unsigned int &fftsize);
+    void        set_probe_channel(int c);
+    int         get_probe_channel();
+    int         get_probe_channel_count();
+    void        set_chan_decim(int n);
+    void        set_chan_osr(int n);
+    void        set_chan_filter_param(float n);
+
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
     bool        get_nb_on(int nbid);
@@ -359,6 +369,8 @@ private:
     dc_corr_cc_sptr           dc_corr;   /*!< DC corrector block. */
     iq_swap_cc_sptr           iq_swap;   /*!< I/Q swapping block. */
 
+    fft_channelizer_cc::sptr  chan;
+    rx_fft_c_sptr             probe_fft;  /*!< Probe FFT block. */
     rx_fft_c_sptr             iq_fft;     /*!< Baseband FFT block. */
     rx_fft_f_sptr             audio_fft;  /*!< Audio FFT block. */
 
