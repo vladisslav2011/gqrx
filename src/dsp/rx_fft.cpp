@@ -569,7 +569,7 @@ void fft_channelizer_cc::apply_window(const gr_complex * p)
 void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    if((d_wintype == wintype)&&(d_filter_param == filter_param)&&(d_osr == osr)&&(d_filter_param == filter_param))
+    if((d_wintype == wintype)&&(d_fftsize == fftsize)&&(d_osr == osr)&&(d_filter_param == filter_param))
         return;
     d_wintype = wintype;
     d_filter_param = filter_param;
