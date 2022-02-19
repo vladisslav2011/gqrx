@@ -424,19 +424,21 @@ int rx_fft_f::get_window_type() const
 
 
 /* fft channelizer */
-fft_channelizer_cc::sptr fft_channelizer_cc::make(unsigned int nchannels, int wintype)
+fft_channelizer_cc::sptr fft_channelizer_cc::make(int nchannels, int osr, int wintype)
 {
-    return gnuradio::get_initial_sptr(new fft_channelizer_cc (nchannels, wintype));
+    return gnuradio::get_initial_sptr(new fft_channelizer_cc (nchannels, osr, wintype));
 }
 
-fft_channelizer_cc::fft_channelizer_cc(unsigned int nchannels, int wintype)
-    : gr::sync_block ("rx_fft_c",
+fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype)
+    : gr::sync_decimator ("fft_chan",
           gr::io_signature::make(1, 1, sizeof(gr_complex)),
-          gr::io_signature::make(0, RX_MAX, sizeof(gr_complex))),
+          gr::io_signature::make(0, RX_MAX, sizeof(gr_complex)),nchannels / 2),
       d_fftsize(nchannels),
+      d_osr(osr),
       d_wintype(-1),
       d_remaining(0),
-      d_noutputs(0)
+      d_noutputs(0),
+      d_filter_param(6.5)
 {
     /* create FFT object */
 #if GNURADIO_VERSION < 0x030900
@@ -445,10 +447,11 @@ fft_channelizer_cc::fft_channelizer_cc(unsigned int nchannels, int wintype)
     d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
 #endif
 
-    set_relative_rate(1.0 / double(d_fftsize));
+    set_relative_rate(double(d_osr) / double(d_fftsize));
+    set_decimation(d_fftsize / d_osr);
     /* create FFT window */
     set_window_type(wintype);
-    set_history(RX_MAX * 2);
+    set_history(2048);
     d_map.resize(RX_MAX);
 }
 
@@ -466,7 +469,7 @@ bool fft_channelizer_cc::start()
 bool fft_channelizer_cc::check_topology(int ninputs, int noutputs)
 {
     d_noutputs = noutputs;
-    return true;
+    return sync_decimator::check_topology(ninputs, noutputs);
 }
 
 int fft_channelizer_cc::work(int noutput_items,
@@ -474,8 +477,8 @@ int fft_channelizer_cc::work(int noutput_items,
             gr_vector_void_star &output_items)
 {
     const gr_complex *in = (const gr_complex*)input_items[0];
-    in += history() - d_remaining;
-    int nblocks = (noutput_items + d_remaining) / d_fftsize;
+    in += history() - d_fftsize * (d_osr - 1);
+    int nblocks = noutput_items;
     std::lock_guard<std::mutex> lock(d_mutex);
     for (int k = 0; k < nblocks; k++, in += d_fftsize)
     {
@@ -488,7 +491,7 @@ int fft_channelizer_cc::work(int noutput_items,
         for(int j = 0; j < d_noutputs ; j++)
             ((gr_complex *)output_items[j])[k] = ob[d_map[j]];
     }
-    d_remaining = (noutput_items + d_remaining) % d_fftsize;
+    d_remaining = 0;
     return nblocks;
 }
 
@@ -500,7 +503,7 @@ void fft_channelizer_cc::set_window_type(int wintype)
 
     if ((wintype < gr::fft::window::WIN_HAMMING) || (wintype > gr::fft::window::WIN_FLATTOP))
         wintype = gr::fft::window::WIN_HAMMING;
-    set_params(d_fftsize, wintype);
+    set_params(d_fftsize, wintype, d_osr, d_filter_param);
 }
 
 int  fft_channelizer_cc::get_window_type() const
@@ -508,20 +511,38 @@ int  fft_channelizer_cc::get_window_type() const
     return d_wintype;
 }
 
-void fft_channelizer_cc::set_fft_size(unsigned int fftsize)
+void fft_channelizer_cc::set_fft_size(int fftsize)
 {
     if (fftsize != d_fftsize)
-        set_params(fftsize, d_wintype);
+        set_params(fftsize, d_wintype, d_osr, d_filter_param);
 }
 
-unsigned int fft_channelizer_cc::get_fft_size() const
+int fft_channelizer_cc::get_fft_size() const
 {
     return d_fftsize;
 }
 
 void fft_channelizer_cc::map_output(int output, int pb)
 {
-    d_map[output] = (d_fftsize + pb) % d_fftsize;
+    d_map[output] = (d_fftsize * d_osr + pb) % (d_fftsize * d_osr);
+    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<"\n";
+}
+
+void fft_channelizer_cc::set_osr(int n)
+{
+    if (n != d_osr)
+        set_params(d_fftsize, d_wintype, n, d_filter_param);
+}
+
+void fft_channelizer_cc::set_decim(int n)
+{
+    set_fft_size(n);
+}
+
+void fft_channelizer_cc::set_filter_param(float n)
+{
+    if(d_filter_param != n)
+        set_params(d_fftsize, d_wintype, d_osr, n);
 }
 
 void fft_channelizer_cc::apply_window(const gr_complex * p)
@@ -530,33 +551,35 @@ void fft_channelizer_cc::apply_window(const gr_complex * p)
     if (d_window.size())
     {
         gr_complex *dst = d_fft->get_inbuf();
-        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], d_fftsize);
+        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], d_fftsize * d_osr);
     }
     else
     {
-        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex) * d_fftsize);
+        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex) * d_fftsize * d_osr);
     }
 }
 
-void fft_channelizer_cc::set_params(unsigned int fftsize, int wintype)
+void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    if(d_wintype != wintype)
-    {
-        d_wintype = wintype;
-        d_window.clear();
-        d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, fftsize, 6.76);
-    }
+    if((d_wintype == wintype)&&(d_filter_param == filter_param)&&(d_osr == osr)&&(d_filter_param == filter_param))
+        return;
+    d_wintype = wintype;
+    d_filter_param = filter_param;
+    d_osr = osr;
+    d_fftsize = fftsize;
+    d_window.clear();
+    d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize * d_osr, d_filter_param);
 
-    if(d_fftsize != fftsize)
-    {
-        /* reset FFT object (also reset FFTW plan) */
-        delete d_fft;
+    /* reset FFT object (also reset FFTW plan) */
+    delete d_fft;
 #if GNURADIO_VERSION < 0x030900
-        d_fft = new gr::fft::fft_complex(d_fftsize, true);
+    d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
 #else
-        d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
+    d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
 #endif
-        set_relative_rate(1.0 / double(fftsize));
-    }
+    set_relative_rate(1.0 / double(d_fftsize));
+    set_decimation(d_fftsize);
+    for(int j = 0; j < d_noutputs ; j++)
+        d_map[j] %= d_fftsize * d_osr;
 }

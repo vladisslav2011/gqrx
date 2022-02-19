@@ -39,6 +39,7 @@
 #include "qtgui/dockinputctl.h"
 #include "qtgui/dockfft.h"
 #include "qtgui/dockbookmarks.h"
+#include "qtgui/dockprobe.h"
 #include "qtgui/dockrds.h"
 #include "qtgui/afsk1200win.h"
 #include "qtgui/iq_tool.h"
@@ -103,6 +104,7 @@ private:
     DockInputCtl   *uiDockInputCtl;
     DockFft        *uiDockFft;
     DockBookmarks  *uiDockBookmarks;
+    DockProbe      *uiDockProbe;
     DockRDS        *uiDockRDS;
 
     CIqTool        *iq_tool;
@@ -187,6 +189,11 @@ private slots:
     void setAudioMute(bool mute);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
+    /* FFT Probe */
+    void setFFTProbeInput(int i);
+    void setChanDecim(int i);
+    void setChanOsr(int i);
+    void setChanFilterParam(float i);
 
     /* audio recording and playback */
     void recDirChanged(const QString dir);
