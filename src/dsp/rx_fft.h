@@ -127,6 +127,7 @@ private:
 };
 
 
+
 /*! \brief Return a shared_ptr to a new instance of rx_fft_f.
  *  \param fftsize The FFT size
  *  \param winttype The window type (see gnuradio/filter/firdes.h)
@@ -202,6 +203,70 @@ private:
     void apply_window(unsigned int size);
     void update_window();
 };
+
+
+
+/*! \brief Block for computing complex FFT.
+ *  \ingroup DSP
+ *
+ * This block is used to compute the FFT of the received spectrum.
+ *
+ * The samples are collected in a circular buffer with size FFT_SIZE.
+ * When the GUI asks for a new set of FFT data via get_fft_data() an FFT
+ * will be performed on the data stored in the circular buffer - assuming
+ * of course that the buffer contains at least fftsize samples.
+ *
+ */
+class fft_channelizer_cc : public gr::sync_block
+{
+#if GNURADIO_VERSION < 0x030900
+typedef boost::shared_ptr<fft_channelizer_cc> sptr;
+#else
+typedef std::shared_ptr<fft_channelizer_cc> sptr;
+#endif
+
+    sptr make(unsigned int nchannels,int wintype=gr::fft::window::WIN_HAMMING);
+
+protected:
+    fft_channelizer_cc(unsigned int nchannels, int wintype=gr::fft::window::WIN_HAMMING);
+
+public:
+    ~fft_channelizer_cc();
+
+    bool start() override;
+    bool check_topology(int ninputs, int noutputs) override;
+    int work(int noutput_items,
+             gr_vector_const_void_star &input_items,
+             gr_vector_void_star &output_items) override;
+
+    void set_window_type(int wintype);
+    int  get_window_type() const;
+
+    void set_fft_size(unsigned int fftsize);
+    unsigned int get_fft_size() const;
+    void map_output(int output, int pb);
+
+private:
+    unsigned int d_fftsize;   /*! Current FFT size. */
+    int          d_wintype;   /*! Current window type. */
+    int          d_remaining;
+    int          d_noutputs;
+    std::vector<int> d_map;
+
+    std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
+
+#if GNURADIO_VERSION < 0x030900
+    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
+#else
+    gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
+#endif
+    std::vector<float>  d_window; /*! FFT window taps. */
+
+    void apply_window(const gr_complex * p);
+    void set_params(unsigned int fftsize, int wintype);
+
+};
+
 
 
 #endif /* RX_FFT_H */
