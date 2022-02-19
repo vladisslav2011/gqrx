@@ -39,6 +39,7 @@
 #include "qtgui/dockinputctl.h"
 #include "qtgui/dockfft.h"
 #include "qtgui/dockbookmarks.h"
+#include "qtgui/dockprobe.h"
 #include "qtgui/dockrds.h"
 #include "qtgui/afsk1200win.h"
 #include "qtgui/iq_tool.h"
@@ -103,6 +104,7 @@ private:
     bool            d_fftNormalizeEnergy;
 
     std::vector<float> d_audioFftData;
+    std::vector<float> d_probeFftData;
     bool d_have_audio;  /*!< Whether we have audio (i.e. not with demod_off. */
 
     /* dock widgets */
@@ -111,6 +113,7 @@ private:
     DockInputCtl   *uiDockInputCtl;
     DockFft        *uiDockFft;
     DockBookmarks  *uiDockBookmarks;
+    DockProbe      *uiDockProbe;
     DockRDS        *uiDockRDS;
 
     CIqTool        *iq_tool;
@@ -203,6 +206,11 @@ private slots:
     void setAudioMute(bool mute, bool global);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
+    /* FFT Probe */
+    void setFFTProbeInput(int i);
+    void setChanDecim(int i);
+    void setChanOsr(int i);
+    void setChanFilterParam(float i);
 
     /* audio recording and playback */
     void recDirChanged(const QString dir);

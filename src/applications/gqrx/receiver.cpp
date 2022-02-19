@@ -157,6 +157,9 @@ receiver::receiver(const std::string input_device,
 #endif
 
     output_devstr = audio_device;
+    
+    probe_fft = make_rx_fft_c(8192u, d_decim_rate / 8, gr::fft::window::WIN_HANN);
+    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_HANN);
 
     /* wav sink and source is created when rec/play is started */
     audio_null_sink0 = gr::blocks::null_sink::make(sizeof(float));
@@ -486,11 +489,13 @@ double receiver::set_input_rate(double rate)
         d_input_rate = rate;
     }
 
+
     d_decim_rate = d_input_rate / (double)d_decim;
     dc_corr->set_sample_rate(d_decim_rate);
     for (auto& rxc : rx)
         rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
+    probe_fft->set_quad_rate(d_decim_rate / 8);
     tb->unlock();
 
     return d_input_rate;
@@ -1033,6 +1038,7 @@ unsigned int receiver::iq_fft_size() const
 void receiver::set_iq_fft_window(int window_type, bool normalize_energy)
 {
     iq_fft->set_window_type(window_type, normalize_energy);
+    chan->set_window_type(window_type);
 }
 
 /** Get latest baseband FFT data. */
@@ -1050,6 +1056,43 @@ unsigned int receiver::audio_fft_size() const
 void receiver::get_audio_fft_data(float* fftPoints)
 {
     audio_fft->get_fft_data(fftPoints);
+}
+
+void receiver::get_probe_fft_data(float* fftPoints,
+                                unsigned int &fftsize)
+{
+    fftsize = probe_fft->fft_size();
+    probe_fft->get_fft_data(fftPoints);
+}
+
+void receiver::set_probe_channel(int c)
+{
+    chan->map_output(0, c);
+}
+
+int  receiver::get_probe_channel()
+{
+    return chan->get_map(0);
+}
+
+int  receiver::get_probe_channel_count()
+{
+    return chan->get_fft_size();
+}
+
+void receiver::set_chan_decim(int n)
+{
+    chan->set_decim(n);
+}
+
+void receiver::set_chan_osr(int n)
+{
+    chan->set_osr(n);
+}
+
+void receiver::set_chan_filter_param(float n)
+{
+    chan->set_filter_param(n);
 }
 
 receiver::status receiver::set_nb_on(int nbid, bool on)
@@ -1998,6 +2041,8 @@ void receiver::connect_all(enum file_formats fmt)
 
     // Visualization
     tb->connect(b, 0, iq_fft, 0);
+    tb->connect(b, 0, chan, 0);
+    tb->connect(chan, 0, probe_fft, 0);
     iq_src = b;
 
     // Audio path (if there is a receiver)

@@ -134,6 +134,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_frame_drop = false;
 
     d_audioFftData.resize(receiver::DEFAULT_FFT_SIZE);
+    d_probeFftData.resize(receiver::DEFAULT_FFT_SIZE);
     audio_fft_timer = new QTimer(this);
     connect(audio_fft_timer, SIGNAL(timeout()), this, SLOT(audioFftTimeout()));
 
@@ -150,6 +151,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     /* create dock widgets */
     uiDockRxOpt = new DockRxOpt();
     uiDockRDS = new DockRDS();
+    uiDockProbe = new DockProbe();
     uiDockAudio = new DockAudio();
     uiDockInputCtl = new DockInputCtl();
     uiDockFft = new DockFft();
@@ -163,6 +165,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     uiDockRxOpt->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
     uiDockFft->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_F));
     uiDockAudio->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_A));
+    uiDockProbe->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_P));
     uiDockBookmarks->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
     ui->mainToolBar->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
 
@@ -195,8 +198,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     uiDockRxOpt->raise();
 
     addDockWidget(Qt::RightDockWidgetArea, uiDockAudio);
+    addDockWidget(Qt::RightDockWidgetArea, uiDockProbe);
     addDockWidget(Qt::RightDockWidgetArea, uiDockRDS);
     tabifyDockWidget(uiDockAudio, uiDockRDS);
+    tabifyDockWidget(uiDockRDS, uiDockProbe);
     uiDockAudio->raise();
 
     addDockWidget(Qt::BottomDockWidgetArea, uiDockBookmarks);
@@ -214,6 +219,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addAction(uiDockAudio->toggleViewAction());
     ui->menu_View->addAction(uiDockFft->toggleViewAction());
     ui->menu_View->addAction(uiDockBookmarks->toggleViewAction());
+    ui->menu_View->addAction(uiDockProbe->toggleViewAction());
     ui->menu_View->addSeparator();
     ui->menu_View->addAction(ui->mainToolBar->toggleViewAction());
     ui->menu_View->addSeparator();
@@ -307,6 +313,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(markersChanged(bool)), this, SLOT(enableMarkers(bool)));
     connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), ui->plotter, SLOT(setWfColormap(const QString)));
     connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockAudio, SLOT(setWfColormap(const QString)));
+    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockProbe, SLOT(setWfColormap(const QString)));
+
     connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
             ui->plotter, SLOT(setPandapterRange(float,float)));
     connect(uiDockFft, SIGNAL(waterfallRangeChanged(float,float)),
@@ -412,6 +420,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     }
 
     qsvg_dummy = new QSvgWidget();
+    /* FFT probe */
+    connect(uiDockProbe, SIGNAL(inputChanged(int)), this, SLOT(setFFTProbeInput(int)));
+    connect(uiDockProbe, SIGNAL(decimChanged(int)), this, SLOT(setChanDecim(int)));
+    connect(uiDockProbe, SIGNAL(osrChanged(int)), this, SLOT(setChanOsr(int)));
+    connect(uiDockProbe, SIGNAL(filterParamChanged(float)), this, SLOT(setChanFilterParam(float)));
 }
 
 MainWindow::~MainWindow()
@@ -462,6 +475,7 @@ MainWindow::~MainWindow()
     delete uiDockBookmarks;
     delete uiDockFft;
     delete uiDockInputCtl;
+    delete uiDockProbe;
     delete uiDockRDS;
     delete rx;
     delete remote;
@@ -666,6 +680,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
         uiDockFft->setSampleRate(actual_rate);
         ui->plotter->setSampleRate(actual_rate);
+        uiDockProbe->setSampleRate(actual_rate);
         ui->plotter->setSpanFreq((quint32)actual_rate);
         remote->setBandwidth((qint64)actual_rate);
         iq_tool->setSampleRate((qint64)actual_rate);
@@ -1674,6 +1689,7 @@ void MainWindow::setInvertScrolling(bool enabled)
     ui->plotter->setInvertScrolling(enabled);
     uiDockRxOpt->setInvertScrolling(enabled);
     uiDockAudio->setInvertScrolling(enabled);
+    uiDockProbe->setInvertScrolling(enabled);
 }
 
 /** Invert scroll wheel direction */
@@ -2161,8 +2177,16 @@ void MainWindow::iqFftTimeout()
 /** Audio FFT plot timeout. */
 void MainWindow::audioFftTimeout()
 {
-    const unsigned int fftsize = rx->audio_fft_size();
+    unsigned int fftsize;
 
+    if(uiDockProbe->isVisible())
+    {
+        rx->get_probe_fft_data(d_probeFftData.data(), fftsize);
+        if (fftsize > 0)
+            uiDockProbe->setNewFftData(d_probeFftData.data(), fftsize);
+    }
+
+    fftsize = rx->audio_fft_size();
     if (fftsize == 0)
     {
         /* nothing to do, wait until next activation. */
@@ -2460,6 +2484,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
     ui->plotter->setSampleRate(actual_rate);
     uiDockFft->setSampleRate(actual_rate);
+    uiDockProbe->setSampleRate(actual_rate);
     ui->plotter->setSpanFreq((quint32)actual_rate);
     if (std::abs(current_offset) > actual_rate / 2)
         on_plotter_newDemodFreq(center_freq, 0);
@@ -2508,6 +2533,7 @@ void MainWindow::stopIqPlayback()
         uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
         ui->plotter->setSampleRate(actual_rate);
         uiDockFft->setSampleRate(actual_rate);
+        uiDockProbe->setSampleRate(actual_rate);
         ui->plotter->setSpanFreq((quint32)actual_rate);
         remote->setBandwidth(sr);
     }
@@ -2640,6 +2666,7 @@ void MainWindow::setFftColor(const QColor& color)
 {
     ui->plotter->setFftPlotColor(color);
     uiDockAudio->setFftColor(color);
+    uiDockProbe->setFftColor(color);
 }
 
 /** Enable/disable filling the aread below the FFT plot. */
@@ -2647,6 +2674,7 @@ void MainWindow::enableFftFill(bool enable)
 {
     ui->plotter->enableFftFill(enable);
     uiDockAudio->setFftFill(enable);
+    uiDockProbe->setFftFill(enable);
 }
 
 /**
@@ -3111,6 +3139,28 @@ void MainWindow::setFreqLock(bool lock, bool all)
 {
     rx->set_freq_lock(lock, all);
 }
+
+/* FFT Probe slots */
+void MainWindow::setFFTProbeInput(int i)
+{
+    rx->set_probe_channel(i);
+}
+
+void MainWindow::setChanDecim(int i)
+{
+    rx->set_chan_decim(i);
+}
+
+void MainWindow::setChanOsr(int i)
+{
+    rx->set_chan_osr(i);
+}
+
+void MainWindow::setChanFilterParam(float i)
+{
+    rx->set_chan_filter_param(i);
+}
+
 
 /** Launch Gqrx google group website. */
 void MainWindow::on_actionUserGroup_triggered()
