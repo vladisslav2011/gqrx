@@ -25,6 +25,7 @@
 
 #include <mutex>
 #include <gnuradio/sync_block.h>
+#include <gnuradio/sync_decimator.h>
 #include <gnuradio/fft/fft.h>
 #include <gnuradio/filter/firdes.h>       /* contains enum win_type */
 #include <gnuradio/gr_complex.h>
@@ -202,18 +203,19 @@ private:
  * of course that the buffer contains at least fftsize samples.
  *
  */
-class fft_channelizer_cc : public gr::sync_block
+class fft_channelizer_cc : public gr::sync_decimator
 {
+public:
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<fft_channelizer_cc> sptr;
 #else
 typedef std::shared_ptr<fft_channelizer_cc> sptr;
 #endif
 
-    sptr make(unsigned int nchannels,int wintype=gr::fft::window::WIN_HAMMING);
+    static sptr make(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING);
 
 protected:
-    fft_channelizer_cc(unsigned int nchannels, int wintype=gr::fft::window::WIN_HAMMING);
+    fft_channelizer_cc(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING);
 
 public:
     ~fft_channelizer_cc();
@@ -227,15 +229,21 @@ public:
     void set_window_type(int wintype);
     int  get_window_type() const;
 
-    void set_fft_size(unsigned int fftsize);
-    unsigned int get_fft_size() const;
+    void set_fft_size(int fftsize);
+    int get_fft_size() const;
     void map_output(int output, int pb);
+    int get_map(int output) const { return d_map[output]; }
+    void set_osr(int n);
+    void set_decim(int n);
+    void set_filter_param(float n);
 
 private:
-    unsigned int d_fftsize;   /*! Current FFT size. */
+    int          d_fftsize;   /*! Current FFT size. */
+    int          d_osr;
     int          d_wintype;   /*! Current window type. */
     int          d_remaining;
     int          d_noutputs;
+    float        d_filter_param;
     std::vector<int> d_map;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
@@ -248,7 +256,7 @@ private:
     std::vector<float>  d_window; /*! FFT window taps. */
 
     void apply_window(const gr_complex * p);
-    void set_params(unsigned int fftsize, int wintype);
+    void set_params(int fftsize, int wintype, int osr, float filter_param);
 
 };
 
