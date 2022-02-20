@@ -233,6 +233,10 @@ public:
     int get_fft_size() const;
     void map_output(int output, int pb);
     int get_map(int output) const { return d_map[output]; }
+    int channel_count() const { return d_fftsize * d_osr; }
+    int decim() const { return d_fftsize; }
+    int osr() const { return d_osr; }
+    int filter_param() const { return d_filter_param; }
     void set_osr(int n);
     void set_decim(int n);
     void set_filter_param(float n);
