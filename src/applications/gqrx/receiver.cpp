@@ -497,7 +497,7 @@ double receiver::set_input_rate(double rate)
     for (auto& rxc : rx)
         rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
-    probe_fft->set_quad_rate(d_decim_rate / 8);
+    probe_fft->set_quad_rate(d_decim_rate / chan->decim());
     tb->unlock();
 
     return d_input_rate;
@@ -553,6 +553,7 @@ unsigned int receiver::set_input_decim(unsigned int decim)
     for (auto& rxc : rx)
         rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
+    probe_fft->set_quad_rate(d_decim_rate / chan->decim());
 
     if (d_decim >= 2)
     {
@@ -1076,6 +1077,7 @@ int  receiver::get_probe_channel_count()
 void receiver::set_chan_decim(int n)
 {
     chan->set_decim(n);
+    probe_fft->set_quad_rate(d_decim_rate / chan->decim());
 }
 
 void receiver::set_chan_osr(int n)
