@@ -532,7 +532,7 @@ int fft_channelizer_cc::get_fft_size() const
 void fft_channelizer_cc::map_output(int output, int pb)
 {
     d_map[output] = (d_fftsize * d_osr + pb) % (d_fftsize * d_osr);
-    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<"\n";
+//    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<"\n";
 }
 
 void fft_channelizer_cc::set_osr(int n)
@@ -577,6 +577,9 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     d_fftsize = fftsize;
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize * d_osr, d_filter_param);
+    for(auto &dw :d_window)
+        std::cerr<<"d_window:"<<dw<<std::endl;
+    std::cerr<<std::endl;
 
     /* reset FFT object (also reset FFTW plan) */
     delete d_fft;
