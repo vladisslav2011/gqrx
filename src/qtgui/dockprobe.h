@@ -49,6 +49,7 @@ public:
     void setFftFill(bool enabled);
 
 public slots:
+    void setCenterFreq(qint64 freq);
     void setSampleRate(int sampleRate);
     void setWfColormap(const QString &cmap);
     void setInputChannels(int input, int inputs);
@@ -71,8 +72,11 @@ private slots:
     void on_fparamSpinBox_valueChanged(double value);
 
 private:
+    void updateCenter();
+private:
     Ui::DockProbe *ui;
     int m_sampleRate;
+    qint64 m_center;
 };
 
 #endif // DOCKPROBE_H
