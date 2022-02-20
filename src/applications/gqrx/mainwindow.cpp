@@ -1268,6 +1268,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
 
     // update widgets
     ui->plotter->setCenterFreq(center_freq);
+    uiDockProbe->setCenterFreq(center_freq);
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);

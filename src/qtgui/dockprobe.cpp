@@ -64,6 +64,34 @@ DockProbe::~DockProbe()
     delete ui;
 }
 
+void DockProbe::setCenterFreq(qint64 freq)
+{
+    m_center = freq;
+    updateCenter();
+}
+
+void DockProbe::updateCenter()
+{
+    int decim = ui->decimSpinBox->value();
+    int osr = ui->osrSpinBox->value();
+    qint64 input = ui->inputSpinBox->value();
+    if(osr == 0)
+        osr = 1;
+    if(decim == 0)
+        decim = 1;
+    input %= (decim * osr);
+    int add = 0;
+    if(input % osr > 2)
+        add = 1;
+    if(input > decim * osr / 2)
+        input -= decim * osr;
+    input /= osr;
+    input += 1;
+    ui->spectrum->setCenterFreq(m_center + input * m_sampleRate / decim);
+    ui->spectrum->setSampleRate(m_sampleRate / decim);  // Full bandwidth
+    ui->spectrum->setSpanFreq(m_sampleRate / decim);
+}
+
 void DockProbe::setFftRange(quint64 minf, quint64 maxf)
 {
     if (true)
@@ -102,8 +130,7 @@ void DockProbe::setFftFill(bool enabled)
 void DockProbe::setSampleRate(int sampleRate)
 {
     m_sampleRate = sampleRate;
-    ui->spectrum->setSampleRate(m_sampleRate / ui->decimSpinBox->value());  // Full bandwidth
-    ui->spectrum->setSpanFreq(m_sampleRate / ui->decimSpinBox->value());
+    updateCenter();
 }
 
 void DockProbe::setWfColormap(const QString &cmap)
@@ -131,20 +158,24 @@ void DockProbe::waterfallRange_changed(int min, int max)
 void DockProbe::on_inputSpinBox_valueChanged(int value)
 {
     emit inputChanged(value);
+    updateCenter();
 }
 
 void DockProbe::on_decimSpinBox_valueChanged(int value)
 {
     emit decimChanged(value);
     setSampleRate(m_sampleRate);
+    updateCenter();
 }
 
 void DockProbe::on_osrSpinBox_valueChanged(int value)
 {
     emit osrChanged(value);
+    updateCenter();
 }
 
 void DockProbe::on_fparamSpinBox_valueChanged(double value)
 {
     emit filterParamChanged(value);
+    updateCenter();
 }
