@@ -212,6 +212,7 @@ public:
     void        set_chan_decim(int n);
     void        set_chan_osr(int n);
     void        set_chan_filter_param(float n);
+    void        set_channelizer(bool on);
 
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
@@ -338,6 +339,7 @@ private:
     bool        d_running;          /*!< Whether receiver is running or not. */
     double      d_input_rate;       /*!< Input sample rate. */
     double      d_decim_rate;       /*!< Rate after decimation (input_rate / decim) */
+    bool        d_use_chan;         /*!< Use channelizer instead of direct connection */
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
