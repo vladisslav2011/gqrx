@@ -27,7 +27,9 @@
 #define RX_MAX 256
 
 
-#define TARGET_QUAD_RATE 1e6
+#define TARGET_QUAD_RATE 4e5
+// Channelizer target quad rate
+#define TARGET_CHAN_RATE 4e5
 
 /* Number of noice blankers */
 #define RECEIVER_NB_COUNT 2
