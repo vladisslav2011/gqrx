@@ -61,6 +61,7 @@ receiver::receiver(const std::string input_device,
       d_active(0),
       d_running(false),
       d_input_rate(96000.0),
+      d_use_chan(true),
       d_audio_rate(48000),
       d_decim(decimation),
       d_rf_freq(144800000.0),
@@ -161,7 +162,8 @@ receiver::receiver(const std::string input_device,
     output_devstr = audio_device;
     
     probe_fft = make_rx_fft_c(8192u, d_decim_rate / 8, gr::fft::window::WIN_HANN);
-    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_HANN);
+    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_KAISER);
+    chan->set_filter_param(7.5);
 
     /* wav sink and source is created when rec/play is started */
     audio_null_sink0 = gr::blocks::null_sink::make(sizeof(float));
@@ -494,8 +496,16 @@ double receiver::set_input_rate(double rate)
 
     d_decim_rate = d_input_rate / (double)d_decim;
     dc_corr->set_sample_rate(d_decim_rate);
-    for (auto& rxc : rx)
-        rxc->set_quad_rate(d_decim_rate);
+    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
+    if(chan_decim >= 2)
+        chan_decim &= ~1;
+    chan->set_decim(chan_decim);
+    if(d_use_chan)
+        for (auto& rxc : rx)
+            rxc->set_quad_rate(d_decim_rate / chan->decim());
+    else
+        for (auto& rxc : rx)
+            rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
     probe_fft->set_quad_rate(d_decim_rate / chan->decim());
     tb->unlock();
@@ -550,8 +560,16 @@ unsigned int receiver::set_input_decim(unsigned int decim)
 
     // update quadrature rate
     dc_corr->set_sample_rate(d_decim_rate);
-    for (auto& rxc : rx)
-        rxc->set_quad_rate(d_decim_rate);
+    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
+    if(chan_decim >= 2)
+        chan_decim &= ~1;
+    chan->set_decim(chan_decim);
+    if(d_use_chan)
+        for (auto& rxc : rx)
+            rxc->set_quad_rate(d_decim_rate / chan->decim());
+    else
+        for (auto& rxc : rx)
+            rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
     probe_fft->set_quad_rate(d_decim_rate / chan->decim());
 
@@ -791,7 +809,7 @@ int receiver::add_rx()
     }
     if (d_current >= 0)
         background_rx();
-    rx.push_back(make_nbrx(d_decim_rate, d_audio_rate));
+    rx.push_back(make_nbrx(d_decim_rate / (d_use_chan ? chan->decim() : 1.0), d_audio_rate));
     int old = d_current;
     d_current = rx.size() - 1;
     rx[d_current]->set_index(d_current);
@@ -947,7 +965,14 @@ receiver::status receiver::set_filter_offset(double offset_hz)
 
 receiver::status receiver::set_filter_offset(int rx_index, double offset_hz)
 {
-    rx[rx_index]->set_offset(offset_hz);//to generate audio filename from
+    if(d_use_chan)
+    {
+        int channel = std::roundf(offset_hz * double(chan->decim() * chan->osr()) / double(d_decim_rate));
+        chan->map_output(rx[rx_index]->get_port(), channel);
+        //rx[rx_index]->set_offset(offset_hz % (chan->decim() / 2));
+    }
+    //else
+    rx[rx_index]->set_offset(offset_hz);
     if (rx[rx_index]->get_agc_panning_auto())
         rx[rx_index]->set_agc_panning(offset_hz * 200.0 / d_decim_rate);
 
@@ -1088,6 +1113,41 @@ void receiver::set_chan_osr(int n)
 void receiver::set_chan_filter_param(float n)
 {
     chan->set_filter_param(n);
+}
+
+void receiver::set_channelizer(bool on)
+{
+    if (d_use_chan == on)
+        return;
+
+    if(d_running)
+    {
+        tb->stop();
+        tb->wait();
+    }
+    std::cerr<<"set_channelizer: stopped\n";
+    tb->disconnect_all();
+    std::cerr<<"set_channelizer: disconnect_all\n";
+    for (auto& rxc : rx)
+    {
+        rxc->connected(false);
+        rxc->set_port(-1);
+    }
+    std::cerr<<"set_channelizer: reset_port\n";
+    d_use_chan = on;
+    connect_all(FILE_FORMAT_LAST);
+    std::cerr<<"set_channelizer: connect_all\n";
+    for (auto& rxc : rx)
+        set_filter_offset(rxc->get_index(), rxc->get_offset());
+    std::cerr<<"set_channelizer: set_filter_offsetl\n";
+    for (auto& rxc : rx)
+        rxc->set_quad_rate(d_decim_rate / (on ? chan->decim() : 1.0));
+    std::cerr<<"set_channelizer: set_quad_rate\n";
+    if(d_running)
+    {
+        tb->start();
+    }
+    std::cerr<<"set_channelizer: started\n";
 }
 
 receiver::status receiver::set_nb_on(int nbid, bool on)
@@ -1358,7 +1418,10 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             if (rx[d_current]->name() != "NBRX")
             {
                 rx[d_current].reset();
-                rx[d_current] = make_nbrx(d_decim_rate, d_audio_rate);
+                if(d_use_chan)
+                    rx[d_current] = make_nbrx(d_decim_rate / chan->decim(), d_audio_rate);
+                else
+                    rx[d_current] = make_nbrx(d_decim_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
                 rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
                                         std::placeholders::_1,
@@ -1371,7 +1434,10 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             if (rx[d_current]->name() != "WFMRX")
             {
                 rx[d_current].reset();
-                rx[d_current] = make_wfmrx(d_decim_rate, d_audio_rate);
+                if(d_use_chan)
+                    rx[d_current] = make_wfmrx(d_decim_rate / chan->decim(), d_audio_rate);
+                else
+                    rx[d_current] = make_wfmrx(d_decim_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
                 rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
                                         std::placeholders::_1,
@@ -2032,27 +2098,6 @@ void receiver::connect_rx(int n)
         if (d_active == 0)
         {
            std::cerr<<"connect_rx d_active == 0"<<std::endl;
-            for (auto& rxc : rx)
-            {
-                if (!rxc)
-                    continue;
-                std::cerr<<"connect_rx loop "<<rxc->get_index()<<std::endl;
-                if (rxc->get_demod() != Modulations::MODE_OFF)
-                {
-                        std::cerr<<"connect_rx loop !MODE_OFF"<<std::endl;
-                    tb->connect(iq_src, 0, rxc, 0);
-                    tb->connect(rxc, 0, add0, rxc->get_index());
-                    tb->connect(rxc, 1, add1, rxc->get_index());
-                    d_active++;
-                }
-                else
-                {
-                        std::cerr<<"connect_rx loop MODE_OFF"<<std::endl;
-                    tb->connect(null_src, 0, add0, rxc->get_index());
-                    tb->connect(null_src, 0, add1, rxc->get_index());
-                }
-                rxc->connected(true);
-            }
             std::cerr<<"connect_rx connect add"<<std::endl;
             tb->connect(add0, 0, mc0, 0);
             tb->connect(add1, 0, mc1, 0);
@@ -2060,23 +2105,24 @@ void receiver::connect_rx(int n)
             tb->connect(mc0, 0, audio_snk, 0);
             tb->connect(mc1, 0, audio_snk, 1);
         }
+        std::cerr<<"connect_rx d_active > 0 rx="<<n<<" port="<<d_active<<std::endl;
+        if(d_use_chan)
+            tb->connect(chan, d_active, rx[n], 0);
         else
-        {
-            std::cerr<<"connect_rx d_active > 0"<<std::endl;
             tb->connect(iq_src, 0, rx[n], 0);
-            tb->connect(rx[n], 0, add0, n);
-            tb->connect(rx[n], 1, add1, n);
-            rx[n]->connected(true);
-            d_active++;
-        }
+        tb->connect(rx[n], 0, add0, d_active);
+        tb->connect(rx[n], 1, add1, d_active);
+        rx[n]->connected(true);
+        rx[n]->set_port(d_active);
+        if(d_use_chan)
+            set_filter_offset(n, rx[n]->get_offset());
+        d_active++;
     }
     else
     {
         if (d_active > 0)
         {
             std::cerr<<"connect_rx MODE_OFF d_active > 0"<<std::endl;
-            tb->connect(null_src, 0, add0, n);
-            tb->connect(null_src, 0, add1, n);
             rx[n]->connected(true);
         }
     }
@@ -2096,29 +2142,6 @@ void receiver::disconnect_rx(int n)
         if (d_active == 0)
         {
            std::cerr<<"disconnect_rx d_active == 0"<<std::endl;
-            for (auto& rxc : rx)
-            {
-                if (!rxc)
-                    continue;
-                std::cerr<<"disconnect_rx loop "<<rxc->get_index()<<std::endl;
-                if (rxc->connected())
-                {
-                    if (rxc->get_demod() != Modulations::MODE_OFF)
-                    {
-                        std::cerr<<"disconnect_rx loop !MODE_OFF"<<std::endl;
-                        tb->disconnect(iq_src, 0, rxc, 0);
-                        tb->disconnect(rxc, 0, add0, rxc->get_index());
-                        tb->disconnect(rxc, 1, add1, rxc->get_index());
-                    }
-                    else
-                    {
-                        std::cerr<<"disconnect_rx loop MODE_OFF"<<std::endl;
-                        tb->disconnect(null_src, 0, add0, rxc->get_index());
-                        tb->disconnect(null_src, 0, add1, rxc->get_index());
-                    }
-                    rxc->connected(false);
-                }
-            }
             std::cerr<<"disconnect_rx disconnect add"<<std::endl;
             tb->disconnect(add0, 0, mc0, 0);
             tb->disconnect(add1, 0, mc1, 0);
@@ -2126,23 +2149,45 @@ void receiver::disconnect_rx(int n)
             tb->disconnect(mc0, 0, audio_snk, 0);
             tb->disconnect(mc1, 0, audio_snk, 1);
         }
+        int rx_port = rx[n]->get_port();
+        std::cerr<<"disconnect_rx d_active > 0 get_port="<<rx_port<<std::endl;
+        if(d_use_chan)
+            tb->disconnect(chan, rx_port, rx[n], 0);
         else
-        {
-            std::cerr<<"disconnect_rx d_active > 0"<<std::endl;
             tb->disconnect(iq_src, 0, rx[n], 0);
-            tb->disconnect(rx[n], 0, add0, n);
-            tb->disconnect(rx[n], 1, add1, n);
-        }
+        std::cerr<<"disconnect_rx in disconnected"<<std::endl;
+        tb->disconnect(rx[n], 0, add0, rx_port);
+        tb->disconnect(rx[n], 1, add1, rx_port);
+        std::cerr<<"disconnect_rx out disconnected"<<std::endl;
+        if(rx_port != d_active)
+            for(auto& rxc: rx)//FIXME: replace with index lookup
+                if(rxc)
+                    if(rxc->connected() &&(rxc->get_port() == d_active))
+                    {
+                        std::cerr<<"disconnect_rx replacing rx="<<rxc->get_index()<<" "<<"get_port="<<rxc->get_port()<<"=>"<<rx_port<<std::endl;
+                        if(d_use_chan)
+                        {
+                            tb->disconnect(chan, d_active, rxc, 0);
+                            tb->connect(chan, rx_port, rxc, 0);
+                        }
+                        tb->disconnect(rxc, 0, add0, d_active);
+                        tb->disconnect(rxc, 1, add1, d_active);
+                        tb->connect(rxc, 0, add0, rx_port);
+                        tb->connect(rxc, 1, add1, rx_port);
+                        rxc->set_port(rx_port);
+                        if(d_use_chan)
+                            set_filter_offset(rxc->get_index(), rxc->get_offset());
+                        break;
+                    }
     }
     else
     {
         if (d_active > 0)
         {
             std::cerr<<"disconnect_rx MODE_OFF d_active > 0"<<std::endl;
-            tb->disconnect(null_src, 0, add0, n);
-            tb->disconnect(null_src, 0, add1, n);
         }
     }
+    rx[n]->set_port(-1);
     rx[n]->connected(false);
 }
 
