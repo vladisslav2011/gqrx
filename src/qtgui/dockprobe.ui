@@ -75,6 +75,9 @@
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QSpinBox" name="inputSpinBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="toolTip">
          <string>Input mapping</string>
         </property>
@@ -85,6 +88,9 @@
       </item>
       <item>
        <widget class="QSpinBox" name="decimSpinBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="toolTip">
          <string>Decimation</string>
         </property>
@@ -104,6 +110,9 @@
       </item>
       <item>
        <widget class="QSpinBox" name="osrSpinBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="toolTip">
          <string>Oversampling ratio</string>
         </property>
@@ -119,7 +128,11 @@
        </widget>
       </item>
       <item>
-       <widget class="QDoubleSpinBox" name="fparamSpinBox"/>
+       <widget class="QDoubleSpinBox" name="fparamSpinBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
