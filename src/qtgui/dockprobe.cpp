@@ -28,7 +28,7 @@
 #include "dockprobe.h"
 #include "ui_dockprobe.h"
 
-#define DEFAULT_FFT_SPLIT 50
+#define DEFAULT_FFT_SPLIT 80
 
 DockProbe::DockProbe(QWidget *parent) :
     QDockWidget(parent),
@@ -81,12 +81,15 @@ void DockProbe::updateCenter()
         decim = 1;
     input %= (decim * osr);
     int add = 0;
+//    std::cerr<<"updateCenter: "<<(input % osr)<<std::endl;
     if(input % osr > 2)
         add = 1;
+    if(input % osr < -1)
+        add = -1;
     if(input > decim * osr / 2)
         input -= decim * osr;
     input /= osr;
-    input += 1;
+    input += add;
     ui->spectrum->setCenterFreq(m_center + input * m_sampleRate / decim);
     ui->spectrum->setSampleRate(m_sampleRate / decim);  // Full bandwidth
     ui->spectrum->setSpanFreq(m_sampleRate / decim);

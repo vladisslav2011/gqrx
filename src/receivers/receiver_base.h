@@ -84,6 +84,9 @@ public:
     virtual void set_center_freq(double center_freq);
     void set_offset(int offset) override;
 
+    void set_port(int port) { d_port = port; }
+    int  get_port() const { return d_port; }
+
     /* Audio recording */
     void set_audio_rec_dir(const std::string& dir) override;
     void set_audio_rec_sql_triggered(bool enabled) override;
@@ -144,6 +147,7 @@ public:
 
 protected:
     bool         d_connected;
+    int          d_port;
     double       d_decim_rate;   /*!< Quadrature rate (before down-conversion) */
     double       d_quad_rate;    /*!< Quadrature rate (after down-conversion) */
     unsigned int d_ddc_decim;    /*!< Down-conversion decimation. */

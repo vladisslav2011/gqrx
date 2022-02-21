@@ -248,6 +248,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(freqCtrlResetChanged(bool)), this, SLOT(setFreqCtrlReset(bool)));
     connect(uiDockInputCtl, SIGNAL(invertScrollingChanged(bool)), this, SLOT(setInvertScrolling(bool)));
     connect(uiDockInputCtl, SIGNAL(autoBookmarksChanged(bool)), this, SLOT(setAutoBookmarks(bool)));
+    connect(uiDockInputCtl, SIGNAL(enableChannelizerChanged(bool)), this, SLOT(setChanelizer(bool)));
     connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
@@ -3162,6 +3163,10 @@ void MainWindow::setChanFilterParam(float i)
     rx->set_chan_filter_param(i);
 }
 
+void MainWindow::setChanelizer(bool on)
+{
+    rx->set_channelizer(on);
+}
 
 /** Launch Gqrx google group website. */
 void MainWindow::on_actionUserGroup_triggered()

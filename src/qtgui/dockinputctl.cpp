@@ -118,6 +118,10 @@ void DockInputCtl::readSettings(QSettings * settings)
     bool_val = settings->value("gui/auto_bookmarks", false).toBool();
     emit autoBookmarksChanged(bool_val);
     ui->autoBookmarksButton->setChecked(bool_val);
+
+    bool_val = settings->value("gui/fft_channelizer", true).toBool();
+    emit enableChannelizerChanged(bool_val);
+    ui->channelizerCheckBox->setChecked(bool_val);
 }
 
 void DockInputCtl::saveSettings(QSettings * settings)
@@ -191,6 +195,12 @@ void DockInputCtl::saveSettings(QSettings * settings)
         settings->setValue("gui/auto_bookmarks", true);
     else
         settings->remove("gui/auto_bookmarks");
+
+    // Remember state of channelizer. Default is checked.
+    if (ui->channelizerCheckBox->isChecked())
+        settings->remove("gui/fft_channelizer");
+    else
+        settings->setValue("gui/fft_channelizer", false);
 }
 
 void DockInputCtl::readLnbLoFromSettings(QSettings * settings)
@@ -538,6 +548,12 @@ void DockInputCtl::on_invertScrollingButton_toggled(bool checked)
 void DockInputCtl::on_autoBookmarksButton_toggled(bool checked)
 {
     emit autoBookmarksChanged(checked);
+}
+
+/** Enable channelizer box has changed */
+void DockInputCtl::on_channelizerCheckBox_toggled(bool checked)
+{
+    emit enableChannelizerChanged(checked);
 }
 
 /** Remove all widgets from the lists. */
