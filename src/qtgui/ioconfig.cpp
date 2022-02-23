@@ -443,7 +443,7 @@ void CIoConfig::updateInputSampleRates(int rate)
         else
             ui->inSrCombo->setCurrentIndex(3); // select 250 kHz
     }
-    else if (ui->inDevEdit->text().contains("sdrplay"))
+    else if (ui->inDevEdit->text().contains("sdrplay") || ui->inDevEdit->text().contains("miri"))
     {
         ui->inSrCombo->addItem("62500");
         ui->inSrCombo->addItem("125000");
@@ -459,12 +459,13 @@ void CIoConfig::updateInputSampleRates(int rate)
         ui->inSrCombo->addItem("8000000");
         ui->inSrCombo->addItem("9000000");
         ui->inSrCombo->addItem("10000000");
+        ui->inSrCombo->addItem("12000000");
         if (rate > 0)
         {
             if (rate < 62500)
                 rate = 62500;
-            if (rate > 10000000)
-                rate = 10000000;
+            if (rate > 12000000)
+                rate = 12000000;
             ui->inSrCombo->insertItem(0, QString("%1").arg(rate));
             ui->inSrCombo->setCurrentIndex(0);
         }
