@@ -459,7 +459,6 @@ void CIoConfig::updateInputSampleRates(int rate)
         ui->inSrCombo->addItem("8000000");
         ui->inSrCombo->addItem("9000000");
         ui->inSrCombo->addItem("10000000");
-        ui->inSrCombo->addItem("12000000");
         if (rate > 0)
         {
             if (rate < 62500)

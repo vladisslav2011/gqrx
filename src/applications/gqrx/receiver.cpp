@@ -61,7 +61,8 @@ receiver::receiver(const std::string input_device,
       d_active(0),
       d_running(false),
       d_input_rate(96000.0),
-      d_use_chan(true),
+      d_use_chan(false),
+      d_enable_chan(true),
       d_audio_rate(48000),
       d_decim(decimation),
       d_rf_freq(144800000.0),
@@ -497,7 +498,13 @@ double receiver::set_input_rate(double rate)
     int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
     if(chan_decim >= 2)
         chan_decim &= ~1;
-    chan->set_decim(chan_decim);
+    if (d_decim_rate < TARGET_CHAN_RATE * 2)
+        d_use_chan = false;
+    else
+    {
+        d_use_chan = d_enable_chan;
+        chan->set_decim(chan_decim);
+    }
     if(d_use_chan)
         for (auto& rxc : rx)
             rxc->set_quad_rate(d_decim_rate / chan->decim());
@@ -561,7 +568,13 @@ unsigned int receiver::set_input_decim(unsigned int decim)
     int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
     if(chan_decim >= 2)
         chan_decim &= ~1;
-    chan->set_decim(chan_decim);
+    if (d_decim_rate < TARGET_CHAN_RATE * 2)
+        d_use_chan = false;
+    else
+    {
+        chan->set_decim(chan_decim);
+        d_use_chan = d_enable_chan;
+    }
     if(d_use_chan)
         for (auto& rxc : rx)
             rxc->set_quad_rate(d_decim_rate / chan->decim());
@@ -1124,15 +1137,29 @@ void receiver::set_chan_filter_param(float n)
 
 void receiver::set_channelizer(bool on)
 {
-    if (d_use_chan == on)
+    if (d_enable_chan == on)
         return;
+    d_enable_chan = on;
+    bool use_chan = on;
 
-    if(d_running)
+    if (d_decim_rate < TARGET_CHAN_RATE * 2)
+        use_chan = false;
+    if (use_chan == d_use_chan)
+        return;
+    if (d_running)
     {
         tb->stop();
         tb->wait();
     }
     std::cerr<<"set_channelizer: stopped\n";
+    set_channelizer_int(use_chan);
+    if (d_running)
+        tb->start();
+    std::cerr<<"set_channelizer: started\n";
+}
+
+void receiver::set_channelizer_int(bool use_chan)
+{
     tb->disconnect_all();
     std::cerr<<"set_channelizer: disconnect_all\n";
     for (auto& rxc : rx)
@@ -1141,20 +1168,15 @@ void receiver::set_channelizer(bool on)
         rxc->set_port(-1);
     }
     std::cerr<<"set_channelizer: reset_port\n";
-    d_use_chan = on;
+    d_use_chan = use_chan;
     connect_all(FILE_FORMAT_LAST);
     std::cerr<<"set_channelizer: connect_all\n";
     for (auto& rxc : rx)
         set_filter_offset(rxc->get_index(), rxc->get_offset());
-    std::cerr<<"set_channelizer: set_filter_offsetl\n";
+    std::cerr<<"set_channelizer: set_filter_offset\n";
     for (auto& rxc : rx)
-        rxc->set_quad_rate(d_decim_rate / (on ? chan->decim() : 1.0));
+        rxc->set_quad_rate(d_decim_rate / (use_chan ? chan->decim() : 1.0));
     std::cerr<<"set_channelizer: set_quad_rate\n";
-    if(d_running)
-    {
-        tb->start();
-    }
-    std::cerr<<"set_channelizer: started\n";
 }
 
 receiver::status receiver::set_nb_on(int nbid, bool on)
