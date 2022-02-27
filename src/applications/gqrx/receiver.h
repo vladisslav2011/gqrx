@@ -332,6 +332,7 @@ private:
     void        background_rx();
     void        setup_source(enum file_formats fmt);
     status      connect_iq_recorder();
+    void        set_channelizer_int(bool use_chan);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
@@ -340,6 +341,7 @@ private:
     double      d_input_rate;       /*!< Input sample rate. */
     double      d_decim_rate;       /*!< Rate after decimation (input_rate / decim) */
     bool        d_use_chan;         /*!< Use channelizer instead of direct connection */
+    bool        d_enable_chan;      /*!< Enable channelizer usage when input rate is high enough */
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
