@@ -498,19 +498,25 @@ double receiver::set_input_rate(double rate)
     int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
     if(chan_decim >= 2)
         chan_decim &= ~1;
+    bool use_chan = d_use_chan;
     if (d_decim_rate < TARGET_CHAN_RATE * 2)
-        d_use_chan = false;
+        use_chan = false;
     else
     {
-        d_use_chan = d_enable_chan;
+        use_chan = d_enable_chan;
         chan->set_decim(chan_decim);
     }
-    if(d_use_chan)
-        for (auto& rxc : rx)
-            rxc->set_quad_rate(d_decim_rate / chan->decim());
+    if (use_chan == d_use_chan)
+    {
+        if (d_use_chan)
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate / chan->decim());
+        else
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate);
+    }
     else
-        for (auto& rxc : rx)
-            rxc->set_quad_rate(d_decim_rate);
+        set_channelizer_int(use_chan);
     iq_fft->set_quad_rate(d_decim_rate);
     probe_fft->set_quad_rate(d_decim_rate / chan->decim());
     tb->unlock();
@@ -568,31 +574,37 @@ unsigned int receiver::set_input_decim(unsigned int decim)
     int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
     if(chan_decim >= 2)
         chan_decim &= ~1;
+    bool use_chan = d_use_chan;
     if (d_decim_rate < TARGET_CHAN_RATE * 2)
-        d_use_chan = false;
+        use_chan = false;
     else
     {
         chan->set_decim(chan_decim);
-        d_use_chan = d_enable_chan;
+        use_chan = d_enable_chan;
     }
-    if(d_use_chan)
-        for (auto& rxc : rx)
-            rxc->set_quad_rate(d_decim_rate / chan->decim());
-    else
-        for (auto& rxc : rx)
-            rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
     probe_fft->set_quad_rate(d_decim_rate / chan->decim());
-
-    if (d_decim >= 2)
+    if (d_use_chan == use_chan)
     {
-        tb->connect(src, 0, input_decim, 0);
-        tb->connect(input_decim, 0, iq_swap, 0);
+        if (d_use_chan)
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate / chan->decim());
+        else
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate);
+
+        if (d_decim >= 2)
+        {
+            tb->connect(src, 0, input_decim, 0);
+            tb->connect(input_decim, 0, iq_swap, 0);
+        }
+        else
+        {
+            tb->connect(src, 0, iq_swap, 0);
+        }
     }
     else
-    {
-        tb->connect(src, 0, iq_swap, 0);
-    }
+        set_channelizer_int(use_chan);
 
 #ifdef CUSTOM_AIRSPY_KERNELS
     if (input_devstr.find("airspy") != std::string::npos)
@@ -2131,8 +2143,11 @@ void receiver::connect_all(enum file_formats fmt)
 
     // Visualization
     tb->connect(b, 0, iq_fft, 0);
-    tb->connect(b, 0, chan, 0);
-    tb->connect(chan, 0, probe_fft, 0);
+    if(d_use_chan)
+    {
+        tb->connect(b, 0, chan, 0);
+        tb->connect(chan, 0, probe_fft, 0);
+    }
     iq_src = b;
 
     // Audio path (if there is a receiver)
