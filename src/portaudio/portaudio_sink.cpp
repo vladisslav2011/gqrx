@@ -180,9 +180,14 @@ int portaudio_sink::work(int noutput_items,
 
     err = Pa_WriteStream(d_stream, audio_buffer, noutput_items);
     if (err)
+    {
         fprintf(stderr,
                 "portaudio_sink::work(): Error writing to audio device: %s\n",
                 Pa_GetErrorText(err));
+        //dumb fix for repeated "portaudio_sink::work(): Error writing to audio device: Output underflowed"
+        if (err == paOutputUnderflowed)
+            Pa_WriteStream(d_stream, audio_buffer, noutput_items);
+    }
 
     return noutput_items;
 
