@@ -202,7 +202,7 @@ public:
     int         get_chan_decim(){return chan->decim();}
     int         get_chan_osr(){return chan->osr();}
     void        set_chan_filter_param(float n);
-    void        set_channelizer(bool on);
+    void        set_channelizer(int n);
 
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
@@ -331,6 +331,7 @@ private:
     gr::basic_block_sptr setup_source(file_formats fmt);
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
+    void        configure_channelizer(bool reconnect);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
