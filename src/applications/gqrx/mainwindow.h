@@ -192,7 +192,7 @@ private slots:
     void setAudioMute(bool mute, bool global);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
-    void setChanelizer(bool on);
+    void setChanelizer(int n);
 
     /* audio recording and playback */
     void recDirChanged(const QString dir);

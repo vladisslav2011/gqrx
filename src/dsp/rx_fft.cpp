@@ -26,9 +26,11 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/fft/fft.h>
+#include <gnuradio/thread/thread.h>
 #include "dsp/rx_fft.h"
 #include "receivers/defines.h"
 #include <algorithm>
+using namespace std::literals;
 
 
 rx_fft_c_sptr make_rx_fft_c (unsigned int fftsize, double quad_rate, int wintype)
@@ -424,12 +426,12 @@ int rx_fft_f::get_window_type() const
 
 
 /* fft channelizer */
-fft_channelizer_cc::sptr fft_channelizer_cc::make(int nchannels, int osr, int wintype)
+fft_channelizer_cc::sptr fft_channelizer_cc::make(int nchannels, int osr, int wintype, int nthreads)
 {
-    return gnuradio::get_initial_sptr(new fft_channelizer_cc (nchannels, osr, wintype));
+    return gnuradio::get_initial_sptr(new fft_channelizer_cc (nchannels, osr, wintype, nthreads));
 }
 
-fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype)
+fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int nthreads)
     : gr::sync_decimator ("fft_chan",
           gr::io_signature::make(1, 1, sizeof(gr_complex)),
           gr::io_signature::make(0, RX_MAX, sizeof(gr_complex)),nchannels / 2),
@@ -438,15 +440,13 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype)
       d_wintype(-1),
       d_remaining(0),
       d_noutputs(0),
-      d_filter_param(6.5)
+      d_filter_param(6.5),
+      d_nthreads(nthreads),
+      d_active(nthreads)
 {
-    /* create FFT object */
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
-    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
-
+    if (d_nthreads < 1)
+        d_nthreads = d_active = 1;
+    start_threads();
     set_relative_rate(double(d_osr) / double(d_fftsize));
     set_decimation(d_fftsize / d_osr);
     /* create FFT window */
@@ -458,7 +458,90 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype)
 
 fft_channelizer_cc::~fft_channelizer_cc()
 {
-    delete d_fft;
+    stop_threads();
+}
+
+void fft_channelizer_cc::start_threads()
+{
+    /* create FFT object */
+    d_threads = new l_thread[d_nthreads];
+    d_active = d_nthreads;
+    for(int k = 0; k < d_nthreads; k++)
+    {
+    #if GNURADIO_VERSION < 0x030900
+        d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
+    #else
+        d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
+    #endif
+        d_threads[k].finish = false;
+        d_threads[k].in = nullptr;
+        d_threads[k].out = nullptr;
+        d_threads[k].count = 0;
+        d_threads[k].offset = 0;
+        if (d_nthreads > 1)
+            d_threads[k].thr = new std::thread([this, k](){this->thread_func(k);});
+    }
+    if (d_nthreads > 1)
+    {
+        std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
+        while(d_active != 0)
+            d_ready.wait_for(thr_lock, 10ms);
+    }
+}
+
+void fft_channelizer_cc::stop_threads()
+{
+    for (int k = 0; k < d_nthreads; k++)
+        d_threads[k].finish = true;
+    if (d_nthreads > 1)
+        d_trigger.notify_all();
+    for (int k = 0; k < d_nthreads; k++)
+    {
+        if (d_nthreads > 1)
+            d_threads[k].thr->join();
+        delete d_threads[k].d_fft;
+    }
+    delete [] d_threads;
+}
+
+void fft_channelizer_cc::thread_func(int n)
+{
+    if (d_nthreads)
+        gr::thread::set_thread_name(gr::thread::get_current_thread_id(), "chanw" + std::to_string(n));
+    while (1)
+    {
+        if (d_threads[n].finish)
+            return;
+        if (d_threads[n].count)
+        {
+            for (int k = 0; k < d_threads[n].count; k++, d_threads[n].in += d_fftsize)
+            {
+                if (d_window.size())
+                {
+                    gr_complex *dst = d_threads[n].d_fft->get_inbuf();
+                    volk_32fc_32f_multiply_32fc(dst, d_threads[n].in, &d_window[0], d_fftsize * d_osr);
+                }
+                else
+                {
+                    memcpy(d_threads[n].d_fft->get_inbuf(), d_threads[n].in, sizeof(gr_complex) * d_fftsize * d_osr);
+                }
+                d_threads[n].d_fft->execute();
+                gr_complex * ob = (gr_complex *)d_threads[n].d_fft->get_outbuf();
+                for (int j = 0; j < d_noutputs ; j++)
+                    ((gr_complex *)d_threads[n].out[j])[k + d_threads[n].offset] = ob[d_map[j]];
+            }
+        }
+        if (d_nthreads > 1)
+        {
+            std::unique_lock<std::mutex> guard(d_thread_mutex);
+            d_active --;
+            if (d_active == 0)
+                d_ready.notify_one();
+            d_trigger.wait(guard);
+        }
+        else
+            return;
+    }
 }
 
 bool fft_channelizer_cc::start()
@@ -479,21 +562,36 @@ int fft_channelizer_cc::work(int noutput_items,
             gr_vector_void_star &output_items)
 {
     const gr_complex *in = (const gr_complex*)input_items[0];
+    std::lock_guard<std::mutex> lock(d_mutex);
     in += history() - d_fftsize * (d_osr - 1);
     int nblocks = noutput_items;
-    std::lock_guard<std::mutex> lock(d_mutex);
-    for (int k = 0; k < nblocks; k++, in += d_fftsize)
+    int count_one = noutput_items / d_nthreads;
+    if (d_nthreads == 1)
     {
-        apply_window(in);
-        /* compute FFT */
-        d_fft->execute();
-
-        /* get FFT data */
-        gr_complex * ob = (gr_complex *)d_fft->get_outbuf();
-        for(int j = 0; j < d_noutputs ; j++)
-            ((gr_complex *)output_items[j])[k] = ob[d_map[j]];
+        d_threads[0].in = in;
+        d_threads[0].out = (gr_complex **) &output_items[0];
+        d_threads[0].count = count_one;
+        d_threads[0].offset = 0;
+        thread_func(0);
     }
-    d_remaining = 0;
+    else
+    {
+        for (int k = 0; k < d_nthreads; k++, in += d_fftsize * count_one)
+        {
+            d_threads[k].in = in;
+            d_threads[k].out = (gr_complex **) &output_items[0];
+            d_threads[k].count = count_one;
+            d_threads[k].offset = k * count_one;
+        }
+        d_active = d_nthreads;
+        d_trigger.notify_all();
+        {
+            std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
+             while(d_active != 0)
+                d_ready.wait_for(thr_lock, 10ms);
+
+        }
+    }
     return nblocks;
 }
 
@@ -505,7 +603,7 @@ void fft_channelizer_cc::set_window_type(int wintype)
 
     if ((wintype < gr::fft::window::WIN_HAMMING) || (wintype > gr::fft::window::WIN_FLATTOP))
         wintype = gr::fft::window::WIN_HAMMING;
-    set_params(d_fftsize, wintype, d_osr, d_filter_param);
+    set_params(d_fftsize, wintype, d_osr, d_filter_param, d_nthreads);
 }
 
 int  fft_channelizer_cc::get_window_type() const
@@ -516,7 +614,18 @@ int  fft_channelizer_cc::get_window_type() const
 void fft_channelizer_cc::set_fft_size(int fftsize)
 {
     if (fftsize != d_fftsize)
-        set_params(fftsize, d_wintype, d_osr, d_filter_param);
+        set_params(fftsize, d_wintype, d_osr, d_filter_param, d_nthreads);
+}
+
+void fft_channelizer_cc::set_nthreads(int n)
+{
+    if (n != d_nthreads)
+        set_params(d_fftsize, d_wintype, d_osr, d_filter_param, n);
+}
+
+int fft_channelizer_cc::nthreads()
+{
+    return d_nthreads;
 }
 
 int fft_channelizer_cc::get_fft_size() const
@@ -537,7 +646,7 @@ void fft_channelizer_cc::map_output(int output, int pb)
 void fft_channelizer_cc::set_osr(int n)
 {
     if (n != d_osr)
-        set_params(d_fftsize, d_wintype, n, d_filter_param);
+        set_params(d_fftsize, d_wintype, n, d_filter_param, d_nthreads);
 }
 
 void fft_channelizer_cc::set_decim(int n)
@@ -548,48 +657,43 @@ void fft_channelizer_cc::set_decim(int n)
 void fft_channelizer_cc::set_filter_param(float n)
 {
     if(d_filter_param != n)
-        set_params(d_fftsize, d_wintype, d_osr, n);
+        set_params(d_fftsize, d_wintype, d_osr, n, d_nthreads);
 }
 
-void fft_channelizer_cc::apply_window(const gr_complex * p)
-{
-    /* apply window, if any */
-    if (d_window.size())
-    {
-        gr_complex *dst = d_fft->get_inbuf();
-        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], d_fftsize * d_osr);
-    }
-    else
-    {
-        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex) * d_fftsize * d_osr);
-    }
-}
-
-void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param)
+void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    if((d_wintype == wintype)&&(d_fftsize == fftsize)&&(d_osr == osr)&&(d_filter_param == filter_param))
+    if((d_wintype == wintype)&&(d_fftsize == fftsize)&&(d_osr == osr)&&(d_filter_param == filter_param)&&(d_nthreads==nthreads))
         return;
-    std::cerr<<"fft_channelizer_cc::set_params "<<fftsize<<" "<<wintype<<" "<<osr<<" "<<filter_param<<std::endl;
+    std::cerr<<"fft_channelizer_cc::set_params "<<fftsize<<" "<<wintype<<" "<<osr<<" "<<filter_param<<" "<<nthreads<<std::endl;
     d_wintype = wintype;
     d_filter_param = filter_param;
     d_osr = osr;
     d_fftsize = fftsize;
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize * d_osr, (double)d_filter_param);
-     for(auto &dw :d_window)
+    for(auto &dw :d_window)
         dw /= float(d_fftsize) * 1.7f;
-//     for(auto &dw :d_window)
-//         std::cerr<<"d_window:"<<dw<<std::endl;
-//     std::cerr<<std::endl;
-
     /* reset FFT object (also reset FFTW plan) */
-    delete d_fft;
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
-#else
-    d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
-#endif
+    if(d_nthreads != nthreads)
+    {
+        stop_threads();
+        if (nthreads < 1)
+            d_nthreads = d_active = 1;
+        else
+            d_nthreads = nthreads;
+        start_threads();
+    }
+    else
+        for(int k = 0; k < d_nthreads; k++)
+        {
+            delete d_threads[k].d_fft;
+    #if GNURADIO_VERSION < 0x030900
+            d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
+    #else
+            d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
+    #endif
+        }
     set_relative_rate(1.0 / double(d_fftsize));
     set_decimation(d_fftsize);
     for(int j = 0; j < d_noutputs ; j++)
