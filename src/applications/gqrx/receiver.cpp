@@ -211,6 +211,7 @@ void receiver::set_input_device(const std::string device)
     }
 
     tb->disconnect_all();
+    iq_src.reset();
     for (auto& rxc : rx)
         rxc->connected(false);
 
@@ -294,7 +295,7 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
  * @brief Setup input part of the graph for a file ar a device
  * @param fmt
  */
-void receiver::setup_source(file_formats fmt)
+gr::basic_block_sptr receiver::setup_source(file_formats fmt)
 {
     gr::basic_block_sptr b;
 
@@ -324,23 +325,23 @@ void receiver::setup_source(file_formats fmt)
     {
         tb->connect(input_file, 0 ,input_throttle, 0);
         b = input_throttle;
+        return b;
     }
     if (fmt > FILE_FORMAT_CF) // Connect through a converter
     {
         tb->connect(input_file, 0, convert_from[fmt], 0);
         tb->connect(convert_from[fmt], 0, input_throttle, 0);
         b = input_throttle;
+        return b;
     }
 
     if (d_decim >= 2)
     {
         tb->connect(b, 0, input_decim, 0);
-        tb->connect(input_decim, 0, iq_swap, 0);
+        return input_decim;
     }
     else
-    {
-        tb->connect(b, 0, iq_swap, 0);
-    }
+        return b;
 }
 
 /**
@@ -468,16 +469,6 @@ unsigned int receiver::set_input_decim(unsigned int decim)
         tb->wait();
     }
 
-    if (d_decim >= 2)
-    {
-        tb->disconnect(src, 0, input_decim, 0);
-        tb->disconnect(input_decim, 0, iq_swap, 0);
-    }
-    else
-    {
-        tb->disconnect(src, 0, iq_swap, 0);
-    }
-
     input_decim.reset();
     d_decim = decim;
     if (d_decim >= 2)
@@ -507,15 +498,8 @@ unsigned int receiver::set_input_decim(unsigned int decim)
         rxc->set_quad_rate(d_decim_rate);
     iq_fft->set_quad_rate(d_decim_rate);
 
-    if (d_decim >= 2)
-    {
-        tb->connect(src, 0, input_decim, 0);
-        tb->connect(input_decim, 0, iq_swap, 0);
-    }
-    else
-    {
-        tb->connect(src, 0, iq_swap, 0);
-    }
+    tb->disconnect_all();
+    connect_all(FILE_FORMAT_LAST);
 
 #ifdef CUSTOM_AIRSPY_KERNELS
     if (input_devstr.find("airspy") != std::string::npos)
@@ -551,6 +535,9 @@ void receiver::set_iq_swap(bool reversed)
         return;
 
     d_iq_rev = reversed;
+    // until we have a way to bypass a hier_block2 without overhead
+    // we do a reconf
+    reconnect_all(FILE_FORMAT_LAST, true);
     iq_swap->set_enabled(d_iq_rev);
 }
 
@@ -1862,9 +1849,13 @@ void receiver::connect_all(file_formats fmt)
     gr::basic_block_sptr b;
 
     // Setup source
-    setup_source(fmt);
+    b = setup_source(fmt);
 
-    b = iq_swap;
+    if(d_iq_rev)
+    {
+        tb->connect(b, 0, iq_swap, 0);
+        b = iq_swap;
+    }
 
     if (d_dc_cancel)
     {

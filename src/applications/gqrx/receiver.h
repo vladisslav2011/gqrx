@@ -315,7 +315,7 @@ private:
     void        disconnect_rx(int n);
     void        foreground_rx();
     void        background_rx();
-    void        setup_source(file_formats fmt);
+    gr::basic_block_sptr setup_source(file_formats fmt);
     status      connect_iq_recorder();
 
 private:
