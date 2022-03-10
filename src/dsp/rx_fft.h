@@ -34,6 +34,8 @@
 #include <gnuradio/buffer_reader.h>
 #endif
 #include <chrono>
+#include <thread>
+#include <condition_variable>
 
 
 #define MAX_FFT_SIZE (1024 * 1024 * 4)
@@ -227,10 +229,10 @@ typedef boost::shared_ptr<fft_channelizer_cc> sptr;
 typedef std::shared_ptr<fft_channelizer_cc> sptr;
 #endif
 
-    static sptr make(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING);
+    static sptr make(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING, int nthreads=1);
 
 protected:
-    fft_channelizer_cc(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING);
+    fft_channelizer_cc(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING, int nthreads=1);
 
 public:
     ~fft_channelizer_cc();
@@ -257,6 +259,21 @@ public:
     void set_filter_param(float n);
 
 private:
+    typedef struct {
+    #if GNURADIO_VERSION < 0x030900
+        gr::fft::fft_complex    *d_fft;    /*! FFT object. */
+    #else
+        gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
+    #endif
+        std::condition_variable trigger;
+        std::thread * thr;
+        const gr_complex *in;
+        gr_complex **out;
+        int count;
+        int offset;
+        bool finish;
+    } l_thread;
+
     int          d_fftsize;   /*! Current FFT size. */
     int          d_osr;
     int          d_wintype;   /*! Current window type. */
@@ -266,16 +283,15 @@ private:
     std::vector<int> d_map;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
-
-#if GNURADIO_VERSION < 0x030900
-    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
-#else
-    gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
-#endif
+    std::mutex   d_thread_mutex;  /*! Thread triggering. */
+    std::condition_variable d_ready;
     std::vector<float>  d_window; /*! FFT window taps. */
+    l_thread *   d_threads;
+    int          d_nthreads;
+    int          d_active;
 
-    void apply_window(const gr_complex * p);
     void set_params(int fftsize, int wintype, int osr, float filter_param);
+    void thread_func(int n);
 
 };
 

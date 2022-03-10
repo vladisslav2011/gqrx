@@ -161,7 +161,7 @@ receiver::receiver(const std::string input_device,
     output_devstr = audio_device;
     
     probe_fft = make_rx_fft_c(8192u, d_decim_rate / 8, gr::fft::window::WIN_HANN);
-    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_KAISER);
+    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_KAISER, 4);
     chan->set_filter_param(7.5);
 
     /* wav sink and source is created when rec/play is started */
