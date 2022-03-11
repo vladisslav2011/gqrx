@@ -212,7 +212,7 @@ public:
     void        set_chan_decim(int n);
     void        set_chan_osr(int n);
     void        set_chan_filter_param(float n);
-    void        set_channelizer(bool on);
+    void        set_channelizer(int n);
 
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);

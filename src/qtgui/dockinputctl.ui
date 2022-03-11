@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>240</width>
-    <height>325</height>
+    <height>357</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>240</width>
-    <height>325</height>
+    <height>357</height>
    </size>
   </property>
   <property name="windowIcon">
@@ -249,14 +249,34 @@
      </widget>
     </item>
     <item>
-     <widget class="QCheckBox" name="channelizerCheckBox">
-      <property name="text">
-       <string>Enable FFT channelizer</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
+     <layout class="QFormLayout" name="formLayout_2">
+      <item row="0" column="0">
+       <widget class="QLabel" name="chanSelectorLabel">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>FFT channelizer</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="channelizerCombo">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="editable">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <spacer name="verticalSpacer">
