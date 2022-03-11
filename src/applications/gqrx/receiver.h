@@ -333,6 +333,7 @@ private:
     gr::basic_block_sptr setup_source(enum file_formats fmt);
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
+    void        configure_channelizer(bool reconnect);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
