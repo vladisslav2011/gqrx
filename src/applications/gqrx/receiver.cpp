@@ -163,7 +163,7 @@ receiver::receiver(const std::string input_device,
     output_devstr = audio_device;
     
     probe_fft = make_rx_fft_c(8192u, d_decim_rate / 8, gr::fft::window::WIN_HANN);
-    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_KAISER, 4);
+    chan = fft_channelizer_cc::make(8*4, 4, gr::fft::window::WIN_KAISER, 1);
     chan->set_filter_param(7.5);
 
     /* wav sink and source is created when rec/play is started */
@@ -1121,12 +1121,22 @@ void receiver::set_chan_filter_param(float n)
     chan->set_filter_param(n);
 }
 
-void receiver::set_channelizer(bool on)
+void receiver::set_channelizer(int n)
 {
-    if (d_enable_chan == on)
+    if (d_enable_chan && n)
+    {
+        if (chan->nthreads() != n)
+            chan->set_nthreads(n);
         return;
-    d_enable_chan = on;
-    bool use_chan = on;
+    }
+    if (!d_enable_chan && !n)
+        return;
+
+    if (chan->nthreads() != n)
+        chan->set_nthreads(n);
+
+    d_enable_chan = (n != 0);
+    bool use_chan = d_enable_chan;
 
     if (d_decim_rate < TARGET_CHAN_RATE * 2)
         use_chan = false;
