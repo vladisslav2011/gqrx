@@ -254,9 +254,11 @@ public:
     int decim() const { return d_fftsize; }
     int osr() const { return d_osr; }
     int filter_param() const { return d_filter_param; }
+    int nthreads();
     void set_osr(int n);
     void set_decim(int n);
     void set_filter_param(float n);
+    void set_nthreads(int n);
 
 private:
     typedef struct {
@@ -290,9 +292,10 @@ private:
     int          d_nthreads;
     int          d_active;
 
-    void set_params(int fftsize, int wintype, int osr, float filter_param);
+    void set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads);
     void thread_func(int n);
-
+    void stop_threads();
+    void start_threads();
 };
 
 

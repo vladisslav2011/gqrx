@@ -34,6 +34,11 @@ DockInputCtl::DockInputCtl(QWidget * parent) :
     gainLayout = new QGridLayout();
     gainLayout->setObjectName(QString::fromUtf8("gainLayout"));
     ui->verticalLayout->insertLayout(2, gainLayout);
+    ui->channelizerCombo->addItem("OFF", 0);
+    ui->channelizerCombo->addItem("singlethreaded", 1);
+    ui->channelizerCombo->addItem("2 threads", 2);
+    ui->channelizerCombo->addItem("4 threads", 4);
+    ui->channelizerCombo->addItem("8 threads", 8);
 }
 
 DockInputCtl::~DockInputCtl()
@@ -47,6 +52,7 @@ void DockInputCtl::readSettings(QSettings * settings)
     qint64  lnb_lo;
     bool    conv_ok;
     bool    bool_val;
+    int     int_val;
 
     qint64 ppm_corr = settings->value("input/corr_freq", 0).toLongLong(&conv_ok);
     setFreqCorr(((double)ppm_corr)/1.0e6);
@@ -119,9 +125,19 @@ void DockInputCtl::readSettings(QSettings * settings)
     emit autoBookmarksChanged(bool_val);
     ui->autoBookmarksButton->setChecked(bool_val);
 
-    bool_val = settings->value("gui/fft_channelizer", true).toBool();
-    emit enableChannelizerChanged(bool_val);
-    ui->channelizerCheckBox->setChecked(bool_val);
+    int_val = settings->value("gui/fft_channelizer", 0).toInt(&conv_ok);
+    if (conv_ok)
+    {
+        int_val = ui->channelizerCombo->findData(int_val);
+        if (int_val < 0)
+            int_val = 0;
+        ui->channelizerCombo->setCurrentIndex(int_val);
+    }
+    else
+    {
+        ui->channelizerCombo->setCurrentIndex(0);
+    }
+    emit channelizerChanged(ui->channelizerCombo->currentData().toInt());
 }
 
 void DockInputCtl::saveSettings(QSettings * settings)
@@ -197,10 +213,10 @@ void DockInputCtl::saveSettings(QSettings * settings)
         settings->remove("gui/auto_bookmarks");
 
     // Remember state of channelizer. Default is checked.
-    if (ui->channelizerCheckBox->isChecked())
+    if (ui->channelizerCombo->currentData() == 0)
         settings->remove("gui/fft_channelizer");
     else
-        settings->setValue("gui/fft_channelizer", false);
+        settings->setValue("gui/fft_channelizer", ui->channelizerCombo->currentData().toInt());
 }
 
 void DockInputCtl::readLnbLoFromSettings(QSettings * settings)
@@ -551,9 +567,9 @@ void DockInputCtl::on_autoBookmarksButton_toggled(bool checked)
 }
 
 /** Enable channelizer box has changed */
-void DockInputCtl::on_channelizerCheckBox_toggled(bool checked)
+void DockInputCtl::on_channelizerCombo_currentIndexChanged(int index)
 {
-    emit enableChannelizerChanged(checked);
+    emit channelizerChanged(ui->channelizerCombo->currentData().toInt());
 }
 
 /** Remove all widgets from the lists. */
