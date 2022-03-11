@@ -194,7 +194,7 @@ private slots:
     void setChanDecim(int i);
     void setChanOsr(int i);
     void setChanFilterParam(float i);
-    void setChanelizer(bool on);
+    void setChanelizer(int n);
 
     /* audio recording and playback */
     void recDirChanged(const QString dir);
