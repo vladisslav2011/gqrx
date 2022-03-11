@@ -26,6 +26,7 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/fft/fft.h>
+#include <gnuradio/thread/thread.h>
 #include "dsp/rx_fft.h"
 #include "receivers/defines.h"
 #include <algorithm>
@@ -455,33 +456,39 @@ void fft_channelizer_cc::start_threads()
 {
     /* create FFT object */
     d_threads = new l_thread[d_nthreads];
+    d_active = d_nthreads;
     for(int k = 0; k < d_nthreads; k++)
     {
-#if GNURADIO_VERSION < 0x030900
-    d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
-#else
-    d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
-#endif
-    d_threads[k].finish = false;
-    d_threads[k].in = nullptr;
-    d_threads[k].out = nullptr;
-    d_threads[k].count = 0;
-    d_threads[k].offset = 0;
+    #if GNURADIO_VERSION < 0x030900
+        d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
+    #else
+        d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
+    #endif
+        d_threads[k].finish = false;
+        d_threads[k].in = nullptr;
+        d_threads[k].out = nullptr;
+        d_threads[k].count = 0;
+        d_threads[k].offset = 0;
+        if (d_nthreads > 1)
+            d_threads[k].thr = new std::thread([this, k](){this->thread_func(k);});
+    }
     if (d_nthreads > 1)
-        d_threads[k].thr = new std::thread([this, k](){this->thread_func(k);});
+    {
+        std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
+        do d_ready.wait(thr_lock); while(d_active != 0);
     }
 }
 
 void fft_channelizer_cc::stop_threads()
 {
     for (int k = 0; k < d_nthreads; k++)
-    {
         d_threads[k].finish = true;
+    if (d_nthreads > 1)
+        d_trigger.notify_all();
+    for (int k = 0; k < d_nthreads; k++)
+    {
         if (d_nthreads > 1)
-        {
-            d_threads[k].trigger.notify_one();
             d_threads[k].thr->join();
-        }
         delete d_threads[k].d_fft;
     }
     delete [] d_threads;
@@ -489,6 +496,7 @@ void fft_channelizer_cc::stop_threads()
 
 void fft_channelizer_cc::thread_func(int n)
 {
+    gr::thread::set_thread_name(gr::thread::get_current_thread_id(), "chanw" + std::to_string(n));
     while (1)
     {
         if (d_threads[n].finish)
@@ -518,7 +526,7 @@ void fft_channelizer_cc::thread_func(int n)
             d_active --;
             if (d_active == 0)
                 d_ready.notify_one();
-            d_threads[n].trigger.wait(guard);
+            d_trigger.wait(guard);
             d_active ++;
         }
         else
@@ -544,10 +552,10 @@ int fft_channelizer_cc::work(int noutput_items,
             gr_vector_void_star &output_items)
 {
     const gr_complex *in = (const gr_complex*)input_items[0];
+    std::lock_guard<std::mutex> lock(d_mutex);
     in += history() - d_fftsize * (d_osr - 1);
     int nblocks = noutput_items;
     int count_one = noutput_items / d_nthreads;
-    std::lock_guard<std::mutex> lock(d_mutex);
     if (d_nthreads == 1)
     {
         d_threads[0].in = in;
@@ -558,16 +566,19 @@ int fft_channelizer_cc::work(int noutput_items,
     }
     else
     {
-        std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
         for (int k = 0; k < d_nthreads; k++, in += d_fftsize * count_one)
         {
             d_threads[k].in = in;
             d_threads[k].out = (gr_complex **) &output_items[0];
             d_threads[k].count = count_one;
             d_threads[k].offset = k * count_one;
-            d_threads[k].trigger.notify_one();
         }
-        d_ready.wait(thr_lock);
+        d_trigger.notify_all();
+        {
+            std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
+            do d_ready.wait(thr_lock); while(d_active != 0);
+
+        }
     }
     return nblocks;
 }
