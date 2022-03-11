@@ -29,7 +29,7 @@
 
 #define TARGET_QUAD_RATE 4e5
 // Channelizer target quad rate
-#define TARGET_CHAN_RATE 4e5
+#define TARGET_CHAN_RATE 5e5
 
 /* Number of noice blankers */
 #define RECEIVER_NB_COUNT 2

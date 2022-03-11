@@ -1140,9 +1140,9 @@ void receiver::set_channelizer_int(bool use_chan)
 
 void receiver::configure_channelizer(bool reconnect)
 {
-    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
-    if(chan_decim >= 2)
-        chan_decim &= ~1;
+    int chan_decim = 2;
+    while(chan_decim < d_decim_rate / TARGET_CHAN_RATE)
+        chan_decim *= 2;
     bool use_chan = d_use_chan;
     if (d_decim_rate < TARGET_CHAN_RATE * 2)
         use_chan = false;
