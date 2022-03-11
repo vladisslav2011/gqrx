@@ -118,7 +118,7 @@ signals:
     void freqCtrlResetChanged(bool enabled);
     void invertScrollingChanged(bool enabled);
     void autoBookmarksChanged(bool checked);
-    void enableChannelizerChanged(bool checked);
+    void channelizerChanged(int value);
 
 public slots:
     void setLnbLo(double freq_mhz);
@@ -135,7 +135,7 @@ private slots:
     void on_freqCtrlResetButton_toggled(bool checked);
     void on_invertScrollingButton_toggled(bool checked);
     void on_autoBookmarksButton_toggled(bool checked);
-    void on_channelizerCheckBox_toggled(bool checked);
+    void on_channelizerCombo_currentIndexChanged(int index);
 
     void sliderValueChanged(int value);
 
