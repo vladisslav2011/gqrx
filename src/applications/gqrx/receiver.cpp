@@ -493,28 +493,7 @@ double receiver::set_input_rate(double rate)
 
     d_decim_rate = d_input_rate / (double)d_decim;
     dc_corr->set_sample_rate(d_decim_rate);
-    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
-    if(chan_decim >= 2)
-        chan_decim &= ~1;
-    bool use_chan = d_use_chan;
-    if (d_decim_rate < TARGET_CHAN_RATE * 2)
-        use_chan = false;
-    else
-    {
-        use_chan = d_enable_chan;
-        chan->set_decim(chan_decim);
-    }
-    if (use_chan == d_use_chan)
-    {
-        if (d_use_chan)
-            for (auto& rxc : rx)
-                rxc->set_quad_rate(d_decim_rate / chan->decim());
-        else
-            for (auto& rxc : rx)
-                rxc->set_quad_rate(d_decim_rate);
-    }
-    else
-        set_channelizer_int(use_chan);
+    configure_channelizer(false);
     iq_fft->set_quad_rate(d_decim_rate);
     probe_fft->set_quad_rate(d_decim_rate / chan->decim());
     tb->unlock();
@@ -559,33 +538,7 @@ unsigned int receiver::set_input_decim(unsigned int decim)
 
     // update quadrature rate
     dc_corr->set_sample_rate(d_decim_rate);
-    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
-    if(chan_decim >= 2)
-        chan_decim &= ~1;
-    bool use_chan = d_use_chan;
-    if (d_decim_rate < TARGET_CHAN_RATE * 2)
-        use_chan = false;
-    else
-    {
-        chan->set_decim(chan_decim);
-        use_chan = d_enable_chan;
-    }
-    iq_fft->set_quad_rate(d_decim_rate);
-    probe_fft->set_quad_rate(d_decim_rate / chan->decim());
-    if (d_use_chan == use_chan)
-    {
-        if (d_use_chan)
-            for (auto& rxc : rx)
-                rxc->set_quad_rate(d_decim_rate / chan->decim());
-        else
-            for (auto& rxc : rx)
-                rxc->set_quad_rate(d_decim_rate);
-
-        tb->disconnect_all();
-        connect_all(FILE_FORMAT_LAST);
-    }
-    else
-        set_channelizer_int(use_chan);
+    configure_channelizer(true);
 
 #ifdef CUSTOM_AIRSPY_KERNELS
     if (input_devstr.find("airspy") != std::string::npos)
@@ -1183,6 +1136,37 @@ void receiver::set_channelizer_int(bool use_chan)
     for (auto& rxc : rx)
         rxc->set_quad_rate(d_decim_rate / (use_chan ? chan->decim() : 1.0));
     std::cerr<<"set_channelizer: set_quad_rate\n";
+}
+
+void receiver::configure_channelizer(bool reconnect)
+{
+    int chan_decim = d_decim_rate / TARGET_CHAN_RATE;
+    if(chan_decim >= 2)
+        chan_decim &= ~1;
+    bool use_chan = d_use_chan;
+    if (d_decim_rate < TARGET_CHAN_RATE * 2)
+        use_chan = false;
+    else
+    {
+        use_chan = d_enable_chan;
+        chan->set_decim(chan_decim);
+    }
+    if (use_chan == d_use_chan)
+    {
+        if (d_use_chan)
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate / chan->decim());
+        else
+            for (auto& rxc : rx)
+                rxc->set_quad_rate(d_decim_rate);
+        if (reconnect)
+        {
+            tb->disconnect_all();
+            connect_all(FILE_FORMAT_LAST);
+        }
+    }
+    else
+        set_channelizer_int(use_chan);
 }
 
 receiver::status receiver::set_nb_on(int nbid, bool on)
