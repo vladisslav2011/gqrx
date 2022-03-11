@@ -252,7 +252,6 @@ private:
     #else
         gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
     #endif
-        std::condition_variable trigger;
         std::thread * thr;
         const gr_complex *in;
         gr_complex **out;
@@ -272,6 +271,7 @@ private:
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
     std::mutex   d_thread_mutex;  /*! Thread triggering. */
     std::condition_variable d_ready;
+    std::condition_variable d_trigger;
     std::vector<float>  d_window; /*! FFT window taps. */
     l_thread *   d_threads;
     int          d_nthreads;
