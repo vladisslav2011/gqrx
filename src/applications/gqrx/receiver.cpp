@@ -1162,6 +1162,11 @@ void receiver::configure_channelizer(bool reconnect)
         if (reconnect)
         {
             tb->disconnect_all();
+            for (auto& rxc : rx)
+            {
+                rxc->connected(false);
+                rxc->set_port(-1);
+            }
             connect_all(FILE_FORMAT_LAST);
         }
     }
