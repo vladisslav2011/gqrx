@@ -191,7 +191,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
         if (event->buttons() == Qt::NoButton)
         {
             bool onTag = false;
-            if(pt.y() < 15 * 10) // FIXME
+            if(pt.y() < m_XAxisYCenter - 20)
             {
                 if(m_BookmarksEnabled || m_DXCSpotsEnabled)
                 {
