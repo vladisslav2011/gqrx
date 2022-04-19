@@ -30,6 +30,7 @@
 #include "dsp/rx_fft.h"
 #include "receivers/defines.h"
 #include <algorithm>
+using namespace std::literals;
 
 
 rx_fft_c_sptr make_rx_fft_c (unsigned int fftsize, double quad_rate, int wintype)
@@ -437,6 +438,8 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
       d_nthreads(nthreads),
       d_active(nthreads)
 {
+    if (d_nthreads < 1)
+        d_nthreads = d_active = 1;
     start_threads();
     set_relative_rate(double(d_osr) / double(d_fftsize));
     set_decimation(d_fftsize / d_osr);
@@ -475,7 +478,7 @@ void fft_channelizer_cc::start_threads()
     if (d_nthreads > 1)
     {
         std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
-        do d_ready.wait(thr_lock); while(d_active != 0);
+        do d_ready.wait_for(thr_lock, 10ms); while(d_active != 0);
     }
 }
 
@@ -666,7 +669,10 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     if(d_nthreads != nthreads)
     {
         stop_threads();
-        d_nthreads = nthreads;
+        if (nthreads < 1)
+            d_nthreads = d_active = 1;
+        else
+            d_nthreads = nthreads;
         start_threads();
     }
     else
