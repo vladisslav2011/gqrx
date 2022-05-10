@@ -484,7 +484,8 @@ void fft_channelizer_cc::start_threads()
     if (d_nthreads > 1)
     {
         std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
-        do d_ready.wait_for(thr_lock, 10ms); while(d_active != 0);
+        while(d_active != 0)
+            d_ready.wait_for(thr_lock, 10ms);
     }
 }
 
@@ -505,7 +506,8 @@ void fft_channelizer_cc::stop_threads()
 
 void fft_channelizer_cc::thread_func(int n)
 {
-    gr::thread::set_thread_name(gr::thread::get_current_thread_id(), "chanw" + std::to_string(n));
+    if (d_nthreads)
+        gr::thread::set_thread_name(gr::thread::get_current_thread_id(), "chanw" + std::to_string(n));
     while (1)
     {
         if (d_threads[n].finish)
@@ -536,7 +538,6 @@ void fft_channelizer_cc::thread_func(int n)
             if (d_active == 0)
                 d_ready.notify_one();
             d_trigger.wait(guard);
-            d_active ++;
         }
         else
             return;
@@ -582,10 +583,12 @@ int fft_channelizer_cc::work(int noutput_items,
             d_threads[k].count = count_one;
             d_threads[k].offset = k * count_one;
         }
+        d_active = d_nthreads;
         d_trigger.notify_all();
         {
             std::unique_lock<std::mutex> thr_lock(d_thread_mutex);
-            do d_ready.wait(thr_lock); while(d_active != 0);
+             while(d_active != 0)
+                d_ready.wait_for(thr_lock, 10ms);
 
         }
     }
