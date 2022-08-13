@@ -242,14 +242,12 @@ bool file_source::seek(int64_t seek_point, int whence)
             d_seek_point = d_length_items - seek_point;
             break;
         default:
-            GR_LOG_WARN(d_logger, "bad seek mode");
             return 0;
         }
 
         if ((seek_point < (int64_t)d_start_offset_items) ||
             (seek_point > (int64_t)(d_start_offset_items + d_length_items - 1)))
         {
-            GR_LOG_WARN(d_logger, "bad seek point");
             return 0;
         }
         d_seek = true;
@@ -262,7 +260,6 @@ bool file_source::seek(int64_t seek_point, int whence)
     }
     else
     {
-        GR_LOG_WARN(d_logger, "file not seekable");
         return 0;
     }
 }
@@ -294,7 +291,6 @@ void file_source::open(const char* filename,
 
     if ((d_new_fp = fopen(filename, "rb")) == NULL)
     {
-        GR_LOG_ERROR(d_logger, std::string(filename) + ": " + std::string(strerror(errno)));
         throw std::runtime_error("can't open file");
     }
 
@@ -302,7 +298,6 @@ void file_source::open(const char* filename,
 
     if (GR_FSTAT(GR_FILENO(d_new_fp), &st))
     {
-        GR_LOG_ERROR(d_logger, std::string(filename) + ": " + std::string(strerror(errno)));
         throw std::runtime_error("can't fstat file");
     }
     d_seekable = (S_ISREG(st.st_mode));
@@ -318,14 +313,6 @@ void file_source::open(const char* filename,
         // Make sure there will be at least one item available
         if ((file_size / d_itemsize) < (start_offset_items + 1))
         {
-            if (start_offset_items)
-            {
-                GR_LOG_WARN(d_logger, "file is too small for start offset");
-            }
-            else
-            {
-                GR_LOG_WARN(d_logger, "file is too small");
-            }
             fclose(d_new_fp);
             throw std::runtime_error("file is too small");
         }
@@ -341,10 +328,6 @@ void file_source::open(const char* filename,
     if (length_items == 0)
     {
         length_items = items_available;
-        if (file_size % d_itemsize)
-        {
-            GR_LOG_WARN(d_logger, "file size is not a multiple of item size");
-        }
     }
 
     // Check specified length. Warn and use available items instead of throwing an
@@ -352,7 +335,6 @@ void file_source::open(const char* filename,
     if (length_items > items_available)
     {
         length_items = items_available;
-        GR_LOG_WARN(d_logger, "file too short, will read fewer than requested items");
     }
 
     // Rewind to start offset
