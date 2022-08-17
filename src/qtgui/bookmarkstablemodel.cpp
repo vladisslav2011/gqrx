@@ -280,7 +280,7 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 for (int i = 0; i < strList.size(); ++i)
                 {
                     QString strTag = strList[i].trimmed();
-                    info.tags.append( &Bookmarks::Get().findOrAddTag(strTag) );
+                    info.tags.append( Bookmarks::Get().findOrAddTag(strTag) );
                 }
                 emit dataChanged(index, index);
                 return true;
