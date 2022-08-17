@@ -37,7 +37,7 @@ Bookmarks* Bookmarks::m_pThis = 0;
 
 Bookmarks::Bookmarks()
 {
-     TagInfo tag(TagInfo::strUntagged);
+     TagInfo::sptr tag = TagInfo::make(TagInfo::strUntagged);
      m_TagList.append(tag);
 }
 
@@ -101,8 +101,8 @@ bool Bookmarks::load()
             QStringList strings = line.split(";");
             if(strings.count() == 2)
             {
-                TagInfo &info = findOrAddTag(strings[0]);
-                info.color = QColor(strings[1].trimmed());
+                TagInfo::sptr info = findOrAddTag(strings[0]);
+                info->color = QColor(strings[1].trimmed());
             }
             else
             {
@@ -146,7 +146,7 @@ bool Bookmarks::load()
                 QStringList TagList = strTags.split(",");
                 for(int iTag=0; iTag<TagList.size(); ++iTag)
                 {
-                  info.tags.append(&findOrAddTag(TagList[iTag].trimmed()));
+                  info.tags.append(findOrAddTag(TagList[iTag].trimmed()));
                 }
 
                 m_BookmarkList.append(info);
@@ -162,7 +162,7 @@ bool Bookmarks::load()
                 QStringList TagList = strTags.split(",");
 
                 for (int iTag = 0; iTag < TagList.size(); ++iTag)
-                  info.tags.append(&findOrAddTag(TagList[iTag].trimmed()));
+                  info.tags.append(findOrAddTag(TagList[iTag].trimmed()));
 
                 info.set_freq_lock(strings[i++].trimmed() == "true");
                 info.modulation = strings[i++].trimmed();
@@ -222,21 +222,20 @@ bool Bookmarks::save()
         stream << QString("# Tag name").leftJustified(20) + "; " +
                   QString(" color") << '\n';
 
-        QSet<TagInfo*> usedTags;
+        QMap<QString, TagInfo::sptr> usedTags;
         for (int iBookmark = 0; iBookmark < m_BookmarkList.size(); iBookmark++)
         {
             BookmarkInfo& info = m_BookmarkList[iBookmark];
-            for(int iTag = 0; iTag < info.tags.size(); ++iTag)
+            for (QList<TagInfo::sptr>::iterator iTag = info.tags.begin(); iTag < info.tags.end(); ++iTag)
             {
-              TagInfo& tag = *info.tags[iTag];
-              usedTags.insert(&tag);
+              usedTags.insert((*iTag)->name, *iTag);
             }
         }
 
-        for (QSet<TagInfo*>::iterator i = usedTags.begin(); i != usedTags.end(); i++)
+        for (QMap<QString, TagInfo::sptr>::iterator i = usedTags.begin(); i != usedTags.end(); i++)
         {
-            TagInfo& info = **i;
-            stream << info.name.leftJustified(20) + "; " + info.color.name() << '\n';
+            TagInfo::sptr info = *i;
+            stream << info->name.leftJustified(20) + "; " + info->color.name() << '\n';
         }
 
         stream << '\n';
@@ -281,10 +280,10 @@ bool Bookmarks::save()
                 info.name.leftJustified(25) + "; ";
             for (int iTag = 0; iTag < info.tags.size(); ++iTag)
             {
-                TagInfo& tag = *info.tags[iTag];
+                TagInfo::sptr tag = info.tags[iTag];
                 if (iTag!=0)
                     line.append(",");
-                line.append(tag.name);
+                line.append(tag->name);
             }
             line.append(
                 "; " + QVariant(info.get_freq_lock()).toString().rightJustified(16) +
@@ -353,7 +352,7 @@ int Bookmarks::find(const BookmarkInfo &info)
 }
 
 
-TagInfo &Bookmarks::findOrAddTag(QString tagName)
+TagInfo::sptr Bookmarks::findOrAddTag(QString tagName)
 {
     tagName = tagName.trimmed();
 
@@ -365,8 +364,7 @@ TagInfo &Bookmarks::findOrAddTag(QString tagName)
     if (idx != -1)
         return m_TagList[idx];
 
-    TagInfo info;
-    info.name=tagName;
+    TagInfo::sptr info = TagInfo::make(tagName);
     m_TagList.append(info);
     emit TagListChanged();
     return m_TagList.last();
@@ -385,17 +383,17 @@ bool Bookmarks::removeTag(QString tagName)
         return false;
 
     // Delete Tag from all Bookmarks that use it.
-    TagInfo* pTagToDelete = &m_TagList[idx];
-    for(int i=0; i<m_BookmarkList.size(); ++i)
+    TagInfo::sptr pTagToDelete = m_TagList[idx];
+    for(int i=0; i < m_BookmarkList.size(); ++i)
     {
         BookmarkInfo& bmi = m_BookmarkList[i];
         for(int t=0; t<bmi.tags.size(); ++t)
         {
-            TagInfo* pTag = bmi.tags[t];
-            if(pTag == pTagToDelete)
+            TagInfo::sptr pTag = bmi.tags[t];
+            if(pTag.get() == pTagToDelete.get())
             {
                 if(bmi.tags.size()>1) bmi.tags.removeAt(t);
-                else bmi.tags[0] = &findOrAddTag(TagInfo::strUntagged);
+                else bmi.tags[0] = findOrAddTag(TagInfo::strUntagged);
             }
         }
     }
@@ -413,7 +411,7 @@ bool Bookmarks::setTagChecked(QString tagName, bool bChecked)
 {
     int idx = getTagIndex(tagName);
     if (idx == -1) return false;
-    m_TagList[idx].active = bChecked;
+    m_TagList[idx]->active = bChecked;
     emit BookmarksChanged();
     emit TagListChanged();
     return true;
@@ -424,7 +422,7 @@ int Bookmarks::getTagIndex(QString tagName)
     tagName = tagName.trimmed();
     for (int i = 0; i < m_TagList.size(); i++)
     {
-        if (m_TagList[i].name == tagName)
+        if (m_TagList[i]->name == tagName)
             return i;
     }
 
@@ -435,10 +433,10 @@ const QColor BookmarkInfo::GetColor() const
 {
     for(int iTag=0; iTag<tags.size(); ++iTag)
     {
-        TagInfo& tag = *tags[iTag];
-        if(tag.active)
+        TagInfo::sptr tag = tags[iTag];
+        if(tag->active)
         {
-            return tag.color;
+            return tag->color;
         }
     }
     return TagInfo::DefaultColor;
@@ -449,8 +447,8 @@ bool BookmarkInfo::IsActive() const
     bool bActive = false;
     for(int iTag=0; iTag<tags.size(); ++iTag)
     {
-        TagInfo& tag = *tags[iTag];
-        if(tag.active)
+        TagInfo::sptr tag = tags[iTag];
+        if(tag->active)
         {
             bActive = true;
             break;
