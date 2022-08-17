@@ -280,7 +280,7 @@ void file_source::open(const char* filename,
 
     if ((d_new_fp = fopen(filename, "rb")) == NULL)
     {
-        GR_LOG_ERROR(d_logger, boost::format("%s: %s") % filename % strerror(errno));
+        GR_LOG_ERROR(d_logger, std::string(filename) + ": " + std::string(strerror(errno)));
         throw std::runtime_error("can't open file");
     }
 
@@ -288,7 +288,7 @@ void file_source::open(const char* filename,
 
     if (GR_FSTAT(GR_FILENO(d_new_fp), &st))
     {
-        GR_LOG_ERROR(d_logger, boost::format("%s: %s") % filename % strerror(errno));
+        GR_LOG_ERROR(d_logger, std::string(filename) + ": " + std::string(strerror(errno)));
         throw std::runtime_error("can't fstat file");
     }
     d_seekable = (S_ISREG(st.st_mode));
