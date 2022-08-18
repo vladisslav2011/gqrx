@@ -212,6 +212,7 @@ private slots:
     void updateClusterSpots();
 
     /* menu and toolbar actions */
+    void on_actionPerform_test_triggered();
     void on_actionDSP_triggered(bool checked);
     int  on_actionIoConfig_triggered();
     void on_actionLoadSettings_triggered();

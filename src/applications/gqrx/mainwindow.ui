@@ -253,6 +253,7 @@
     <addaction name="actionAFSK1200"/>
     <addaction name="separator"/>
     <addaction name="actionDX_Cluster"/>
+    <addaction name="actionPerform_test"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Tools"/>
@@ -573,6 +574,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+C</string>
+   </property>
+  </action>
+  <action name="actionPerform_test">
+   <property name="text">
+    <string>Perform test</string>
    </property>
   </action>
  </widget>

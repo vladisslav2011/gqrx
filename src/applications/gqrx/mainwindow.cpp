@@ -1794,6 +1794,15 @@ void MainWindow::setPeakDetection(bool enabled)
 }
 
 /**
+ * @brief Perform tet action.
+ *
+ */
+void MainWindow::on_actionPerform_test_triggered()
+{
+    rx->perform_test();
+}
+
+/**
  * @brief Start/Stop DSP processing.
  * @param checked Flag indicating whether DSP processing should be ON or OFF.
  *

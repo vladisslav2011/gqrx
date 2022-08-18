@@ -153,6 +153,13 @@ receiver::~receiver()
 }
 
 
+void receiver::perform_test()
+{
+    std::cerr<<"receiver::perform_test()\n";
+    tb->lock();
+    tb->unlock();
+}
+
 /** Start the receiver. */
 void receiver::start()
 {

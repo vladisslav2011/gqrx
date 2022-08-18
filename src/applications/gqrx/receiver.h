@@ -115,6 +115,7 @@ public:
              unsigned int decimation=1);
     ~receiver();
 
+    void        perform_test();
     void        start();
     void        stop();
     void        set_input_device(const std::string device);
