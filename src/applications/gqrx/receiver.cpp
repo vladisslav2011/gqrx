@@ -46,6 +46,7 @@
 #else
 #include <gnuradio/audio/sink.h>
 #endif
+#include <chrono>
 
 
 /**
@@ -842,16 +843,24 @@ int receiver::delete_rx()
  */
 receiver::status receiver::select_rx(int no)
 {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
     if (no == d_current)
         return STATUS_OK;
     if (no < int(rx.size()))
     {
+        auto t1 = high_resolution_clock::now();
         tb->lock();
         if (d_current >= 0)
             background_rx();
         d_current = no;
         foreground_rx();
         tb->unlock();
+        auto t2 = high_resolution_clock::now();
+        duration<double, std::milli> ms_double = t2 - t1;
+        std::cout << "Lock/unlock took " << ms_double.count() << "ms\n";
         return STATUS_OK;
     }
     return STATUS_ERROR;
