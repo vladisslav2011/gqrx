@@ -242,7 +242,7 @@ rx_fft_f_sptr make_rx_fft_f(unsigned int fftsize, double audio_rate, int wintype
  */
 rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
     : gr::sync_block ("rx_fft_f",
-          gr::io_signature::make(1, 1, sizeof(float)),
+          gr::io_signature::make(2, 2, sizeof(float)),
           gr::io_signature::make(0, 0, 0)),
       d_fftsize(fftsize),
       d_audiorate(audio_rate),
@@ -258,9 +258,9 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 
     /* allocate circular buffer */
 #if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float));
+    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(gr_complex));
 #else
-    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float), 1, 1);
+    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(gr_complex), 1, 1);
 #endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
@@ -291,7 +291,8 @@ int rx_fft_f::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
-    const float *in = (const float*)input_items[0];
+    const float *in0 = (const float*)input_items[0];
+    const float *in1 = (const float*)input_items[1];
     (void) output_items;
 
     /* just throw new samples into the buffer */
@@ -299,11 +300,14 @@ int rx_fft_f::work(int noutput_items,
 
     int items_to_copy = std::min(noutput_items, (int)d_writer->bufsize());
     if (items_to_copy < noutput_items)
-        in += (noutput_items - items_to_copy);
+    {
+        in0 += (noutput_items - items_to_copy);
+        in1 += (noutput_items - items_to_copy);
+    }
 
     if (d_writer->space_available() < items_to_copy)
         d_reader->update_read_pointer(items_to_copy - d_writer->space_available());
-    memcpy(d_writer->write_pointer(), in, sizeof(float) * items_to_copy);
+    volk_32f_x2_interleave_32fc((gr_complex*)d_writer->write_pointer(), in0, in1, items_to_copy);
     d_writer->update_write_pointer(items_to_copy);
 
     return noutput_items;
@@ -344,18 +348,17 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
  */
 void rx_fft_f::apply_window(unsigned int size)
 {
-    gr_complex *dst = d_fft->get_inbuf();
-    float * p = (float *)d_reader->read_pointer();
-    /* apply window, and convert to complex */
+    /* apply window, if any */
+    gr_complex * p = (gr_complex *)d_reader->read_pointer();
+    p += (AUDIO_BUFFER_SIZE - d_fftsize);
     if (d_window.size())
     {
-        for (unsigned int i = 0; i < size; i++)
-            dst[i] = p[i] * d_window[i];
+        gr_complex *dst = d_fft->get_inbuf();
+        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], size);
     }
     else
     {
-        for (unsigned int i = 0; i < size; i++)
-            dst[i] = p[i];
+        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex)*size);
     }
 }
 

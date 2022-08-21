@@ -1259,6 +1259,7 @@ receiver::status receiver::start_audio_playback(const std::string filename)
     tb->disconnect(rx, 0, audio_gain0, 0);
     tb->disconnect(rx, 1, audio_gain1, 0);
     tb->disconnect(rx, 0, audio_fft, 0);
+    tb->disconnect(rx, 1, audio_fft, 1);
     tb->disconnect(rx, 0, audio_udp_sink, 0);
     tb->disconnect(rx, 1, audio_udp_sink, 1);
     tb->connect(rx, 0, audio_null_sink0, 0); /** FIXME: other channel? */
@@ -1266,6 +1267,7 @@ receiver::status receiver::start_audio_playback(const std::string filename)
     tb->connect(wav_src, 0, audio_gain0, 0);
     tb->connect(wav_src, 1, audio_gain1, 0);
     tb->connect(wav_src, 0, audio_fft, 0);
+    tb->connect(wav_src, 1, audio_fft, 1);
     tb->connect(wav_src, 0, audio_udp_sink, 0);
     tb->connect(wav_src, 1, audio_udp_sink, 1);
     start();
@@ -1283,6 +1285,7 @@ receiver::status receiver::stop_audio_playback()
     tb->disconnect(wav_src, 0, audio_gain0, 0);
     tb->disconnect(wav_src, 1, audio_gain1, 0);
     tb->disconnect(wav_src, 0, audio_fft, 0);
+    tb->disconnect(wav_src, 1, audio_fft, 1);
     tb->disconnect(wav_src, 0, audio_udp_sink, 0);
     tb->disconnect(wav_src, 1, audio_udp_sink, 1);
     tb->disconnect(rx, 0, audio_null_sink0, 0);
@@ -1290,6 +1293,7 @@ receiver::status receiver::stop_audio_playback()
     tb->connect(rx, 0, audio_gain0, 0);
     tb->connect(rx, 1, audio_gain1, 0);
     tb->connect(rx, 0, audio_fft, 0);  /** FIXME: other channel? */
+    tb->connect(rx, 1, audio_fft, 1);  /** FIXME: other channel? */
     tb->connect(rx, 0, audio_udp_sink, 0);
     tb->connect(rx, 1, audio_udp_sink, 1);
     start();
@@ -1616,6 +1620,7 @@ void receiver::connect_all(rx_chain type, enum file_formats fmt)
         tb->connect(b, 0, ddc, 0);
         tb->connect(ddc, 0, rx, 0);
         tb->connect(rx, 0, audio_fft, 0);
+        tb->connect(rx, 1, audio_fft, 1);
         tb->connect(rx, 0, audio_udp_sink, 0);
         tb->connect(rx, 1, audio_udp_sink, 1);
         tb->connect(rx, 0, audio_gain0, 0);
