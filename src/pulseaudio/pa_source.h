@@ -27,8 +27,6 @@
 #include <gnuradio/sync_block.h>
 #include <pulse/simple.h>
 
-using namespace std;
-
 class pa_source;
 
 #if GNURADIO_VERSION < 0x030900
@@ -37,11 +35,11 @@ typedef boost::shared_ptr<pa_source> pa_source_sptr;
 typedef std::shared_ptr<pa_source> pa_source_sptr;
 #endif
 
-pa_source_sptr make_pa_source(const string device_name,
+pa_source_sptr make_pa_source(const std::string device_name,
                               int sample_rate,
                               int num_chan,
-                              const string app_name,
-                              const string stream_name);
+                              const std::string app_name,
+                              const std::string stream_name);
 
 
 /*! \brief Pulseaudio source.
@@ -50,24 +48,24 @@ pa_source_sptr make_pa_source(const string device_name,
  */
 class pa_source : public gr::sync_block
 {
-    friend pa_source_sptr make_pa_source(const string device_name, int sample_rate, int num_chan,
-                                         const string app_name, const string stream_name);
+    friend pa_source_sptr make_pa_source(const std::string device_name, int sample_rate, int num_chan,
+                                         const std::string app_name, const std::string stream_name);
 
 public:
-    pa_source(const string device_name, int sample_rate, int num_chan,
-              const string app_name, const string stream_name);
+    pa_source(const std::string device_name, int sample_rate, int num_chan,
+              const std::string app_name, const std::string stream_name);
     ~pa_source();
 
     int work (int noutput_items,
               gr_vector_const_void_star &input_items,
               gr_vector_void_star &output_items);
 
-    void select_device(string device_name);
+    void select_device(std::string device_name);
 
 private:
     pa_sample_spec d_ss;           /*! Sample specification. */
-    string         d_stream_name;  /*! Descriptive name of the stream. */
-    string         d_app_name;     /*! Descriptive name of the application. */
+    std::string         d_stream_name;  /*! Descriptive name of the stream. */
+    std::string         d_app_name;     /*! Descriptive name of the application. */
     pa_simple     *d_pasrc;        /*! The pulseaudio object. */
 
 };

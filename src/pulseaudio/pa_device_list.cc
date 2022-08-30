@@ -22,6 +22,8 @@
  */
 #include "pa_device_list.h"
 
+using namespace std;
+
 pa_device::pa_device(unsigned int idx, string name, string desc) :
     d_index(idx), d_name(name), d_description(desc)
 {
