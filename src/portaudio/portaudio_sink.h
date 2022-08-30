@@ -26,8 +26,6 @@
 #include <portaudio.h>
 #include <string>
 
-using namespace std;
-
 class portaudio_sink;
 
 #if GNURADIO_VERSION < 0x030900
@@ -36,21 +34,21 @@ typedef boost::shared_ptr<portaudio_sink> portaudio_sink_sptr;
 typedef std::shared_ptr<portaudio_sink> portaudio_sink_sptr;
 #endif
 
-portaudio_sink_sptr make_portaudio_sink(const string device_name, int audio_rate,
-                                        const string app_name,
-                                        const string stream_name);
+portaudio_sink_sptr make_portaudio_sink(const std::string device_name, int audio_rate,
+                                        const std::string app_name,
+                                        const std::string stream_name);
 
 /** Two-channel portaudio sink */
 class portaudio_sink : public gr::sync_block
 {
-    friend portaudio_sink_sptr make_portaudio_sink(const string device_name,
+    friend portaudio_sink_sptr make_portaudio_sink(const std::string device_name,
                                                    int audio_rate,
-                                                   const string app_name,
-                                                   const string stream_name);
+                                                   const std::string app_name,
+                                                   const std::string stream_name);
 
 public:
-    portaudio_sink(const string device_name, int audio_rate,
-                   const string app_name, const string stream_name);
+    portaudio_sink(const std::string device_name, int audio_rate,
+                   const std::string app_name, const std::string stream_name);
     ~portaudio_sink();
 
     int work (int noutput_items,
@@ -60,12 +58,12 @@ public:
     bool start();
     bool stop();
 
-    void select_device(string device_name);
+    void select_device(std::string device_name);
 
 private:
     PaStream           *d_stream;
     PaStreamParameters  d_out_params;
-    string      d_stream_name;       // Descriptive name of the stream.
-    string      d_app_name;          // Descriptive name of the application.
+    std::string      d_stream_name;       // Descriptive name of the stream.
+    std::string      d_app_name;          // Descriptive name of the application.
     int         d_audio_rate;
 };
