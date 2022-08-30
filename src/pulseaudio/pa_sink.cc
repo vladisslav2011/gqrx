@@ -28,6 +28,7 @@
 
 #include "pa_sink.h"
 
+using namespace std;
 
 /*! \brief Create a new pulseaudio sink object.
  *  \param device_name The name of the audio device, or NULL for default.
