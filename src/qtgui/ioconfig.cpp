@@ -21,6 +21,7 @@
  * Boston, MA 02110-1301, USA.
  */
 #include <iomanip>
+#include <string>
 #include <QDebug>
 #include <QFile>
 #include <QPushButton>
@@ -106,31 +107,31 @@ void CIoConfig::getDeviceList(std::map<QString, QVariant> &devList)
 #if defined(Q_OS_DARWIN)
 #ifdef WITH_PORTAUDIO
     portaudio_device_list       devices;
-    vector<portaudio_device>    inDevList = devices.get_input_devices();
+    std::vector<portaudio_device>    inDevList = devices.get_input_devices();
 #else
     osxaudio_device_list        devices;
-    vector<osxaudio_device>     inDevList = devices.get_input_devices();
+    std::vector<osxaudio_device>     inDevList = devices.get_input_devices();
 #endif
-    string this_dev;
+    std::string this_dev;
     for (auto &device : inDevList)
     {
         this_dev = device.get_name();
-        if (this_dev.find("FUNcube Dongle V1.0") != string::npos)
+        if (this_dev.find("FUNcube Dongle V1.0") != std::string::npos)
         {
             devstr = "fcd,type=1,device='FUNcube Dongle V1.0'";
             devList.insert(std::pair<QString, QVariant>(QString("FUNcube Dongle V1.0"), QVariant(devstr)));
         }
-        else if (this_dev.find("FUNcube Dongle V1_0") != string::npos)      // since OS X 10.11.4
+        else if (this_dev.find("FUNcube Dongle V1_0") != std::string::npos)      // since OS X 10.11.4
         {
             devstr = "fcd,type=1,device='FUNcube Dongle V1_0'";
             devList.insert(std::pair<QString, QVariant>(QString("FUNcube Dongle V1_0"), QVariant(devstr)));
         }
-        else if (this_dev.find("FUNcube Dongle V2.0") != string::npos)
+        else if (this_dev.find("FUNcube Dongle V2.0") != std::string::npos)
         {
             devstr = "fcd,type=2,device='FUNcube Dongle V2.0'";
             devList.insert(std::pair<QString, QVariant>(QString("FUNcube Dongle V2.0"), QVariant(devstr)));
         }
-        else if (this_dev.find("FUNcube Dongle V2_0") != string::npos)      // since OS X 10.11.4
+        else if (this_dev.find("FUNcube Dongle V2_0") != std::string::npos)      // since OS X 10.11.4
         {
             devstr = "fcd,type=2,device='FUNcube Dongle V2_0'";
             devList.insert(std::pair<QString, QVariant>(QString("FUNcube Dongle V2_0"), QVariant(devstr)));
