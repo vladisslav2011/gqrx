@@ -26,6 +26,8 @@
 #include "device_list.h"
 #include "portaudio_sink.h"
 
+using namespace std;
+
 /**
  * Create a new portaudio sink object.
  * @param device_name The name of the audio device, or NULL for default.

@@ -25,8 +25,6 @@
 #include <vector>
 #include <portaudio.h>
 
-using namespace std;
-
 /*! \brief Simple class to represent portaudio devices.
  *
  * This class represents a portaudio device. The device can be either source
@@ -35,21 +33,21 @@ using namespace std;
 class portaudio_device
 {
 public:
-    portaudio_device(unsigned int idx=0, string name="", string desc="");
+    portaudio_device(unsigned int idx=0, std::string name="", std::string desc="");
     ~portaudio_device();
 
     void set_index(unsigned int idx) { d_index = idx; }
-    void set_name(string name) { d_name = name; }
-    void set_description(string desc) { d_description = desc; }
+    void set_name(std::string name) { d_name = name; }
+    void set_description(std::string desc) { d_description = desc; }
 
     unsigned int get_index() const { return d_index; }
-    string  get_name() const { return d_name; }
-    string  get_description() const { return d_description; }
+    std::string  get_name() const { return d_name; }
+    std::string  get_description() const { return d_description; }
 
 private:
     unsigned int d_index;    /*! The index of the audio device (unique for each source/sink). */
-    string  d_name;           /*! The name of the audio device. Used when creating sources/sinks. */
-    string  d_description;    /*! The description of the audio device. */
+    std::string  d_name;           /*! The name of the audio device. Used when creating sources/sinks. */
+    std::string  d_description;    /*! The description of the audio device. */
 };
 
 
@@ -60,17 +58,17 @@ public:
     portaudio_device_list();
     ~portaudio_device_list();
 
-    vector<portaudio_device> get_input_devices() { return d_sources; }
-    vector<portaudio_device> get_output_devices() {return d_sinks; }
+    std::vector<portaudio_device> get_input_devices() { return d_sources; }
+    std::vector<portaudio_device> get_output_devices() {return d_sinks; }
 
     /** Get output device index. Returns -1 if not found */
-    PaDeviceIndex   get_output_device_index(const string name) const;
+    PaDeviceIndex   get_output_device_index(const std::string name) const;
 
 private:
-    vector<portaudio_device> d_sources;   /*! List of pulseaudio sources. */
-    vector<portaudio_device> d_sinks;  /*! List of pulseaudio sinks. */
+    std::vector<portaudio_device> d_sources;   /*! List of pulseaudio sources. */
+    std::vector<portaudio_device> d_sinks;  /*! List of pulseaudio sinks. */
 
     int populate_device_list();
-    void add_sink(unsigned int idx, string name, string desc);
-    void add_source(unsigned int idx, string name, string desc);
+    void add_sink(unsigned int idx, std::string name, std::string desc);
+    void add_source(unsigned int idx, std::string name, std::string desc);
 };
