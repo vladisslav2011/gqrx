@@ -29,6 +29,7 @@
 
 #include "pa_source.h"
 
+using namespace std;
 
 #define SAMPLES_PER_BUFFER 1024 /*! Max number of samples we read every cycle. */
 
