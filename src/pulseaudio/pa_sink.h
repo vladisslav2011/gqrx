@@ -27,8 +27,6 @@
 #include <pulse/simple.h>
 #include <string>
 
-using namespace std;
-
 class pa_sink;
 
 #if GNURADIO_VERSION < 0x030900
@@ -37,9 +35,9 @@ typedef boost::shared_ptr<pa_sink> pa_sink_sptr;
 typedef std::shared_ptr<pa_sink> pa_sink_sptr;
 #endif
 
-pa_sink_sptr make_pa_sink(const string device_name, int audio_rate,
-                          const string app_name,
-                          const string stream_name);
+pa_sink_sptr make_pa_sink(const std::string device_name, int audio_rate,
+                          const std::string app_name,
+                          const std::string stream_name);
 
 
 /*! \brief Pulseaudio sink
@@ -50,12 +48,12 @@ pa_sink_sptr make_pa_sink(const string device_name, int audio_rate,
  */
 class pa_sink : public gr::sync_block
 {
-    friend pa_sink_sptr make_pa_sink(const string device_name, int audio_rate,
-                                     const string app_name, const string stream_name);
+    friend pa_sink_sptr make_pa_sink(const std::string device_name, int audio_rate,
+                                     const std::string app_name, const std::string stream_name);
 
 public:
-    pa_sink(const string device_name, int audio_rate,
-            const string app_name, const string stream_name);
+    pa_sink(const std::string device_name, int audio_rate,
+            const std::string app_name, const std::string stream_name);
     ~pa_sink();
 
     int work (int noutput_items,
@@ -65,12 +63,12 @@ public:
     bool start();
     bool stop();
 
-    void select_device(string device_name);
+    void select_device(std::string device_name);
 
 private:
     pa_simple *d_pasink;    /*! The pulseaudio object. */
-    string d_stream_name;   /*! Descriptive name of the stream. */
-    string d_app_name;      /*! Descriptive name of the application. */
+    std::string d_stream_name;   /*! Descriptive name of the stream. */
+    std::string d_app_name;      /*! Descriptive name of the application. */
     pa_sample_spec d_ss;    /*! pulseaudio sample specification. */
 };
 
