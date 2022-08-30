@@ -26,6 +26,8 @@
 #include <gnuradio/audio/osx_impl.h>
 #include "device_list.h"
 
+using namespace std;
+
 
 osxaudio_device::osxaudio_device(unsigned int idx, string name, string desc) :
     d_index(idx), d_name(name), d_description(desc)
