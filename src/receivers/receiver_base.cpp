@@ -30,7 +30,7 @@
 
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
-static const int MIN_OUT = 0; /* Minimum number of output streams. */
+static const int MIN_OUT = 2; /* Minimum number of output streams. */
 static const int MAX_OUT = 2; /* Maximum number of output streams. */
 
 receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate)
