@@ -413,13 +413,7 @@ private:
     sniffer_f_sptr    sniffer;    /*!< Sample sniffer for data decoders. */
     resampler_ff_sptr sniffer_rr; /*!< Sniffer resampler. */
 
-#ifdef WITH_PULSEAUDIO
-    pa_sink_sptr              audio_snk;  /*!< Pulse audio sink. */
-#elif WITH_PORTAUDIO
-    portaudio_sink_sptr       audio_snk;  /*!< portaudio sink */
-#else
-    gr::audio::sink::sptr     audio_snk;  /*!< gr audio sink */
-#endif
+    gr::basic_block_sptr  audio_snk;  /*!< Pulse audio sink. */
     audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
     static std::string get_zero_file(void);
