@@ -26,6 +26,7 @@
 #include <QDialog>
 #include <QSettings>
 #include <QString>
+#include <vector>
 
 #ifdef WITH_PULSEAUDIO
 #include "pulseaudio/pa_device_list.h"
@@ -74,11 +75,11 @@ private:
     std::map<QString, QVariant> *m_devList; // will point to devList from constructor
 
 #ifdef WITH_PULSEAUDIO
-    vector<pa_device>           outDevList;
+    std::vector<pa_device>           outDevList;
 #elif WITH_PORTAUDIO
-    vector<portaudio_device>    outDevList;
+    std::vector<portaudio_device>    outDevList;
 #elif defined(Q_OS_DARWIN)
-    vector<osxaudio_device>     outDevList;
+    std::vector<osxaudio_device>     outDevList;
 #endif
 
 };
