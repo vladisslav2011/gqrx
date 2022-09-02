@@ -341,6 +341,7 @@ private:
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
     void        configure_channelizer(bool reconnect);
+    gr::basic_block_sptr create_audio_sink(std::string audio_device, std::string sink_name);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
