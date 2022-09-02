@@ -150,13 +150,7 @@ receiver::receiver(const std::string input_device,
     mc1  = gr::blocks::multiply_const_ff::make(1.0, 1);
     null_src = gr::blocks::null_source::make(sizeof(float));
 
-#ifdef WITH_PULSEAUDIO
-    audio_snk = make_pa_sink(audio_device, d_audio_rate, "GQRX", "Audio output");
-#elif WITH_PORTAUDIO
-    audio_snk = make_portaudio_sink(audio_device, d_audio_rate, "GQRX", "Audio output");
-#else
-    audio_snk = gr::audio::sink::make(d_audio_rate, audio_device, true);
-#endif
+    audio_snk = create_audio_sink(audio_device, "DMIX output");
 
     output_devstr = audio_device;
     
@@ -412,13 +406,7 @@ void receiver::set_output_device(const std::string device)
     audio_snk.reset();
 
     try {
-#ifdef WITH_PULSEAUDIO
-        audio_snk = make_pa_sink(device, d_audio_rate, "GQRX", "Audio output");
-#elif WITH_PORTAUDIO
-        audio_snk = make_portaudio_sink(device, d_audio_rate, "GQRX", "Audio output");
-#else
-        audio_snk = gr::audio::sink::make(d_audio_rate, device, true);
-#endif
+        audio_snk = create_audio_sink(device, "DMIX output");
 
         if (d_active > 0)
         {
@@ -2387,4 +2375,16 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
     if (self->d_audio_rec_event_handler)
         if (idx == self->d_current)
             self->d_audio_rec_event_handler(filename, is_running);
+}
+
+gr::basic_block_sptr receiver::create_audio_sink(std::string audio_device, std::string sink_name)
+{
+#ifdef WITH_PULSEAUDIO
+    return make_pa_sink(audio_device, d_audio_rate, "GQRX", sink_name);
+#elif WITH_PORTAUDIO
+    return  make_portaudio_sink(audio_device, d_audio_rate, "GQRX", sink_name);
+#else
+    return  gr::audio::sink::make(d_audio_rate, audio_device, true);
+#endif
+
 }
