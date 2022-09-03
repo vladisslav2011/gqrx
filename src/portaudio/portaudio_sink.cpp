@@ -155,21 +155,19 @@ void portaudio_sink::select_device(string device_name)
 
 }
 
-#define BUFFER_SIZE 100000
 int portaudio_sink::work(int noutput_items,
                          gr_vector_const_void_star &input_items,
                          gr_vector_void_star &output_items)
 {
     PaError     err;
 
-    static float    audio_buffer[BUFFER_SIZE];
-    float      *ptr = &audio_buffer[0];
+    float      *ptr = &d_audio_buffer[0];
     int         i;
 
     (void) output_items;
 
-    if (noutput_items > BUFFER_SIZE/2)
-        noutput_items = BUFFER_SIZE/2;
+    if (noutput_items > PORTAUDIO_BUFFER_SIZE/2)
+        noutput_items = PORTAUDIO_BUFFER_SIZE/2;
 
     // two channels (stereo)
     const float *data_l = (const float*) input_items[0];
@@ -180,7 +178,7 @@ int portaudio_sink::work(int noutput_items,
         *ptr++ = *data_r++;
     }
 
-    err = Pa_WriteStream(d_stream, audio_buffer, noutput_items);
+    err = Pa_WriteStream(d_stream, d_audio_buffer, noutput_items);
     if (err)
     {
         fprintf(stderr,
@@ -188,7 +186,7 @@ int portaudio_sink::work(int noutput_items,
                 Pa_GetErrorText(err));
         //dumb fix for repeated "portaudio_sink::work(): Error writing to audio device: Output underflowed"
         if (err == paOutputUnderflowed)
-            Pa_WriteStream(d_stream, audio_buffer, noutput_items);
+            Pa_WriteStream(d_stream, d_audio_buffer, noutput_items);
     }
 
     return noutput_items;
