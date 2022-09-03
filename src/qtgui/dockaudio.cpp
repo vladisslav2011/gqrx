@@ -47,6 +47,7 @@ DockAudio::DockAudio(QWidget *parent) :
     connect(audioOptions, SIGNAL(newUdpHost(QString)), this, SLOT(udpHost_changed(QString)));
     connect(audioOptions, SIGNAL(newUdpPort(int)), this, SLOT(udpPort_changed(int)));
     connect(audioOptions, SIGNAL(newUdpStereo(bool)), this, SLOT(udpStereo_changed(bool)));
+    connect(audioOptions, SIGNAL(newDedicatedDev(bool,std::string)), this, SLOT(dedicatedAudioDev_changed(bool,std::string)));
     connect(audioOptions, SIGNAL(newSquelchTriggered(bool)), this, SLOT(squelchTriggered_changed(bool)));
     connect(audioOptions, SIGNAL(newRecMinTime(int)), this, SLOT(recMinTime_changed(int)));
     connect(audioOptions, SIGNAL(newRecMaxGap(int)), this, SLOT(recMaxGap_changed(int)));
@@ -313,6 +314,11 @@ void DockAudio::setAudioStreamButtonState(bool checked)
     //TODO: disable host/port controls
 }
 
+void DockAudio::setDedicatedAudioSink(bool enabled)
+{
+     audioOptions->setDedicatedSink(enabled);
+}
+
 /*! \brief Set status of audio record button. */
 void DockAudio::setAudioPlayButtonState(bool checked)
 {
@@ -450,6 +456,10 @@ void DockAudio::udpStereo_changed(bool enabled)
 {
     udp_stereo = enabled;
     emit udpStereoChanged(enabled);
+}
+void DockAudio::dedicatedAudioDev_changed(bool enabled, std::string name)
+{
+    emit dedicatedAudioDevChanged(enabled, name);
 }
 
 /*! \brief Slot called when audio recording is started after clicking rec or being triggered by squelch. */

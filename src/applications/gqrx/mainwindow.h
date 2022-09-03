@@ -215,6 +215,8 @@ private slots:
     void startAudioStream();
     void stopAudioStreaming();
 
+    void audioDedicatedDevChanged(bool enabled, std::string name);
+
     /* I/Q playback and recording*/
     void startIqRecording(const QString& recdir,
                           enum receiver::file_formats fmt, int buffers_max);
