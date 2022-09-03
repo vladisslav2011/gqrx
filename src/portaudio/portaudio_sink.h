@@ -26,6 +26,8 @@
 #include <portaudio.h>
 #include <string>
 
+#define PORTAUDIO_BUFFER_SIZE 100000
+
 class portaudio_sink;
 
 #if GNURADIO_VERSION < 0x030900
@@ -66,4 +68,5 @@ private:
     std::string      d_stream_name;       // Descriptive name of the stream.
     std::string      d_app_name;          // Descriptive name of the application.
     int         d_audio_rate;
+    float       d_audio_buffer[PORTAUDIO_BUFFER_SIZE];
 };
