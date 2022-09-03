@@ -121,20 +121,17 @@ void pa_sink::select_device(string device_name)
 }
 
 
-#define BUFFER_SIZE 100000
-
 int pa_sink::work (int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
-    static float audio_buffer[BUFFER_SIZE];
-    float *ptr = &audio_buffer[0];
+    float *ptr = &d_audio_buffer[0];
     int i, error;
 
     (void) output_items;
 
-    if (noutput_items > BUFFER_SIZE/2)
-        noutput_items = BUFFER_SIZE/2;
+    if (noutput_items > PULSE_AUDIO_BUFFER_SIZE/2)
+        noutput_items = PULSE_AUDIO_BUFFER_SIZE/2;
 
     if (input_items.size() == 2)
     {
@@ -159,7 +156,7 @@ int pa_sink::work (int noutput_items,
         }
     }
 
-    if (pa_simple_write(d_pasink, audio_buffer, 2*noutput_items*sizeof(float), &error) < 0) { //!!!
+    if (pa_simple_write(d_pasink, d_audio_buffer, 2*noutput_items*sizeof(float), &error) < 0) { //!!!
         fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
     }
 
