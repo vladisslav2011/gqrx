@@ -63,6 +63,7 @@ public:
     void setAudioRecButtonState(bool checked);
     void setAudioStreamState(const std::string & host,int port,bool stereo, bool running);
     void setAudioStreamButtonState(bool checked);
+    void setDedicatedAudioSink(bool enabled);
     void setAudioPlayButtonState(bool checked);
 
     void setFftColor(QColor color);
@@ -103,6 +104,9 @@ signals:
 
     /*! \brief Audio streaming stopped. */
     void audioStreamingStopped();
+
+    /*! \brief Dedicated audio device setting changed. */
+    void dedicatedAudioDevChanged(bool enabled, std::string name);
 
     /*! \brief Signal emitted when audio recording is started. */
     void audioRecStart();
@@ -151,6 +155,7 @@ private slots:
     void udpHost_changed(const QString &host);
     void udpPort_changed(int port);
     void udpStereo_changed(bool enabled);
+    void dedicatedAudioDev_changed(bool enabled, std::string name);
     void squelchTriggered_changed(bool enabled);
     void recMinTime_changed(int time_ms);
     void recMaxGap_changed(int time_ms);
