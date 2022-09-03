@@ -33,6 +33,9 @@ CAudioOptions::CAudioOptions(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    // Output device
+    updateOutDev();
+
     work_dir = new QDir();
 
     error_palette = new QPalette();
@@ -178,6 +181,11 @@ bool CAudioOptions::getLockButtonState(void) const
     return ui->audioLockButton->isChecked();
 }
 
+void CAudioOptions::setDedicatedSink(bool checked) const
+{
+    ui->dedicatedDevCheckBox->setChecked(checked);
+}
+
 void CAudioOptions::setPandapterSliderValues(float min, float max)
 {
     ui->pandRangeSlider->blockSignals(true);
@@ -285,3 +293,52 @@ void CAudioOptions::on_toAllVFOsButton_clicked()
 {
     emit copyRecSettingsToAllVFOs();
 }
+
+void CAudioOptions::updateOutDev()
+{
+    ui->outDevCombo->clear();
+    ui->outDevCombo->addItem("Default");
+
+    // get list of audio output devices
+#if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
+   audio_device_list devices;
+   outDevList = devices.get_output_devices();
+
+   qDebug() << __FUNCTION__ << ": Available output devices:";
+   for (size_t i = 0; i < outDevList.size(); i++)
+   {
+       qDebug() << "   " << i << ":" << QString(outDevList[i].get_description().c_str());
+       //qDebug() << "     " << QString(outDevList[i].get_name().c_str());
+       ui->outDevCombo->addItem(QString(outDevList[i].get_description().c_str()));
+
+       // note that item #i in devlist will be item #(i+1)
+       // in combo box due to "default"
+//       if (outdev == QString(outDevList[i].get_name().c_str()))
+//           ui->outDevCombo->setCurrentIndex(i+1);
+   }
+#else
+   ui->outDevCombo->addItem(m_settings->value("output/device", "Default").toString(),
+                            m_settings->value("output/device", "Default").toString());
+   ui->outDevCombo->setEditable(true);
+#endif // WITH_PULSEAUDIO
+}
+
+
+/** Dedicated audio device has changed. */
+void CAudioOptions::on_dedicatedDevCheckBox_stateChanged(int state)
+{
+    int idx = ui->outDevCombo->currentIndex();
+
+#if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
+    if (idx > 0)
+    {
+        emit newDedicatedDev(state, outDevList[idx-1].get_name());
+    }else{
+        emit newDedicatedDev(state, "");
+    }
+#else
+    emit newDedicatedDev(state, ui->outDevCombo->currentText().toStdString());
+#endif
+    ui->outDevCombo->setDisabled(state);
+}
+
