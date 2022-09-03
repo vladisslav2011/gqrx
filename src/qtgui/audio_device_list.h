@@ -33,6 +33,8 @@
 #elif defined(Q_OS_DARWIN)
     #include "osxaudio/device_list.h"
     using audio_device = osxaudio_device;
+#else
+    using audio_device = int;
 #endif
 
 #if defined(Q_OS_DARWIN)

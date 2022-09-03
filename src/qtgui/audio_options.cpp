@@ -317,8 +317,7 @@ void CAudioOptions::updateOutDev()
 //           ui->outDevCombo->setCurrentIndex(i+1);
    }
 #else
-   ui->outDevCombo->addItem(m_settings->value("output/device", "Default").toString(),
-                            m_settings->value("output/device", "Default").toString());
+   ui->outDevCombo->addItem("Default","Default");
    ui->outDevCombo->setEditable(true);
 #endif // WITH_PULSEAUDIO
 }
@@ -327,9 +326,9 @@ void CAudioOptions::updateOutDev()
 /** Dedicated audio device has changed. */
 void CAudioOptions::on_dedicatedDevCheckBox_stateChanged(int state)
 {
-    int idx = ui->outDevCombo->currentIndex();
 
 #if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
+    int idx = ui->outDevCombo->currentIndex();
     if (idx > 0)
     {
         emit newDedicatedDev(state, outDevList[idx-1].get_name());
