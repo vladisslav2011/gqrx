@@ -210,6 +210,8 @@ private slots:
     void startAudioStream();
     void stopAudioStreaming();
 
+    void audioDedicatedDevChanged(bool enabled, std::string name);
+
     /* I/Q playback and recording*/
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
     void startIqRecording(const QString& recdir, file_formats fmt, int buffers_max);

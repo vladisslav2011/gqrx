@@ -34,14 +34,6 @@
 #include <osmosdr/source.h>
 #include <osmosdr/ranges.h>
 
-#ifdef WITH_PULSEAUDIO
-#include "pulseaudio/pa_device_list.h"
-#elif WITH_PORTAUDIO
-#include "portaudio/device_list.h"
-#elif defined(Q_OS_DARWIN)
-#include "osxaudio/device_list.h"
-#endif
-
 #include "qtgui/ioconfig.h"
 #include "ui_ioconfig.h"
 
@@ -105,13 +97,8 @@ void CIoConfig::getDeviceList(std::map<QString, QVariant> &devList)
     // automatic discovery of FCD does not work on Mac
     // so we do it ourselves
 #if defined(Q_OS_DARWIN)
-#ifdef WITH_PORTAUDIO
-    portaudio_device_list       devices;
-    std::vector<portaudio_device>    inDevList = devices.get_input_devices();
-#else
-    osxaudio_device_list        devices;
-    std::vector<osxaudio_device>     inDevList = devices.get_input_devices();
-#endif
+    audio_device_list       devices;
+    std::vector<audio_device>    inDevList = devices.get_input_devices();
     std::string this_dev;
     for (auto &device : inDevList)
     {
@@ -658,8 +645,8 @@ void CIoConfig::updateOutDev()
     ui->outDevCombo->addItem("Default");
 
     // get list of audio output devices
-#ifdef WITH_PULSEAUDIO
-   pa_device_list devices;
+#if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
+   audio_device_list devices;
    outDevList = devices.get_output_devices();
 
    qDebug() << __FUNCTION__ << ": Available output devices:";
@@ -674,37 +661,6 @@ void CIoConfig::updateOutDev()
        if (outdev == QString(outDevList[i].get_name().c_str()))
            ui->outDevCombo->setCurrentIndex(i+1);
    }
-#elif WITH_PORTAUDIO
-   portaudio_device_list   devices;
-
-   outDevList = devices.get_output_devices();
-   for (size_t i = 0; i < outDevList.size(); i++)
-   {
-       ui->outDevCombo->addItem(QString(outDevList[i].get_description().c_str()));
-
-       // note that item #i in devlist will be item #(i+1)
-       // in combo box due to "default"
-       if (outdev == QString(outDevList[i].get_name().c_str()))
-           ui->outDevCombo->setCurrentIndex(i+1);
-   }
-   //ui->outDevCombo->setEditable(true);
-
-#elif defined(Q_OS_DARWIN)
-   osxaudio_device_list devices;
-   outDevList = devices.get_output_devices();
-
-   qDebug() << __FUNCTION__ << ": Available output devices:";
-   for (size_t i = 0; i < outDevList.size(); i++)
-   {
-       qDebug() << "   " << i << ":" << QString(outDevList[i].get_name().c_str());
-       ui->outDevCombo->addItem(QString(outDevList[i].get_name().c_str()));
-
-       // note that item #i in devlist will be item #(i+1)
-       // in combo box due to "default"
-       if (outdev == QString(outDevList[i].get_name().c_str()))
-           ui->outDevCombo->setCurrentIndex(i+1);
-   }
-
 #else
    ui->outDevCombo->addItem(m_settings->value("output/device", "Default").toString(),
                             m_settings->value("output/device", "Default").toString());

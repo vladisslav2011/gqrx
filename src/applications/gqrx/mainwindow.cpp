@@ -265,6 +265,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(udpStereoChanged(bool)), this, SLOT(audioStreamStereoChanged(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted()), this, SLOT(startAudioStream()));
     connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
+    connect(uiDockAudio, SIGNAL(dedicatedAudioDevChanged(bool,std::string)), this, SLOT(audioDedicatedDevChanged(bool,std::string)));
     connect(uiDockAudio, SIGNAL(audioRecStart()), this, SLOT(startAudioRec()));
     connect(uiDockAudio, SIGNAL(audioRecStart()), remote, SLOT(startAudioRecorder()));
     connect(uiDockAudio, SIGNAL(audioRecStop()), this, SLOT(stopAudioRec()));
@@ -2322,6 +2323,12 @@ void MainWindow::stopAudioStreaming()
     uiDockAudio->setAudioStreamButtonState(rx->get_udp_streaming());
 }
 
+void MainWindow::audioDedicatedDevChanged(bool enabled, std::string name)
+{
+    rx->set_dedicated_audio_dev(name);
+    rx->set_dedicated_audio_sink(enabled);
+}
+
 QString MainWindow::makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts)
 {
     // generate file name using date, time, rf freq in kHz and BW in Hz
@@ -3394,6 +3401,7 @@ void MainWindow::loadRxToGUI()
     else
         uiDockAudio->audioRecStopped();
     uiDockAudio->setAudioStreamState(rx->get_udp_host(), rx->get_udp_port(), rx->get_udp_stereo(), rx->get_udp_streaming());
+    uiDockAudio->setDedicatedAudioSink(rx->get_dedicated_audio_sink());
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
     switch (mode_idx)
     {
