@@ -297,27 +297,27 @@ void CAudioOptions::on_toAllVFOsButton_clicked()
 void CAudioOptions::updateOutDev()
 {
     ui->outDevCombo->clear();
-    ui->outDevCombo->addItem("Default");
 
     // get list of audio output devices
 #if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
-   audio_device_list devices;
-   outDevList = devices.get_output_devices();
+    audio_device_list devices;
+    outDevList = devices.get_output_devices();
 
-   qDebug() << __FUNCTION__ << ": Available output devices:";
-   for (size_t i = 0; i < outDevList.size(); i++)
-   {
-       qDebug() << "   " << i << ":" << QString(outDevList[i].get_description().c_str());
-       //qDebug() << "     " << QString(outDevList[i].get_name().c_str());
-       ui->outDevCombo->addItem(QString(outDevList[i].get_description().c_str()));
+    ui->outDevCombo->addItem("Default");
+    qDebug() << __FUNCTION__ << ": Available output devices:";
+    for (size_t i = 0; i < outDevList.size(); i++)
+    {
+        qDebug() << "   " << i << ":" << QString(outDevList[i].get_description().c_str());
+        //qDebug() << "     " << QString(outDevList[i].get_name().c_str());
+        ui->outDevCombo->addItem(QString(outDevList[i].get_description().c_str()));
 
-       // note that item #i in devlist will be item #(i+1)
-       // in combo box due to "default"
+        // note that item #i in devlist will be item #(i+1)
+        // in combo box due to "default"
 //       if (outdev == QString(outDevList[i].get_name().c_str()))
 //           ui->outDevCombo->setCurrentIndex(i+1);
    }
 #else
-   ui->outDevCombo->addItem("Default","Default");
+   ui->outDevCombo->addItem("default","Default");
    ui->outDevCombo->setEditable(true);
 #endif // WITH_PULSEAUDIO
 }
