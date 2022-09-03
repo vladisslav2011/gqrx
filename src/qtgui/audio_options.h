@@ -27,6 +27,7 @@
 #include <QDialog>
 #include <QDir>
 #include <QPalette>
+#include "audio_device_list.h"
 
 namespace Ui {
     class CAudioOptions;
@@ -63,6 +64,8 @@ public:
     void setLockButtonState(bool checked);
     bool getLockButtonState(void) const;
 
+    void setDedicatedSink(bool checked) const;
+
 public slots:
     void setPandapterSliderValues(float min, float max);
 
@@ -81,6 +84,7 @@ signals:
     void newRecMinTime(int time_ms);
     void newRecMaxGap(int time_ms);
     void copyRecSettingsToAllVFOs();
+    void newDedicatedDev(bool enabled, std::string name);
 
 private slots:
     void on_fftSplitSlider_valueChanged(int value);
@@ -96,12 +100,15 @@ private slots:
     void on_recMinTime_valueChanged(int value);
     void on_recMaxGap_valueChanged(int value);
     void on_toAllVFOsButton_clicked();
+    void on_dedicatedDevCheckBox_stateChanged(int state);
 
 private:
+    void updateOutDev();
     Ui::CAudioOptions *ui;                   /*!< The user interface widget. */
     QDir              *work_dir;             /*!< Used for validating chosen directory. */
     QPalette          *error_palette;        /*!< Palette used to indicate an error. */
     bool               m_pand_last_modified; /*!< Flag to indicate which slider was changed last */
+    std::vector<audio_device> outDevList;
 };
 
 #endif // AUDIO_OPTIONS_H

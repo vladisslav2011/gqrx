@@ -32,6 +32,7 @@
 #include "dsp/downconverter.h"
 #include "interfaces/wav_sink.h"
 #include "interfaces/udp_sink_f.h"
+#include "interfaces/audio_sink.h"
 #include "receivers/vfo.h"
 #include "defines.h"
 
@@ -84,7 +85,7 @@ public:
     virtual void set_center_freq(double center_freq);
     void set_offset(int offset) override;
 
-    void set_port(int port) { d_port = port; }
+    void set_port(int port);
     int  get_port() const { return d_port; }
 
     /* Audio recording */
@@ -145,6 +146,11 @@ public:
     bool connected() { return d_connected; }
     void connected(bool value) { d_connected = value; }
 
+    /* Dedicated audio sink */
+    void set_dedicated_audio_sink(bool value);
+    bool get_dedicated_audio_sink() { return d_dedicated_audio_sink; }
+    void set_audio_dev(std::string audio_dev) { d_audio_dev = audio_dev; }
+
 protected:
     bool         d_connected;
     int          d_port;
@@ -155,6 +161,8 @@ protected:
     double       d_center_freq;
     std::string  d_audio_filename;
     bool         d_udp_streaming;
+    bool         d_dedicated_audio_sink;
+    std::string  d_audio_dev;
 
     downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
@@ -163,6 +171,7 @@ protected:
     rx_sql_cc_sptr            sql;        /*!< Squelch. */
     wavfile_sink_gqrx::sptr   wav_sink;   /*!< WAV file sink for recording. */
     udp_sink_f_sptr           audio_udp_sink;  /*!< UDP sink to stream audio over the network. */
+    gr::basic_block_sptr       audio_snk;  /*!< Dedicated audio sink. */
 private:
     float d_pref_quad_rate;
     rec_event_handler_t d_rec_event;

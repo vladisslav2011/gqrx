@@ -46,6 +46,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
       d_udp_streaming(false),
+      d_dedicated_audio_sink(false),
+      d_audio_dev(""),
       d_pref_quad_rate(pref_quad_rate)
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
@@ -122,6 +124,30 @@ void receiver_base_cf::set_offset(int offset)
     vfo_s::set_offset(offset);
     ddc->set_center_freq(offset);
     wav_sink->set_offset(offset);
+}
+
+void receiver_base_cf::set_port(int port)
+{
+    //lock();
+    if(d_port != port)
+    {
+        if( !!audio_snk )
+        {
+            disconnect(agc, 0, audio_snk, 0);
+            disconnect(agc, 1, audio_snk, 1);
+            audio_snk.reset();
+            disconnect(self(), 0, ddc, 0);
+            connect(self(), 0, ddc, 0);
+        }
+    }
+    d_port = port;
+    if( d_port != -1 && d_dedicated_audio_sink)
+    {
+        audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
+        connect(agc, 0, audio_snk, 0);
+        connect(agc, 1, audio_snk, 1);
+    }
+    //unlock();
 }
 
 void receiver_base_cf::set_cw_offset(int offset)
@@ -353,4 +379,27 @@ void receiver_base_cf::restore_settings(receiver_base_cf& from)
     vfo_s::restore_settings(from);
 
     set_center_freq(from.d_center_freq);
+}
+
+void receiver_base_cf::set_dedicated_audio_sink(bool value)
+{
+    if(d_dedicated_audio_sink == value)
+        return;
+//    lock();
+    if( !!audio_snk )
+    {
+        disconnect(agc, 0, audio_snk, 0);
+        disconnect(agc, 1, audio_snk, 1);
+        audio_snk.reset();
+//        disconnect(self(), 0, ddc, 0);
+//        connect(self(), 0, ddc, 0);
+    }
+    d_dedicated_audio_sink = value;
+    if( d_port != -1 && d_dedicated_audio_sink)
+    {
+        audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
+        connect(agc, 0, audio_snk, 0);
+        connect(agc, 1, audio_snk, 1);
+    }
+//    unlock();
 }
