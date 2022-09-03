@@ -59,14 +59,7 @@
 #include "interfaces/file_sink.h"
 #include "interfaces/file_source.h"
 #include "receivers/receiver_base.h"
-
-#ifdef WITH_PULSEAUDIO
-#include "pulseaudio/pa_sink.h"
-#elif WITH_PORTAUDIO
-#include "portaudio/portaudio_sink.h"
-#else
-#include <gnuradio/audio/sink.h>
-#endif
+#include "interfaces/audio_sink.h"
 
 /**
  * @defgroup DSP Digital signal processing library based on GNU Radio
@@ -299,6 +292,11 @@ public:
     status      set_udp_streaming(bool streaming);
     bool        get_udp_streaming();
 
+    /* Dedicated audio sink */
+    void set_dedicated_audio_sink(bool value);
+    bool get_dedicated_audio_sink() { return rx[d_current]->get_dedicated_audio_sink(); }
+    void set_dedicated_audio_dev(std::string value) { rx[d_current]->set_audio_dev(value); }
+
     /* I/Q recording and playback */
     status      start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max);
     status      stop_iq_recording();
@@ -341,7 +339,6 @@ private:
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
     void        configure_channelizer(bool reconnect);
-    gr::basic_block_sptr create_audio_sink(std::string audio_device, std::string sink_name);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */

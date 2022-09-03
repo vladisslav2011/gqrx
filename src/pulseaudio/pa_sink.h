@@ -27,6 +27,8 @@
 #include <pulse/simple.h>
 #include <string>
 
+#define PULSE_AUDIO_BUFFER_SIZE 100000
+
 class pa_sink;
 
 #if GNURADIO_VERSION < 0x030900
@@ -70,6 +72,7 @@ private:
     std::string d_stream_name;   /*! Descriptive name of the stream. */
     std::string d_app_name;      /*! Descriptive name of the application. */
     pa_sample_spec d_ss;    /*! pulseaudio sample specification. */
+    float d_audio_buffer[PULSE_AUDIO_BUFFER_SIZE];
 };
 
 #endif /* PA_SINK_H */

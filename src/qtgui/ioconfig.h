@@ -27,14 +27,7 @@
 #include <QSettings>
 #include <QString>
 #include <vector>
-
-#ifdef WITH_PULSEAUDIO
-#include "pulseaudio/pa_device_list.h"
-#elif WITH_PORTAUDIO
-#include "portaudio/device_list.h"
-#elif defined(Q_OS_DARWIN)
-#include "osxaudio/device_list.h"
-#endif
+#include "audio_device_list.h"
 
 
 namespace Ui {
@@ -74,14 +67,7 @@ private:
     QPushButton    *m_scanButton;
     std::map<QString, QVariant> *m_devList; // will point to devList from constructor
 
-#ifdef WITH_PULSEAUDIO
-    std::vector<pa_device>           outDevList;
-#elif WITH_PORTAUDIO
-    std::vector<portaudio_device>    outDevList;
-#elif defined(Q_OS_DARWIN)
-    std::vector<osxaudio_device>     outDevList;
-#endif
-
+    std::vector<audio_device>           outDevList;
 };
 
 #endif // IOCONFIG_H
