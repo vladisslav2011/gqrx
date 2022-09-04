@@ -136,13 +136,13 @@ void receiver_base_cf::set_port(int port)
             disconnect(self(), 0, ddc, 0);
             connect(self(), 0, ddc, 0);
         }
-    }
-    d_port = port;
-    if( d_port != -1 && d_dedicated_audio_sink)
-    {
-        audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
-        connect(agc, 0, audio_snk, 0);
-        connect(agc, 1, audio_snk, 1);
+        d_port = port;
+        if( d_port != -1 && d_dedicated_audio_sink)
+        {
+            audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
+            connect(agc, 0, audio_snk, 0);
+            connect(agc, 1, audio_snk, 1);
+        }
     }
     //unlock();
 }
