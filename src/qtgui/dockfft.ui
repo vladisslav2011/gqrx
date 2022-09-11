@@ -71,8 +71,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>350</width>
-         <height>407</height>
+         <width>336</width>
+         <height>445</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -907,8 +907,11 @@
             <property name="maximum">
              <number>100</number>
             </property>
+            <property name="pageStep">
+             <number>1</number>
+            </property>
             <property name="value">
-             <number>75</number>
+             <number>0</number>
             </property>
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
@@ -964,8 +967,8 @@
              </property>
             </item>
             <item>
-              <property name="text">
-               <string>1048576</string>
+             <property name="text">
+              <string>1048576</string>
              </property>
             </item>
             <item>
@@ -1117,14 +1120,24 @@
            </widget>
           </item>
           <item row="14" column="0" colspan="4">
-            <widget class="QCheckBox" name="bandPlanCheckbox">
-              <property name="toolTip">
-                <string>Enable Band Plan on bottom of spectrum</string>
-              </property>
-              <property name="text">
-                <string>Enable Band Plan</string>
-              </property>
-            </widget>
+           <widget class="QCheckBox" name="bandPlanCheckbox">
+            <property name="toolTip">
+             <string>Enable Band Plan on bottom of spectrum</string>
+            </property>
+            <property name="text">
+             <string>Enable Band Plan</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="3">
+           <widget class="QLabel" name="fftAvgValue">
+            <property name="text">
+             <string>1</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>

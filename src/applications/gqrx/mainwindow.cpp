@@ -69,7 +69,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_lnb_lo(0),
     d_hw_freq(0),
     d_ignore_limits(false),
-    d_fftAvg(0.25),
+    d_fftAvg(1.0),
     d_have_audio(true),
     dec_afsk1200(nullptr)
 {
