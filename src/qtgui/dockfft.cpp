@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QDebug>
 #include <QVariant>
+#include <cmath> //for std::pow
 #include "dockfft.h"
 #include "ui_dockfft.h"
 
@@ -34,7 +35,7 @@
 #define DEFAULT_FFT_WINDOW      1       // Hann
 #define DEFAULT_WATERFALL_SPAN  0       // Auto
 #define DEFAULT_FFT_SPLIT       35
-#define DEFAULT_FFT_AVG         75
+#define DEFAULT_FFT_AVG         0
 #define DEFAULT_COLORMAP        "gqrx"
 
 DockFft::DockFft(QWidget *parent) :
@@ -450,7 +451,8 @@ void DockFft::on_fftSplitSlider_valueChanged(int value)
 /** FFT filter gain changed. */
 void DockFft::on_fftAvgSlider_valueChanged(int value)
 {
-    float avg = 1.0 - 1.0e-2 * ((float)value);
+    float avg = std::pow(10.0, -value / 20.0);
+    ui->fftAvgValue->setText(QString("~%1x").arg(1.0 / avg, 0, 'f', 1));
 
     emit fftAvgChanged(avg);
 }
