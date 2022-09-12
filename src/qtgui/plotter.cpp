@@ -672,6 +672,7 @@ void CPlotter::setFftRate(int rate_hz)
 void CPlotter::mousePressEvent(QMouseEvent * event)
 {
     QPoint pt = event->pos();
+    Qt::KeyboardModifiers key = QGuiApplication::keyboardModifiers();
 
     if (NOCAP == m_CursorCaptured)
     {
@@ -698,7 +699,6 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
             if (event->buttons() == Qt::LeftButton)
             {
                 int     best = -1;
-                Qt::KeyboardModifiers key = QGuiApplication::queryKeyboardModifiers();
 
                 if (m_PeakDetection > 0)
                     best = getNearestPeak(pt);
@@ -761,6 +761,8 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     if (event->buttons() == Qt::LeftButton)
                     {
                         //just tune
+                        if(key == Qt::ShiftModifier)
+                            m_CenterFreq = tag.second;
                         m_DemodCenterFreq = tag.second;
                         emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
                         break;
@@ -768,6 +770,8 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     else if (event->buttons() == Qt::MiddleButton)
                     {
                         //tune and load settings
+                        if(key == Qt::ShiftModifier)
+                            m_CenterFreq = tag.second;
                         m_DemodCenterFreq = tag.second;
                         emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
                         break;
@@ -775,6 +779,8 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     else if (event->buttons() == Qt::RightButton)
                     {
                         //new demod here
+                        if(key == Qt::ShiftModifier)
+                            m_CenterFreq = tag.second;
                         m_DemodCenterFreq = tag.second;
                         emit newDemodFreqLoad(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
                         break;
