@@ -64,7 +64,7 @@ public:
     void setLockButtonState(bool checked);
     bool getLockButtonState(void) const;
 
-    void setDedicatedSink(bool checked) const;
+    void setDedicatedSink(bool checked, std::string name) const;
 
 public slots:
     void setPandapterSliderValues(float min, float max);
