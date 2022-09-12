@@ -28,6 +28,7 @@
  * or implied, of Moe Wheatley.
  */
 #include <cmath>
+#include <QGuiApplication>
 #include <QColor>
 #include <QDateTime>
 #include <QDebug>
@@ -697,6 +698,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
             if (event->buttons() == Qt::LeftButton)
             {
                 int     best = -1;
+                Qt::KeyboardModifiers key = QGuiApplication::queryKeyboardModifiers();
 
                 if (m_PeakDetection > 0)
                     best = getNearestPeak(pt);
@@ -705,9 +707,16 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                 else
                     m_DemodCenterFreq = roundFreq(freqFromX(pt.x()), m_ClickResolution);
 
-                // if cursor not captured set demod frequency and start demod box capture
-                emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
-
+                if(key == Qt::ShiftModifier)
+                {
+                    // if cursor not captured set demod frequency and start demod box capture
+                    emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                }else  if(key == Qt::ControlModifier){
+                    // TODO: find some use for the ctrl modifier
+                }else{
+                    // if cursor not captured set demod frequency and start demod box capture
+                    emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                }
                 // save initial grab position from m_DemodFreqX
                 // setCursor(QCursor(Qt::CrossCursor));
                 m_CursorCaptured = CENTER;
