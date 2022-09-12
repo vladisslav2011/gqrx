@@ -334,9 +334,9 @@ void DockAudio::setAudioStreamButtonState(bool checked)
     //TODO: disable host/port controls
 }
 
-void DockAudio::setDedicatedAudioSink(bool enabled)
+void DockAudio::setDedicatedAudioSink(bool enabled, std::string name)
 {
-     audioOptions->setDedicatedSink(enabled);
+     audioOptions->setDedicatedSink(enabled, name);
 }
 
 /*! \brief Set status of audio record button. */

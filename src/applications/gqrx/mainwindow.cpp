@@ -3401,7 +3401,7 @@ void MainWindow::loadRxToGUI()
     else
         uiDockAudio->audioRecStopped();
     uiDockAudio->setAudioStreamState(rx->get_udp_host(), rx->get_udp_port(), rx->get_udp_stereo(), rx->get_udp_streaming());
-    uiDockAudio->setDedicatedAudioSink(rx->get_dedicated_audio_sink());
+    uiDockAudio->setDedicatedAudioSink(rx->get_dedicated_audio_sink(), rx->get_dedicated_audio_dev());
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
     switch (mode_idx)
     {

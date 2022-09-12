@@ -63,7 +63,7 @@ public:
     void setAudioRecButtonState(bool checked);
     void setAudioStreamState(const std::string & host,int port,bool stereo, bool running);
     void setAudioStreamButtonState(bool checked);
-    void setDedicatedAudioSink(bool enabled);
+    void setDedicatedAudioSink(bool enabled, std::string name);
     void setAudioPlayButtonState(bool checked);
 
     void setFftColor(QColor color);

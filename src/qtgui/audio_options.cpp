@@ -181,9 +181,13 @@ bool CAudioOptions::getLockButtonState(void) const
     return ui->audioLockButton->isChecked();
 }
 
-void CAudioOptions::setDedicatedSink(bool checked) const
+void CAudioOptions::setDedicatedSink(bool checked, std::string name) const
 {
     ui->dedicatedDevCheckBox->setChecked(checked);
+    if (checked)
+    {
+        ui->outDevCombo->setCurrentText(QString(name.c_str()));
+    }
 }
 
 void CAudioOptions::setPandapterSliderValues(float min, float max)

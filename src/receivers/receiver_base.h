@@ -149,6 +149,7 @@ public:
     /* Dedicated audio sink */
     void set_dedicated_audio_sink(bool value);
     bool get_dedicated_audio_sink() { return d_dedicated_audio_sink; }
+    std::string get_dedicated_audio_dev() { return d_audio_dev; }
     void set_audio_dev(std::string audio_dev) { d_audio_dev = audio_dev; }
 
 protected:
