@@ -336,8 +336,10 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 {
                     QString toolTipText;
                     qint64 hoverFrequency = freqFromX(px);
-                    toolTipText = QString("%1 kHz\nΔ %2 kHz")
+                    toolTipText = QString("%1 kHz, %2db\nΔ %3 kHz")
                                           .arg(hoverFrequency/1.e3, 0, 'f', 3)
+                                          .arg((m_OverlayPixmap.height() / m_DPR - pt.y()) * fabs(m_PandMindB - m_PandMaxdB) /
+                                              (m_OverlayPixmap.height() / m_DPR) + qreal(m_PandMindB), 0, 'f', 1)
                                           .arg(locale().toString((hoverFrequency - m_DemodCenterFreq)/1.e3, 'f', 3));
 
                     QFontMetricsF metrics(m_Font);
