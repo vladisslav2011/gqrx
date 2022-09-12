@@ -301,6 +301,7 @@ public:
     /* Dedicated audio sink */
     void set_dedicated_audio_sink(bool value);
     bool get_dedicated_audio_sink() { return rx[d_current]->get_dedicated_audio_sink(); }
+    std::string get_dedicated_audio_dev() { return rx[d_current]->get_dedicated_audio_dev(); }
     void set_dedicated_audio_dev(std::string value) { rx[d_current]->set_audio_dev(value); }
 
     /* I/Q recording and playback */
