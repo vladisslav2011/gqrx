@@ -2377,9 +2377,9 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     uiDockProbe->setSampleRate(actual_rate);
     ui->plotter->setSpanFreq((quint32)actual_rate);
     if (std::abs(current_offset) > actual_rate / 2)
-        on_plotter_newDemodFreq(center_freq, 0);
+        on_plotter_newDemodFreq(center_freq, 0, 0);
     else
-        on_plotter_newDemodFreq(center_freq + current_offset, current_offset);
+        on_plotter_newDemodFreq(center_freq + current_offset, current_offset, 0);
 
     remote->setBandwidth(actual_rate);
 
@@ -2434,7 +2434,7 @@ void MainWindow::stopIqPlayback()
     qint64 oldOffset = m_settings->value("receiver/offset", 0).toLongLong(&offsetOK);
     if (centerOK && offsetOK)
     {
-        on_plotter_newDemodFreq(oldCenter + oldOffset, oldOffset);
+        on_plotter_newDemodFreq(oldCenter + oldOffset, oldOffset, 0);
     }
 
     if (ui->actionDSP->isChecked())
@@ -2757,7 +2757,7 @@ void MainWindow::on_actionIqTool_triggered()
 
 
 /* CPlotter::NewDemodFreq() is emitted */
-void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
+void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta, qint64 ts)
 {
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
@@ -2767,12 +2767,13 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
     }
 
     setNewFrequency(freq);
-
+    if(ts > 0 && rx->is_playing_iq())
+        rx->seek_iq_file_ts(ts);
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
 /* tune and load demodulator settings */
-void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
+void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta, qint64 ts)
 {
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
@@ -2789,11 +2790,13 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
     }
     else
         setNewFrequency(freq);
+    if(ts > 0 && rx->is_playing_iq())
+        rx->seek_iq_file_ts(ts);
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
 /* new demodulator here */
-void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
+void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts)
 {
     vfo::sptr found = rx->find_vfo(freq - d_lnb_lo);
     if (!found)
@@ -2803,7 +2806,7 @@ void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
         rxSpinBox->setValue(found->get_index());
         rxSpinBox_valueChanged(found->get_index());
     }
-    on_plotter_newDemodFreqLoad(freq, delta);
+    on_plotter_newDemodFreqLoad(freq, delta, ts);
 }
 
 /* CPlotter::NewfilterFreq() is emitted or bookmark activated */
