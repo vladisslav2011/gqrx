@@ -319,8 +319,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     // I/Q playback
     connect(iq_tool, SIGNAL(startRecording(QString, enum receiver::file_formats, int)), this, SLOT(startIqRecording(QString, enum receiver::file_formats, int)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)),
-                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)));
+    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)),
+                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
 
@@ -1234,7 +1234,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     auto delta_freq = d_hw_freq;
     QList<BookmarkInfo> bml;
     auto max_offset = rx->get_input_rate() / 2;
-    bool update_offset = rx->is_playing_iq();
+    bool update_offset = rx->is_playing_iq() | rx->is_recording_iq();
 
     rx->set_rf_freq(hw_freq);
     d_hw_freq = d_ignore_limits ? hw_freq : (qint64)rx->get_rf_freq();
@@ -1991,9 +1991,11 @@ void MainWindow::iqFftTimeout()
     unsigned int    fftsize;
     unsigned int    i;
     float           pwr_scale;
+    qint64 fft_approx_timestamp;
 
     // FIXME: fftsize is a reference
     rx->get_iq_fft_data(d_fftData, fftsize);
+    fft_approx_timestamp = rx->is_playing_iq() ? rx->get_filesource_timestamp_ms() : QDateTime::currentMSecsSinceEpoch();
 
     if (fftsize == 0)
     {
@@ -2018,7 +2020,7 @@ void MainWindow::iqFftTimeout()
         d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
     }
 
-    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize);
+    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
 }
 
 /** Audio FFT plot timeout. */
@@ -2345,6 +2347,7 @@ void MainWindow::stopIqRecording()
 void MainWindow::startIqPlayback(const QString& filename, float samprate,
                                  qint64 center_freq,
                                  enum receiver::file_formats fmt,
+                                 qint64 time_ms,
                                  int buffers_max, bool repeat)
 {
     if (ui->actionDSP->isChecked())
@@ -2366,7 +2369,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
 
     rx->set_input_device(devstr.toStdString());
     updateHWFrequencyRange(false);
-    rx->set_input_file(filename.toStdString(), samprate, fmt, buffers_max, repeat);
+    rx->set_input_file(filename.toStdString(), samprate, fmt, time_ms, buffers_max, repeat);
 
     // sample rate
     auto actual_rate = rx->set_input_rate(samprate);
