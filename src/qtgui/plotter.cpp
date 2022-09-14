@@ -706,23 +706,29 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
             if (event->buttons() == Qt::LeftButton)
             {
                 int     best = -1;
+                qint64 ts = 0;
 
-                if (m_PeakDetection > 0)
-                    best = getNearestPeak(pt);
-                if (best != -1)
-                    m_DemodCenterFreq = freqFromX(best);
-                else
-                    m_DemodCenterFreq = roundFreq(freqFromX(pt.x()), m_ClickResolution);
+                if (pt.y() < m_OverlayPixmap.height() / m_DPR)
+                {
+                    if (m_PeakDetection > 0)
+                        best = getNearestPeak(pt);
+                    if (best != -1)
+                        m_DemodCenterFreq = freqFromX(best);
+                    else
+                        m_DemodCenterFreq = roundFreq(freqFromX(pt.x()), m_ClickResolution);
+                }else{
+                    tsFreqFromWfXY(pt.x(), pt.y(), ts, m_DemodCenterFreq);
+                }
 
                 if(key == Qt::ShiftModifier)
                 {
                     // if cursor not captured set demod frequency and start demod box capture
-                    emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                    emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq, ts);
                 }else  if(key == Qt::ControlModifier){
                     // TODO: find some use for the ctrl modifier
                 }else{
                     // if cursor not captured set demod frequency and start demod box capture
-                    emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                    emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq, ts);
                 }
                 // save initial grab position from m_DemodFreqX
                 // setCursor(QCursor(Qt::CrossCursor));
