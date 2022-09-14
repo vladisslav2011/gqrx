@@ -302,6 +302,7 @@ public:
     status      start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
+    status      seek_iq_file_ts(uint64_t ts);
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
     bool        is_playing_iq() { return d_last_format != FILE_FORMAT_NONE; }
     bool        is_recording_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
