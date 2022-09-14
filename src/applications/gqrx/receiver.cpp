@@ -2029,6 +2029,26 @@ receiver::status receiver::seek_iq_file(long pos)
     return status;
 }
 
+/**
+ * @brief Seek to position in IQ file source.
+ * @param ts Absolute time in ms since epoch.
+ */
+receiver::status receiver::seek_iq_file_ts(uint64_t ts)
+{
+    receiver::status status = STATUS_OK;
+
+    if (input_file->seek_ts(ts))
+    {
+        status = STATUS_OK;
+    }
+    else
+    {
+        status = STATUS_ERROR;
+    }
+
+    return status;
+}
+
 void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
 {
     stats.recording = d_recording_iq;

@@ -154,9 +154,9 @@ public:
     };
 
 signals:
-    void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
-    void newDemodFreqLoad(qint64 freq, qint64 delta);/* tune and load demodulator settings */
-    void newDemodFreqAdd(qint64 freq, qint64 delta);/* new demodulator here */
+    void newDemodFreq(qint64 freq, qint64 delta, qint64 ts = 0); /* delta is the offset from the center */
+    void newDemodFreqLoad(qint64 freq, qint64 delta, qint64 ts = 0);/* tune and load demodulator settings */
+    void newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts = 0);/* new demodulator here */
     void newLowCutFreq(int f);
     void newHighCutFreq(int f);
     void newFilterFreq(int low, int high);  /* substitute for NewLow / NewHigh */

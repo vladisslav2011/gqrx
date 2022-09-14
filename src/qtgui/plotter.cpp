@@ -778,6 +778,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
     int py = qRound((qreal)pt.y() * m_DPR);
     QPoint ppos = QPoint(px, py);
     quint32 mods = event->modifiers() & (Qt::ShiftModifier|Qt::ControlModifier);
+    const qreal plotHeight = m_2DPixmap.height();
 
     if (NOCAP == m_CursorCaptured)
     {
@@ -841,7 +842,6 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     {
                         // Find the data value of the click y()
 
-                        const qreal plotHeight = m_2DPixmap.height();
                         const float panddBGainFactor = (float)plotHeight / fabsf(m_PandMaxdB - m_PandMindB);
                         const float vlog = m_PandMaxdB - py / panddBGainFactor;
                         const float v = powf(10.0f, vlog / 10.0f);
@@ -879,22 +879,27 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                 else
                 {
                     int best = -1;
+                    qint64 ts = 0;
 
-                    if (m_PeakDetectActive > 0)
-                        best = getNearestPeak(pt);
-                    if (best != -1)
-                        m_DemodCenterFreq = freqFromX(best);
-                    else
-                        m_DemodCenterFreq = roundFreq(freqFromX(px), m_ClickResolution);
+                    if (py < plotHeight)
+                    {
+                        if (m_PeakDetectActive > 0)
+                            best = getNearestPeak(pt);
+                        if (best != -1)
+                            m_DemodCenterFreq = freqFromX(best);
+                        else
+                            m_DemodCenterFreq = roundFreq(freqFromX(px), m_ClickResolution);
+                    }else
+                        tsFreqFromWfXY(px, py, ts, m_DemodCenterFreq);
 
                     // if cursor not captured set demod frequency and start demod box capture
                     if(mods == Qt::ShiftModifier)
                     {
-                        emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq, ts);
                     }else  if(mods == Qt::ControlModifier){
                         // TODO: find some use for the ctrl modifier
                     }else{
-                        emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq), ts;
                     }
 
                     // save initial grab position from m_DemodFreqX
