@@ -46,8 +46,8 @@ public:
     *        overwriting the initial content.
     */
     static sptr make(size_t itemsize, const char *filename, uint64_t offset,
-                     uint64_t len, int sample_rate, bool repeat = false,
-                     int buffers_max = 1);
+                     uint64_t len, int sample_rate, uint64_t time_ms,
+                     bool repeat = false, int buffers_max = 1);
 
 private:
     size_t d_itemsize;
@@ -75,10 +75,12 @@ private:
     bool         d_eof;
     bool         d_closing;
     bool         d_seek;
+    int          d_sample_rate;
     bool         d_buffering;
     uint64_t     d_seek_point;
     uint64_t     d_buffer_size;
     int          d_seek_ok;
+    uint64_t     d_time_ms;
     pmt::pmt_t _id;
 #if 0
     void do_update();
@@ -91,6 +93,7 @@ public:
                     uint64_t offset,
                     uint64_t len,
                     int sample_rate,
+                    uint64_t time_ms,
                     bool repeat = false,
                     int buffers_max = 8);
     ~file_source();
@@ -107,6 +110,7 @@ public:
             gr_vector_void_star& output_items);
 
     void set_begin_tag(pmt::pmt_t val);
+    uint64_t get_timestamp_ms();
 };
 
 #endif
