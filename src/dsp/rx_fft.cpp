@@ -49,7 +49,8 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
           gr::io_signature::make(0, 0, 0)),
       d_fftsize(fftsize),
       d_quadrate(quad_rate),
-      d_wintype(-1)
+      d_wintype(-1),
+      d_enabled(true)
 {
 
     /* create FFT object */
@@ -94,6 +95,8 @@ int rx_fft_c::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
+    if (!d_enabled)
+        return noutput_items;
     const gr_complex *in = (const gr_complex*)input_items[0];
     (void) output_items;
 
@@ -249,7 +252,8 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
           gr::io_signature::make(0, 0, 0)),
       d_fftsize(fftsize),
       d_audiorate(audio_rate),
-      d_wintype(-1)
+      d_wintype(-1),
+      d_enabled(true)
 {
 
     /* create FFT object */
@@ -294,6 +298,8 @@ int rx_fft_f::work(int noutput_items,
                    gr_vector_const_void_star &input_items,
                    gr_vector_void_star &output_items)
 {
+    if (!d_enabled)
+        return noutput_items;
     const float *in = (const float*)input_items[0];
     (void) output_items;
 
