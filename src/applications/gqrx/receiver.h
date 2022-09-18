@@ -181,8 +181,10 @@ public:
     void        set_iq_fft_window(int window_type);
     void        get_iq_fft_data(std::complex<float>* fftPoints,
                                 unsigned int &fftsize);
+    void        set_iq_fft_enabled(bool enabled);
     void        get_audio_fft_data(std::complex<float>* fftPoints,
                                    unsigned int &fftsize);
+    void        set_audio_fft_enabled(bool enabled);
 
     /* FFT Probe */
     void        get_probe_fft_data(std::complex<float>* fftPoints,

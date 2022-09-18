@@ -247,6 +247,9 @@ private slots:
     void on_plotter_newFilterFreq(int low, int high);    /*! New filter width */
     void on_plotter_selectVfo(int i);
 
+    /* AudioDock */
+    void dockAudioVisibilityChanged(bool visible);
+
     /* RDS */
     void setRdsDecoder(bool checked);
 

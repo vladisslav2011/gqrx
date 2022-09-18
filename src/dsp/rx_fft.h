@@ -98,11 +98,13 @@ public:
     void set_fft_size(unsigned int fftsize);
     void set_quad_rate(double quad_rate);
     unsigned int get_fft_size() const;
+    void set_enabled(bool enabled) { d_enabled=enabled; };
 
 private:
     unsigned int d_fftsize;   /*! Current FFT size. */
     double       d_quadrate;
     int          d_wintype;   /*! Current window type. */
+    bool         d_enabled;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
 
@@ -169,11 +171,13 @@ public:
 
     void set_fft_size(unsigned int fftsize);
     unsigned int get_fft_size() const;
+    void set_enabled(bool enabled) { d_enabled=enabled; };
 
 private:
     unsigned int d_fftsize;   /*! Current FFT size. */
     double       d_audiorate;
     int          d_wintype;   /*! Current window type. */
+    bool         d_enabled;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
 
