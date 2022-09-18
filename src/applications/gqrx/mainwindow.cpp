@@ -278,6 +278,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(recMaxGapChanged(int)), this, SLOT(recMaxGapChanged(int)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockAudio, SIGNAL(copyRecSettingsToAllVFOs()), this, SLOT(copyRecSettingsToAllVFOs()));
+    connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
     connect(uiDockFft, SIGNAL(fftWindowChanged(int)), this, SLOT(setIqFftWindow(int)));
@@ -2521,6 +2522,7 @@ void MainWindow::setIqFftRate(int fps)
     {
         interval = 36e7; // 100 hours
         ui->plotter->setRunningState(false);
+        rx->set_iq_fft_enabled(false);
     }
     else
     {
@@ -2529,6 +2531,7 @@ void MainWindow::setIqFftRate(int fps)
         ui->plotter->setFftRate(fps);
         if (iq_fft_timer->isActive())
             ui->plotter->setRunningState(true);
+        rx->set_iq_fft_enabled(true);
     }
 
     if (interval > 9 && iq_fft_timer->isActive())
@@ -3016,6 +3019,12 @@ void MainWindow::setRdsDecoder(bool checked)
         rds_timer->stop();
     }
     remote->setRDSstatus(checked);
+}
+
+/* AudioDock */
+void MainWindow::dockAudioVisibilityChanged(bool visible)
+{
+    rx->set_audio_fft_enabled(visible);
 }
 
 void MainWindow::onBookmarkActivated(BookmarkInfo & bm)
