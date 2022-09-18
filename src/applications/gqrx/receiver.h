@@ -195,8 +195,10 @@ public:
     unsigned int iq_fft_size(void) const;
     void        set_iq_fft_window(int window_type, bool normalize_energy);
     void        get_iq_fft_data(float* fftPoints);
+    void        set_iq_fft_enabled(bool enabled);
     void        get_audio_fft_data(float* fftPoints);
     unsigned int audio_fft_size(void) const;
+    void        set_audio_fft_enabled(bool enabled);
 
     /* FFT Probe */
     void        get_probe_fft_data(float* fftPoints,

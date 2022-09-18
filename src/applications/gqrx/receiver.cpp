@@ -1029,14 +1029,23 @@ unsigned int receiver::audio_fft_size() const
     return audio_fft->fft_size();
 }
 
+void receiver::set_iq_fft_enabled(bool enabled)
+{
+    iq_fft->set_enabled(enabled);
+}
+
 /** Get latest audio FFT data. */
 void receiver::get_audio_fft_data(float* fftPoints)
 {
     audio_fft->get_fft_data(fftPoints);
 }
 
-void receiver::get_probe_fft_data(float* fftPoints,
-                                unsigned int &fftsize)
+void receiver::set_audio_fft_enabled(bool enabled)
+{
+    audio_fft->set_enabled(enabled);
+}
+
+void receiver::get_probe_fft_data(float* fftPoints, unsigned int &fftsize)
 {
     fftsize = probe_fft->fft_size();
     probe_fft->get_fft_data(fftPoints);
