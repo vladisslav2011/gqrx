@@ -1018,10 +1018,20 @@ void receiver::get_iq_fft_data(std::complex<float>* fftPoints, unsigned int &fft
     iq_fft->get_fft_data(fftPoints, fftsize);
 }
 
+void receiver::set_iq_fft_enabled(bool enabled)
+{
+    iq_fft->set_enabled(enabled);
+}
+
 /** Get latest audio FFT data. */
 void receiver::get_audio_fft_data(std::complex<float>* fftPoints, unsigned int &fftsize)
 {
     audio_fft->get_fft_data(fftPoints, fftsize);
+}
+
+void receiver::set_audio_fft_enabled(bool enabled)
+{
+    audio_fft->set_enabled(enabled);
 }
 
 void receiver::get_probe_fft_data(std::complex<float>* fftPoints,
