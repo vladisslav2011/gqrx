@@ -115,6 +115,15 @@ int rx_fft_c::work(int noutput_items,
     return noutput_items;
 }
 
+bool rx_fft_c::start()
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+    d_lasttime = std::chrono::steady_clock::now();
+    if (d_reader->items_available() > MAX_FFT_SIZE)
+        d_reader->update_read_pointer(d_reader->items_available() - MAX_FFT_SIZE);
+    return true;
+}
+
 /*! \brief Get FFT data.
  *  \param fftPoints Buffer to copy FFT data
  *  \param fftSize Current FFT size (output).
@@ -316,6 +325,15 @@ int rx_fft_f::work(int noutput_items,
     d_writer->update_write_pointer(items_to_copy);
 
     return noutput_items;
+}
+
+bool rx_fft_f::start()
+{
+    std::lock_guard<std::mutex> lock(d_mutex);
+    d_lasttime = std::chrono::steady_clock::now();
+    if (d_reader->items_available() > int(d_fftsize))
+        d_reader->update_read_pointer(d_reader->items_available() - d_fftsize);
+    return true;
 }
 
 /*! \brief Get FFT data.
