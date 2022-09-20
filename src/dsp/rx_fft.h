@@ -88,8 +88,9 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items);
+             gr_vector_void_star &output_items) override;
 
+    bool start() override;
     void get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize);
 
     void set_window_type(int wintype);
@@ -162,8 +163,9 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items);
+             gr_vector_void_star &output_items) override;
 
+    bool start() override;
     void get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize);
 
     void set_window_type(int wintype);
