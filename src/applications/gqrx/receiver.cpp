@@ -490,6 +490,8 @@ unsigned int receiver::set_input_decim(unsigned int decim)
 
     // update quadrature rate
     dc_corr->set_sample_rate(d_decim_rate);
+    iq_fft->set_quad_rate(d_decim_rate);
+    probe_fft->set_quad_rate(d_decim_rate / chan->decim());
     configure_channelizer(true);
 
 #ifdef CUSTOM_AIRSPY_KERNELS
