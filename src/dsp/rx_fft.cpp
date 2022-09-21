@@ -128,19 +128,22 @@ bool rx_fft_c::start()
  *  \param fftPoints Buffer to copy FFT data
  *  \param fftSize Current FFT size (output).
  */
-void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize)
+void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize, gr_complex * data)
 {
-    std::unique_lock<std::mutex> lock(d_mutex);
+    if (!data)
+    {
+        std::unique_lock<std::mutex> lock(d_mutex);
 
-    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
-    std::chrono::duration<double> diff = now - d_lasttime;
-    diff = std::min(diff, std::chrono::duration<double>(d_writer->bufsize() / d_quadrate));
-    d_lasttime = now;
+        std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+        std::chrono::duration<double> diff = now - d_lasttime;
+        diff = std::min(diff, std::chrono::duration<double>(d_writer->bufsize() / d_quadrate));
+        d_lasttime = now;
 
-    /* perform FFT */
-    d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - MAX_FFT_SIZE));
-    apply_window(d_fftsize);
-    lock.unlock();
+        /* perform FFT */
+        d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - MAX_FFT_SIZE));
+        apply_window(d_fftsize, (gr_complex *)d_reader->read_pointer());
+    }else
+        apply_window(d_fftsize, data);
 
     /* compute FFT */
     d_fft->execute();
@@ -157,10 +160,9 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
  * Note that this function does not lock the mutex since the caller, get_fft_data()
  * has already locked it.
  */
-void rx_fft_c::apply_window(unsigned int size)
+void rx_fft_c::apply_window(unsigned int size, gr_complex * p)
 {
     /* apply window, if any */
-    gr_complex * p = (gr_complex *)d_reader->read_pointer();
     p += (MAX_FFT_SIZE - d_fftsize);
     if (d_window.size())
     {
