@@ -141,7 +141,7 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 
         /* perform FFT */
         d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - MAX_FFT_SIZE));
-        apply_window(d_fftsize, (gr_complex *)d_reader->read_pointer());
+        apply_window(d_fftsize, ((gr_complex *)d_reader->read_pointer())+(MAX_FFT_SIZE - d_fftsize));
     }else
         apply_window(d_fftsize, data);
 
@@ -163,7 +163,6 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
 void rx_fft_c::apply_window(unsigned int size, gr_complex * p)
 {
     /* apply window, if any */
-    p += (MAX_FFT_SIZE - d_fftsize);
     if (d_window.size())
     {
         gr_complex *dst = d_fft->get_inbuf();

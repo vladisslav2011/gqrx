@@ -399,6 +399,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 else
                 {
                     setFftCenterFreq(m_FftCenter + delta_hz);
+                    emit newFftCenterFreq(m_FftCenter + delta_hz);
                 }
                 updateOverlay();
             }
@@ -1018,8 +1019,11 @@ void CPlotter::paintEvent(QPaintEvent *)
     QPainter painter(this);
 
     painter.drawPixmap(0, 0, m_2DPixmap);
-    painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
-                       m_WaterfallPixmap);
+    {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
+        painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
+                        m_WaterfallPixmap);
+    }
 }
 
 // Called to update spectrum data for displaying on the screen
@@ -1048,6 +1052,7 @@ void CPlotter::draw()
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
     {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // get scaled FFT data
         n = qMin(w, MAX_SCREENSIZE);
         getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
@@ -1251,6 +1256,78 @@ void CPlotter::setNewFftData(float *fftData, float *wfData, int size, qint64 ts)
         tlast_wf_ms = tnow_wf_ms;
 
     draw();
+}
+
+void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts)
+{
+    int     i, n;
+    int     w;
+    int     h;
+    int     xmin, xmax;
+
+    m_wfData = fftData;
+    m_fftDataSize = size;
+    // get/draw the waterfall
+    w = m_WaterfallPixmap.width();
+    h = m_WaterfallPixmap.height();
+
+    // no need to draw if pixmap is invisible
+    if (w != 0 && h != 0)
+    {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
+        // get scaled FFT data
+        n = qMin(w, MAX_SCREENSIZE);
+        getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
+                                m_FftCenter - (qint64)m_Span / 2,
+                                m_FftCenter + (qint64)m_Span / 2,
+                                m_wfData, m_fftbuf,
+                                &xmin, &xmax);
+
+        while(line>m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        if(line == m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        else
+            m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+        QPainter painter1(&m_WaterfallPixmap);
+
+        // draw new line of fft data at top of waterfall bitmap
+        painter1.setPen(QColor(0, 0, 0));
+        for (i = 0; i < xmin; i++)
+            painter1.drawPoint(i, line);
+        for (i = xmax; i < w; i++)
+            painter1.drawPoint(i, line);
+
+        for (i = xmin; i < xmax; i++)
+        {
+            painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+            painter1.drawPoint(i, line);
+        }
+    }
+}
+
+void CPlotter::drawBlackWaterfallLine(int line)
+{
+    int i;
+    int w = m_WaterfallPixmap.width();
+    int h = m_WaterfallPixmap.height();
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
+    if (w != 0 && h != 0)
+    {
+        QPainter painter1(&m_WaterfallPixmap);
+        painter1.setPen(QColor(0, 0, 0));
+        for (i = 0; i < w; i++)
+            painter1.drawPoint(i, line);
+    }
+}
+
+void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
+{
+    lines = m_WaterfallPixmap.height();
+    if(fft_rate == 0)
+        ms_per_line = -1.0;
+    else
+        ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
 }
 
 void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
