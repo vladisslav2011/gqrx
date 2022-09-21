@@ -1986,7 +1986,6 @@ void MainWindow::iqFftTimeout()
 {
     unsigned int    fftsize;
     unsigned int    i;
-    float           pwr_scale;
     qint64 fft_approx_timestamp;
 
     // FIXME: fftsize is a reference
@@ -1999,16 +1998,7 @@ void MainWindow::iqFftTimeout()
         return;
     }
 
-    // NB: without cast to float the multiplication will overflow at 64k
-    // and pwr_scale will be inf
-    pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
-
-    /* Normalize, calculate power and shift the FFT */
-    volk_32fc_magnitude_squared_32f(d_realFftData, d_fftData + (fftsize/2), fftsize/2);
-    volk_32fc_magnitude_squared_32f(d_realFftData + (fftsize/2), d_fftData, fftsize/2);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, pwr_scale, fftsize);
-    volk_32f_log2_32f(d_realFftData, d_realFftData, fftsize);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, 10 / LOG2_10, fftsize);
+    iqFftToMag(fftsize);
 
     for (i = 0; i < fftsize; i++)
     {
@@ -2017,6 +2007,20 @@ void MainWindow::iqFftTimeout()
     }
 
     ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
+}
+
+void MainWindow::iqFftToMag(unsigned int fftsize)
+{
+    // NB: without cast to float the multiplication will overflow at 64k
+    // and pwr_scale will be inf
+    float pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
+
+    /* Normalize, calculate power and shift the FFT */
+    volk_32fc_magnitude_squared_32f(d_realFftData, d_fftData + (fftsize/2), fftsize/2);
+    volk_32fc_magnitude_squared_32f(d_realFftData + (fftsize/2), d_fftData, fftsize/2);
+    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, pwr_scale, fftsize);
+    volk_32f_log2_32f(d_realFftData, d_realFftData, fftsize);
+    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, 10 / LOG2_10, fftsize);
 }
 
 /** Audio FFT plot timeout. */
@@ -2453,6 +2457,31 @@ void MainWindow::stopIqPlayback()
 void MainWindow::seekIqFile(qint64 seek_pos)
 {
     rx->seek_iq_file((long)seek_pos);
+    if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+    {
+        //update waterfall
+        unsigned int    fftsize;
+        int lines=0;
+        double ms_per_line = 0.0;
+        quint64 ts = 0;
+        ui->plotter->getWaterfallMetrics(lines, ms_per_line);
+        receiver::fft_reader_sptr rd = rx->get_fft_reader(seek_pos);
+        quint64 ms_available = rd->ms_available();
+        if(ms_available == 0)
+            return;
+        lines = std::min(lines, int(ms_available/ms_per_line));
+        if(lines == 0)
+            return;
+        for(int k=0;k<lines;k++)
+        {
+            rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
+            if (fftsize > 0)
+            {
+                iqFftToMag(fftsize);
+                ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
+            }
+        }
+    }
 }
 
 /** FFT size has changed. */

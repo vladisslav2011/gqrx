@@ -42,6 +42,7 @@
 #include <gnuradio/top_block.h>
 #include <osmosdr/source.h>
 #include <string>
+#include <memory>
 
 #include "dsp/correct_iq_cc.h"
 #include "dsp/filter/fir_decim.h"
@@ -116,6 +117,15 @@ public:
      };
 
     typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
+
+    struct fft_reader
+    {
+        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset);
+        ~fft_reader();
+        uint64_t ms_available();
+        bool get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t ts);
+    };
+    typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
     receiver(const std::string input_device="",
              const std::string audio_device="",
@@ -332,6 +342,7 @@ public:
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
+    fft_reader_sptr get_fft_reader(uint64_t ts);
 
 private:
     void        connect_all(enum file_formats fmt);
@@ -358,6 +369,8 @@ private:
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
+    std::string d_iq_filename;
+    uint64_t    d_iq_time_ms;
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */

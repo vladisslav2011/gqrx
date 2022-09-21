@@ -48,6 +48,8 @@ public:
 
     void setNewFftData(float *fftData, int size);
     void setNewFftData(float *fftData, float *wfData, int size, qint64 ts);
+    void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
+    void getWaterfallMetrics(int &lines, double &ms_per_line);
 
     void setCenterFreq(quint64 f);
     void setFreqUnits(qint32 unit) { m_FreqUnits = unit; }
