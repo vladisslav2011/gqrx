@@ -142,6 +142,7 @@ private:
     void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
+    void iqFftToMag(unsigned int fftsize);
 
 private slots:
     /* RecentConfig */
