@@ -95,10 +95,10 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items);
+             gr_vector_void_star &output_items) override;
 
     bool start() override;
-    void get_fft_data(float* fftPoints);
+    void get_fft_data(float* fftPoints, gr_complex * data = nullptr);
 
     void set_window_type(int wintype, bool normalize_energy);
     int  get_window_type() const { return d_wintype; }
@@ -128,7 +128,7 @@ private:
     gr::buffer_reader_sptr d_reader;
     std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
 
-    void apply_window(unsigned int size);
+    void apply_window(unsigned int size, gr_complex * p);
     void update_window();
 };
 
@@ -177,7 +177,7 @@ public:
 
     int work(int noutput_items,
              gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items);
+             gr_vector_void_star &output_items) override;
 
     bool start() override;
     void get_fft_data(float* fftPoints);
