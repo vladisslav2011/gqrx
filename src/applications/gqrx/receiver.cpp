@@ -263,6 +263,8 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
 {
     std::string error = "";
 
+    d_iq_filename = name;
+    d_iq_time_ms = time_ms;
     input_file = file_source::make(any_to_any_base::fmt[fmt].size, name.c_str(), 0, 0, sample_rate / any_to_any_base::fmt[fmt].nsamples,
                                    time_ms, repeat, buffers_max);
 
@@ -1940,12 +1942,14 @@ void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
         stats.failed = iq_sink->get_failed();
         stats.buffer_usage = iq_sink->get_buffer_usage();
         stats.file_pos = iq_sink->get_written();
+        stats.sample_pos = stats.file_pos * any_to_any_base::fmt[d_last_format].nsamples;
     }
     if(stats.playing)
     {
         stats.failed = input_file->get_failed();
         stats.buffer_usage = input_file->get_buffer_usage();
         stats.file_pos = input_file->tell();
+        stats.sample_pos = stats.file_pos * any_to_any_base::fmt[d_last_format].nsamples;
     }
 }
 
@@ -2246,6 +2250,12 @@ uint64_t receiver::get_filesource_timestamp_ms()
     return input_file->get_timestamp_ms();
 }
 
+receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts)
+{
+    return std::make_shared<receiver::fft_reader>(d_iq_filename, any_to_any_base::fmt[d_last_format].size,
+            any_to_any_base::fmt[d_last_format].nsamples, d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format], iq_fft);
+}
+
 std::string receiver::escape_filename(std::string filename)
 {
     std::stringstream ss1;
@@ -2266,4 +2276,83 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
     if (self->d_audio_rec_event_handler)
         if (idx == self->d_current)
             self->d_audio_rec_event_handler(filename, is_running);
+}
+
+// receiver::fft_reader
+
+#ifdef _MSC_VER
+#define GR_FSEEK _fseeki64
+#define GR_FTELL _ftelli64
+#define GR_FSTAT _fstat
+#define GR_FILENO _fileno
+#define GR_STAT _stat
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#else
+#define GR_FSEEK fseeko
+#define GR_FTELL ftello
+#define GR_FSTAT fstat
+#define GR_FILENO fileno
+#define GR_STAT stat
+#endif
+
+receiver::fft_reader::fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft)
+{
+    d_chunk_size = chunk_size;
+    d_samples_per_chunk = samples_per_chunk;
+    d_sample_rate = sample_rate;
+    d_base_ts = base_ts;
+    d_offset = offset;
+    d_conv = conv;
+    d_fft = fft;
+    d_fd = fopen(filename.c_str(), "rb");
+    if(d_fd)
+    {
+        GR_FSEEK(d_fd, 0, SEEK_END);
+        d_file_size = GR_FTELL(d_fd);
+        d_buf.resize((d_chunk_size * d_fft->get_fft_size())/d_samples_per_chunk);
+        d_fftbuf.resize(d_fft->get_fft_size());
+    }
+}
+
+receiver::fft_reader::~fft_reader()
+{
+    if(d_fd)
+        fclose(d_fd);
+    d_fd = nullptr;
+}
+
+uint64_t receiver::fft_reader::ms_available()
+{
+    return d_offset * 1000llu / uint64_t(d_sample_rate);
+}
+
+bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t &ts)
+{
+    uint64_t samp = ms * d_sample_rate / 1000llu;
+    int read_ofs = 0;
+    if(!d_fd)
+    {
+        fftsize = 0;
+        return false;
+    }
+    if(samp > d_offset)
+        samp = 0;
+    else
+        samp = d_offset - samp;
+    if(samp>=d_fft->get_fft_size())
+        GR_FSEEK(d_fd, ((samp - d_fft->get_fft_size()) / d_samples_per_chunk) * d_chunk_size, SEEK_SET);
+    else{
+        GR_FSEEK(d_fd, 0, SEEK_SET);
+        read_ofs = d_fft->get_fft_size() - samp;
+    }
+    std::memset(d_buf.data(), 0, d_buf.size());
+    size_t nread = fread(&d_buf[(read_ofs / d_samples_per_chunk) * d_chunk_size], d_chunk_size, (d_fft->get_fft_size() - read_ofs) / d_samples_per_chunk, d_fd);
+    if(nread != (d_fft->get_fft_size() - read_ofs) / d_samples_per_chunk)
+    {
+        //FIXME: Handle error?
+    }
+    d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft->get_fft_size());
+    d_fft->get_fft_data(buffer, fftsize, d_fftbuf.data());
+    ts = d_base_ts + samp * 1000llu / uint64_t(d_sample_rate);
+    return true;
 }
