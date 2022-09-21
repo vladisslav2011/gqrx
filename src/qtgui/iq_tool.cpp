@@ -211,6 +211,7 @@ void CIqTool::on_slider_valueChanged(int value)
 
     qint64 seek_pos = (qint64)(value)*sample_rate;
     emit seek(seek_pos);
+    o_fileSize = seek_pos * bytes_per_sample;
 }
 
 
