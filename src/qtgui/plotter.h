@@ -8,6 +8,7 @@
 #include <QImage>
 #include <vector>
 #include <set>
+#include <mutex>
 #include <QMap>
 #include "bookmarks.h"
 #include "receivers/defines.h"
@@ -48,6 +49,9 @@ public:
 
     void setNewFftData(float *fftData, int size);
     void setNewFftData(float *fftData, float *wfData, int size, qint64 ts);
+    void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
+    void drawBlackWaterfallLine(int line);
+    void getWaterfallMetrics(int &lines, double &ms_per_line);
 
     void setCenterFreq(quint64 f);
     void setFreqUnits(qint32 unit) { m_FreqUnits = unit; }
@@ -144,6 +148,7 @@ signals:
     void newFilterFreq(int low, int high);  /* substitute for NewLow / NewHigh */
     void pandapterRangeChanged(float min, float max);
     void newZoomLevel(float level);
+    void newFftCenterFreq(qint64 f);
     void newSize();
     void selectVfo(int);
 
@@ -331,6 +336,7 @@ private:
     quint64     msec_per_wfline;    // milliseconds between waterfall updates
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
+    std::mutex  m_wf_mutex;         // waterfall update mutex
 };
 
 #endif // PLOTTER_H
