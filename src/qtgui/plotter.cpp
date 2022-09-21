@@ -1253,6 +1253,54 @@ void CPlotter::setNewFftData(float *fftData, float *wfData, int size, qint64 ts)
     draw();
 }
 
+void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts)
+{
+    int     i, n;
+    int     w;
+    int     h;
+    int     xmin, xmax;
+
+    m_wfData = fftData;
+    m_fftDataSize = size;
+    // get/draw the waterfall
+    w = m_WaterfallPixmap.width();
+    h = m_WaterfallPixmap.height();
+
+    // no need to draw if pixmap is invisible
+    if (w != 0 && h != 0)
+    {
+        // get scaled FFT data
+        n = qMin(w, MAX_SCREENSIZE);
+        getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
+                                m_FftCenter - (qint64)m_Span / 2,
+                                m_FftCenter + (qint64)m_Span / 2,
+                                m_wfData, m_fftbuf,
+                                &xmin, &xmax);
+
+        m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+        QPainter painter1(&m_WaterfallPixmap);
+
+        // draw new line of fft data at top of waterfall bitmap
+        painter1.setPen(QColor(0, 0, 0));
+        for (i = 0; i < xmin; i++)
+            painter1.drawPoint(i, line);
+        for (i = xmax; i < w; i++)
+            painter1.drawPoint(i, line);
+
+        for (i = xmin; i < xmax; i++)
+        {
+            painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+            painter1.drawPoint(i, line);
+        }
+    }
+}
+
+void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
+{
+    lines = m_WaterfallPixmap.height();
+    ms_per_line = 1000.0/double(fft_rate);
+}
+
 void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
                                        float maxdB, float mindB,
                                        qint64 startFreq, qint64 stopFreq,

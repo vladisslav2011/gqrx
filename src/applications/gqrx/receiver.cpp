@@ -264,6 +264,8 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
     std::string error = "";
     size_t sample_size = sample_size_from_format(fmt);
 
+    d_iq_filename = name;
+    d_iq_time_ms = time_ms;
     input_file = file_source::make(sample_size, name.c_str(), 0, 0, sample_rate,
                                    time_ms, repeat, buffers_max);
 
@@ -2264,6 +2266,12 @@ uint64_t receiver::get_filesource_timestamp_ms()
     return input_file->get_timestamp_ms();
 }
 
+receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts)
+{
+//        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset);
+    return std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts);
+}
+
 std::string receiver::escape_filename(std::string filename)
 {
     std::stringstream ss1;
@@ -2284,4 +2292,27 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
     if (self->d_audio_rec_event_handler)
         if (idx == self->d_current)
             self->d_audio_rec_event_handler(filename, is_running);
+}
+
+// receiver::fft_reader
+
+receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset)
+{
+    //open the file
+    //get file size
+}
+
+receiver::fft_reader::~fft_reader()
+{
+    //close the file
+}
+
+uint64_t receiver::fft_reader::ms_available()
+{
+    return 0;
+}
+
+bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t ts)
+{
+    return true;
 }
