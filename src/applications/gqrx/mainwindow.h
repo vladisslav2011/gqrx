@@ -59,6 +59,7 @@ class MainWindow : public QMainWindow
 
 signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
+    void requestPlotterUpdate();
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -142,6 +143,18 @@ private:
     QSpinBox *rxSpinBox;
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
+    static const int WF_NONE = 0;
+    static const int WF_RESTART = 1;
+    static const int WF_RUNNING = 2;
+    static const int WF_STOP = 3;
+    static const int WF_EXIT = 4;
+    int              waterfall_background_request{0};
+    quint64          d_seek_pos{0};
+    bool             d_playing_iq{false};
+    std::thread waterfall_background_thread;
+    std::mutex waterfall_background_mutex;
+    std::condition_variable waterfall_background_wake;
+    std::condition_variable waterfall_background_ready;
 
     QFont font;
 
@@ -160,6 +173,8 @@ private:
     void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
+    void iqFftToMag(unsigned int fftsize);
+    void waterfall_background_func();
 
 private slots:
     /* RecentConfig */
@@ -239,6 +254,10 @@ private slots:
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
+    void plotterUpdate();
+    void triggerIQFftRedraw();
+    void stopIQFftRedraw();
+
 
     /* FFT settings */
     void setIqFftSize(int size);
@@ -246,7 +265,14 @@ private slots:
     void setIqFftWindow(int type);
     void plotScaleChanged(int type, bool perHz);
     void setIqFftSplit(int pct_wf);
+    void setWaterfallMode(int);
     void setAudioFftRate(int fps);
+    void setFftZoomLevel(float level);
+    void setFftCenterFreq(qint64 f);
+    void moveToCenterFreq();
+    void moveToDemodFreq();
+    void setWfColormap(const QString colormap);
+    void setWaterfallRange(float lo, float hi);
     void setFftColor(const QColor& color);
     void enableFftFill(bool enable);
     void setWfTimeSpan(quint64 span_ms);

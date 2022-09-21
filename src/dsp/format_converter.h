@@ -33,6 +33,17 @@ namespace dispatcher
     template <typename> struct tag{};
 }
 
+class any_to_any_base: virtual public gr::sync_interpolator
+{
+public:
+#if GNURADIO_VERSION < 0x030900
+    typedef boost::shared_ptr<any_to_any_base> sptr;
+#else
+    typedef std::shared_ptr<any_to_any_base> sptr;
+#endif
+
+    virtual void convert(const void *in, void *out, int noutput_items) = 0;
+};
     /*!
      * \brief Convert stream of one format to a stream of another format.
      * \ingroup type_converters_blk
@@ -46,7 +57,7 @@ namespace dispatcher
      * \li output[0][n] = static_cast<char>(input[0][m].real());
      * \li output[0][n+1] = static_cast<char>(input[0][m].imag());
      */
-template <typename T_IN, typename T_OUT> class BLOCKS_API any_to_any : virtual public gr::sync_interpolator
+template <typename T_IN, typename T_OUT> class BLOCKS_API any_to_any : virtual public any_to_any_base
 {
 public:
 #if GNURADIO_VERSION < 0x030900
@@ -147,7 +158,7 @@ public:
         return work(noutput_items, input_items, output_items, dispatcher::tag<any_to_any>());
     }
 
-    void convert(const void *in, void *out, int noutput_items)
+    void convert(const void *in, void *out, int noutput_items) override
     {
         convert(in, out, noutput_items, dispatcher::tag<any_to_any>());
     }

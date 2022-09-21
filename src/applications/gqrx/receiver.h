@@ -42,6 +42,7 @@
 #include <gnuradio/top_block.h>
 #include <osmosdr/source.h>
 #include <string>
+#include <memory>
 
 #include "dsp/correct_iq_cc.h"
 #include "dsp/filter/fir_decim.h"
@@ -113,9 +114,30 @@ public:
         bool failed;
         int buffer_usage;
         size_t file_pos;
+        size_t sample_pos;
      };
 
     typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
+
+    struct fft_reader
+    {
+        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft);
+        ~fft_reader();
+        uint64_t ms_available();
+        bool get_iq_fft_data(uint64_t ms, float* buffer, unsigned &fftsize, uint64_t &ts);
+        private:
+        FILE * d_fd;
+        int d_sample_size;
+        int d_sample_rate;
+        uint64_t d_base_ts;
+        uint64_t d_offset;
+        uint64_t d_file_size;
+        any_to_any_base::sptr d_conv;
+        rx_fft_c_sptr d_fft;
+        std::vector<uint8_t> d_buf;
+        std::vector<gr_complex> d_fftbuf;
+    };
+    typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
     static const unsigned int DEFAULT_FFT_SIZE = 8192;
 
@@ -338,6 +360,7 @@ public:
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
+    fft_reader_sptr get_fft_reader(uint64_t ts);
 
 private:
     void        connect_all(enum file_formats fmt);
@@ -364,6 +387,8 @@ private:
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
+    std::string d_iq_filename;
+    uint64_t    d_iq_time_ms;
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
@@ -398,7 +423,7 @@ private:
 
     file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
     //Format converters to/from different sample formats
-    std::vector<gr::block_sptr> convert_to
+    std::vector<any_to_any_base::sptr> convert_to
     {
         nullptr,
         nullptr,
@@ -410,7 +435,7 @@ private:
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make()
     };
-    std::vector<gr::block_sptr> convert_from
+    std::vector<any_to_any_base::sptr> convert_from
     {
         nullptr,
         nullptr,

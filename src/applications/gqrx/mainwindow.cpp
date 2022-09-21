@@ -72,7 +72,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_fftAvg(0.25),
     d_fftNormalizeEnergy(false),
     d_have_audio(true),
-    dec_afsk1200(nullptr)
+    dec_afsk1200(nullptr),
+    waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
     ui->setupUi(this);
     BandPlan::create();
@@ -304,24 +305,22 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(fftSplitChanged(int)), this, SLOT(setIqFftSplit(int)));
     connect(uiDockFft, SIGNAL(fftAvgChanged(float)), ui->plotter, SLOT(setFftAvg(float)));
     connect(uiDockFft, SIGNAL(fftZoomChanged(float)), ui->plotter, SLOT(zoomOnXAxis(float)));
-    connect(uiDockFft, SIGNAL(waterfallModeChanged(int)), ui->plotter, SLOT(setWaterfallMode(int)));
+    connect(uiDockFft, SIGNAL(waterfallModeChanged(int)), this, SLOT(setWaterfallMode(int)));
     connect(uiDockFft, SIGNAL(plotModeChanged(int)), ui->plotter, SLOT(setPlotMode(int)));
     connect(uiDockFft, SIGNAL(plotScaleChanged(int, bool)), ui->plotter, SLOT(setPlotScale(int, bool)));
     connect(uiDockFft, SIGNAL(plotScaleChanged(int, bool)), this, SLOT(plotScaleChanged(int, bool)));
     connect(uiDockFft, SIGNAL(resetFftZoom()), ui->plotter, SLOT(resetHorizontalZoom()));
-    connect(uiDockFft, SIGNAL(gotoFftCenter()), ui->plotter, SLOT(moveToCenterFreq()));
-    connect(uiDockFft, SIGNAL(gotoDemodFreq()), ui->plotter, SLOT(moveToDemodFreq()));
+    connect(uiDockFft, SIGNAL(gotoFftCenter()), this, SLOT(moveToCenterFreq()));
+    connect(uiDockFft, SIGNAL(gotoDemodFreq()), this, SLOT(moveToDemodFreq()));
     connect(uiDockFft, SIGNAL(bandPlanChanged(bool)), ui->plotter, SLOT(enableBandPlan(bool)));
     connect(uiDockFft, SIGNAL(markersChanged(bool)), ui->plotter, SLOT(enableMarkers(bool)));
     connect(uiDockFft, SIGNAL(markersChanged(bool)), this, SLOT(enableMarkers(bool)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), ui->plotter, SLOT(setWfColormap(const QString)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockAudio, SLOT(setWfColormap(const QString)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockProbe, SLOT(setWfColormap(const QString)));
+    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), this, SLOT(setWfColormap(const QString)));
 
     connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
             ui->plotter, SLOT(setPandapterRange(float,float)));
     connect(uiDockFft, SIGNAL(waterfallRangeChanged(float,float)),
-            ui->plotter, SLOT(setWaterfallRange(float,float)));
+            this, SLOT(setWaterfallRange(float,float)));
     connect(uiDockFft, SIGNAL(fftColorChanged(QColor)), this, SLOT(setFftColor(QColor)));
     connect(uiDockFft, SIGNAL(fftFillToggled(bool)), this, SLOT(enableFftFill(bool)));
     connect(uiDockFft, SIGNAL(fftMaxHoldToggled(bool)), ui->plotter, SLOT(enableMaxHold(bool)));
@@ -333,10 +332,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(ui->plotter, SIGNAL(pandapterRangeChanged(float,float)),
             uiDockFft, SLOT(setPandapterRange(float,float)));
     connect(ui->plotter, SIGNAL(newZoomLevel(float)),
-            uiDockFft, SLOT(setZoomLevel(float)));
+            this, SLOT(setFftZoomLevel(float)));
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
     connect(ui->plotter, SIGNAL(markerSelectA(qint64)), this, SLOT(setMarkerA(qint64)));
     connect(ui->plotter, SIGNAL(markerSelectB(qint64)), this, SLOT(setMarkerB(qint64)));
+    connect(ui->plotter, SIGNAL(newFftCenterFreq(qint64)), this, SLOT(setFftCenterFreq(qint64)));
 
     // Bookmarks
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(BookmarkInfo &)), this, SLOT(onBookmarkActivated(BookmarkInfo &)));
@@ -423,10 +423,18 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     }
 
     qsvg_dummy = new QSvgWidget();
+    connect(this,SIGNAL(requestPlotterUpdate()), this, SLOT(plotterUpdate()), Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
 {
+    /* It is better to stop background thread first */
+    {
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_EXIT;
+        waterfall_background_wake.notify_one();
+    }
+    waterfall_background_thread.join();
     on_actionDSP_triggered(false);
 
     /* stop and delete timers */
@@ -2129,6 +2137,7 @@ void MainWindow::meterTimeout()
     if (iq_stats.playing)
     {
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
+        d_seek_pos = iq_stats.sample_pos;
     }
     if (uiDockRxOpt->getAgcOn())
     {
@@ -2514,14 +2523,19 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     ui->actionSaveSettings->setDisabled(true);
 
     on_actionDSP_triggered(true);
+    d_playing_iq = true;
 }
 
 void MainWindow::stopIqPlayback()
 {
+    d_playing_iq = false;
     if (ui->actionDSP->isChecked())
     {
         // suspend DSP while we reload settings
         on_actionDSP_triggered(false);
+    }else{
+        /* Make shure, that background thread will not interfere normal waterfall rendering */
+        stopIQFftRedraw();
     }
 
     ui->statusBar->showMessage(tr("I/Q playback stopped"), 5000);
@@ -2578,15 +2592,137 @@ void MainWindow::stopIqPlayback()
 void MainWindow::seekIqFile(qint64 seek_pos)
 {
     rx->seek_iq_file((long)seek_pos);
+    if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+    {
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        d_seek_pos = seek_pos;
+        waterfall_background_request = MainWindow::WF_RESTART;
+        waterfall_background_wake.notify_one();
+    }
+}
+
+/**
+ * IQ tool player waterfall backgroung rendering thread function.
+ */
+void MainWindow::waterfall_background_func()
+{
+    int lines=0;
+    double ms_per_line = 0.0;
+    int maxlines = 0;
+    int k = 0;
+    receiver::fft_reader_sptr rd;
+    std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    while(1)
+    {
+        if(waterfall_background_request == MainWindow::WF_NONE)
+        {
+            waterfall_background_ready.notify_one();
+            waterfall_background_wake.wait(lock);
+            lock.unlock();
+        }
+        if(waterfall_background_request == MainWindow::WF_EXIT)
+            return;
+        if(waterfall_background_request == MainWindow::WF_RESTART)
+        {
+            //update waterfall
+            lines=0;
+            ms_per_line = 0.0;
+            ui->plotter->getWaterfallMetrics(lines, ms_per_line);
+            rd = rx->get_fft_reader(d_seek_pos);
+            quint64 ms_available = rd->ms_available();
+            maxlines = std::min(lines, int(ms_available / ms_per_line));
+            k = 0;
+            lock.lock();
+            if(ms_per_line > 0 && (waterfall_background_request != MainWindow::WF_STOP))
+            {
+                waterfall_background_request = MainWindow::WF_RUNNING;
+                lock.unlock();
+            }else{
+                rd.reset();
+                waterfall_background_request = MainWindow::WF_NONE;
+            }
+        }
+        if(waterfall_background_request == MainWindow::WF_RUNNING)
+        {
+            if(k<lines)
+            {
+                unsigned int fftsize;
+                uint64_t ts;
+                if(k<=maxlines)
+                {
+                    rd->get_iq_fft_data(k * ms_per_line, d_iqFftData.data(), fftsize, ts);
+                    if (fftsize > 0)
+                    {
+                        ui->plotter->drawOneWaterfallLine(k, d_iqFftData.data(), fftsize, ts);
+                        //TODO: Try to use one of global timers to do this periodically instead of triggering update every 16 lines
+                        if((k & 15) == 0)
+                            emit plotterUpdate();
+                    }
+                }else{
+                    ui->plotter->drawBlackWaterfallLine(k);
+                }
+            }
+            k++;
+            if(k>=lines)
+            {
+                emit requestPlotterUpdate();
+                lock.lock();
+                rd.reset();
+                waterfall_background_request = MainWindow::WF_NONE;
+            }
+        }
+        if(waterfall_background_request == MainWindow::WF_STOP)
+        {
+            //FIXME: Is it better to fill remaining lines with black color?
+            emit requestPlotterUpdate();
+            lock.lock();
+            rd.reset();
+            waterfall_background_request = MainWindow::WF_NONE;
+        }
+    }
+}
+
+/**
+ * Pltter forced update slot to make it possible to trigger plotter update from background thread.
+ */
+void MainWindow::plotterUpdate()
+{
+    ui->plotter->update();
+}
+
+void MainWindow::triggerIQFftRedraw()
+{
+    std::cerr<<"MainWindow::triggerIQFftRedraw()"<<waterfall_background_request<<"\n";
+    if(!ui->actionDSP->isChecked() && d_playing_iq)
+    {
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_RESTART;
+        waterfall_background_wake.notify_one();
+    }
+}
+
+void MainWindow::stopIQFftRedraw()
+{
+    std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    std::cerr<<"MainWindow::stopIQFftRedraw()"<<waterfall_background_request<<"\n";
+    if(waterfall_background_request != MainWindow::WF_NONE)
+    {
+        waterfall_background_request = MainWindow::WF_STOP;
+        waterfall_background_wake.notify_one();
+        waterfall_background_ready.wait(lock);
+    }
 }
 
 /** FFT size has changed. */
 void MainWindow::setIqFftSize(int size)
 {
+    //Prevent crash when FFT size is changed during waterfall background update
+    stopIQFftRedraw();
     qDebug() << "Changing baseband FFT size to" << size;
     d_iqFftData.resize(size);
     d_iqFftData.shrink_to_fit();
     rx->set_iq_fft_size(size);
+    triggerIQFftRedraw();
 }
 
 /** Baseband FFT rate has changed. */
@@ -2620,12 +2756,14 @@ void MainWindow::setIqFftRate(int fps)
 
     // Invalidate average frame rate
     d_avg_fft_rate = 0.0;
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setIqFftWindow(int type)
 {
     d_fftWindowType = type;
     rx->set_iq_fft_window(d_fftWindowType, d_fftNormalizeEnergy);
+    triggerIQFftRedraw();
 }
 
 void MainWindow::plotScaleChanged(int type, bool perHz)
@@ -2640,6 +2778,7 @@ void MainWindow::plotScaleChanged(int type, bool perHz)
 
     d_fftNormalizeEnergy = (type == 2) || (type == 1 && perHz);
     rx->set_iq_fft_window(d_fftWindowType, d_fftNormalizeEnergy);
+    triggerIQFftRedraw();
 }
 
 /** Waterfall time span has changed. */
@@ -2648,11 +2787,13 @@ void MainWindow::setWfTimeSpan(quint64 span_ms)
     // set new time span, then send back new resolution to be shown by GUI label
     ui->plotter->setWaterfallSpan(span_ms);
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setWfSize()
 {
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    triggerIQFftRedraw();
 }
 
 /**
@@ -2662,7 +2803,17 @@ void MainWindow::setWfSize()
 void MainWindow::setIqFftSplit(int pct_wf)
 {
     if ((pct_wf >= 0) && (pct_wf <= 100))
+    {
+        stopIQFftRedraw();
         ui->plotter->setPercent2DScreen(pct_wf);
+        triggerIQFftRedraw();
+    }
+}
+
+void MainWindow::setWaterfallMode(int mode)
+{
+    ui->plotter->setWaterfallMode(mode);
+    triggerIQFftRedraw();
 }
 
 /** Audio FFT rate has changed. */
@@ -2675,6 +2826,43 @@ void MainWindow::setAudioFftRate(int fps)
 
     if (audio_fft_timer->isActive())
         audio_fft_timer->setInterval(interval);
+}
+
+void  MainWindow::setFftZoomLevel(float level)
+{
+    uiDockFft->setZoomLevel(level);
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setFftCenterFreq(qint64 f)
+{
+    triggerIQFftRedraw();
+}
+
+void MainWindow::moveToDemodFreq()
+{
+    ui->plotter->moveToDemodFreq();
+    triggerIQFftRedraw();
+}
+
+void MainWindow::moveToCenterFreq()
+{
+    ui->plotter->moveToCenterFreq();
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setWfColormap(const QString colormap)
+{
+    ui->plotter->setWfColormap(colormap);
+    uiDockAudio->setWfColormap(colormap);
+    uiDockProbe->setWfColormap(colormap);
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setWaterfallRange(float lo, float hi)
+{
+    ui->plotter->setWaterfallRange(lo, hi);
+    triggerIQFftRedraw();
 }
 
 /** Set FFT plot color. */
@@ -2707,6 +2895,8 @@ void MainWindow::on_actionDSP_triggered(bool checked)
 
     if (checked)
     {
+        /* Make shure, that background thread will not interfere normal waterfall rendering */
+        stopIQFftRedraw();
         /* start receiver */
         rx->start();
 

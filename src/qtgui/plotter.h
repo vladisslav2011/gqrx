@@ -8,6 +8,7 @@
 #include <QImage>
 #include <vector>
 #include <set>
+#include <mutex>
 #include <QMap>
 #include "bookmarks.h"
 #include "receivers/defines.h"
@@ -49,8 +50,10 @@ public:
     void setInvertScrolling(bool enabled) { m_InvertScrolling = enabled; }
     void setDXCSpotsEnabled(bool enabled) { m_DXCSpotsEnabled = enabled; }
 
-    void setNewFftData(const float *fftData, int size);
-    void setNewFftData(const float *fftData, int size, qint64 ts);
+    void setNewFftData(const float *fftData, int size, qint64 ts, bool oneline = false);
+    void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
+    void drawBlackWaterfallLine(int line);
+    void getWaterfallMetrics(int &lines, double &ms_per_line);
 
     void setCenterFreq(quint64 f);
     void setFreqUnits(qint32 unit) { m_FreqUnits = unit; }
@@ -162,6 +165,7 @@ signals:
     void newFilterFreq(int low, int high);  /* substitute for NewLow / NewHigh */
     void pandapterRangeChanged(float min, float max);
     void newZoomLevel(float level);
+    void newFftCenterFreq(qint64 f);
     void newSize();
     void markerSelectA(qint64 freq);
     void markerSelectB(qint64 freq);
@@ -385,6 +389,7 @@ private:
     quint64     tnow_wf_ms;        // time when new waterfall data has arrived
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
+    std::mutex  m_wf_mutex;         // waterfall update mutex
 };
 
 #endif // PLOTTER_H

@@ -438,6 +438,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 else
                 {
                     setFftCenterFreq(m_FftCenter + delta_hz);
+                    emit newFftCenterFreq(m_FftCenter + delta_hz);
                 }
 
                 m_MaxHoldValid = false;
@@ -1283,6 +1284,7 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     if (!m_WaterfallPixmap.isNull())
     {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         const int wfWidthS = m_WaterfallPixmap.width();
         const int wfHeightS = m_WaterfallPixmap.height();
         const QRectF wfRectS(0.0, 0.0, wfWidthS, wfHeightS);
@@ -1555,6 +1557,7 @@ void CPlotter::draw(bool newData)
 
     if (doWaterfall)
     {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // Pick max or avg for waterfall
         float *dataSource;
         if (m_WaterfallMode == WATERFALL_MODE_AVG)
@@ -1989,13 +1992,14 @@ void CPlotter::setRunningState(bool running)
  * When FFT data is set using this method, the same data will be used for both the
  * pandapter and the waterfall.
  */
-void CPlotter::setNewFftData(const float *fftData, int size, qint64 ts)
+void CPlotter::setNewFftData(const float *fftData, int size, qint64 ts, bool oneline)
 {
     // Make sure zeros don't get through to log calcs
     const float fmin = 1e-20;
     tnow_wf_ms = ts;
-    if(tnow_wf_ms < tlast_wf_ms)
-        tlast_wf_ms = tnow_wf_ms;
+    if(!oneline)
+        if(tnow_wf_ms < tlast_wf_ms)
+            tlast_wf_ms = tnow_wf_ms;
 
     if (size != m_fftDataSize)
     {
@@ -2060,7 +2064,7 @@ void CPlotter::setNewFftData(const float *fftData, int size, qint64 ts)
     const bool needIIR = m_IIRValid                         // Initializing
                       && a != 1.0f;                         // IIR is NOP
 
-    if (needIIR) {
+    if (needIIR && !oneline) {
         volk_32f_x2_divide_32f(m_X.data(), m_fftData.data(), m_fftIIR.data(), size);
         volk_32f_s32f_power_32f(m_X.data(), m_X.data(), a, size);
         volk_32f_x2_multiply_32f(m_fftIIR.data(), m_fftIIR.data(), m_X.data(), size);
@@ -2072,7 +2076,227 @@ void CPlotter::setNewFftData(const float *fftData, int size, qint64 ts)
 
     m_IIRValid = true;
 
+    if(oneline)
+        return;
+
     draw(true);
+}
+
+void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts)
+{
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
+    int     i, j;
+    const qreal w = m_Size.width() * m_DPR;
+    const double fftSize = m_fftDataSize;
+    const double sampleFreq = (double)m_SampleFreq;
+    const double fftCenter = (double)m_FftCenter;
+    const double span = (double)m_Span;
+    const double startFreq = fftCenter - span / 2.0;
+    const double binsPerHz = fftSize / sampleFreq;
+
+    // Scale factor for x -> fft bin. Note that it takes 2 pixels to have a
+    // span of 1 pixel.
+    double xScale = sampleFreq * (w - 1) / fftSize / span;
+
+    // Center of fft is the center of the DC bin. The Nyquist bin (index 0
+    // after shift) is not used.
+    const double startBinD = startFreq * binsPerHz + fftSize / 2.0;
+    const qint32 startBin = std::min(qRound(startBinD), m_fftDataSize - 1);
+    const qint32 numBins = (qint32)ceil(span * binsPerHz);
+    const qint32 endBin = startBin + numBins;
+    const qint32 minbin = std::max(startBin, 1);
+    const qint32 maxbin = std::min(endBin + 1, m_fftDataSize - 1);
+
+    const qint32 xmin = qRound((double)(minbin - startBin) * xScale);
+    const qint32 xmax = qRound((double)(maxbin - startBin) * xScale);
+    const int npts = xmax - xmin;
+    const float wfdBGainFactor = 256.0f / fabsf(m_WfMaxdB - m_WfMindB);
+    const float fmin = std::numeric_limits<float>::min();
+
+    setNewFftData(fftData, size, ts, true);
+#if 0
+    // get/draw the waterfall
+    w = m_WaterfallPixmap.width();
+    h = m_WaterfallPixmap.height();
+
+    // no need to draw if pixmap is invisible
+    if (w != 0 && h != 0)
+    {
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
+        // get scaled FFT data
+        n = qMin(w, MAX_SCREENSIZE);
+        getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
+                                m_FftCenter - (qint64)m_Span / 2,
+                                m_FftCenter + (qint64)m_Span / 2,
+                                m_wfData, m_fftbuf,
+                                &xmin, &xmax);
+
+        while(line>m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        if(line == m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        else
+            m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+        QPainter painter1(&m_WaterfallPixmap);
+
+        // draw new line of fft data at top of waterfall bitmap
+        painter1.setPen(QColor(0, 0, 0));
+        for (i = 0; i < xmin; i++)
+            painter1.drawPoint(i, line);
+        for (i = xmax; i < w; i++)
+            painter1.drawPoint(i, line);
+
+        for (i = xmin; i < xmax; i++)
+        {
+            painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+            painter1.drawPoint(i, line);
+        }
+    }
+#endif
+
+    float vmax;
+    float vsum;
+    if ((qreal)numBins >= w)
+    {
+        qint32 count;
+        qint32 xprev = xmin;
+        bool first = true;
+
+        for(qint32 i = minbin; i <= maxbin; i++)
+        {
+            const float xD = (float)(i - startBin) * (float)xScale;
+            const int x = qRound(xD);
+
+            // Plot uses IIR output. Histogram and waterfall use raw fft data.
+            const float v = m_fftData[i];
+
+            if (first)
+            {
+                vmax = v;
+                vsum = v;
+                count = 1;
+            }
+
+            // New (or last) pixel - output values
+            if (x != xprev || i == maxbin)
+            {
+                vmax = std::max(vmax, fmin);
+                m_wfMaxBuf[xprev] = vmax;
+
+                const float vavg = std::max((float)(vsum / (float)count), fmin);
+                m_wfAvgBuf[xprev] = vavg;
+
+                vmax = v;
+                vsum = v;
+                count = 1;
+                xprev = x;
+            }
+
+            else if (!first)
+            {
+                vmax = std::max(v, vmax);
+                vsum += v;
+                ++count;
+            }
+
+            first = false;
+        }
+
+    }
+    // w > m_fftDataSize uses no averaging
+    else
+    {
+        for (i = xmin; i < xmax; i++)
+        {
+            j = qRound((float)i / (float)xScale + (float)startBinD);
+
+            const float v = m_fftData[j];
+
+            m_wfMaxBuf[i] = v;
+            m_wfAvgBuf[i] = v;
+
+        }
+    }
+    // Pick max or avg for waterfall
+    float *dataSource;
+    if (m_WaterfallMode == WATERFALL_MODE_AVG)
+    {
+        dataSource = m_wfAvgBuf;
+    }
+    else if (m_WaterfallMode == WATERFALL_MODE_SYNC)
+    {
+        if (m_PlotMode == PLOT_MODE_MAX)
+        {
+            dataSource = m_fftMaxBuf;
+        }
+        else {
+            dataSource = m_fftAvgBuf;
+        }
+    }
+    else // WATERFALL_MODE_MAX
+    {
+        dataSource = m_wfMaxBuf;
+    }
+
+//            ++wf_count;
+
+        // cursor times are relative to last time drawn
+//         tlast_wf_ms = tnow_ms;
+//         if (wf_valid_since_ms == 0)
+//             wf_valid_since_ms = tnow_ms;
+//         tlast_wf_drawn_ms = tnow_ms;
+
+    while(line>m_wfLineStats.size())
+        m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+    if(line == m_wfLineStats.size())
+        m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+    else
+        m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+
+    QPainter painter1(&m_WaterfallPixmap);
+
+    // draw new line of fft data at top of waterfall bitmap
+    // draw black areas where data will not be draw
+    painter1.setPen(QPen(Qt::black));
+    painter1.drawRect(QRectF(0.0, line, xmin, line + 1.0));
+    painter1.drawRect(QRectF(xmax, line, w - xmax, line + 1.0));
+
+    // Use buffer (max or average) if in manual mode, else current data
+    for (i = 0; i < npts; ++i)
+    {
+        const int ix = i + xmin;
+        const qreal ixPlot = (qreal)ix;
+        const float v = dataSource[ix];
+        qint32 cidx = qRound((m_WfMaxdB - 10.0f * log10f(v)) * wfdBGainFactor);
+        cidx = std::max(std::min(cidx, 255), 0);
+        painter1.setPen(m_ColorTbl[255 - cidx]);
+        painter1.drawPoint(QPointF(ixPlot, line));
+    }
+
+}
+
+void CPlotter::drawBlackWaterfallLine(int line)
+{
+    int i;
+    int w = m_WaterfallPixmap.width();
+    int h = m_WaterfallPixmap.height();
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
+    if (w != 0 && h != 0)
+    {
+        QPainter painter1(&m_WaterfallPixmap);
+        painter1.setPen(QColor(0, 0, 0));
+        for (i = 0; i < w; i++)
+            painter1.drawPoint(i, line);
+    }
+}
+
+void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
+{
+    lines = m_WaterfallPixmap.height();
+    if(fft_rate == 0)
+        ms_per_line = -1.0;
+    else
+        ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
 }
 
 void CPlotter::setFftAvg(float avg)
