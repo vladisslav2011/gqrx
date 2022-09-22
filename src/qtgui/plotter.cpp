@@ -1277,7 +1277,12 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
                                 m_wfData, m_fftbuf,
                                 &xmin, &xmax);
 
-        m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+        while(line>m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        if(line == m_wfLineStats.size())
+            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        else
+            m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
         QPainter painter1(&m_WaterfallPixmap);
 
         // draw new line of fft data at top of waterfall bitmap
