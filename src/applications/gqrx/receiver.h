@@ -120,10 +120,21 @@ public:
 
     struct fft_reader
     {
-        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset);
+        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft);
         ~fft_reader();
         uint64_t ms_available();
-        bool get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t ts);
+        bool get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t &ts);
+        private:
+        FILE * d_fd;
+        int d_sample_size;
+        int d_sample_rate;
+        uint64_t d_base_ts;
+        uint64_t d_offset;
+        uint64_t d_file_size;
+        any_to_any_base::sptr d_conv;
+        rx_fft_c_sptr d_fft;
+        std::vector<uint8_t> d_buf;
+        std::vector<gr_complex> d_fftbuf;
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
@@ -405,7 +416,7 @@ private:
 
     file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
     //Format converters to/from different sample formats
-    std::vector<gr::block_sptr> convert_to
+    std::vector<any_to_any_base::sptr> convert_to
     {
         nullptr,
         nullptr,
@@ -417,7 +428,7 @@ private:
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make()
     };
-    std::vector<gr::block_sptr> convert_from
+    std::vector<any_to_any_base::sptr> convert_from
     {
         nullptr,
         nullptr,
