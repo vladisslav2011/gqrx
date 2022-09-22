@@ -2500,10 +2500,8 @@ void MainWindow::seekIqFile(qint64 seek_pos)
     if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
     {
         //update waterfall
-        unsigned int    fftsize;
         int lines=0;
         double ms_per_line = 0.0;
-        quint64 ts = 0;
         ui->plotter->getWaterfallMetrics(lines, ms_per_line);
         receiver::fft_reader_sptr rd = rx->get_fft_reader(seek_pos);
         quint64 ms_available = rd->ms_available();
@@ -2514,6 +2512,8 @@ void MainWindow::seekIqFile(qint64 seek_pos)
             return;
         for(int k=0;k<lines;k++)
         {
+            unsigned int fftsize;
+            uint64_t ts;
             rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
             if (fftsize > 0)
             {
@@ -2521,6 +2521,7 @@ void MainWindow::seekIqFile(qint64 seek_pos)
                 ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
             }
         }
+        ui->plotter->update();
     }
 }
 
