@@ -1019,7 +1019,7 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     painter.drawPixmap(0, 0, m_2DPixmap);
     {
-        std::unique_lock<std::mutex>(m_wf_mutex);
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
                         m_WaterfallPixmap);
     }
@@ -1051,7 +1051,7 @@ void CPlotter::draw()
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
     {
-        std::unique_lock<std::mutex>(m_wf_mutex);
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // get scaled FFT data
         n = qMin(w, MAX_SCREENSIZE);
         getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
@@ -1273,7 +1273,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
     {
-        std::unique_lock<std::mutex>(m_wf_mutex);
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // get scaled FFT data
         n = qMin(w, MAX_SCREENSIZE);
         getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
@@ -1310,7 +1310,7 @@ void CPlotter::drawBlackWaterfallLine(int line)
     int i;
     int w = m_WaterfallPixmap.width();
     int h = m_WaterfallPixmap.height();
-    std::unique_lock<std::mutex>(m_wf_mutex);
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     if (w != 0 && h != 0)
     {
         QPainter painter1(&m_WaterfallPixmap);
@@ -1323,7 +1323,10 @@ void CPlotter::drawBlackWaterfallLine(int line)
 void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
 {
     lines = m_WaterfallPixmap.height();
-    ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
+    if(fft_rate == 0)
+        ms_per_line = -1.0;
+    else
+        ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
 }
 
 void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
