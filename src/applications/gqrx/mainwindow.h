@@ -59,6 +59,7 @@ class MainWindow : public QMainWindow
 
 signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
+    void requestPlotterUpdate();
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -130,6 +131,17 @@ private:
     QSpinBox *rxSpinBox;
     // dummy widget to enforce linking to QtSvg
     QSvgWidget      *qsvg_dummy;
+    static const int WF_NONE = 0;
+    static const int WF_RESTART = 1;
+    static const int WF_RUNNING = 2;
+    static const int WF_STOP = 3;
+    static const int WF_EXIT = 4;
+    int              waterfall_background_request{0};
+    quint64          d_seek_pos{0};
+    std::thread waterfall_background_thread;
+    std::mutex waterfall_background_mutex;
+    std::condition_variable waterfall_background_wake;
+    std::condition_variable waterfall_background_ready;
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);
@@ -144,6 +156,7 @@ private:
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
     void iqFftToMag(unsigned int fftsize);
+    void waterfall_background_func();
 
 private slots:
     /* RecentConfig */
@@ -228,6 +241,8 @@ private slots:
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
+    void plotterUpdate();
+
 
     /* FFT settings */
     void setIqFftSize(int size);
