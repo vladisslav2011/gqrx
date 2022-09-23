@@ -241,6 +241,8 @@ private slots:
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
     void plotterUpdate();
+    void triggerIQFftRedraw();
+    void stopIQFftRedraw();
 
 
     /* FFT settings */
