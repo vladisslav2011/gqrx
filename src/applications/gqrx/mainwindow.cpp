@@ -71,7 +71,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_auto_bookmarks(false),
     d_fftAvg(1.0),
     d_have_audio(true),
-    dec_afsk1200(nullptr)
+    dec_afsk1200(nullptr),
+    waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
     ui->setupUi(this);
     BandPlan::create();
@@ -395,10 +396,18 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockProbe, SIGNAL(decimChanged(int)), this, SLOT(setChanDecim(int)));
     connect(uiDockProbe, SIGNAL(osrChanged(int)), this, SLOT(setChanOsr(int)));
     connect(uiDockProbe, SIGNAL(filterParamChanged(float)), this, SLOT(setChanFilterParam(float)));
+    connect(this,SIGNAL(requestPlotterUpdate()), this, SLOT(plotterUpdate()), Qt::QueuedConnection);
 }
 
 MainWindow::~MainWindow()
 {
+    /* It is better to stop background thread first */
+    {
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_EXIT;
+        waterfall_background_wake.notify_one();
+    }
+    waterfall_background_thread.join();
     on_actionDSP_triggered(false);
 
     /* stop and delete timers */
@@ -2403,6 +2412,12 @@ void MainWindow::stopIqPlayback()
     {
         // suspend DSP while we reload settings
         on_actionDSP_triggered(false);
+    }else{
+        /* Make shure, that background thread will not interfere normal waterfall rendering */
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_STOP;
+        waterfall_background_wake.notify_one();
+        waterfall_background_ready.wait(lock);
     }
 
     ui->statusBar->showMessage(tr("I/Q playback stopped"), 5000);
@@ -2459,33 +2474,95 @@ void MainWindow::seekIqFile(qint64 seek_pos)
     rx->seek_iq_file((long)seek_pos);
     if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
     {
-        //update waterfall
-        int lines=0;
-        double ms_per_line = 0.0;
-        ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-        receiver::fft_reader_sptr rd = rx->get_fft_reader(seek_pos);
-        quint64 ms_available = rd->ms_available();
-        int maxlines = std::min(lines, int(ms_available/ms_per_line));
-        for(int k=0;k<lines;k++)
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        d_seek_pos = seek_pos;
+        waterfall_background_request = MainWindow::WF_RESTART;
+        waterfall_background_wake.notify_one();
+    }
+}
+
+/**
+ * IQ tool player waterfall backgroung rendering thread function.
+ */
+void MainWindow::waterfall_background_func()
+{
+    int lines=0;
+    double ms_per_line = 0.0;
+    int maxlines = 0;
+    int k = 0;
+    receiver::fft_reader_sptr rd;
+    std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    while(1)
+    {
+        if(waterfall_background_request == MainWindow::WF_NONE)
         {
-            unsigned int fftsize;
-            uint64_t ts;
-            if(k<=maxlines)
+            waterfall_background_ready.notify_one();
+            waterfall_background_wake.wait(lock);
+            lock.unlock();
+        }
+        if(waterfall_background_request == MainWindow::WF_EXIT)
+            return;
+        if(waterfall_background_request == MainWindow::WF_RESTART)
+        {
+            //update waterfall
+            lines=0;
+            ms_per_line = 0.0;
+            ui->plotter->getWaterfallMetrics(lines, ms_per_line);
+            rd = rx->get_fft_reader(d_seek_pos);
+            quint64 ms_available = rd->ms_available();
+            maxlines = std::min(lines, int(ms_available / ms_per_line));
+            k = 0;
+            lock.lock();
+            waterfall_background_request = MainWindow::WF_RUNNING;
+            lock.unlock();
+        }
+        if(waterfall_background_request == MainWindow::WF_RUNNING)
+        {
+            if(k<lines)
             {
-                rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
-                if (fftsize > 0)
+                unsigned int fftsize;
+                uint64_t ts;
+                if(k<=maxlines)
                 {
-                    iqFftToMag(fftsize);
-                    ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
-                    if((k&15) == 0)
-                        ui->plotter->repaint();
+                    rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
+                    if (fftsize > 0)
+                    {
+                        iqFftToMag(fftsize);
+                        ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
+                        //TODO: Try to use one of global timers to do this periodically instead of triggering update every 16 lines
+                        if((k & 15) == 0)
+                            emit plotterUpdate();
+                    }
+                }else{
+                    ui->plotter->drawBlackWaterfallLine(k);
                 }
-            }else{
-                ui->plotter->drawBlackWaterfallLine(k);
+            }
+            k++;
+            if(k>=lines)
+            {
+                emit requestPlotterUpdate();
+                lock.lock();
+                rd.reset();
+                waterfall_background_request = MainWindow::WF_NONE;
             }
         }
-        ui->plotter->update();
+        if(waterfall_background_request == MainWindow::WF_STOP)
+        {
+            //FIXME: Is it better to fill remaining lines with black color?
+            emit requestPlotterUpdate();
+            lock.lock();
+            rd.reset();
+            waterfall_background_request = MainWindow::WF_NONE;
+        }
     }
+}
+
+/**
+ * Pltter forced update slot to make it possible to trigger plotter update from background thread.
+ */
+void MainWindow::plotterUpdate()
+{
+    ui->plotter->update();
 }
 
 /** FFT size has changed. */
@@ -2610,6 +2687,11 @@ void MainWindow::on_actionDSP_triggered(bool checked)
 
     if (checked)
     {
+        /* Make shure, that background thread will not interfere normal waterfall rendering */
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_STOP;
+        waterfall_background_wake.notify_one();
+        waterfall_background_ready.wait(lock);
         /* start receiver */
         rx->start();
 
