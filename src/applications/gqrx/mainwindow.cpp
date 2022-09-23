@@ -2419,10 +2419,7 @@ void MainWindow::stopIqPlayback()
         on_actionDSP_triggered(false);
     }else{
         /* Make shure, that background thread will not interfere normal waterfall rendering */
-        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-        waterfall_background_request = MainWindow::WF_STOP;
-        waterfall_background_wake.notify_one();
-        waterfall_background_ready.wait(lock);
+        stopIQFftRedraw();
     }
 
     ui->statusBar->showMessage(tr("I/Q playback stopped"), 5000);
@@ -2518,8 +2515,12 @@ void MainWindow::waterfall_background_func()
             maxlines = std::min(lines, int(ms_available / ms_per_line));
             k = 0;
             lock.lock();
-            waterfall_background_request = MainWindow::WF_RUNNING;
-            lock.unlock();
+            if(ms_per_line > 0)
+            {
+                waterfall_background_request = MainWindow::WF_RUNNING;
+                lock.unlock();
+            }else
+                waterfall_background_request = MainWindow::WF_NONE;
         }
         if(waterfall_background_request == MainWindow::WF_RUNNING)
         {
@@ -2570,13 +2571,37 @@ void MainWindow::plotterUpdate()
     ui->plotter->update();
 }
 
+void MainWindow::triggerIQFftRedraw()
+{
+    if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+    {
+        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+        waterfall_background_request = MainWindow::WF_RESTART;
+        waterfall_background_wake.notify_one();
+    }
+}
+
+void MainWindow::stopIQFftRedraw()
+{
+    std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    if(waterfall_background_request != MainWindow::WF_NONE)
+    {
+        waterfall_background_request = MainWindow::WF_STOP;
+        waterfall_background_wake.notify_one();
+        waterfall_background_ready.wait(lock);
+    }
+}
+
 /** FFT size has changed. */
 void MainWindow::setIqFftSize(int size)
 {
+    //Prevent crash when FFT size is changed during waterfall background update
+    stopIQFftRedraw();
     qDebug() << "Changing baseband FFT size to" << size;
     rx->set_iq_fft_size(size);
     for (int i = 0; i < size; i++)
         d_iirFftData[i] = -140.0;  // dBFS
+    triggerIQFftRedraw();
 }
 
 /** Baseband FFT rate has changed. */
@@ -2604,11 +2629,14 @@ void MainWindow::setIqFftRate(int fps)
         iq_fft_timer->setInterval(interval);
 
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setIqFftWindow(int type)
 {
+    stopIQFftRedraw();
     rx->set_iq_fft_window(type);
+    triggerIQFftRedraw();
 }
 
 /** Waterfall time span has changed. */
@@ -2617,11 +2645,13 @@ void MainWindow::setWfTimeSpan(quint64 span_ms)
     // set new time span, then send back new resolution to be shown by GUI label
     ui->plotter->setWaterfallSpan(span_ms);
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setWfSize()
 {
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    triggerIQFftRedraw();
 }
 
 /**
@@ -2632,6 +2662,7 @@ void MainWindow::setIqFftSplit(int pct_wf)
 {
     if ((pct_wf >= 0) && (pct_wf <= 100))
         ui->plotter->setPercent2DScreen(pct_wf);
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setIqFftAvg(float avg)
@@ -2693,10 +2724,7 @@ void MainWindow::on_actionDSP_triggered(bool checked)
     if (checked)
     {
         /* Make shure, that background thread will not interfere normal waterfall rendering */
-        std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-        waterfall_background_request = MainWindow::WF_STOP;
-        waterfall_background_wake.notify_one();
-        waterfall_background_ready.wait(lock);
+        stopIQFftRedraw();
         /* start receiver */
         rx->start();
 
