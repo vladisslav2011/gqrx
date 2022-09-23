@@ -2320,7 +2320,7 @@ receiver::fft_reader::fft_reader(std::string filename, int sample_size, int samp
     d_conv = conv;
     d_fft = fft;
     d_fd = fopen(filename.c_str(), "rb");
-//     if(d_fd)
+    if(d_fd)
     {
         GR_FSEEK(d_fd, 0, SEEK_END);
         d_file_size = GR_FTELL(d_fd);
@@ -2338,7 +2338,7 @@ receiver::fft_reader::~fft_reader()
 
 uint64_t receiver::fft_reader::ms_available()
 {
-    return (d_file_size/d_sample_size)*1000llu/uint64_t(d_sample_rate);
+    return d_offset*1000llu/uint64_t(d_sample_rate);
 }
 
 bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t &ts)

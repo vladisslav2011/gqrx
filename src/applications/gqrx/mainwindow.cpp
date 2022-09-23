@@ -2470,20 +2470,23 @@ void MainWindow::seekIqFile(qint64 seek_pos)
         ui->plotter->getWaterfallMetrics(lines, ms_per_line);
         receiver::fft_reader_sptr rd = rx->get_fft_reader(seek_pos);
         quint64 ms_available = rd->ms_available();
-        if(ms_available == 0)
-            return;
-        lines = std::min(lines, int(ms_available/ms_per_line));
-        if(lines == 0)
-            return;
+        int maxlines = std::min(lines, int(ms_available/ms_per_line));
         for(int k=0;k<lines;k++)
         {
             unsigned int fftsize;
             uint64_t ts;
-            rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
-            if (fftsize > 0)
+            if(k<=maxlines)
             {
-                iqFftToMag(fftsize);
-                ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
+                rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
+                if (fftsize > 0)
+                {
+                    iqFftToMag(fftsize);
+                    ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
+                    if((k&15) == 0)
+                        ui->plotter->repaint();
+                }
+            }else{
+                ui->plotter->drawBlackWaterfallLine(k);
             }
         }
         ui->plotter->update();
