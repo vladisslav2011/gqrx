@@ -1900,6 +1900,8 @@ void CPlotter::resetHorizontalZoom(void)
 {
     setFftCenterFreq(0);
     setSpanFreq((qint32)m_SampleFreq);
+    float factor = (float)m_SampleFreq / (float)m_Span;
+    emit newZoomLevel(factor);
 }
 
 /** Center FFT plot around 0 (corresponds to center freq). */
