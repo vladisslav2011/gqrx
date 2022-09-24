@@ -283,23 +283,22 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(fftAvgChanged(float)), this, SLOT(setIqFftAvg(float)));
     connect(uiDockFft, SIGNAL(fftZoomChanged(float)), ui->plotter, SLOT(zoomOnXAxis(float)));
     connect(uiDockFft, SIGNAL(resetFftZoom()), ui->plotter, SLOT(resetHorizontalZoom()));
-    connect(uiDockFft, SIGNAL(gotoFftCenter()), ui->plotter, SLOT(moveToCenterFreq()));
-    connect(uiDockFft, SIGNAL(gotoDemodFreq()), ui->plotter, SLOT(moveToDemodFreq()));
+    connect(uiDockFft, SIGNAL(gotoFftCenter()), this, SLOT(moveToCenterFreq()));
+    connect(uiDockFft, SIGNAL(gotoDemodFreq()), this, SLOT(moveToDemodFreq()));
     connect(uiDockFft, SIGNAL(bandPlanChanged(bool)), ui->plotter, SLOT(toggleBandPlan(bool)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), ui->plotter, SLOT(setWfColormap(const QString)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockAudio, SLOT(setWfColormap(const QString)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), uiDockProbe, SLOT(setWfColormap(const QString)));
+    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), this, SLOT(setWfColormap(const QString)));
 
     connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
             ui->plotter, SLOT(setPandapterRange(float,float)));
     connect(uiDockFft, SIGNAL(waterfallRangeChanged(float,float)),
-            ui->plotter, SLOT(setWaterfallRange(float,float)));
+            this, SLOT(setWaterfallRange(float,float)));
     connect(ui->plotter, SIGNAL(pandapterRangeChanged(float,float)),
             uiDockFft, SLOT(setPandapterRange(float,float)));
     connect(ui->plotter, SIGNAL(newZoomLevel(float)),
-            uiDockFft, SLOT(setZoomLevel(float)));
+            this, SLOT(setFftZoomLevel(float)));
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
     connect(ui->plotter, SIGNAL(selectVfo(int)), this, SLOT(on_plotter_selectVfo(int)));
+    connect(ui->plotter, SIGNAL(newFftCenterFreq(qint64)), this, SLOT(setFftCenterFreq(qint64)));
 
     connect(uiDockFft, SIGNAL(fftColorChanged(QColor)), this, SLOT(setFftColor(QColor)));
     connect(uiDockFft, SIGNAL(fftFillToggled(bool)), this, SLOT(setFftFill(bool)));
@@ -1993,6 +1992,7 @@ void MainWindow::meterTimeout()
     if (iq_stats.playing)
     {
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
+        d_seek_pos = iq_stats.sample_pos;
     }
     if (uiDockRxOpt->getAgcOn())
     {
@@ -2641,7 +2641,7 @@ void MainWindow::setIqFftRate(int fps)
 
 void MainWindow::setIqFftWindow(int type)
 {
-    stopIQFftRedraw();
+//    stopIQFftRedraw();
     rx->set_iq_fft_window(type);
     triggerIQFftRedraw();
 }
@@ -2668,8 +2668,11 @@ void MainWindow::setWfSize()
 void MainWindow::setIqFftSplit(int pct_wf)
 {
     if ((pct_wf >= 0) && (pct_wf <= 100))
+    {
+        stopIQFftRedraw();
         ui->plotter->setPercent2DScreen(pct_wf);
-    triggerIQFftRedraw();
+        triggerIQFftRedraw();
+    }
 }
 
 void MainWindow::setIqFftAvg(float avg)
@@ -2688,6 +2691,43 @@ void MainWindow::setAudioFftRate(int fps)
 
     if (audio_fft_timer->isActive())
         audio_fft_timer->setInterval(interval);
+}
+
+void  MainWindow::setFftZoomLevel(float level)
+{
+    uiDockFft->setZoomLevel(level);
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setFftCenterFreq(qint64 f)
+{
+    triggerIQFftRedraw();
+}
+
+void MainWindow::moveToDemodFreq()
+{
+    ui->plotter->moveToDemodFreq();
+    triggerIQFftRedraw();
+}
+
+void MainWindow::moveToCenterFreq()
+{
+    ui->plotter->moveToCenterFreq();
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setWfColormap(const QString colormap)
+{
+    ui->plotter->setWfColormap(colormap);
+    uiDockAudio->setWfColormap(colormap);
+    uiDockProbe->setWfColormap(colormap);
+    triggerIQFftRedraw();
+}
+
+void MainWindow::setWaterfallRange(float lo, float hi)
+{
+    ui->plotter->setWaterfallRange(lo, hi);
+    triggerIQFftRedraw();
 }
 
 /** Set FFT plot color. */
