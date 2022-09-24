@@ -325,8 +325,7 @@ gr::basic_block_sptr receiver::setup_source(enum file_formats fmt)
             connect_iq_recorder();
         }
 
-        tb->connect(b, 0, iq_swap, 0);
-        return iq_swap;
+        return b;
     }
     if (fmt == FILE_FORMAT_CF) // No conversion
     {
