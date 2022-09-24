@@ -399,6 +399,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 else
                 {
                     setFftCenterFreq(m_FftCenter + delta_hz);
+                    emit newFftCenterFreq(m_FftCenter + delta_hz);
                 }
                 updateOverlay();
             }
