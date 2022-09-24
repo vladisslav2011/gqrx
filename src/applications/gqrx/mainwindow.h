@@ -253,6 +253,12 @@ private slots:
     void setIqFftSplit(int pct_wf);
     void setIqFftAvg(float avg);
     void setAudioFftRate(int fps);
+    void setFftZoomLevel(float level);
+    void setFftCenterFreq(qint64 f);
+    void moveToCenterFreq();
+    void moveToDemodFreq();
+    void setWfColormap(const QString colormap);
+    void setWaterfallRange(float lo, float hi);
     void setFftColor(const QColor& color);
     void setFftFill(bool enable);
     void setPeakDetection(bool enabled);

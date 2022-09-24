@@ -114,6 +114,7 @@ public:
         bool failed;
         int buffer_usage;
         size_t file_pos;
+        size_t sample_pos;
      };
 
     typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
