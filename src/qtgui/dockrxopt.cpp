@@ -482,8 +482,10 @@ void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
 {
     if (nbid == 1)
         ui->nb1Button->setChecked(on);
-    else
+    else if (nbid == 2)
         ui->nb2Button->setChecked(on);
+    else if (nbid == 3)
+        ui->nb3Button->setChecked(on);
     nbOpt->setNbThreshold(nbid, threshold);
 }
 
@@ -800,6 +802,12 @@ void DockRxOpt::on_nb2Button_toggled(bool checked)
     emit noiseBlankerChanged(2, checked, (float) nbOpt->nbThreshold(2));
 }
 
+/** Noise blanker 3 button has been toggled. */
+void DockRxOpt::on_nb3Button_toggled(bool checked)
+{
+    emit noiseBlankerChanged(3, checked, (float) nbOpt->nbThreshold(3));
+}
+
 void DockRxOpt::on_freqLockButton_clicked()
 {
     emit freqLock(ui->freqLockButton->isChecked(), false);
@@ -827,8 +835,10 @@ void DockRxOpt::nbOpt_thresholdChanged(int nbid, double value)
 {
     if (nbid == 1)
         emit noiseBlankerChanged(nbid, ui->nb1Button->isChecked(), (float) value);
-    else
+    else if (nbid == 2)
         emit noiseBlankerChanged(nbid, ui->nb2Button->isChecked(), (float) value);
+    else if (nbid == 3)
+        emit noiseBlankerChanged(nbid, ui->nb3Button->isChecked(), (float) value);
 }
 
 void DockRxOpt::on_nbOptButton_clicked()
