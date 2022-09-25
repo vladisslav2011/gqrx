@@ -73,7 +73,42 @@
      </property>
     </widget>
    </item>
+   <item row="2" column="0">
+    <widget class="QLabel" name="nb3label">
+     <property name="text">
+      <string>NB3 gain</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QDoubleSpinBox" name="nb3Threshold">
+     <property name="decimals">
+      <number>1</number>
+     </property>
+     <property name="minimum">
+      <double>0.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>10.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="value">
+      <double>5.000000000000000</double>
+     </property>
+    </widget>
+   </item>
   </layout>
+  <zorder>nb1Threshold</zorder>
+  <zorder>nb2Threshold</zorder>
+  <zorder>nb1Label</zorder>
+  <zorder>nb2Label</zorder>
+  <zorder>nb3Threshold</zorder>
+  <zorder>nb3label</zorder>
  </widget>
  <resources>
   <include location="../../resources/icons.qrc"/>
