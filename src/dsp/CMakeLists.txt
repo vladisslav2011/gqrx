@@ -50,4 +50,6 @@ add_source_files(SRCS_LIST
 	format_converter.h
 	rx_squelch.cpp
 	rx_squelch.h
+	rx_rnnoise.cpp
+	rx_rnnoise.h
 )

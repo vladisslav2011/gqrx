@@ -32,7 +32,7 @@
 #define TARGET_CHAN_RATE 5e5
 
 /* Number of noice blankers */
-#define RECEIVER_NB_COUNT 2
+#define RECEIVER_NB_COUNT 3
 
 // NB: Remember to adjust filter ranges in MainWindow
 #define NB_PREF_QUAD_RATE  96000.f
