@@ -28,6 +28,7 @@
 #include "dsp/resampler_xx.h"
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
+#include "dsp/rx_rnnoise.h"
 #include "dsp/rx_squelch.h"
 #include "dsp/downconverter.h"
 #include "interfaces/wav_sink.h"
@@ -172,7 +173,9 @@ protected:
     rx_sql_cc_sptr            sql;        /*!< Squelch. */
     wavfile_sink_gqrx::sptr   wav_sink;   /*!< WAV file sink for recording. */
     udp_sink_f_sptr           audio_udp_sink;  /*!< UDP sink to stream audio over the network. */
-    gr::basic_block_sptr       audio_snk;  /*!< Dedicated audio sink. */
+    gr::basic_block_sptr      audio_snk;  /*!< Dedicated audio sink. */
+    rx_rnnoise_f_sptr         audio_rnnoise;
+    gr::basic_block_sptr      output;
 private:
     float d_pref_quad_rate;
     rec_event_handler_t d_rec_event;

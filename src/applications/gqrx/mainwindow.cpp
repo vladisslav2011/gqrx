@@ -3745,7 +3745,7 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
     uiDockRxOpt->setCwOffset(rx->get_cw_offset());
 
-    for (int k = 1; k < 3; k++)
+    for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
 
     uiDockAudio->setRecDir(QString(rx->get_audio_rec_dir().data()));

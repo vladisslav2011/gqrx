@@ -66,8 +66,6 @@ nbrx::nbrx(double quad_rate, float audio_rate)
     connect(nb, 0, filter, 0);
     connect(filter, 0, meter, 0);
     connect(filter, 0, sql, 0);
-    connect(agc, 2, self(), 0);
-    connect(agc, 3, self(), 1);
 }
 
 bool nbrx::start()
@@ -138,6 +136,8 @@ void nbrx::set_nb_on(int nbid, bool on)
         nb->set_nb1_on(on);
     else if (nbid == 2)
         nb->set_nb2_on(on);
+    else if (nbid == 3)
+        audio_rnnoise->set_enabled(on);
 }
 
 void nbrx::set_nb_threshold(int nbid, float threshold)
@@ -147,6 +147,8 @@ void nbrx::set_nb_threshold(int nbid, float threshold)
         nb->set_threshold1(threshold);
     else if (nbid == 2)
         nb->set_threshold2(threshold);
+    else if (nbid == 3)
+        audio_rnnoise->set_gain(powf(10.0, threshold));
 }
 
 void nbrx::set_demod(Modulations::idx new_demod)
@@ -173,28 +175,28 @@ void nbrx::set_demod(Modulations::idx new_demod)
                 disconnect(demod, 0, audio_rr0, 0);
                 disconnect(demod, 1, audio_rr1, 0);
 
-                disconnect(audio_rr0, 0, agc, 0);
-                disconnect(audio_rr1, 0, agc, 1);
+                disconnect(audio_rr0, 0, output, 0);
+                disconnect(audio_rr1, 0, output, 1);
             }
             else
             {
                 disconnect(demod, 0, audio_rr0, 0);
 
-                disconnect(audio_rr0, 0, agc, 0);
-                disconnect(audio_rr0, 0, agc, 1);
+                disconnect(audio_rr0, 0, output, 0);
+                disconnect(audio_rr0, 0, output, 1);
             }
         }
         else
         {
             if (current_demod == Modulations::MODE_RAW)
             {
-                disconnect(demod, 0, agc, 0);
-                disconnect(demod, 1, agc, 1);
+                disconnect(demod, 0, output, 0);
+                disconnect(demod, 1, output, 1);
             }
             else
             {
-                disconnect(demod, 0, agc, 0);
-                disconnect(demod, 0, agc, 1);
+                disconnect(demod, 0, output, 0);
+                disconnect(demod, 0, output, 1);
             }
         }
     }
@@ -237,28 +239,28 @@ void nbrx::set_demod(Modulations::idx new_demod)
                 connect(demod, 0, audio_rr0, 0);
                 connect(demod, 1, audio_rr1, 0);
 
-                connect(audio_rr0, 0, agc, 0);
-                connect(audio_rr1, 0, agc, 1);
+                connect(audio_rr0, 0, output, 0);
+                connect(audio_rr1, 0, output, 1);
             }
             else
             {
                 connect(demod, 0, audio_rr0, 0);
 
-                connect(audio_rr0, 0, agc, 0);
-                connect(audio_rr0, 0, agc, 1);
+                connect(audio_rr0, 0, output, 0);
+                connect(audio_rr0, 0, output, 1);
             }
         }
         else
         {
             if (new_demod == Modulations::MODE_RAW)
             {
-                connect(demod, 0, agc, 0);
-                connect(demod, 1, agc, 1);
+                connect(demod, 0, output, 0);
+                connect(demod, 1, output, 1);
             }
             else
             {
-                connect(demod, 0, agc, 0);
-                connect(demod, 0, agc, 1);
+                connect(demod, 0, output, 0);
+                connect(demod, 0, output, 1);
             }
         }
     }

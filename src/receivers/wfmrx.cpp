@@ -56,10 +56,8 @@ wfmrx::wfmrx(double quad_rate, float audio_rate)
     connect(filter, 0, sql, 0);
     connect(sql, 0, demod_fm, 0);
     connect(demod_fm, 0, mono, 0);
-    connect(mono, 0, agc, 0); // left  channel
-    connect(mono, 1, agc, 1); // right channel
-    connect(agc, 2, self(), 0);
-    connect(agc, 3, self(), 1);
+    connect(mono, 0, output, 0); // left  channel
+    connect(mono, 1, output, 1); // right channel
 }
 
 wfmrx::~wfmrx()
@@ -108,20 +106,20 @@ void wfmrx::set_demod(Modulations::idx demod)
     case Modulations::MODE_WFM_MONO:
     default:
         disconnect(demod_fm, 0, mono, 0);
-        disconnect(mono, 0, agc, 0); // left  channel
-        disconnect(mono, 1, agc, 1); // right channel
+        disconnect(mono, 0, output, 0); // left  channel
+        disconnect(mono, 1, output, 1); // right channel
         break;
 
     case Modulations::MODE_WFM_STEREO:
         disconnect(demod_fm, 0, stereo, 0);
-        disconnect(stereo, 0, agc, 0); // left  channel
-        disconnect(stereo, 1, agc, 1); // right channel
+        disconnect(stereo, 0, output, 0); // left  channel
+        disconnect(stereo, 1, output, 1); // right channel
         break;
 
     case Modulations::MODE_WFM_STEREO_OIRT:
         disconnect(demod_fm, 0, stereo_oirt, 0);
-        disconnect(stereo_oirt, 0, agc, 0); // left  channel
-        disconnect(stereo_oirt, 1, agc, 1); // right channel
+        disconnect(stereo_oirt, 0, output, 0); // left  channel
+        disconnect(stereo_oirt, 1, output, 1); // right channel
         break;
     }
 
@@ -130,20 +128,20 @@ void wfmrx::set_demod(Modulations::idx demod)
     case Modulations::MODE_WFM_MONO:
     default:
         connect(demod_fm, 0, mono, 0);
-        connect(mono, 0, agc, 0); // left  channel
-        connect(mono, 1, agc, 1); // right channel
+        connect(mono, 0, output, 0); // left  channel
+        connect(mono, 1, output, 1); // right channel
         break;
 
     case Modulations::MODE_WFM_STEREO:
         connect(demod_fm, 0, stereo, 0);
-        connect(stereo, 0, agc, 0); // left  channel
-        connect(stereo, 1, agc, 1); // right channel
+        connect(stereo, 0, output, 0); // left  channel
+        connect(stereo, 1, output, 1); // right channel
         break;
 
     case Modulations::MODE_WFM_STEREO_OIRT:
         connect(demod_fm, 0, stereo_oirt, 0);
-        connect(stereo_oirt, 0, agc, 0); // left  channel
-        connect(stereo_oirt, 1, agc, 1); // right channel
+        connect(stereo_oirt, 0, output, 0); // left  channel
+        connect(stereo_oirt, 1, output, 1); // right channel
         break;
     }
     receiver_base_cf::set_demod(demod);
