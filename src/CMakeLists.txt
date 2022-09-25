@@ -128,6 +128,18 @@ else()
     )
 endif()
 
+if(RNNOISE_FOUND)
+include_directories(
+    ${RNNOISE_INCLUDE_DIRS}
+)
+
+link_directories(
+    ${RNNOISE_LIBRARY_DIRS}
+)
+target_link_libraries(${PROJECT_NAME} rnnoise::rnnoise)
+add_definitions(-DENABLE_RNNOISE)
+endif()
+
 #build a win32 app, not a console app
 if (WIN32)
     if (MSVC)
