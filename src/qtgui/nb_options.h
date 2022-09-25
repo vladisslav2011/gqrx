@@ -49,6 +49,7 @@ signals:
 private slots:
     void on_nb1Threshold_valueChanged(double val);
     void on_nb2Threshold_valueChanged(double val);
+    void on_nb3Threshold_valueChanged(double val);
 
 private:
     Ui::CNbOptions *ui;
