@@ -229,6 +229,7 @@ private slots:
     void on_sqlSpinBox_valueChanged(double value);
     void on_nb1Button_toggled(bool checked);
     void on_nb2Button_toggled(bool checked);
+    void on_nb3Button_toggled(bool checked);
     void on_nbOptButton_clicked();
     void on_freqLockButton_clicked();
     void on_freqLockButton_customContextMenuRequested(const QPoint& pos);

@@ -65,11 +65,17 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
                                        wavfile_sink_gqrx::FORMAT_WAV,
                                        wavfile_sink_gqrx::FORMAT_PCM_16);
     audio_udp_sink = make_udp_sink_f();
+    audio_rnnoise =  make_rx_rnnoise_f(audio_rate);
 
+    output = audio_rnnoise;
+    connect(audio_rnnoise, 0, agc, 0);
+    connect(audio_rnnoise, 1, agc, 1);
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     connect(agc, 0, audio_udp_sink, 0);
     connect(agc, 1, audio_udp_sink, 1);
+    connect(agc, 2, self(), 0);
+    connect(agc, 3, self(), 1);
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
                                     std::placeholders::_2));
 }
