@@ -28,6 +28,9 @@ CNbOptions::CNbOptions(QWidget *parent) :
     ui(new Ui::CNbOptions)
 {
     ui->setupUi(this);
+    #ifndef ENABLE_RNNOISE
+        ui->nb3Threshold->setDisabled(true);
+    #endif
 }
 
 CNbOptions::~CNbOptions()

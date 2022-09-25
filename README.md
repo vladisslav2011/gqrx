@@ -110,6 +110,7 @@ To compile gqrx from source you need the following dependencies:
     - Widgets
     - Svg (runtime-only)
 - libsndfile
+- librnnoice (https://github.com/xiph/rnnoise optional)
 - cmake version >= 3.2.0
 
 Gqrx can be compiled from within Qt Creator or in a terminal:
