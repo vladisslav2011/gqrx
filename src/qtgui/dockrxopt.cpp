@@ -138,6 +138,9 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     QObject::connect(filter_narrow_shortcut, &QShortcut::activated, this, &DockRxOpt::filterNarrowShortcut);
     QObject::connect(filter_normal_shortcut, &QShortcut::activated, this, &DockRxOpt::filterNormalShortcut);
     QObject::connect(filter_wide_shortcut, &QShortcut::activated, this, &DockRxOpt::filterWideShortcut);
+    #ifndef ENABLE_RNNOISE
+        ui->nb3Button->setDisabled(true);
+    #endif
 }
 
 DockRxOpt::~DockRxOpt()
