@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>295</width>
+    <width>352</width>
     <height>355</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>295</width>
+    <width>352</width>
     <height>355</height>
    </size>
   </property>
@@ -495,7 +495,35 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
          <number>5</number>
         </property>
         <item>
-         <widget class="QPushButton" name="nb1Button">
+         <widget class="QPushButton" name="nb3Button">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>NB3</string>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>1</width>
+            <height>1</height>
+           </size>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="nb2Button">
           <property name="enabled">
            <bool>true</bool>
           </property>
@@ -507,7 +535,53 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
           </property>
           <property name="minimumSize">
            <size>
-            <width>50</width>
+            <width>30</width>
+            <height>30</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="toolTip">
+           <string>Noise blanker for pulse type noise</string>
+          </property>
+          <property name="whatsThis">
+           <string/>
+          </property>
+          <property name="accessibleName">
+           <string>Noise blanker 2</string>
+          </property>
+          <property name="text">
+           <string>NB2</string>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>1</width>
+            <height>1</height>
+           </size>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="nb1Button">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>30</width>
             <height>30</height>
            </size>
           </property>
@@ -529,45 +603,11 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
           <property name="text">
            <string>NB1</string>
           </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="nb2Button">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
+          <property name="iconSize">
            <size>
-            <width>50</width>
-            <height>30</height>
+            <width>1</width>
+            <height>1</height>
            </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="toolTip">
-           <string>Noise blanker for pulse type noise</string>
-          </property>
-          <property name="whatsThis">
-           <string/>
-          </property>
-          <property name="accessibleName">
-           <string>Noise blanker 2</string>
-          </property>
-          <property name="text">
-           <string>NB2</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -823,7 +863,6 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
   <tabstop>autoSquelchButton</tabstop>
   <tabstop>resetSquelchButton</tabstop>
   <tabstop>nb1Button</tabstop>
-  <tabstop>nb2Button</tabstop>
   <tabstop>nbOptButton</tabstop>
  </tabstops>
  <resources>
