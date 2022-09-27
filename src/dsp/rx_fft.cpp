@@ -32,6 +32,130 @@
 #include <algorithm>
 using namespace std::literals;
 
+fft_c_basic::fft_c_basic(unsigned int fftsize, int wintype)
+    : d_fftsize(fftsize),
+      d_wintype(-1)
+{
+#if GNURADIO_VERSION < 0x030900
+    d_fft = new gr::fft::fft_complex(d_fftsize, true);
+#else
+    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
+#endif
+    /* create FFT window */
+    set_window_type(wintype);
+}
+
+fft_c_basic::~fft_c_basic()
+{
+    delete d_fft;
+}
+
+void fft_c_basic::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize, gr_complex * data)
+{
+    apply_window(d_fftsize, data);
+
+    /* compute FFT */
+    d_fft->execute();
+
+    /* get FFT data */
+    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    fftSize = d_fftsize;
+}
+
+/*! \brief Set new window type. */
+void fft_c_basic::set_window_type(int wintype)
+{
+    if (wintype == d_wintype)
+    {
+        /* nothing to do */
+        return;
+    }
+
+    d_wintype = wintype;
+
+    if ((d_wintype < gr::fft::window::WIN_HAMMING) || (d_wintype > gr::fft::window::WIN_FLATTOP))
+    {
+        d_wintype = gr::fft::window::WIN_HAMMING;
+    }
+
+    d_window.clear();
+    d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize, 6.76);
+}
+
+/*! \brief Get currently used window type. */
+int  fft_c_basic::get_window_type() const
+{
+    return d_wintype;
+}
+
+/*! \brief Set new FFT size. */
+void fft_c_basic::set_fft_size(unsigned int fftsize)
+{
+    if (fftsize != d_fftsize)
+    {
+        d_fftsize = fftsize;
+        set_params();
+    }
+
+}
+
+/*! \brief Get currently used FFT size. */
+unsigned int fft_c_basic::get_fft_size() const
+{
+    return d_fftsize;
+}
+
+/*! \brief Compute FFT on the available input data.
+ *  \param data_in The data to compute FFT on.
+ *  \param size The size of data_in.
+ *
+ * Note that this function does not lock the mutex since the caller, get_fft_data()
+ * has already locked it.
+ */
+void fft_c_basic::apply_window(unsigned int size, gr_complex * p)
+{
+    /* apply window, if any */
+    if (d_window.size())
+    {
+        gr_complex *dst = d_fft->get_inbuf();
+        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], size);
+    }
+    else
+    {
+        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex)*size);
+    }
+}
+
+/*! \brief Update circular buffer and FFT object. */
+void fft_c_basic::set_params()
+{
+    /* reset window */
+    int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
+    d_wintype = -1;
+    set_window_type(wintype);
+
+    /* reset FFT object (also reset FFTW plan) */
+    delete d_fft;
+#if GNURADIO_VERSION < 0x030900
+    d_fft = new gr::fft::fft_complex(d_fftsize, true);
+#else
+    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
+#endif
+}
+
+void fft_c_basic::copy_params(fft_c_basic & from)
+{
+    if(from.d_fftsize != d_fftsize)
+    {
+        d_fftsize = from.d_fftsize;
+        set_params();
+    }
+    if(from.d_wintype != d_wintype)
+        set_window_type(from.d_wintype);
+}
+
+
+
 
 rx_fft_c_sptr make_rx_fft_c (unsigned int fftsize, double quad_rate, int wintype)
 {
@@ -47,18 +171,12 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
     : gr::sync_block ("rx_fft_c",
           gr::io_signature::make(1, 1, sizeof(gr_complex)),
           gr::io_signature::make(0, 0, 0)),
-      d_fftsize(fftsize),
+      fft_c_basic(fftsize, wintype),
       d_quadrate(quad_rate),
-      d_wintype(-1),
       d_enabled(true)
 {
 
     /* create FFT object */
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
-    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
 
     /* allocate circular buffer */
 #if GNURADIO_VERSION < 0x031000
@@ -71,15 +189,11 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
     memset(d_writer->write_pointer(), 0, sizeof(gr_complex) * MAX_FFT_SIZE);
     d_writer->update_write_pointer(MAX_FFT_SIZE);
 
-    /* create FFT window */
-    set_window_type(wintype);
-
     d_lasttime = std::chrono::steady_clock::now();
 }
 
 rx_fft_c::~rx_fft_c()
 {
-    delete d_fft;
 }
 
 /*! \brief Receiver FFT work method.
@@ -128,22 +242,19 @@ bool rx_fft_c::start()
  *  \param fftPoints Buffer to copy FFT data
  *  \param fftSize Current FFT size (output).
  */
-void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize, gr_complex * data)
+void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize)
 {
-    if (!data)
-    {
-        std::unique_lock<std::mutex> lock(d_mutex);
+    std::unique_lock<std::mutex> lock(d_mutex);
 
-        std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
-        std::chrono::duration<double> diff = now - d_lasttime;
-        diff = std::min(diff, std::chrono::duration<double>(d_writer->bufsize() / d_quadrate));
-        d_lasttime = now;
+    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = now - d_lasttime;
+    diff = std::min(diff, std::chrono::duration<double>(d_writer->bufsize() / d_quadrate));
+    d_lasttime = now;
 
-        /* perform FFT */
-        d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - MAX_FFT_SIZE));
-        apply_window(d_fftsize, ((gr_complex *)d_reader->read_pointer())+(MAX_FFT_SIZE - d_fftsize));
-    }else
-        apply_window(d_fftsize, data);
+    /* perform FFT */
+    d_reader->update_read_pointer(std::min((int)(diff.count() * d_quadrate * 1.001), d_reader->items_available() - MAX_FFT_SIZE));
+    apply_window(d_fftsize, ((gr_complex *)d_reader->read_pointer())+(MAX_FFT_SIZE - d_fftsize));
+    lock.unlock();
 
     /* compute FFT */
     d_fft->execute();
@@ -151,55 +262,6 @@ void rx_fft_c::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     /* get FFT data */
     memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
     fftSize = d_fftsize;
-}
-
-/*! \brief Compute FFT on the available input data.
- *  \param data_in The data to compute FFT on.
- *  \param size The size of data_in.
- *
- * Note that this function does not lock the mutex since the caller, get_fft_data()
- * has already locked it.
- */
-void rx_fft_c::apply_window(unsigned int size, gr_complex * p)
-{
-    /* apply window, if any */
-    if (d_window.size())
-    {
-        gr_complex *dst = d_fft->get_inbuf();
-        volk_32fc_32f_multiply_32fc(dst, p, &d_window[0], size);
-    }
-    else
-    {
-        memcpy(d_fft->get_inbuf(), p, sizeof(gr_complex)*size);
-    }
-}
-
-/*! \brief Update circular buffer and FFT object. */
-void rx_fft_c::set_params()
-{
-    /* reset window */
-    int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
-    d_wintype = -1;
-    set_window_type(wintype);
-
-    /* reset FFT object (also reset FFTW plan) */
-    delete d_fft;
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
-    d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
-}
-
-/*! \brief Set new FFT size. */
-void rx_fft_c::set_fft_size(unsigned int fftsize)
-{
-    if (fftsize != d_fftsize)
-    {
-        d_fftsize = fftsize;
-        set_params();
-    }
-
 }
 
 /*! \brief Set new quadrature rate. */
@@ -210,42 +272,6 @@ void rx_fft_c::set_quad_rate(double quad_rate)
         set_params();
     }
 }
-
-/*! \brief Get currently used FFT size. */
-unsigned int rx_fft_c::get_fft_size() const
-{
-    return d_fftsize;
-}
-
-/*! \brief Set new window type. */
-void rx_fft_c::set_window_type(int wintype)
-{
-    float tmp;
-    if (wintype == d_wintype)
-    {
-        /* nothing to do */
-        return;
-    }
-
-    d_wintype = wintype;
-
-    if ((d_wintype < gr::fft::window::WIN_HAMMING) || (d_wintype > gr::fft::window::WIN_FLATTOP))
-    {
-        d_wintype = gr::fft::window::WIN_HAMMING;
-    }
-
-    d_window.clear();
-    d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize, 6.76);
-    volk_32f_accumulator_s32f(&tmp, d_window.data(), d_fftsize);
-    volk_32f_s32f_normalize(d_window.data(), tmp / float(d_fftsize), d_fftsize);
-}
-
-/*! \brief Get currently used window type. */
-int rx_fft_c::get_window_type() const
-{
-    return d_wintype;
-}
-
 
 /**   rx_fft_f     **/
 
