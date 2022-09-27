@@ -58,7 +58,7 @@ class fft_c_basic
 public:
     fft_c_basic(unsigned int fftsize = 16384, int wintype = -1);
     virtual ~fft_c_basic();
-    virtual void get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize, gr_complex * data);
+    virtual void get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr_complex * data);
     virtual void set_window_type(int wintype);
     virtual int  get_window_type() const;
 
