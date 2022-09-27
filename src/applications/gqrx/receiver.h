@@ -121,10 +121,11 @@ public:
 
     struct fft_reader
     {
-        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft);
+        typedef std::function<void(int, gr_complex*, float*, unsigned, uint64_t)> fft_data_ready;
+        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler);
         ~fft_reader();
         uint64_t ms_available();
-        bool get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t &ts);
+        bool get_iq_fft_data(uint64_t ms, int n);
         private:
         FILE * d_fd;
         int d_sample_size;
@@ -136,6 +137,7 @@ public:
         fft_c_basic d_fft;
         std::vector<uint8_t> d_buf;
         std::vector<gr_complex> d_fftbuf;
+        fft_data_ready data_ready;
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
@@ -354,7 +356,7 @@ public:
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
-    fft_reader_sptr get_fft_reader(uint64_t ts);
+    fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb);
 
 private:
     void        connect_all(enum file_formats fmt);
