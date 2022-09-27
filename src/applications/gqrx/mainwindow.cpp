@@ -2082,7 +2082,7 @@ void MainWindow::iqFftTimeout()
     ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
 }
 
-void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData)
+void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const
 {
     // NB: without cast to float the multiplication will overflow at 64k
     // and pwr_scale will be inf
@@ -2556,7 +2556,13 @@ void MainWindow::waterfall_background_func()
             lines=0;
             ms_per_line = 0.0;
             ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-            rd = rx->get_fft_reader(d_seek_pos);
+            rd = rx->get_fft_reader(d_seek_pos, std::bind(plotterWfCbWr, this,
+                              std::placeholders::_1,
+                              std::placeholders::_2,
+                              std::placeholders::_3,
+                              std::placeholders::_4,
+                              std::placeholders::_5
+                              ));
             quint64 ms_available = rd->ms_available();
             maxlines = std::min(lines, int(ms_available / ms_per_line));
             k = 0;
@@ -2574,19 +2580,9 @@ void MainWindow::waterfall_background_func()
         {
             if(k<lines)
             {
-                unsigned int fftsize;
-                uint64_t ts;
                 if(k<=maxlines)
                 {
-                    rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
-                    if (fftsize > 0)
-                    {
-                        iqFftToMag(fftsize, d_fftData, d_realFftData);
-                        ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
-                        //TODO: Try to use one of global timers to do this periodically instead of triggering update every 16 lines
-                        if((k & 15) == 0)
-                            emit plotterUpdate();
-                    }
+                    rd->get_iq_fft_data(k * ms_per_line, k);
                 }else{
                     ui->plotter->drawBlackWaterfallLine(k);
                 }
@@ -2608,6 +2604,22 @@ void MainWindow::waterfall_background_func()
             rd.reset();
             waterfall_background_request = MainWindow::WF_NONE;
         }
+    }
+}
+
+void MainWindow::plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts)
+{
+    self->plotterWfCb(line, data, tmpbuf, n, ts);
+}
+
+void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts)
+{
+    if(n > 0)
+    {
+        iqFftToMag(n,data,tmpbuf);
+        ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
+        if((line & 15) == 0)
+            emit plotterUpdate();
     }
 }
 

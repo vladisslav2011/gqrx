@@ -50,7 +50,7 @@ fft_c_basic::~fft_c_basic()
     delete d_fft;
 }
 
-void fft_c_basic::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSize, gr_complex * data)
+void fft_c_basic::get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr_complex * data)
 {
     apply_window(d_fftsize, data);
 
@@ -58,7 +58,8 @@ void fft_c_basic::get_fft_data(std::complex<float>* fftPoints, unsigned int &fft
     d_fft->execute();
 
     /* get FFT data */
-    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    //memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    fftPoints = d_fft->get_outbuf();
     fftSize = d_fftsize;
 }
 
