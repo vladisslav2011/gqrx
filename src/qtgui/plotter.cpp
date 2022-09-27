@@ -780,22 +780,23 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
     QPoint ppos = QPoint(px, py);
     quint32 mods = event->modifiers() & (Qt::ShiftModifier|Qt::ControlModifier);
     const qreal plotHeight = m_2DPixmap.height();
+    const bool panadapterClicked = py < plotHeight;
 
     if (NOCAP == m_CursorCaptured)
     {
-        if (isPointCloseTo(px, m_DemodFreqX, m_CursorCaptureDelta))
+        if (panadapterClicked && isPointCloseTo(px, m_DemodFreqX, m_CursorCaptureDelta))
         {
             // move demod box center frequency region
             m_CursorCaptured = CENTER;
             m_GrabPosition = px - m_DemodFreqX;
         }
-        else if (isPointCloseTo(px, m_DemodLowCutFreqX, m_CursorCaptureDelta))
+        else if (panadapterClicked && isPointCloseTo(px, m_DemodLowCutFreqX, m_CursorCaptureDelta))
         {
             // filter low cut
             m_CursorCaptured = LEFT;
             m_GrabPosition = px - m_DemodLowCutFreqX;
         }
-        else if (isPointCloseTo(px, m_DemodHiCutFreqX, m_CursorCaptureDelta))
+        else if (panadapterClicked && isPointCloseTo(px, m_DemodHiCutFreqX, m_CursorCaptureDelta))
         {
             // filter high cut
             m_CursorCaptured = RIGHT;
@@ -850,7 +851,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                         // Ignore clicks exactly on the plot, below the
                         // pandapter, or when uninitialized
                         if (v != selectBuf[px]
-                            && py < plotHeight
+                            && panadapterClicked
                             && m_fftDataSize > 0)
                         {
                             int xLeft = px;
@@ -882,7 +883,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     int best = -1;
                     qint64 ts = 0;
 
-                    if (py < plotHeight)
+                    if (panadapterClicked)
                     {
                         if (m_PeakDetectActive > 0)
                             best = getNearestPeak(pt);
