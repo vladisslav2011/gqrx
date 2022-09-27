@@ -2536,12 +2536,14 @@ void MainWindow::waterfall_background_func()
             maxlines = std::min(lines, int(ms_available / ms_per_line));
             k = 0;
             lock.lock();
-            if(ms_per_line > 0)
+            if(ms_per_line > 0 && (waterfall_background_request != MainWindow::WF_STOP))
             {
                 waterfall_background_request = MainWindow::WF_RUNNING;
                 lock.unlock();
-            }else
+            }else{
+                rd.reset();
                 waterfall_background_request = MainWindow::WF_NONE;
+            }
         }
         if(waterfall_background_request == MainWindow::WF_RUNNING)
         {
