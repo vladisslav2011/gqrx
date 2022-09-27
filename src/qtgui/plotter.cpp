@@ -991,23 +991,26 @@ void CPlotter::resizeEvent(QResizeEvent* )
         m_2DPixmap.fill(Qt::black);
 
         int height = m_Size.height() - fft_plot_height;
-        if (m_WaterfallPixmap.isNull())
         {
-            m_WaterfallPixmap = QPixmap(m_Size.width(), height);
-            m_WaterfallPixmap.fill(Qt::black);
-        }
-        else
-        {
-            m_WaterfallPixmap = m_WaterfallPixmap.scaled(m_Size.width(), height,
-                                                         Qt::IgnoreAspectRatio,
-                                                         Qt::SmoothTransformation);
-        }
+            std::unique_lock<std::mutex> lock(m_wf_mutex);
+            if (m_WaterfallPixmap.isNull())
+            {
+                m_WaterfallPixmap = QPixmap(m_Size.width(), height);
+                m_WaterfallPixmap.fill(Qt::black);
+            }
+            else
+            {
+                m_WaterfallPixmap = m_WaterfallPixmap.scaled(m_Size.width(), height,
+                                                            Qt::IgnoreAspectRatio,
+                                                            Qt::SmoothTransformation);
+            }
 
-        m_PeakHoldValid = false;
+            m_PeakHoldValid = false;
 
-        if (wf_span > 0 && height > 0)
-            msec_per_wfline = wf_span / height;
-        memset(m_wfbuf, 255, MAX_SCREENSIZE);
+            if (wf_span > 0 && height > 0)
+                msec_per_wfline = wf_span / height;
+            memset(m_wfbuf, 255, MAX_SCREENSIZE);
+        }
     }
 
     drawOverlay();
