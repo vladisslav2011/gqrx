@@ -2279,10 +2279,10 @@ uint64_t receiver::get_filesource_timestamp_ms()
     return input_file->get_timestamp_ms();
 }
 
-receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts)
+receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb)
 {
 //        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset);
-    return std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format], iq_fft);
+    return std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format], iq_fft, cb);
 }
 
 std::string receiver::escape_filename(std::string filename)
@@ -2324,7 +2324,7 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
 #define GR_STAT stat
 #endif
 
-receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft)
+receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler)
   : d_fft()
 {
     d_sample_size = sample_size;
@@ -2333,6 +2333,7 @@ receiver::fft_reader::fft_reader(std::string filename, int sample_size, int samp
     d_offset = offset;
     d_conv = conv;
     d_fft.copy_params(*fft);
+    data_ready = handler;
     d_fd = fopen(filename.c_str(), "rb");
     if(d_fd)
     {
@@ -2355,10 +2356,12 @@ uint64_t receiver::fft_reader::ms_available()
     return d_offset * 1000llu / uint64_t(d_sample_rate);
 }
 
-bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, std::complex<float>* buffer, unsigned &fftsize, uint64_t &ts)
+bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, int n)
 {
     uint64_t samp = ms * d_sample_rate / 1000llu;
     int read_ofs = 0;
+    gr_complex * buf;
+    unsigned fftsize;
     if(!d_fd)
     {
         fftsize = 0;
@@ -2381,7 +2384,7 @@ bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, std::complex<float>* buf
         //FIXME: Handle error?
     }
     d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft.get_fft_size());
-    d_fft.get_fft_data(buffer, fftsize, d_fftbuf.data());
-    ts = d_base_ts + samp * 1000llu / uint64_t(d_sample_rate);
+    d_fft.get_fft_data(buf, fftsize, d_fftbuf.data());
+    data_ready(n, buf, (float*)d_fftbuf.data(), fftsize, d_base_ts + ms);
     return true;
 }
