@@ -2071,7 +2071,7 @@ void MainWindow::iqFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize);
+    iqFftToMag(fftsize, d_fftData, d_realFftData);
 
     for (i = 0; i < fftsize; i++)
     {
@@ -2082,18 +2082,18 @@ void MainWindow::iqFftTimeout()
     ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
 }
 
-void MainWindow::iqFftToMag(unsigned int fftsize)
+void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData)
 {
     // NB: without cast to float the multiplication will overflow at 64k
     // and pwr_scale will be inf
     float pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
 
     /* Normalize, calculate power and shift the FFT */
-    volk_32fc_magnitude_squared_32f(d_realFftData, d_fftData + (fftsize/2), fftsize/2);
-    volk_32fc_magnitude_squared_32f(d_realFftData + (fftsize/2), d_fftData, fftsize/2);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, pwr_scale, fftsize);
-    volk_32f_log2_32f(d_realFftData, d_realFftData, fftsize);
-    volk_32f_s32f_multiply_32f(d_realFftData, d_realFftData, 10 / LOG2_10, fftsize);
+    volk_32fc_magnitude_squared_32f(realFftData, fftData + (fftsize/2), fftsize/2);
+    volk_32fc_magnitude_squared_32f(realFftData + (fftsize/2), fftData, fftsize/2);
+    volk_32f_s32f_multiply_32f(realFftData, realFftData, pwr_scale, fftsize);
+    volk_32f_log2_32f(realFftData, realFftData, fftsize);
+    volk_32f_s32f_multiply_32f(realFftData, realFftData, 10 / LOG2_10, fftsize);
 }
 
 /** Audio FFT plot timeout. */
@@ -2547,7 +2547,9 @@ void MainWindow::waterfall_background_func()
             lock.unlock();
         }
         if(waterfall_background_request == MainWindow::WF_EXIT)
+        {
             return;
+        }
         if(waterfall_background_request == MainWindow::WF_RESTART)
         {
             //update waterfall
@@ -2579,7 +2581,7 @@ void MainWindow::waterfall_background_func()
                     rd->get_iq_fft_data(k * ms_per_line, d_fftData, fftsize, ts);
                     if (fftsize > 0)
                     {
-                        iqFftToMag(fftsize);
+                        iqFftToMag(fftsize, d_fftData, d_realFftData);
                         ui->plotter->drawOneWaterfallLine(k, d_realFftData, fftsize, ts);
                         //TODO: Try to use one of global timers to do this periodically instead of triggering update every 16 lines
                         if((k & 15) == 0)

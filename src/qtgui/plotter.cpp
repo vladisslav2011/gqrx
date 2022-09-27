@@ -1335,7 +1335,7 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
                                        float maxdB, float mindB,
                                        qint64 startFreq, qint64 stopFreq,
                                        float *inBuf, qint32 *outBuf,
-                                       int *xmin, int *xmax) const
+                                       int *xmin, int *xmax)
 {
     qint32 i;
     qint32 y;
@@ -1347,7 +1347,9 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     qint32 m_FFTSize = m_fftDataSize;
     float *m_pFFTAveBuf = inBuf;
     float  dBGainFactor = ((float)plotHeight) / fabs(maxdB - mindB);
-    auto* m_pTranslateTbl = new qint32[qMax(m_FFTSize, plotWidth)];
+    quint32 tt_size = qMax(m_FFTSize, plotWidth);
+    if(m_pTranslateTbl.size() < tt_size)
+        m_pTranslateTbl.resize(tt_size);
 
     /** FIXME: qint64 -> qint32 **/
     m_BinMin = (qint32)((float)startFreq * (float)m_FFTSize / m_SampleFreq);
@@ -1366,8 +1368,22 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     if (largeFft)
     {
         // more FFT points than plot points
-        for (i = minbin; i < maxbin; i++)
-            m_pTranslateTbl[i] = ((qint64)(i-m_BinMin)*plotWidth) / (m_BinMax - m_BinMin);
+        if((old_minbin != minbin)
+         ||(old_maxbin != maxbin)
+         ||(old_BinMin != m_BinMin)
+         ||(old_BinMax != m_BinMax)
+         ||(old_plotWidth != plotWidth)
+         ||(old_largeFft != (largeFft?2:1)))
+        {
+            for (i = minbin; i < maxbin; i++)
+                m_pTranslateTbl[i] = ((qint64)(i-m_BinMin)*plotWidth) / (m_BinMax - m_BinMin);
+            old_minbin = minbin;
+            old_maxbin = maxbin;
+            old_BinMin = m_BinMin;
+            old_BinMax = m_BinMax;
+            old_plotWidth = plotWidth;
+            old_largeFft = (largeFft?2:1);
+        }
         *xmin = m_pTranslateTbl[minbin];
         *xmax = m_pTranslateTbl[maxbin - 1] + 1;
     }
@@ -1375,11 +1391,23 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     {
         // more plot points than FFT points
         double fftstep = (double)m_SampleFreq / (double)m_FFTSize; // FFT frequency bin width
-        for (i = 0; i < plotWidth; i++)
+        if((old_fftstep != fftstep)
+         ||(old_startFreq != startFreq)
+         ||(old_stopFreq != stopFreq)
+         ||(old_plotWidth != plotWidth)
+         ||(old_largeFft != (largeFft?2:1)))
         {
-            double ratio = (double)i / (double)plotWidth;
-            double freq = startFreq + ratio * (stopFreq - startFreq);
-            m_pTranslateTbl[i] = qint32(m_FFTSize / 2 + freq / fftstep + 0.5);
+            for (i = 0; i < plotWidth; i++)
+            {
+                double ratio = (double)i / (double)plotWidth;
+                double freq = startFreq + ratio * (stopFreq - startFreq);
+                m_pTranslateTbl[i] = qint32(m_FFTSize / 2 + freq / fftstep + 0.5);
+            }
+            old_fftstep = fftstep;
+            old_startFreq = startFreq;
+            old_stopFreq = stopFreq;
+            old_plotWidth = plotWidth;
+            old_largeFft = (largeFft?2:1);
         }
         *xmin = 0;
         *xmax = plotWidth;
@@ -1435,8 +1463,6 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
             outBuf[x] = y;
         }
     }
-
-    delete [] m_pTranslateTbl;
 }
 
 void CPlotter::setFftRange(float min, float max)
