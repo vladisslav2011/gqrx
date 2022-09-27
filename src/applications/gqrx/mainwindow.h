@@ -173,7 +173,7 @@ private:
     void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
-    void iqFftToMag(unsigned int fftsize);
+    void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData);
     void waterfall_background_func();
 
 private slots:

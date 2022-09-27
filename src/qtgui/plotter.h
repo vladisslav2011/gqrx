@@ -390,6 +390,14 @@ private:
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
     std::mutex  m_wf_mutex;         // waterfall update mutex
+    std::vector<qint32> m_pTranslateTbl;
+    qint32 old_plotWidth{0};
+    qint32 old_minbin{0}, old_maxbin{0};
+    qint32 old_BinMin{0}, old_BinMax{0};
+    int old_largeFft{0};
+    double old_fftstep{0.0};
+    qint64 old_startFreq;
+    qint64 old_stopFreq;
 };
 
 #endif // PLOTTER_H

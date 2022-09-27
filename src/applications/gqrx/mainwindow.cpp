@@ -2621,7 +2621,9 @@ void MainWindow::waterfall_background_func()
             lock.unlock();
         }
         if(waterfall_background_request == MainWindow::WF_EXIT)
+        {
             return;
+        }
         if(waterfall_background_request == MainWindow::WF_RESTART)
         {
             //update waterfall

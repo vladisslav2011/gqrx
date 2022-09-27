@@ -53,6 +53,34 @@ typedef std::shared_ptr<rx_fft_f> rx_fft_f_sptr;
 #endif
 
 
+class fft_c_basic
+{
+public:
+    fft_c_basic(unsigned int fftsize = 16384, int wintype = -1, bool normalize_energy = false);
+    virtual ~fft_c_basic();
+    virtual void get_fft_data(float* fftPoints, gr_complex * data);
+    void set_window_type(int wintype, bool normalize_energy);
+    int  get_window_type() const { return d_wintype; }
+
+    virtual void set_fft_size(unsigned int fftsize);
+    unsigned int fft_size() const {return d_fftsize;}
+    void copy_params(fft_c_basic & from);
+protected:
+    unsigned int d_fftsize;   /*! Current FFT size. */
+    int          d_wintype;   /*! Current window type. */
+    bool         d_normalize_energy;
+
+#if GNURADIO_VERSION < 0x030900
+    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
+#else
+    gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
+#endif
+    std::vector<float>  d_window; /*! FFT window taps. */
+
+    void apply_window(unsigned int size, gr_complex * p);
+    void update_window();
+};
+
 /*! \brief Return a shared_ptr to a new instance of rx_fft_c.
  *  \param fftsize The FFT size
  *  \param winttype The window type (see gnuradio/filter/firdes.h)
@@ -79,7 +107,7 @@ rx_fft_c_sptr make_rx_fft_c(unsigned int fftsize=4096,
  *
  * \note Uses code from qtgui_sink_c
  */
-class rx_fft_c : public gr::sync_block
+class rx_fft_c : public gr::sync_block, public fft_c_basic
 {
     friend rx_fft_c_sptr make_rx_fft_c(unsigned int fftsize, double quad_rate,
                                        int wintype, bool normalize_energy);
@@ -98,38 +126,22 @@ public:
              gr_vector_void_star &output_items) override;
 
     bool start() override;
-    void get_fft_data(float* fftPoints, gr_complex * data = nullptr);
+    void get_fft_data(float* fftPoints);
+    using fft_c_basic::get_fft_data;
 
-    void set_window_type(int wintype, bool normalize_energy);
-    int  get_window_type() const { return d_wintype; }
-
-    void set_fft_size(unsigned int fftsize);
     void set_quad_rate(double quad_rate);
-    unsigned int fft_size() const {return d_fftsize;}
     void set_enabled(bool enabled) { d_enabled=enabled; };
 
 private:
-    unsigned int d_fftsize;   /*! Current FFT size. */
     double       d_quadrate;
-    int          d_wintype;   /*! Current window type. */
-    bool         d_normalize_energy;
     bool         d_enabled;
 
     std::mutex   d_in_mutex;   /*! Used to lock input buffer. */
-
-#if GNURADIO_VERSION < 0x030900
-    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
-#else
-    gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
-#endif
-    std::vector<float>  d_window; /*! FFT window taps. */
 
     gr::buffer_sptr d_writer;
     gr::buffer_reader_sptr d_reader;
     std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
 
-    void apply_window(unsigned int size, gr_complex * p);
-    void update_window();
 };
 
 
