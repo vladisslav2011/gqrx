@@ -681,22 +681,23 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
 {
     QPoint pt = event->pos();
     Qt::KeyboardModifiers key = QGuiApplication::keyboardModifiers();
+    bool panadapterClicked = pt.y() < m_OverlayPixmap.height() / m_DPR;
 
     if (NOCAP == m_CursorCaptured)
     {
-        if (isPointCloseTo(pt.x(), m_DemodFreqX, m_CursorCaptureDelta))
+        if (panadapterClicked && isPointCloseTo(pt.x(), m_DemodFreqX, m_CursorCaptureDelta))
         {
             // move demod box center frequency region
             m_CursorCaptured = CENTER;
             m_GrabPosition = pt.x() - m_DemodFreqX;
         }
-        else if (isPointCloseTo(pt.x(), m_DemodLowCutFreqX, m_CursorCaptureDelta))
+        else if (panadapterClicked && isPointCloseTo(pt.x(), m_DemodLowCutFreqX, m_CursorCaptureDelta))
         {
             // filter low cut
             m_CursorCaptured = LEFT;
             m_GrabPosition = pt.x() - m_DemodLowCutFreqX;
         }
-        else if (isPointCloseTo(pt.x(), m_DemodHiCutFreqX, m_CursorCaptureDelta))
+        else if (panadapterClicked && isPointCloseTo(pt.x(), m_DemodHiCutFreqX, m_CursorCaptureDelta))
         {
             // filter high cut
             m_CursorCaptured = RIGHT;
@@ -709,7 +710,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                 int     best = -1;
                 qint64 ts = 0;
 
-                if (pt.y() < m_OverlayPixmap.height() / m_DPR)
+                if (panadapterClicked)
                 {
                     if (m_PeakDetection > 0)
                         best = getNearestPeak(pt);
