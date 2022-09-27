@@ -133,7 +133,7 @@ public:
         uint64_t d_offset;
         uint64_t d_file_size;
         any_to_any_base::sptr d_conv;
-        rx_fft_c_sptr d_fft;
+        fft_c_basic d_fft;
         std::vector<uint8_t> d_buf;
         std::vector<gr_complex> d_fftbuf;
     };
