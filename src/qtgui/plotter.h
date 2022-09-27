@@ -234,7 +234,7 @@ private:
                                  float maxdB, float mindB,
                                  qint64 startFreq, qint64 stopFreq,
                                  float *inBuf, qint32 *outBuf,
-                                 qint32 *maxbin, qint32 *minbin) const;
+                                 qint32 *maxbin, qint32 *minbin);
     static void calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &adjlow, qint64 &step, int& divs);
     void        showToolTip(QMouseEvent* event, QString toolTipText);
 
@@ -337,6 +337,14 @@ private:
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
     std::mutex  m_wf_mutex;         // waterfall update mutex
+    std::vector<qint32> m_pTranslateTbl;
+    qint32 old_plotWidth{0};
+    qint32 old_minbin{0}, old_maxbin{0};
+    qint32 old_BinMin{0}, old_BinMax{0};
+    int old_largeFft{0};
+    double old_fftstep{0.0};
+    qint64 old_startFreq;
+    qint64 old_stopFreq;
 };
 
 #endif // PLOTTER_H
