@@ -1909,7 +1909,12 @@ receiver::status receiver::seek_iq_file(long pos)
     {
         status = STATUS_ERROR;
     }
-
+    if (input_file->get_items_remaining() == 0)
+    {
+        tb->stop();
+        tb->wait();
+        tb->start();
+    }
     return status;
 }
 
@@ -1928,6 +1933,12 @@ receiver::status receiver::seek_iq_file_ts(uint64_t ts)
     else
     {
         status = STATUS_ERROR;
+    }
+    if (input_file->get_items_remaining() == 0)
+    {
+        tb->stop();
+        tb->wait();
+        tb->start();
     }
 
     return status;
