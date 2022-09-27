@@ -112,6 +112,7 @@ public:
 
     void set_begin_tag(pmt::pmt_t val);
     uint64_t get_timestamp_ms();
+    uint64_t get_items_remaining();
 };
 
 #endif
