@@ -2630,7 +2630,11 @@ void MainWindow::waterfall_background_func()
             lines=0;
             ms_per_line = 0.0;
             ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-            rd = rx->get_fft_reader(d_seek_pos);
+            rd = rx->get_fft_reader(d_seek_pos, std::bind(plotterWfCbWr, this,
+                              std::placeholders::_1,
+                              std::placeholders::_2,
+                              std::placeholders::_3,
+                              std::placeholders::_4                              ));
             quint64 ms_available = rd->ms_available();
             maxlines = std::min(lines, int(ms_available / ms_per_line));
             k = 0;
@@ -2648,18 +2652,9 @@ void MainWindow::waterfall_background_func()
         {
             if(k<lines)
             {
-                unsigned int fftsize;
-                uint64_t ts;
                 if(k<=maxlines)
                 {
-                    rd->get_iq_fft_data(k * ms_per_line, d_iqFftData.data(), fftsize, ts);
-                    if (fftsize > 0)
-                    {
-                        ui->plotter->drawOneWaterfallLine(k, d_iqFftData.data(), fftsize, ts);
-                        //TODO: Try to use one of global timers to do this periodically instead of triggering update every 16 lines
-                        if((k & 15) == 0)
-                            emit plotterUpdate();
-                    }
+                    rd->get_iq_fft_data(k * ms_per_line, k);
                 }else{
                     ui->plotter->drawBlackWaterfallLine(k);
                 }
@@ -2684,6 +2679,21 @@ void MainWindow::waterfall_background_func()
     }
 }
 
+void MainWindow::plotterWfCbWr(MainWindow *self, int line, float* data, unsigned n, quint64 ts)
+{
+    self->plotterWfCb(line, data, n, ts);
+}
+
+void MainWindow::plotterWfCb(int line, float* data, unsigned n, quint64 ts)
+{
+    if(n > 0)
+    {
+        ui->plotter->drawOneWaterfallLine(line, data, n, ts);
+        if((line & 15) == 0)
+            emit plotterUpdate();
+    }
+}
+
 /**
  * Pltter forced update slot to make it possible to trigger plotter update from background thread.
  */
@@ -2694,7 +2704,6 @@ void MainWindow::plotterUpdate()
 
 void MainWindow::triggerIQFftRedraw()
 {
-    std::cerr<<"MainWindow::triggerIQFftRedraw()"<<waterfall_background_request<<"\n";
     if(!ui->actionDSP->isChecked() && d_playing_iq)
     {
         std::unique_lock<std::mutex> lock(waterfall_background_mutex);
@@ -2706,7 +2715,6 @@ void MainWindow::triggerIQFftRedraw()
 void MainWindow::stopIQFftRedraw()
 {
     std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-    std::cerr<<"MainWindow::stopIQFftRedraw()"<<waterfall_background_request<<"\n";
     if(waterfall_background_request != MainWindow::WF_NONE)
     {
         waterfall_background_request = MainWindow::WF_STOP;

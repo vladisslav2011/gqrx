@@ -58,7 +58,7 @@ class fft_c_basic
 public:
     fft_c_basic(unsigned int fftsize = 16384, int wintype = -1, bool normalize_energy = false);
     virtual ~fft_c_basic();
-    virtual void get_fft_data(float* fftPoints, gr_complex * data);
+    virtual void get_fft_data(float* &fftPoints, gr_complex * data);
     void set_window_type(int wintype, bool normalize_energy);
     int  get_window_type() const { return d_wintype; }
 

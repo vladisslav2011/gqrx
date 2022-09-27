@@ -1215,6 +1215,7 @@ void CPlotter::resizeEvent(QResizeEvent* )
         m_2DPixmap = QPixmap(w, plotHeight);
         m_2DPixmap.fill(PLOTTER_BGD_COLOR);
 
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // No waterfall, use null pixmap
         if (wfHeight == 0)
         {

@@ -51,7 +51,7 @@ fft_c_basic::~fft_c_basic()
     delete d_fft;
 }
 
-void fft_c_basic::get_fft_data(float* fftPoints, gr_complex * data)
+void fft_c_basic::get_fft_data(float* &fftPoints, gr_complex * data)
 {
     apply_window(d_fftsize, data);
 
@@ -59,7 +59,15 @@ void fft_c_basic::get_fft_data(float* fftPoints, gr_complex * data)
     d_fft->execute();
 
     /* get FFT data */
-    memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    //memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
+    fftPoints = (float*)d_fft->get_outbuf();
+    const std::complex<float> *fftOut = d_fft->get_outbuf();
+
+    // Shifted mag^2(FFT)
+    for (unsigned int i = 0; i < d_fftsize; ++i)
+        fftPoints[i] = static_cast<float>(std::norm(fftOut[i]));
+    for (unsigned int i = 0; i < d_fftsize/2; ++i)
+        std::swap(fftPoints[i],fftPoints[i + d_fftsize/2]);
 }
 
 /*! \brief Set new window type. */
