@@ -556,6 +556,7 @@ void CPlotter::setWaterfallSpan(quint64 span_ms)
 
 void CPlotter::clearWaterfall()
 {
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     m_WaterfallPixmap.fill(Qt::black);
     memset(m_wfbuf, 255, MAX_SCREENSIZE);
 }
@@ -1024,7 +1025,7 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     painter.drawPixmap(0, 0, m_2DPixmap);
     {
-        std::unique_lock<std::mutex> lock(m_wf_mutex);
+        //std::unique_lock<std::mutex> lock(m_wf_mutex);
         painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
                         m_WaterfallPixmap);
     }
@@ -1269,6 +1270,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     int     h;
     int     xmin, xmax;
 
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     m_wfData = fftData;
     m_fftDataSize = size;
     // get/draw the waterfall
@@ -1278,13 +1280,12 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
     {
-        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // get scaled FFT data
         n = qMin(w, MAX_SCREENSIZE);
         getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
                                 m_FftCenter - (qint64)m_Span / 2,
                                 m_FftCenter + (qint64)m_Span / 2,
-                                m_wfData, m_fftbuf,
+                                m_wfData, m_fftbuf2,
                                 &xmin, &xmax);
 
         while(line>m_wfLineStats.size())
@@ -1304,7 +1305,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
         for (i = xmin; i < xmax; i++)
         {
-            painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+            painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
             painter1.drawPoint(i, line);
         }
     }

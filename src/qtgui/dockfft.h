@@ -69,6 +69,7 @@ signals:
     void peakDetectionToggled(bool enabled);       /*! Enable peak detection in FFT plot */
     void bandPlanChanged(bool enabled);            /*! Toggle Band Plan at bottom of FFT area. */
     void wfColormapChanged(const QString &cmap);
+    void wfThreadsChanged(const int n);
 
 public slots:
     void setPandapterRange(float min, float max);
@@ -96,6 +97,7 @@ private slots:
     void on_lockButton_toggled(bool checked);
     void on_bandPlanCheckbox_stateChanged(int state);
     void on_cmapComboBox_currentIndexChanged(int index);
+    void on_threadsComboBox_currentTextChanged(const QString &text);
 
 private:
     void updateInfoLabels(void);

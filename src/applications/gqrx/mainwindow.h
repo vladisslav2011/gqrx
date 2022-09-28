@@ -142,6 +142,7 @@ private:
     std::mutex waterfall_background_mutex;
     std::condition_variable waterfall_background_wake;
     std::condition_variable waterfall_background_ready;
+    int waterfall_background_threads{0};
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);
@@ -259,6 +260,7 @@ private slots:
     void moveToCenterFreq();
     void moveToDemodFreq();
     void setWfColormap(const QString colormap);
+    void setWfThreads(const int n);
     void setWaterfallRange(float lo, float hi);
     void setFftColor(const QColor& color);
     void setFftFill(bool enable);
