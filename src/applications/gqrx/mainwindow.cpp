@@ -2416,6 +2416,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
     ui->plotter->setSampleRate(actual_rate);
     uiDockProbe->setSampleRate(actual_rate);
+    uiDockFft->setSampleRate(actual_rate);
     ui->plotter->setSpanFreq((quint32)actual_rate);
     if (std::abs(current_offset) > actual_rate / 2)
         on_plotter_newDemodFreq(center_freq, 0, 0);
@@ -2465,6 +2466,7 @@ void MainWindow::stopIqPlayback()
 
         uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
         ui->plotter->setSampleRate(actual_rate);
+        uiDockFft->setSampleRate(actual_rate);
         uiDockProbe->setSampleRate(actual_rate);
         ui->plotter->setSpanFreq((quint32)actual_rate);
         remote->setBandwidth(sr);
