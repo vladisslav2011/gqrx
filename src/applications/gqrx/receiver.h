@@ -130,9 +130,9 @@ public:
         private:
         struct task
         {
-            task(){};
-            task(task &from){};
-            task(task &&from){};
+            task(){thread = nullptr;};
+            task(task &from){thread = nullptr;};
+            task(task &&from){thread = nullptr;};
             ~task(){if(thread)delete thread;};
             void thread_func();
             struct fft_reader * owner;
@@ -160,7 +160,7 @@ public:
         std::vector<task> threads;
         std::mutex mutex;
         std::condition_variable finished;
-        unsigned busy; //mutex protected
+        std::atomic<unsigned> busy;
         std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
