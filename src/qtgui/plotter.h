@@ -51,6 +51,7 @@ public:
     void setNewFftData(float *fftData, float *wfData, int size, qint64 ts);
     void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
     void drawBlackWaterfallLine(int line);
+    void scrollWaterfall(int dy);
     void getWaterfallMetrics(int &lines, double &ms_per_line);
 
     void setCenterFreq(quint64 f);
@@ -241,6 +242,7 @@ private:
     bool        m_PeakHoldActive;
     bool        m_PeakHoldValid;
     qint32      m_fftbuf[MAX_SCREENSIZE]{};
+    qint32      m_fftbuf2[MAX_SCREENSIZE]{};
     quint8      m_wfbuf[MAX_SCREENSIZE]{}; // used for accumulating waterfall data at high time spans
     qint32      m_fftPeakHoldBuf[MAX_SCREENSIZE]{};
     float      *m_fftData{};     /*! pointer to incoming FFT data */

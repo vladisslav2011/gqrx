@@ -137,12 +137,13 @@ private:
     static const int WF_RUNNING = 2;
     static const int WF_STOP = 3;
     static const int WF_EXIT = 4;
-    int              waterfall_background_request{0};
-    quint64          d_seek_pos{0};
-    std::thread waterfall_background_thread;
+    std::atomic<int> waterfall_background_request{0};
+    std::atomic<quint64> d_seek_pos{0};
     std::mutex waterfall_background_mutex;
     std::condition_variable waterfall_background_wake;
     std::condition_variable waterfall_background_ready;
+    int waterfall_background_threads{0};
+    std::thread waterfall_background_thread;
 
     QFile * metaFile;
 
@@ -258,6 +259,7 @@ private slots:
     void moveToCenterFreq();
     void moveToDemodFreq();
     void setWfColormap(const QString colormap);
+    void setWfThreads(const int n);
     void setWaterfallRange(float lo, float hi);
     void setFftColor(const QColor& color);
     void setFftFill(bool enable);
