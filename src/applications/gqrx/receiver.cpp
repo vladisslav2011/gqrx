@@ -47,6 +47,8 @@
 #include <gnuradio/audio/sink.h>
 #endif
 
+// change to WATERFALL_TIME_BENCHMARK to enable timing information output
+#define NOWATERFALL_TIME_BENCHMARK
 
 /**
  * @brief Public constructor.
@@ -2340,7 +2342,10 @@ receiver::fft_reader::fft_reader(std::string filename, int sample_size, int samp
     {
         task & t=threads[k];
         t.owner=this;
-        t.d_fft.copy_params(*fft);
+        if(k==0)
+            t.d_fft.copy_params(*fft);
+        else
+            t.d_fft.copy_params(threads[0].d_fft);
         t.samples = t.d_fft.get_fft_size();
         t.d_buf.resize(d_sample_size * t.samples);
         t.d_fftbuf.resize(t.samples);
@@ -2363,10 +2368,10 @@ receiver::fft_reader::fft_reader(std::string filename, int sample_size, int samp
 
 receiver::fft_reader::~fft_reader()
 {
+    std::unique_lock<std::mutex> lock(mutex);
     if(d_fd)
         fclose(d_fd);
     d_fd = nullptr;
-    std::unique_lock<std::mutex> lock(mutex);
     for(unsigned k=0;k<threads.size();k++)
     {
         threads[k].exit_request=true;
@@ -2375,9 +2380,11 @@ receiver::fft_reader::~fft_reader()
     lock.unlock();
     for(unsigned k=0;k<threads.size();k++)
         threads[k].thread->join();
+#ifdef WATERFALL_TIME_BENCHMARK
     std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
     std::chrono::duration<double> diff = now - d_lasttime;
-    std::cout<<"fft_reader time "<<diff.count()<<"\n";
+    std::cerr<<"time "<<diff.count()<<"\n";
+#endif
 }
 
 uint64_t receiver::fft_reader::ms_available()
@@ -2414,11 +2421,13 @@ bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, int n)
     std::unique_lock<std::mutex> lock(mutex);
     if(busy == threads.size())
         finished.wait(lock);
-    for(k=0;k<threads.size();k++)
+    for(k = 0; k < threads.size(); k++)
         if(threads[k].ready)
             break;
+    if(k >= threads.size())
+        return false;
     lock.unlock();
-    std::memset(threads[k].d_buf.data(),0xff,threads[k].d_buf.size());
+    std::memset(threads[k].d_buf.data(), 0, threads[k].d_buf.size());
     size_t nread = fread(&threads[k].d_buf[read_ofs * d_sample_size], d_sample_size, threads[k].samples - read_ofs, d_fd);
     if(nread != threads[k].samples-read_ofs)
     {
