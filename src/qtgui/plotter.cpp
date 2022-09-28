@@ -648,8 +648,10 @@ void CPlotter::setWaterfallSpan(quint64 span_ms)
 
 void CPlotter::clearWaterfallBuf()
 {
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     for (int i = 0; i < MAX_SCREENSIZE; i++)
         m_wfbuf[i] = 0.0;
+    m_WaterfallPixmap.fill(Qt::black);
 }
 
 /**
@@ -1286,7 +1288,7 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     if (!m_WaterfallPixmap.isNull())
     {
-        std::unique_lock<std::mutex> lock(m_wf_mutex);
+//        std::unique_lock<std::mutex> lock(m_wf_mutex);
         const int wfWidthS = m_WaterfallPixmap.width();
         const int wfHeightS = m_WaterfallPixmap.height();
         const QRectF wfRectS(0.0, 0.0, wfWidthS, wfHeightS);
@@ -2124,13 +2126,12 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
     {
-        std::unique_lock<std::mutex> lock(m_wf_mutex);
         // get scaled FFT data
         n = qMin(w, MAX_SCREENSIZE);
         getScreenIntegerFFTData(255, n, m_WfMaxdB, m_WfMindB,
                                 m_FftCenter - (qint64)m_Span / 2,
                                 m_FftCenter + (qint64)m_Span / 2,
-                                m_wfData, m_fftbuf,
+                                m_wfData, m_fftbuf2,
                                 &xmin, &xmax);
 
         while(line>m_wfLineStats.size())
@@ -2150,7 +2151,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
         for (i = xmin; i < xmax; i++)
         {
-            painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+            painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
             painter1.drawPoint(i, line);
         }
     }
@@ -2279,10 +2280,10 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
 void CPlotter::drawBlackWaterfallLine(int line)
 {
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     int i;
     int w = m_WaterfallPixmap.width();
     int h = m_WaterfallPixmap.height();
-    std::unique_lock<std::mutex> lock(m_wf_mutex);
     if (w != 0 && h != 0)
     {
         QPainter painter1(&m_WaterfallPixmap);
@@ -2294,6 +2295,7 @@ void CPlotter::drawBlackWaterfallLine(int line)
 
 void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
 {
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     lines = m_WaterfallPixmap.height();
     if(fft_rate == 0)
         ms_per_line = -1.0;

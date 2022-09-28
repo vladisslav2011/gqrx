@@ -59,7 +59,6 @@ void fft_c_basic::get_fft_data(float* &fftPoints, gr_complex * data)
     d_fft->execute();
 
     /* get FFT data */
-    //memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
     fftPoints = (float*)d_fft->get_outbuf();
     const std::complex<float> *fftOut = d_fft->get_outbuf();
 

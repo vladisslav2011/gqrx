@@ -25,6 +25,7 @@
 #include <QSettings>
 #include <QDebug>
 #include <QVariant>
+#include <thread>
 #include "dockfft.h"
 #include "ui_dockfft.h"
 
@@ -96,6 +97,9 @@ DockFft::DockFft(QWidget *parent) :
     QFontMetrics metrics(font);
     QRectF zoomRect = metrics.boundingRect("888888x");
     ui->zoomLevelLabel->setFixedWidth(zoomRect.width());
+    ui->threadsComboBox->addItem(tr("Auto"),"Auto");
+    for (unsigned k = 1; k <= std::thread::hardware_concurrency(); k++)
+        ui->threadsComboBox->addItem(QString::number(k), QString::number(k));
 }
 DockFft::~DockFft()
 {
@@ -369,6 +373,12 @@ void DockFft::saveSettings(QSettings *settings)
         settings->setValue("fft_zoom", ui->fftZoomSlider->value());
     else
         settings->remove("fft_zoom");
+    intval = ui->threadsComboBox->currentText().toInt();
+
+    if(intval != 0)
+        settings->setValue("waterfall_threads", intval);
+    else
+        settings->remove("waterfall_threads");
 
     settings->endGroup();
 }
@@ -379,6 +389,7 @@ void DockFft::readSettings(QSettings *settings)
     int     intval;
     QString strval;
     int     fft_min, fft_max;
+    int     wf_threads;
     bool    bool_val = false;
     bool    conv_ok = false;
     QColor  color;
@@ -514,6 +525,12 @@ void DockFft::readSettings(QSettings *settings)
     intval = settings->value("fft_zoom", DEFAULT_FFT_ZOOM).toInt(&conv_ok);
     if (conv_ok)
         ui->fftZoomSlider->setValue(intval);
+
+    wf_threads = settings->value("waterfall_threads", 0).toInt();
+    if (wf_threads < 0)
+        wf_threads = 0;
+    ui->threadsComboBox->setCurrentText((wf_threads>0)?QString::number(wf_threads):"Auto");
+    //emit wfThreadsChanged(wf_threads);
 
     settings->endGroup();
 }
@@ -758,6 +775,24 @@ void DockFft::on_cmapComboBox_currentIndexChanged(int index)
 {
     Q_UNUSED(index);
     emit wfColormapChanged(ui->cmapComboBox->currentData().toString());
+}
+
+void DockFft::on_threadsComboBox_currentTextChanged(const QString &text)
+{
+    if (text == "")
+    {
+        emit wfThreadsChanged(0);
+        return;
+    }
+    if (text == "Auto")
+    {
+        emit wfThreadsChanged(0);
+        return;
+    }
+    int val = text.toInt();
+    if (val < 0)
+        val = 0;
+    emit wfThreadsChanged(val);
 }
 
 /** Update RBW and FFT overlab labels */

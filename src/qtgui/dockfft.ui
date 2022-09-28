@@ -85,8 +85,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>440</width>
-         <height>604</height>
+         <width>444</width>
+         <height>619</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -1681,6 +1681,23 @@
              </size>
             </property>
            </spacer>
+          </item>
+          <item row="20" column="0">
+           <widget class="QLabel" name="threadsLabel">
+            <property name="text">
+             <string>BG threads</string>
+            </property>
+           </widget>
+          </item>
+          <item row="20" column="1">
+           <widget class="QComboBox" name="threadsComboBox">
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+            <property name="currentText">
+             <string>Auto</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>

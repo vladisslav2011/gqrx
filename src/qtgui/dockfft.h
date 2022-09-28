@@ -78,6 +78,7 @@ signals:
     void bandPlanChanged(bool enabled);            /*! Toggle Band Plan at bottom of FFT area. */
     void markersChanged(bool enabled);             /*! Toggle markers and on-plot controls. */
     void wfColormapChanged(const QString &cmap);
+    void wfThreadsChanged(const int n);
 
 public slots:
     void setPandapterRange(float min, float max);
@@ -113,6 +114,7 @@ private slots:
     void on_bandPlanCheckBox_stateChanged(int state);
     void on_markersCheckBox_stateChanged(int state);
     void on_cmapComboBox_currentIndexChanged(int index);
+    void on_threadsComboBox_currentTextChanged(const QString &text);
 
 private:
     void updateInfoLabels(void);
