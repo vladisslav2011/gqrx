@@ -122,22 +122,46 @@ public:
     struct fft_reader
     {
         typedef std::function<void(int, gr_complex*, float*, unsigned, uint64_t)> fft_data_ready;
-        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler);
+        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
         ~fft_reader();
         uint64_t ms_available();
         bool get_iq_fft_data(uint64_t ms, int n);
+        void wait();
         private:
+        struct task
+        {
+            task(){};
+            task(task &from){};
+            task(task &&from){};
+            ~task(){if(thread)delete thread;};
+            void thread_func();
+            struct fft_reader * owner;
+            int index;
+            bool ready;
+            bool exit_request;
+            int line;
+            unsigned samples;
+            uint64_t ts;
+            fft_c_basic d_fft;
+            std::vector<uint8_t> d_buf;
+            std::vector<gr_complex> d_fftbuf;
+            std::thread *thread;
+            std::condition_variable start{};
+        };
         FILE * d_fd;
         int d_sample_size;
         int d_sample_rate;
         uint64_t d_base_ts;
         uint64_t d_offset;
+        uint64_t d_offset_ms;
         uint64_t d_file_size;
         any_to_any_base::sptr d_conv;
-        fft_c_basic d_fft;
-        std::vector<uint8_t> d_buf;
-        std::vector<gr_complex> d_fftbuf;
         fft_data_ready data_ready;
+        std::vector<task> threads;
+        std::mutex mutex;
+        std::condition_variable finished;
+        unsigned busy; //mutex protected
+        std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
@@ -356,7 +380,7 @@ public:
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
-    fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb);
+    fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb, int nthreads);
 
 private:
     void        connect_all(enum file_formats fmt);
