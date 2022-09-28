@@ -110,23 +110,51 @@ public:
     struct fft_reader
     {
         typedef std::function<void(int, gr_complex*, float*, unsigned, uint64_t)> fft_data_ready;
-        fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler);
+        fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
         ~fft_reader();
+        void start_threads(int nthreads, rx_fft_c_sptr fft);
+        void stop_threads();
+        void reconfigure(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads);
         uint64_t ms_available();
         bool get_iq_fft_data(uint64_t ms, int n);
+        void wait();
         private:
+        struct task
+        {
+            task(){thread = nullptr;};
+            task(task &from){thread = nullptr;};
+            task(task &&from){thread = nullptr;};
+            ~task(){if(thread)delete thread;};
+            void thread_func();
+            struct fft_reader * owner;
+            int index;
+            bool ready;
+            bool exit_request;
+            int line;
+            unsigned samples;
+            uint64_t ts;
+            fft_c_basic d_fft;
+            std::vector<uint8_t> d_buf;
+            std::vector<gr_complex> d_fftbuf;
+            std::thread *thread;
+            std::condition_variable start{};
+        };
+        std::string d_filename;
         FILE * d_fd;
         int d_chunk_size;
         int d_samples_per_chunk;
         int d_sample_rate;
         uint64_t d_base_ts;
         uint64_t d_offset;
+        uint64_t d_offset_ms;
         uint64_t d_file_size;
         any_to_any_base::sptr d_conv;
-        fft_c_basic d_fft;
-        std::vector<uint8_t> d_buf;
-        std::vector<gr_complex> d_fftbuf;
         fft_data_ready data_ready;
+        std::vector<task> threads;
+        std::mutex mutex;
+        std::condition_variable finished;
+        std::atomic<unsigned> busy;
+        std::chrono::time_point<std::chrono::steady_clock> d_lasttime;
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
@@ -348,7 +376,7 @@ public:
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
-    fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb);
+    fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     file_formats get_last_format() const { return d_last_format; }
 
 private:
@@ -465,6 +493,7 @@ private:
     gr::basic_block_sptr  audio_snk;  /*!< Pulse audio sink. */
     audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
+    receiver::fft_reader_sptr d_fft_reader;
     static std::string get_zero_file(void);
     static void audio_rec_event(receiver * self, int idx, std::string filename,
                                 bool is_running);

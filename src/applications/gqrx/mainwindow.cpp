@@ -50,6 +50,8 @@
 #include "mainwindow.h"
 #include "qtgui/dxc_options.h"
 #include "qtgui/dxc_spots.h"
+#include <chrono>
+using namespace std::chrono_literals;
 
 /* Qt Designer files */
 #include "ui_mainwindow.h"
@@ -292,6 +294,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(gotoDemodFreq()), this, SLOT(moveToDemodFreq()));
     connect(uiDockFft, SIGNAL(bandPlanChanged(bool)), ui->plotter, SLOT(toggleBandPlan(bool)));
     connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), this, SLOT(setWfColormap(const QString)));
+    connect(uiDockFft, SIGNAL(wfThreadsChanged(const int)), this, SLOT(setWfThreads(const int)));
 
     connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
             ui->plotter, SLOT(setPandapterRange(float,float)));
@@ -2536,74 +2539,106 @@ void MainWindow::waterfall_background_func()
     double ms_per_line = 0.0;
     int maxlines = 0;
     int k = 0;
+    int line = 0;
+    quint64 seek_pos = 0;
+    quint64 old_seek_pos = 0;
+    qint64 seek_delta = 0;
+    int background_request = MainWindow::WF_NONE;
+    int set_request = MainWindow::WF_NONE;
+    int last_request = MainWindow::WF_NONE;
     receiver::fft_reader_sptr rd;
     std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    lock.unlock();
     while(1)
     {
-        if(waterfall_background_request == MainWindow::WF_NONE)
+        background_request = waterfall_background_request;
+        if (background_request == last_request)
         {
+            if (background_request != set_request)
+                background_request = last_request = waterfall_background_request = set_request;
+        }else{
+            last_request = background_request;
+            seek_pos = d_seek_pos;
+        }
+        if(background_request == MainWindow::WF_NONE)
+        {
+            lock.lock();
             waterfall_background_ready.notify_one();
             waterfall_background_wake.wait(lock);
             lock.unlock();
         }
-        if(waterfall_background_request == MainWindow::WF_EXIT)
+        if(background_request == MainWindow::WF_EXIT)
         {
             return;
         }
-        if(waterfall_background_request == MainWindow::WF_RESTART)
+        if(background_request == MainWindow::WF_RESTART)
         {
-            //update waterfall
+            //update parameters
             lines=0;
             ms_per_line = 0.0;
             ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-            rd = rx->get_fft_reader(d_seek_pos, std::bind(plotterWfCbWr, this,
-                              std::placeholders::_1,
-                              std::placeholders::_2,
-                              std::placeholders::_3,
-                              std::placeholders::_4,
-                              std::placeholders::_5
-                              ));
-            quint64 ms_available = rd->ms_available();
-            maxlines = std::min(lines, int(ms_available / ms_per_line));
-            k = 0;
-            lock.lock();
-            if(ms_per_line > 0 && (waterfall_background_request != MainWindow::WF_STOP))
+            seek_delta = seek_pos - old_seek_pos;
+            old_seek_pos = seek_pos;
+            if(ms_per_line > 0.0)
             {
-                waterfall_background_request = MainWindow::WF_RUNNING;
-                lock.unlock();
+                qint64 nlines = std::round(double(seek_delta * any_to_any_base::fmt[rx->get_last_format()].nsamples) * 1000.0/double(rx->get_input_rate()*ms_per_line));
+                ui->plotter->scrollWaterfall(nlines);
+                emit requestPlotterUpdate();
+                rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,
+                                std::placeholders::_1,
+                                std::placeholders::_2,
+                                std::placeholders::_3,
+                                std::placeholders::_4,
+                                std::placeholders::_5
+                                ), waterfall_background_threads);
+                quint64 ms_available = rd->ms_available();
+                maxlines = std::min(lines, int(ms_available / ms_per_line));
+                k = 0;
+                if(std::abs(nlines) > lines)
+                    line = 0;
+                else{
+                    if(nlines>=0)
+                        line=0;
+                    else
+                        line=lines+nlines;
+                }
+                set_request = MainWindow::WF_RUNNING;
             }else{
                 rd.reset();
-                waterfall_background_request = MainWindow::WF_NONE;
+                set_request = MainWindow::WF_NONE;
             }
         }
-        if(waterfall_background_request == MainWindow::WF_RUNNING)
+        if(background_request == MainWindow::WF_RUNNING)
         {
             if(k<lines)
             {
-                if(k<=maxlines)
+                if(line<=maxlines)
                 {
-                    rd->get_iq_fft_data(k * ms_per_line, k);
+                    rd->get_iq_fft_data(line * ms_per_line, line);
                 }else{
-                    ui->plotter->drawBlackWaterfallLine(k);
+                    ui->plotter->drawBlackWaterfallLine(line);
                 }
             }
             k++;
-            if(k>=lines)
+            line++;
+            if(line>=lines)
+                line = 0;
+            if(k >= lines && background_request == MainWindow::WF_RUNNING)
             {
+                rd->wait();
                 emit requestPlotterUpdate();
-                lock.lock();
-                rd.reset();
-                waterfall_background_request = MainWindow::WF_NONE;
+                set_request = MainWindow::WF_NONE;
             }
         }
-        if(waterfall_background_request == MainWindow::WF_STOP)
+        if(background_request == MainWindow::WF_STOP)
         {
             //FIXME: Is it better to fill remaining lines with black color?
             emit requestPlotterUpdate();
-            lock.lock();
-            rd.reset();
-            waterfall_background_request = MainWindow::WF_NONE;
+            rd->wait();
+            set_request = MainWindow::WF_NONE;
         }
+        if(background_request > MainWindow::WF_EXIT)
+            set_request = MainWindow::WF_NONE;
     }
 }
 
@@ -2644,11 +2679,10 @@ void MainWindow::triggerIQFftRedraw()
 void MainWindow::stopIQFftRedraw()
 {
     std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-    if(waterfall_background_request != MainWindow::WF_NONE)
+    while(waterfall_background_request != MainWindow::WF_NONE)
     {
         waterfall_background_request = MainWindow::WF_STOP;
-        waterfall_background_wake.notify_one();
-        waterfall_background_ready.wait(lock);
+        waterfall_background_ready.wait_for(lock, 100ms);
     }
 }
 
@@ -2775,6 +2809,11 @@ void MainWindow::setWfColormap(const QString colormap)
     uiDockAudio->setWfColormap(colormap);
     uiDockProbe->setWfColormap(colormap);
     triggerIQFftRedraw();
+}
+
+void MainWindow::setWfThreads(const int n)
+{
+    waterfall_background_threads = n;
 }
 
 void MainWindow::setWaterfallRange(float lo, float hi)
