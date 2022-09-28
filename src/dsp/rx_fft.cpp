@@ -58,7 +58,6 @@ void fft_c_basic::get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr
     d_fft->execute();
 
     /* get FFT data */
-    //memcpy(fftPoints, d_fft->get_outbuf(), sizeof(gr_complex)*d_fftsize);
     fftPoints = d_fft->get_outbuf();
     fftSize = d_fftsize;
 }

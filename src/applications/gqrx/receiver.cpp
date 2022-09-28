@@ -2279,10 +2279,9 @@ uint64_t receiver::get_filesource_timestamp_ms()
     return input_file->get_timestamp_ms();
 }
 
-receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb)
+receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb, int nthreads)
 {
-//        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset);
-    return std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format], iq_fft, cb);
+    return std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format], iq_fft, cb, nthreads);
 }
 
 std::string receiver::escape_filename(std::string filename)
@@ -2324,24 +2323,42 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
 #define GR_STAT stat
 #endif
 
-receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler)
-  : d_fft()
+receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads)
 {
     d_sample_size = sample_size;
     d_sample_rate = sample_rate;
     d_base_ts = base_ts;
     d_offset = offset;
+    d_offset_ms = offset * 1000llu / d_sample_rate;
     d_conv = conv;
-    d_fft.copy_params(*fft);
+    if(nthreads == 0)
+        nthreads=std::max(1u,std::thread::hardware_concurrency());
+    busy = nthreads;
+    threads.resize(nthreads);
+    std::unique_lock<std::mutex> lock(mutex);
+    for(int k=0;k<nthreads;k++)
+    {
+        task & t=threads[k];
+        t.owner=this;
+        t.d_fft.copy_params(*fft);
+        t.samples = t.d_fft.get_fft_size();
+        t.d_buf.resize(d_sample_size * t.samples);
+        t.d_fftbuf.resize(t.samples);
+        t.index = k;
+        t.ready = false;
+        t.exit_request = false;
+        t.line = 0;
+        t.thread = new std::thread(&receiver::fft_reader::task::thread_func,&t);
+    }
+    lock.unlock();
     data_ready = handler;
     d_fd = fopen(filename.c_str(), "rb");
     if(d_fd)
     {
         GR_FSEEK(d_fd, 0, SEEK_END);
         d_file_size = GR_FTELL(d_fd);
-        d_buf.resize(d_sample_size * d_fft.get_fft_size());
-        d_fftbuf.resize(d_fft.get_fft_size());
     }
+    d_lasttime = std::chrono::steady_clock::now();
 }
 
 receiver::fft_reader::~fft_reader()
@@ -2349,6 +2366,18 @@ receiver::fft_reader::~fft_reader()
     if(d_fd)
         fclose(d_fd);
     d_fd = nullptr;
+    std::unique_lock<std::mutex> lock(mutex);
+    for(unsigned k=0;k<threads.size();k++)
+    {
+        threads[k].exit_request=true;
+        threads[k].start.notify_one();
+    }
+    lock.unlock();
+    for(unsigned k=0;k<threads.size();k++)
+        threads[k].thread->join();
+    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+    std::chrono::duration<double> diff = now - d_lasttime;
+    std::cout<<"fft_reader time "<<diff.count()<<"\n";
 }
 
 uint64_t receiver::fft_reader::ms_available()
@@ -2356,35 +2385,77 @@ uint64_t receiver::fft_reader::ms_available()
     return d_offset * 1000llu / uint64_t(d_sample_rate);
 }
 
+void receiver::fft_reader::wait()
+{
+    std::unique_lock<std::mutex> lock(mutex);
+    while(busy)
+        finished.wait(lock);
+}
+
 bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, int n)
 {
     uint64_t samp = ms * d_sample_rate / 1000llu;
     int read_ofs = 0;
-    gr_complex * buf;
-    unsigned fftsize;
+    unsigned k;
     if(!d_fd)
     {
-        fftsize = 0;
         return false;
     }
     if(samp > d_offset)
         samp = 0;
     else
         samp = d_offset - samp;
-    if(samp>=d_fft.get_fft_size())
-        GR_FSEEK(d_fd, (samp - d_fft.get_fft_size()) * d_sample_size, SEEK_SET);
+    if(samp>=threads[0].samples)
+        GR_FSEEK(d_fd, (samp - threads[0].samples) * d_sample_size, SEEK_SET);
     else{
         GR_FSEEK(d_fd, 0, SEEK_SET);
-        read_ofs = d_fft.get_fft_size() - samp;
+        read_ofs = threads[0].samples - samp;
     }
-    std::memset(d_buf.data(),0,d_buf.size());
-    size_t nread = fread(&d_buf[read_ofs * d_sample_size], d_sample_size, d_fft.get_fft_size() - read_ofs, d_fd);
-    if(nread != d_fft.get_fft_size()-read_ofs)
+    std::unique_lock<std::mutex> lock(mutex);
+    if(busy == threads.size())
+        finished.wait(lock);
+    for(k=0;k<threads.size();k++)
+        if(threads[k].ready)
+            break;
+    lock.unlock();
+    std::memset(threads[k].d_buf.data(),0xff,threads[k].d_buf.size());
+    size_t nread = fread(&threads[k].d_buf[read_ofs * d_sample_size], d_sample_size, threads[k].samples - read_ofs, d_fd);
+    if(nread != threads[k].samples-read_ofs)
     {
         //FIXME: Handle error?
     }
-    d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft.get_fft_size());
-    d_fft.get_fft_data(buf, fftsize, d_fftbuf.data());
-    data_ready(n, buf, (float*)d_fftbuf.data(), fftsize, d_base_ts + ms);
+    threads[k].line = n;
+    threads[k].ts = d_base_ts + d_offset_ms - ms;
+    threads[k].ready = false;
+    busy++;
+    threads[k].start.notify_one();
     return true;
 }
+
+void receiver::fft_reader::task::thread_func()
+{
+    gr_complex * buf;
+    unsigned fftsize;
+    std::unique_lock<std::mutex> lock(owner->mutex);
+    while(1)
+    {
+        if(owner->busy)
+            owner->busy--;
+        ready = true;
+        owner->finished.notify_one();
+        if(exit_request)
+            return;
+        start.wait(lock);
+        if(exit_request)
+            return;
+        ready = false;
+        lock.unlock();
+
+        owner->d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft.get_fft_size());
+        d_fft.get_fft_data(buf, fftsize, d_fftbuf.data());
+        owner->data_ready(line, buf, (float*)d_fftbuf.data(), fftsize, ts);
+
+        lock.lock();
+    }
+}
+

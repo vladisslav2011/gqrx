@@ -287,6 +287,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(gotoDemodFreq()), this, SLOT(moveToDemodFreq()));
     connect(uiDockFft, SIGNAL(bandPlanChanged(bool)), ui->plotter, SLOT(toggleBandPlan(bool)));
     connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), this, SLOT(setWfColormap(const QString)));
+    connect(uiDockFft, SIGNAL(wfThreadsChanged(const int)), this, SLOT(setWfThreads(const int)));
 
     connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
             ui->plotter, SLOT(setPandapterRange(float,float)));
@@ -2542,7 +2543,7 @@ void MainWindow::waterfall_background_func()
                               std::placeholders::_3,
                               std::placeholders::_4,
                               std::placeholders::_5
-                              ));
+                              ), waterfall_background_threads);
             quint64 ms_available = rd->ms_available();
             maxlines = std::min(lines, int(ms_available / ms_per_line));
             k = 0;
@@ -2570,6 +2571,7 @@ void MainWindow::waterfall_background_func()
             k++;
             if(k>=lines)
             {
+                rd->wait();
                 emit requestPlotterUpdate();
                 lock.lock();
                 rd.reset();
@@ -2755,6 +2757,11 @@ void MainWindow::setWfColormap(const QString colormap)
     uiDockAudio->setWfColormap(colormap);
     uiDockProbe->setWfColormap(colormap);
     triggerIQFftRedraw();
+}
+
+void MainWindow::setWfThreads(const int n)
+{
+    waterfall_background_threads = n;
 }
 
 void MainWindow::setWaterfallRange(float lo, float hi)
