@@ -300,7 +300,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(ui->plotter, SIGNAL(newZoomLevel(float)),
             this, SLOT(setFftZoomLevel(float)));
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
-    connect(ui->plotter, SIGNAL(selectVfo(int)), this, SLOT(on_plotter_selectVfo(int)));
     connect(ui->plotter, SIGNAL(newFftCenterFreq(qint64)), this, SLOT(setFftCenterFreq(qint64)));
 
     connect(uiDockFft, SIGNAL(fftColorChanged(QColor)), this, SLOT(setFftColor(QColor)));
