@@ -1911,7 +1911,7 @@ receiver::status receiver::seek_iq_file(long pos)
     {
         status = STATUS_ERROR;
     }
-    if (input_file->get_items_remaining() == 0)
+    if (input_file->get_items_remaining() == 0 && d_running)
     {
         tb->stop();
         tb->wait();
@@ -1924,11 +1924,11 @@ receiver::status receiver::seek_iq_file(long pos)
  * @brief Seek to position in IQ file source.
  * @param ts Absolute time in ms since epoch.
  */
-receiver::status receiver::seek_iq_file_ts(uint64_t ts)
+receiver::status receiver::seek_iq_file_ts(uint64_t ts, uint64_t &res_point)
 {
     receiver::status status = STATUS_OK;
 
-    if (input_file->seek_ts(ts))
+    if (input_file->seek_ts(ts, res_point))
     {
         status = STATUS_OK;
     }
@@ -1936,7 +1936,7 @@ receiver::status receiver::seek_iq_file_ts(uint64_t ts)
     {
         status = STATUS_ERROR;
     }
-    if (input_file->get_items_remaining() == 0)
+    if (input_file->get_items_remaining() == 0 && d_running)
     {
         tb->stop();
         tb->wait();

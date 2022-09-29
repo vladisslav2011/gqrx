@@ -99,7 +99,7 @@ public:
     ~file_source();
 
     bool seek(int64_t seek_point, int whence);
-    bool seek_ts(uint64_t ts);
+    bool seek_ts(uint64_t ts, uint64_t &res_point);
     void open(const char* filename, bool repeat, uint64_t offset, uint64_t len);
     void close();
     uint64_t tell();
