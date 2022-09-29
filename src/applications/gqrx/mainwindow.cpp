@@ -3058,7 +3058,17 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta, qint64 ts)
 
     setNewFrequency(freq);
     if(ts > 0 && rx->is_playing_iq())
-        rx->seek_iq_file_ts(ts);
+    {
+        uint64_t res_point = 0;
+        rx->seek_iq_file_ts(ts, res_point);
+        if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+        {
+            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+            d_seek_pos = res_point;
+            waterfall_background_request = MainWindow::WF_RESTART;
+            waterfall_background_wake.notify_one();
+        }
+    }
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
@@ -3081,7 +3091,17 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta, qint64 t
     else
         setNewFrequency(freq);
     if(ts > 0 && rx->is_playing_iq())
-        rx->seek_iq_file_ts(ts);
+    {
+        uint64_t res_point = 0;
+        rx->seek_iq_file_ts(ts, res_point);
+        if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+        {
+            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+            d_seek_pos = res_point;
+            waterfall_background_request = MainWindow::WF_RESTART;
+            waterfall_background_wake.notify_one();
+        }
+    }
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
