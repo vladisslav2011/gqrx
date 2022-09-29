@@ -174,6 +174,7 @@ public:
 
     void        start();
     void        stop();
+    bool        is_running() const {return d_running;}
     void        set_input_device(const std::string device);
     void        set_output_device(const std::string device);
     void        set_input_file(const std::string name, const int sample_rate,
@@ -489,7 +490,7 @@ private:
     //! Get a path to a file containing random bytes
     static std::string get_zero_file(void);
     static void audio_rec_event(receiver * self, int idx, std::string filename,
-                                bool is_running);
+                                bool running);
 };
 
 #endif // RECEIVER_H

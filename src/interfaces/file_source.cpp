@@ -270,8 +270,8 @@ bool file_source::seek(int64_t seek_point, int whence)
 bool file_source::seek_ts(uint64_t ts, uint64_t &res_point)
 {
     int64_t seek_point = ts - d_time_ms;
-    if(seek_point<0)
-        return false;
+    if(seek_point < 0)
+        seek_point = 0;
     seek_point *= d_sample_rate;
     seek_point /= 1000;
     res_point = seek_point;

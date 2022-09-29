@@ -282,10 +282,12 @@ private slots:
     void setWfSize();
 
     /* FFT plot */
-    void on_plotter_newDemodFreq(qint64 freq, qint64 delta, qint64 ts);    /*! New demod freq (aka. filter offset). */
-    void on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta, qint64 ts);/* tune and load demodulator settings */
-    void on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts); /* new demodulator here */
+    void on_plotter_seekIQ(qint64 ts);
+    void on_plotter_newDemodFreq(qint64 freq, qint64 delta);    /*! New demod freq (aka. filter offset). */
+    void on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta);/* tune and load demodulator settings */
+    void on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta); /* new demodulator here */
     void on_plotter_newFilterFreq(int low, int high);    /*! New filter width */
+    void on_plotter_setPlaying(bool state);
     void on_plotter_selectVfo(int i);
 
     /* AudioDock */

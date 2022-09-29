@@ -180,6 +180,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     m_capturedVfo = 0;
     m_lookup_vfo = vfo::make();
     m_lookup_vfo->set_index(0);
+    m_PlayingIQ = false;
 }
 
 CPlotter::~CPlotter()
@@ -367,6 +368,25 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
 
             m_CursorCaptured = NOCAP;
             m_GrabPosition = 0;
+        }else if(event->buttons() == Qt::MiddleButton)
+        {
+            if (WATERFALL == m_CursorCaptured)
+            {
+                setCursor(QCursor(Qt::ClosedHandCursor));
+                // pan viewable range or move center frequency
+                int delta_px = m_Xzero - pt.x();
+                int delta_py = pt.y() - m_Yzero;
+                qint64 delta_hz = delta_px * m_Span / (m_OverlayPixmap.width() / m_DPR);
+                setFftCenterFreq(m_FftCenter + delta_hz);
+                emit newFftCenterFreq(m_FftCenter + delta_hz);
+                if(delta_py != 0)
+                {
+                    qint64 ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
+                    emit seekIQ(m_CapturedTs + ms_per_line * delta_py);
+                }
+                m_Xzero = pt.x();
+                updateOverlay();
+            }
         }
         if (m_TooltipsEnabled)
         {
@@ -883,7 +903,7 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                 else
                 {
                     int best = -1;
-                    qint64 ts = 0;
+                    qint64 ts = -1;
 
                     if (panadapterClicked)
                     {
@@ -899,11 +919,13 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
                     // if cursor not captured set demod frequency and start demod box capture
                     if(mods == Qt::ShiftModifier)
                     {
-                        emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq, ts);
+                        emit newDemodFreqAdd(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        emit seekIQ(ts);
                     }else  if(mods == Qt::ControlModifier){
                         // TODO: find some use for the ctrl modifier
                     }else{
-                        emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq), ts;
+                        emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                        emit seekIQ(ts);
                     }
 
                     // save initial grab position from m_DemodFreqX
@@ -915,11 +937,26 @@ void CPlotter::mousePressEvent(QMouseEvent * event)
             }
             else if (event->buttons() == Qt::MiddleButton)
             {
-                // set center freq
-                m_CenterFreq = roundFreq(freqFromX(px), m_ClickResolution);
-                m_DemodCenterFreq = m_CenterFreq;
-                emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
-                updateOverlay();
+                if (panadapterClicked || ! m_PlayingIQ)
+                {
+                    // set center freq
+                    m_CenterFreq = roundFreq(freqFromX(px), m_ClickResolution);
+                    m_DemodCenterFreq = m_CenterFreq;
+                    emit newDemodFreq(m_DemodCenterFreq, m_DemodCenterFreq - m_CenterFreq);
+                    updateOverlay();
+                }
+                else
+                {
+                    qint64 dummy;
+                    tsFreqFromWfXY(px, plotHeight, m_CapturedTs, dummy);
+                    m_Xzero = px;
+                    m_Yzero = py;
+                    if (m_CursorCaptured != WATERFALL)
+                    {
+                        m_CursorCaptured = WATERFALL;
+                        emit setPlaying(false);
+                    }
+                }
             }
             else if (event->buttons() == Qt::RightButton)
             {
@@ -994,6 +1031,10 @@ void CPlotter::mouseReleaseEvent(QMouseEvent * event)
     if (py >= m_OverlayPixmap.height())
     {
         // not in Overlay region
+        if (WATERFALL == m_CursorCaptured)
+        {
+            emit setPlaying(true);
+        }
         if (NOCAP != m_CursorCaptured)
             setCursor(QCursor(Qt::ArrowCursor));
 
