@@ -2493,14 +2493,15 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
 
     uiDockRxOpt->setFilterOffsetRange((qint64)(actual_rate));
     ui->plotter->setSampleRate(actual_rate);
+    ui->plotter->setPlayingIQ(true);
     uiDockFft->setSampleRate(actual_rate);
     uiDockProbe->setSampleRate(actual_rate);
     uiDockProbe->setDecimOsr(rx->get_chan_decim(), rx->get_chan_osr());
     ui->plotter->setSpanFreq((quint32)actual_rate);
     if (std::abs(current_offset) > actual_rate / 2)
-        on_plotter_newDemodFreq(center_freq, 0, 0);
+        on_plotter_newDemodFreq(center_freq, 0);
     else
-        on_plotter_newDemodFreq(center_freq + current_offset, current_offset, 0);
+        on_plotter_newDemodFreq(center_freq + current_offset, current_offset);
     ui->plotter->resetHorizontalZoom();
 
     remote->setBandwidth(actual_rate);
@@ -2561,8 +2562,10 @@ void MainWindow::stopIqPlayback()
     qint64 oldOffset = m_settings->value("receiver/offset", 0).toLongLong(&offsetOK);
     if (centerOK && offsetOK)
     {
-        on_plotter_newDemodFreq(oldCenter + oldOffset, oldOffset, 0);
+        on_plotter_newDemodFreq(oldCenter + oldOffset, oldOffset);
     }
+
+    ui->plotter->setPlayingIQ(false);
 
     if (ui->actionDSP->isChecked())
     {
@@ -2579,7 +2582,7 @@ void MainWindow::stopIqPlayback()
 void MainWindow::seekIqFile(qint64 seek_pos)
 {
     rx->seek_iq_file((long)seek_pos);
-    if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+    if(!rx->is_running() && rx->is_playing_iq())
     {
         std::unique_lock<std::mutex> lock(waterfall_background_mutex);
         d_seek_pos = seek_pos;
@@ -2727,7 +2730,7 @@ void MainWindow::plotterUpdate()
 
 void MainWindow::triggerIQFftRedraw()
 {
-    if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
+    if(!rx->is_running() && rx->is_playing_iq())
     {
         std::unique_lock<std::mutex> lock(waterfall_background_mutex);
         waterfall_background_request = MainWindow::WF_RESTART;
@@ -2968,6 +2971,49 @@ void MainWindow::on_actionDSP_triggered(bool checked)
 
 }
 
+void MainWindow::on_plotter_setPlaying(bool state)
+{
+    if(ui->actionDSP->isChecked() && rx->is_playing_iq())
+    {
+        if(state)
+        {
+            /* Make shure, that background thread will not interfere normal waterfall rendering */
+            stopIQFftRedraw();
+            /* start receiver */
+            rx->start();
+
+            /* start GUI timers */
+            meter_timer->start(100);
+
+            if (uiDockFft->fftRate())
+            {
+                iq_fft_timer->start(1000/uiDockFft->fftRate());
+                ui->plotter->setRunningState(true);
+            }
+            else
+            {
+                iq_fft_timer->start(36e7); // 100 hours
+                ui->plotter->setRunningState(false);
+            }
+
+            audio_fft_timer->start(40);
+        }
+        else
+        {
+            /* stop GUI timers */
+            meter_timer->stop();
+            iq_fft_timer->stop();
+            audio_fft_timer->stop();
+            rds_timer->stop();
+
+            /* stop receiver */
+            rx->stop();
+
+            ui->plotter->setRunningState(false);
+        }
+    }
+}
+
 /**
  * @brief Action: I/O device configurator triggered.
  *
@@ -3077,9 +3123,29 @@ void MainWindow::on_actionIqTool_triggered()
     iq_tool->show();
 }
 
+/* CPlotter::NewDemodFreq() is emitted */
+void MainWindow::on_plotter_seekIQ(qint64 ts)
+{
+    struct receiver::iq_tool_stats iq_stats;
+
+    if(ts >= 0 && rx->is_playing_iq())
+    {
+        uint64_t res_point = 0;
+        rx->seek_iq_file_ts(ts, res_point);
+        if(!rx->is_running() && rx->is_playing_iq())
+        {
+            rx->get_iq_tool_stats(iq_stats);
+            iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
+            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+            d_seek_pos = res_point;
+            waterfall_background_request = MainWindow::WF_RESTART;
+            waterfall_background_wake.notify_one();
+        }
+    }
+}
 
 /* CPlotter::NewDemodFreq() is emitted */
-void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta, qint64 ts)
+void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
 {
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
@@ -3089,23 +3155,11 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta, qint64 ts)
     }
 
     setNewFrequency(freq);
-    if(ts > 0 && rx->is_playing_iq())
-    {
-        uint64_t res_point = 0;
-        rx->seek_iq_file_ts(ts, res_point);
-        if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
-        {
-            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-            d_seek_pos = res_point;
-            waterfall_background_request = MainWindow::WF_RESTART;
-            waterfall_background_wake.notify_one();
-        }
-    }
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
 /* tune and load demodulator settings */
-void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta, qint64 ts)
+void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
 {
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
@@ -3122,23 +3176,11 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta, qint64 t
     }
     else
         setNewFrequency(freq);
-    if(ts > 0 && rx->is_playing_iq())
-    {
-        uint64_t res_point = 0;
-        rx->seek_iq_file_ts(ts, res_point);
-        if(!ui->actionDSP->isChecked() && rx->is_playing_iq())
-        {
-            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
-            d_seek_pos = res_point;
-            waterfall_background_request = MainWindow::WF_RESTART;
-            waterfall_background_wake.notify_one();
-        }
-    }
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
 /* new demodulator here */
-void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts)
+void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
 {
     vfo::sptr found = rx->find_vfo(freq - d_lnb_lo);
     if (!found)
@@ -3148,7 +3190,7 @@ void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts
         rxSpinBox->setValue(found->get_index());
         rxSpinBox_valueChanged(found->get_index());
     }
-    on_plotter_newDemodFreqLoad(freq, delta, ts);
+    on_plotter_newDemodFreqLoad(freq, delta);
 }
 
 /* CPlotter::NewfilterFreq() is emitted or bookmark activated */
