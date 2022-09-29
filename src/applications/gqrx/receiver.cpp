@@ -2296,16 +2296,16 @@ std::string receiver::escape_filename(std::string filename)
     return ss2.str();
 }
 
-void receiver::audio_rec_event(receiver * self, int idx, std::string filename, bool is_running)
+void receiver::audio_rec_event(receiver * self, int idx, std::string filename, bool running)
 {
-    if (is_running)
+    if (running)
         std::cout << "Recording audio to " << filename << std::endl;
     else
         std::cout << "Audio recorder stopped" << std::endl;
 
     if (self->d_audio_rec_event_handler)
         if (idx == self->d_current)
-            self->d_audio_rec_event_handler(filename, is_running);
+            self->d_audio_rec_event_handler(filename, running);
 }
 
 // receiver::fft_reader

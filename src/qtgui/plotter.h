@@ -124,6 +124,11 @@ public:
         m_FftCenter = qBound(-limit, f, limit);
     }
 
+    void setPlayingIQ(bool state)
+    {
+        m_PlayingIQ = state;
+    }
+
     int     getNearestPeak(QPoint pt);
     void    setWaterfallSpan(quint64 span_ms);
     quint64 getWfTimeRes() const;
@@ -137,9 +142,9 @@ public:
     void    getLockedVfos(std::vector<vfo::sptr> &to);
 
 signals:
-    void newDemodFreq(qint64 freq, qint64 delta, qint64 ts = 0); /* delta is the offset from the center */
-    void newDemodFreqLoad(qint64 freq, qint64 delta, qint64 ts = 0);/* tune and load demodulator settings */
-    void newDemodFreqAdd(qint64 freq, qint64 delta, qint64 ts = 0);/* new demodulator here */
+    void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
+    void newDemodFreqLoad(qint64 freq, qint64 delta);/* tune and load demodulator settings */
+    void newDemodFreqAdd(qint64 freq, qint64 delta);/* new demodulator here */
     void newLowCutFreq(int f);
     void newHighCutFreq(int f);
     void newFilterFreq(int low, int high);  /* substitute for NewLow / NewHigh */
@@ -148,6 +153,8 @@ signals:
     void newFftCenterFreq(qint64 f);
     void newSize();
     void selectVfo(int);
+    void setPlaying(bool);
+    void seekIQ(qint64);
 
 public slots:
     // zoom functions
@@ -197,7 +204,8 @@ private:
         RIGHT,
         YAXIS,
         XAXIS,
-        TAG
+        TAG,
+        WATERFALL
     };
     struct wfLineStats
     {
@@ -326,6 +334,8 @@ private:
     vfo::sptr   m_lookup_vfo;
     int         m_currentVfo;
     int         m_capturedVfo;
+    bool        m_PlayingIQ;
+    qint64      m_CapturedTs;
 
     // Waterfall averaging
     quint64     tlast_wf_ms;        // last time waterfall has been updated
