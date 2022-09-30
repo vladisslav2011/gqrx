@@ -579,6 +579,8 @@ void DockRxOpt::updateDemodOptPage(Modulations::idx demod)
     // update demodulator option widget
     if (demod == Modulations::MODE_NFM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
+    if (demod == Modulations::MODE_NFMPLL)
+        demodOpt->setCurrentPage(CDemodOptions::PAGE_FMPLL_OPT);
     else if (demod == Modulations::MODE_AM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_AM_OPT);
     else if (demod == Modulations::MODE_CWL || demod == Modulations::MODE_CWU)

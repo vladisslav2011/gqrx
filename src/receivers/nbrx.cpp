@@ -41,6 +41,7 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
     demod_fm = make_rx_demod_fm(NB_PREF_QUAD_RATE, 5000.0, 75.0e-6);
+    demod_fmpll = make_rx_demod_fmpll(NB_PREF_QUAD_RATE, 5000.0, 75.0e-6);
     demod_am = make_rx_demod_am(NB_PREF_QUAD_RATE, true);
     demod_amsync = make_rx_demod_amsync(NB_PREF_QUAD_RATE, true, 0.001);
 
@@ -210,6 +211,10 @@ void nbrx::set_demod(Modulations::idx new_demod)
 
     case Modulations::MODE_AM_SYNC:
         demod = demod_amsync;
+        break;
+
+    case Modulations::MODE_NFMPLL:
+        demod = demod_fmpll;
         break;
 
     case Modulations::MODE_NFM:

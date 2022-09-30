@@ -410,7 +410,7 @@ void RemoteControl::setRDSstatus(bool enabled)
  *  \param mode The Hamlib rigctld compatible mode string
  *  \return An integer corresponding to the mode.
  *
- * Following mode strings are recognized: OFF, RAW, AM, AMS, FM, WFM,
+ * Following mode strings are recognized: OFF, RAW, AM, AMS, FM, FMPLL, WFM,
  * WFM_ST, WFM_ST_OIRT, LSB, USB, CW, CWL, CWU.
  */
 int RemoteControl::modeStrToInt(QString mode_str)
@@ -464,6 +464,10 @@ int RemoteControl::modeStrToInt(QString mode_str)
     else if (mode_str.compare("FM", Qt::CaseInsensitive) == 0)
     {
         mode_int = Modulations::MODE_NFM;
+    }
+    else if (mode_str.compare("FMPLL", Qt::CaseInsensitive) == 0)
+    {
+        mode_int = Modulations::MODE_NFMPLL;
     }
     else if (mode_str.compare("WFM", Qt::CaseInsensitive) == 0)
     {
@@ -582,7 +586,7 @@ QString RemoteControl::cmd_set_mode(QStringList cmdlist)
     QString cmd_arg = cmdlist.value(1, "");
 
     if (cmd_arg == "?")
-        answer = QString("OFF RAW AM AMS LSB USB CWL CWR CWU CW FM WFM WFM_ST WFM_ST_OIRT\n");
+        answer = QString("OFF RAW AM AMS LSB USB CWL CWR CWU CW FM FMPLL WFM WFM_ST WFM_ST_OIRT\n");
     else
     {
         int mode = modeStrToInt(cmd_arg);
