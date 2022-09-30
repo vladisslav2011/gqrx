@@ -304,6 +304,9 @@ public:
     float       get_fm_maxdev();
     status      set_fm_deemph(double tau);
     double      get_fm_deemph();
+    status      set_fmpll_damping_factor(float df);
+    float      get_fmpll_damping_factor();
+
 
     /* AM parameters */
     status      set_am_dcr(bool enabled);
@@ -312,8 +315,8 @@ public:
     /* AM-Sync parameters */
     status      set_amsync_dcr(bool enabled);
     bool        get_amsync_dcr();
-    status      set_amsync_pll_bw(float pll_bw);
-    float       get_amsync_pll_bw();
+    status      set_pll_bw(float pll_bw);
+    float       get_pll_bw();
 
     /* Audio parameters */
     status      set_audio_rec_dir(const std::string dir);

@@ -175,6 +175,7 @@ int  CDemodOptions::getCwOffset(void) const
 void CDemodOptions::setMaxDev(float max_dev)
 {
     ui->maxdevSelector->setCurrentIndex(maxdev_to_index(max_dev));
+    ui->maxdevSpinBox->setValue((qreal)max_dev);
 }
 
 float CDemodOptions::getMaxDev(void) const
@@ -212,8 +213,31 @@ bool CDemodOptions::getSyncDcr(void) const
     return ui->syncdcrCheckBox->isChecked();
 }
 
+void CDemodOptions::setDampingFactor(float df)
+{
+    ui->dampingfactorSpinBox->setValue((qreal)df);
+}
+
+float CDemodOptions::getDampingFactor(void) const
+{
+    return ui->dampingfactorSpinBox->value();
+}
+
+void CDemodOptions::setPllBw(float pll_bw)
+{
+    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(pll_bw));
+    ui->pllBwSpinBox->setValue((qreal)pll_bw);
+}
+
+float CDemodOptions::getPllBw(void) const
+{
+    //return pll_bw_from_index(ui->pllBwSelector->currentIndex());
+    return ui->pllBwSpinBox->value();
+}
+
 void CDemodOptions::on_maxdevSelector_activated(int index)
 {
+    ui->maxdevSpinBox->setValue((qreal)maxdev_from_index(index));
     emit fmMaxdevSelected(maxdev_from_index(index));
 }
 
@@ -237,17 +261,24 @@ void CDemodOptions::on_syncdcrCheckBox_clicked(bool checked)
     emit amSyncDcrToggled(checked);
 }
 
-void CDemodOptions::setPllBw(float pll_bw)
-{
-    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(pll_bw));
-}
-
-float CDemodOptions::getPllBw(void) const
-{
-    return pll_bw_from_index(ui->pllBwSelector->currentIndex());
-}
-
 void CDemodOptions::on_pllBwSelector_activated(int index)
 {
-    emit amSyncPllBwSelected(pll_bw_from_index(index));
+    ui->pllBwSpinBox->setValue((qreal)pll_bw_from_index(index));
+    emit pllBwSelected(pll_bw_from_index(index));
+}
+
+void CDemodOptions::on_pllBwSpinBox_valueChanged(double value)
+{
+    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(value));
+    emit pllBwSelected(value);
+}
+
+void CDemodOptions::on_maxdevSpinBox_valueChanged(double value)
+{
+    emit fmMaxdevSelected(value);
+}
+
+void CDemodOptions::on_dampingfactorSpinBox_valueChanged(double value)
+{
+    emit fmpllDampingFactorSelected(value);
 }

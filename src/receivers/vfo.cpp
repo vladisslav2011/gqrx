@@ -145,6 +145,11 @@ void vfo_s::set_fm_deemph(double tau)
     d_fm_deemph = tau;
 }
 
+void vfo_s::set_fmpll_damping_factor(float df)
+{
+    d_fmpll_damping_factor = df;
+}
+
 void vfo_s::set_am_dcr(bool enabled)
 {
     d_am_dcr = enabled;
@@ -155,9 +160,9 @@ void vfo_s::set_amsync_dcr(bool enabled)
     d_amsync_dcr = enabled;
 }
 
-void vfo_s::set_amsync_pll_bw(float pll_bw)
+void vfo_s::set_pll_bw(float pll_bw)
 {
-    d_amsync_pll_bw = pll_bw;
+    d_pll_bw = pll_bw;
 }
 
 void vfo_s::set_wfm_deemph(float tau)
@@ -252,10 +257,11 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
 
     set_fm_maxdev(from.get_fm_maxdev());
     set_fm_deemph(from.get_fm_deemph());
+    set_fmpll_damping_factor(from.get_fmpll_damping_factor());
 
     set_am_dcr(from.get_am_dcr());
     set_amsync_dcr(from.get_amsync_dcr());
-    set_amsync_pll_bw(from.get_amsync_pll_bw());
+    set_pll_bw(from.get_pll_bw());
     set_wfm_deemph(from.get_wfm_deemph());
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)

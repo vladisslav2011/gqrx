@@ -1382,6 +1382,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
     case Modulations::MODE_AM:
     case Modulations::MODE_AM_SYNC:
     case Modulations::MODE_NFM:
+    case Modulations::MODE_NFMPLL:
     case Modulations::MODE_LSB:
     case Modulations::MODE_USB:
     case Modulations::MODE_CWL:
@@ -1542,6 +1543,18 @@ double receiver::get_fm_deemph()
     return rx[d_current]->get_fm_deemph();
 }
 
+receiver::status receiver::set_fmpll_damping_factor(float df)
+{
+    rx[d_current]->set_fmpll_damping_factor(df);
+
+    return STATUS_OK;
+}
+
+float receiver::get_fmpll_damping_factor()
+{
+    return rx[d_current]->get_fmpll_damping_factor();
+}
+
 receiver::status receiver::set_am_dcr(bool enabled)
 {
     rx[d_current]->set_am_dcr(enabled);
@@ -1566,16 +1579,16 @@ bool receiver::get_amsync_dcr()
     return rx[d_current]->get_amsync_dcr();
 }
 
-receiver::status receiver::set_amsync_pll_bw(float pll_bw)
+receiver::status receiver::set_pll_bw(float pll_bw)
 {
-    rx[d_current]->set_amsync_pll_bw(pll_bw);
+    rx[d_current]->set_pll_bw(pll_bw);
 
     return STATUS_OK;
 }
 
-float receiver::get_amsync_pll_bw()
+float receiver::get_pll_bw()
 {
-    return rx[d_current]->get_amsync_pll_bw();
+    return rx[d_current]->get_pll_bw();
 }
 
 receiver::status receiver::set_audio_rec_dir(const std::string dir)
