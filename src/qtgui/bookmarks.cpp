@@ -184,7 +184,7 @@ bool Bookmarks::load()
                 info.set_fm_deemph(1.0e-6 * strings[i++].toFloat());
                 info.set_am_dcr(strings[i++].trimmed() == "true");
                 info.set_amsync_dcr(strings[i++].trimmed() == "true");
-                info.set_amsync_pll_bw(strings[i++].toFloat());
+                info.set_pll_bw(strings[i++].toFloat());
                 info.set_nb_on(1, strings[i++].trimmed() == "true");
                 info.set_nb_threshold(1, strings[i++].toFloat());
                 info.set_nb_on(2, strings[i++].trimmed() == "true");
@@ -262,7 +262,7 @@ bool Bookmarks::save()
                   QString("FM deemphasis").rightJustified(16) + "; " +
                   QString("AM DCR").rightJustified(16) + "; " +
                   QString("AM SYNC DCR").rightJustified(16) + "; " +
-                  QString("AM SYNC PLL BW").rightJustified(16) + "; " +
+                  QString("PLL BW").rightJustified(16) + "; " +
                   QString("NB1 ON").rightJustified(16) + "; " +
                   QString("NB1 threshold").rightJustified(16) + "; " +
                   QString("NB2 ON").rightJustified(16) + "; " +
@@ -305,7 +305,7 @@ bool Bookmarks::save()
                 "; " + QString::number(1.0e6 * info.get_fm_deemph()).rightJustified(16) +
                 "; " + QVariant(info.get_am_dcr()).toString().rightJustified(16) +
                 "; " + QVariant(info.get_amsync_dcr()).toString().rightJustified(16) +
-                "; " + QString::number(info.get_amsync_pll_bw()).rightJustified(16) +
+                "; " + QString::number(info.get_pll_bw()).rightJustified(16) +
                 "; " + QVariant(info.get_nb_on(1)).toString().rightJustified(16) +
                 "; " + QString::number(info.get_nb_threshold(1)).rightJustified(16) +
                 "; " + QVariant(info.get_nb_on(2)).toString().rightJustified(16) +

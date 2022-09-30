@@ -71,13 +71,14 @@ public:
     /* FM parameters */
     void set_fm_maxdev(float maxdev_hz) override;
     void set_fm_deemph(double tau) override;
+    void set_fmpll_damping_factor(double df) override;
 
     /* AM parameters */
     void set_am_dcr(bool enabled) override;
 
     /* AM-Sync parameters */
     void set_amsync_dcr(bool enabled) override;
-    void set_amsync_pll_bw(float pll_bw) override;
+    void set_pll_bw(float pll_bw) override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
