@@ -71,13 +71,14 @@ public:
     /* FM parameters */
     void set_fm_maxdev(float maxdev_hz) override;
     void set_fm_deemph(double tau) override;
+    void set_fmpll_damping_factor(double df) override;
 
     /* AM parameters */
     void set_am_dcr(bool enabled) override;
 
     /* AM-Sync parameters */
     void set_amsync_dcr(bool enabled) override;
-    void set_amsync_pll_bw(float pll_bw) override;
+    void set_pll_bw(float pll_bw) override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
@@ -88,6 +89,7 @@ private:
     gr::blocks::complex_to_float::sptr  demod_raw;  /*!< Raw I/Q passthrough. */
     gr::blocks::complex_to_real::sptr   demod_ssb;  /*!< SSB demodulator. */
     rx_demod_fm_sptr          demod_fm;   /*!< FM demodulator. */
+    rx_demod_fmpll_sptr       demod_fmpll;   /*!< FM demodulator. */
     rx_demod_am_sptr          demod_am;   /*!< AM demodulator. */
     rx_demod_amsync_sptr      demod_amsync;   /*!< AM-Sync demodulator. */
     resampler_ff_sptr         audio_rr0;  /*!< Audio resampler. */
