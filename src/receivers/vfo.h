@@ -70,9 +70,10 @@ public:
         d_cw_offset(700),
         d_fm_maxdev(2500),
         d_fm_deemph(7.5e-5),
+        d_fmpll_damping_factor(0.7),
         d_am_dcr(true),
         d_amsync_dcr(true),
-        d_amsync_pll_bw(0.01),
+        d_pll_bw(0.01),
         d_rec_dir(""),
         d_rec_sql_triggered(false),
         d_rec_min_time(0),
@@ -125,12 +126,14 @@ public:
     /* FM parameters */
     inline float get_fm_maxdev() const { return d_fm_maxdev; }
     inline double get_fm_deemph() const { return d_fm_deemph; }
+    inline double get_fmpll_damping_factor() const { return d_fmpll_damping_factor; }
     /* AM parameters */
     inline bool get_am_dcr() const { return d_am_dcr; }
 
     /* AM-Sync parameters */
     inline bool  get_amsync_dcr() const { return d_amsync_dcr; }
-    inline float get_amsync_pll_bw() const { return d_amsync_pll_bw; }
+    /* AM-Sync/NFM PLL shared parameters */
+    inline float get_pll_bw() const { return d_pll_bw; }
     /* Noise blanker */
     bool get_nb_on(int nbid);
     float get_nb_threshold(int nbid);
@@ -174,11 +177,12 @@ public:
     /* FM parameters */
     virtual void  set_fm_maxdev(float maxdev_hz);
     virtual void  set_fm_deemph(double tau);
+    virtual void  set_fmpll_damping_factor(double df);
     /* AM parameters */
     virtual void set_am_dcr(bool enabled);
     /* AM-Sync parameters */
     virtual void  set_amsync_dcr(bool enabled);
-    virtual void  set_amsync_pll_bw(float pll_bw);
+    virtual void  set_pll_bw(float pll_bw);
     /* Noise blanker */
     virtual void set_nb_on(int nbid, bool on);
     virtual void set_nb_threshold(int nbid, float threshold);
@@ -232,10 +236,11 @@ protected:
 
     float            d_fm_maxdev;
     double           d_fm_deemph;
+    float            d_fmpll_damping_factor;
 
     bool             d_am_dcr;
     bool             d_amsync_dcr;
-    float            d_amsync_pll_bw;
+    float            d_pll_bw;
 
     bool             d_nb_on[RECEIVER_NB_COUNT];
     float            d_nb_threshold[RECEIVER_NB_COUNT];

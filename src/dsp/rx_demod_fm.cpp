@@ -102,18 +102,18 @@ void rx_demod_fm::set_tau(double tau)
 }
 
 /* Create a new instance of rx_demod_fm and return a shared_ptr. */
-rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev, double tau)
+rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
 {
-    return gnuradio::get_initial_sptr(new rx_demod_fmpll(quad_rate, max_dev, tau));
+    return gnuradio::get_initial_sptr(new rx_demod_fmpll(quad_rate, max_dev, pllbw));
 }
 
-rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double tau)
+rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
     : gr::hier_block2 ("rx_demod_fmpll",
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (gr_complex)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
     d_quad_rate(quad_rate),
     d_max_dev(max_dev),
-    d_pll_bw(0.02)
+    d_pll_bw(pllbw)
 {
     float gain;
 
@@ -133,7 +133,7 @@ rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double tau)
     d_fftaps[0] = 1.0;      // FIXME: could be configurable with a specified time constant
     d_fftaps[1] = -1.0;
     d_fbtaps[0] = 0.0;
-    d_fbtaps[1] = 0.999;
+    d_fbtaps[1] = 0.99;
     d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
 
     /* connect block */
@@ -170,14 +170,10 @@ void rx_demod_fmpll::set_max_dev(float max_dev)
 /*! \brief Set FM de-emphasis time constant.
  *  \param tau The new time constant.
  */
-void rx_demod_fmpll::set_tau(double tau)
+void rx_demod_fmpll::set_damping_factor(double df)
 {
-    if(tau > 0.00000001)
-    {
-        d_pll_demod->set_loop_bandwidth(0.000005/tau);
-        std::cout<<"bw="<<(0.000005/tau)<<"\n";
-    }else
-        d_pll_demod->set_loop_bandwidth(0.5);
+    // df 0.0 ... 1.0
+    d_pll_demod->set_damping_factor(df);
 }
 
 void rx_demod_fmpll::set_pll_bw(float bw)

@@ -59,7 +59,7 @@ public:
         COL_FM_DEEMPH,
         COL_AM_DCR,
         COL_AMSYNC_DCR,
-        COL_AMSYNC_PLL_BW,
+        COL_PLL_BW,
         COL_NB1_ON,
         COL_NB1_THRESHOLD,
         COL_NB2_ON,
