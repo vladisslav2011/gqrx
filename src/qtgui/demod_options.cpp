@@ -175,6 +175,7 @@ int  CDemodOptions::getCwOffset(void) const
 void CDemodOptions::setMaxDev(float max_dev)
 {
     ui->maxdevSelector->setCurrentIndex(maxdev_to_index(max_dev));
+    ui->maxdevSpinBox->setValue(max_dev);
 }
 
 float CDemodOptions::getMaxDev(void) const
@@ -192,8 +193,41 @@ double CDemodOptions::getEmph(void) const
     return tau_from_index(ui->emphSelector->currentIndex());
 }
 
+void CDemodOptions::setDampinFactor(double df)
+{
+    ui->dampingfactorSpinBox->setValue(df);
+}
+
+double CDemodOptions::getDampingFactor(void) const
+{
+    return ui->dampingfactorSpinBox->value();
+}
+
+void CDemodOptions::setPllBw(float pll_bw)
+{
+    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(pll_bw));
+    ui->pllBwSpinBox->setValue(pll_bw);
+}
+
+float CDemodOptions::getPllBw(void) const
+{
+    //return pll_bw_from_index(ui->pllBwSelector->currentIndex());
+    return ui->pllBwSpinBox->value();
+}
+
+void CDemodOptions::setAmDcr(bool on)
+{
+    ui->dcrCheckBox->setChecked(on);
+}
+
+void CDemodOptions::setAmSyncDcr(bool on)
+{
+    ui->syncdcrCheckBox->setChecked(on);
+}
+
 void CDemodOptions::on_maxdevSelector_activated(int index)
 {
+    ui->maxdevSpinBox->setValue(maxdev_from_index(index));
     emit fmMaxdevSelected(maxdev_from_index(index));
 }
 
@@ -217,27 +251,24 @@ void CDemodOptions::on_syncdcrCheckBox_toggled(bool checked)
     emit amSyncDcrToggled(checked);
 }
 
-void CDemodOptions::setPllBw(float pll_bw)
-{
-    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(pll_bw));
-}
-
-float CDemodOptions::getPllBw(void) const
-{
-    return pll_bw_from_index(ui->pllBwSelector->currentIndex());
-}
-
 void CDemodOptions::on_pllBwSelector_activated(int index)
 {
-    emit amSyncPllBwSelected(pll_bw_from_index(index));
+    ui->pllBwSpinBox->setValue(pll_bw_from_index(index));
+    emit pllBwSelected(pll_bw_from_index(index));
 }
 
-void CDemodOptions::setAmDcr(bool on)
+void CDemodOptions::on_pllBwSpinBox_valueChanged(double value)
 {
-    ui->dcrCheckBox->setChecked(on);
+    ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(value));
+    emit pllBwSelected(value);
 }
 
-void CDemodOptions::setAmSyncDcr(bool on)
+void CDemodOptions::on_maxdevSpinBox_valueChanged(double value)
 {
-    ui->syncdcrCheckBox->setChecked(on);
+    emit fmMaxdevSelected(value);
+}
+
+void CDemodOptions::on_dampingfactorSpinBox_valueChanged(double value)
+{
+    emit fmpllDampingFactorSelected(value);
 }

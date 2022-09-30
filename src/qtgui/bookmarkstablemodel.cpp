@@ -116,8 +116,8 @@ QVariant BookmarksTableModel::headerData ( int section, Qt::Orientation orientat
         case COL_AMSYNC_DCR:
             return QString("AM SYNC DCR");
             break;
-        case COL_AMSYNC_PLL_BW:
-            return QString("AM SYNC PLL BW");
+        case COL_PLL_BW:
+            return QString("PLL BW");
             break;
         case COL_NB1_ON:
             return QString("NB1 ON");
@@ -212,8 +212,8 @@ QVariant BookmarksTableModel::dataFromBookmark(BookmarkInfo &info, int index)
             return info.get_am_dcr();
     case COL_AMSYNC_DCR:
             return info.get_amsync_dcr();
-    case COL_AMSYNC_PLL_BW:
-            return info.get_amsync_pll_bw();
+    case COL_PLL_BW:
+            return info.get_pll_bw();
     case COL_NB1_ON:
             return info.get_nb_on(1);
     case COL_NB1_THRESHOLD:
@@ -415,9 +415,9 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
                 emit dataChanged(index, index);
             }
             break;
-        case COL_AMSYNC_PLL_BW:
+        case COL_PLL_BW:
             {
-                info.set_amsync_pll_bw(value.toFloat());
+                info.set_pll_bw(value.toFloat());
                 emit dataChanged(index, index);
             }
             break;
@@ -575,7 +575,7 @@ bool BookmarksTableModel::bmCompare(const int a, const int b, int column, int or
     case COL_AGC_MANUAL://float
     case COL_FM_MAXDEV:
     case COL_FM_DEEMPH:
-    case COL_AMSYNC_PLL_BW:
+    case COL_PLL_BW:
     case COL_NB1_THRESHOLD:
     case COL_NB2_THRESHOLD:
         if (order)
