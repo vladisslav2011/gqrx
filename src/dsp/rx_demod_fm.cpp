@@ -28,7 +28,6 @@
 
 #include "dsp/rx_demod_fm.h"
 
-
 /* Create a new instance of rx_demod_fm and return a shared_ptr. */
 rx_demod_fm_sptr make_rx_demod_fm(float quad_rate, float max_dev, double tau)
 {
@@ -100,4 +99,89 @@ void rx_demod_fm::set_max_dev(float max_dev)
 void rx_demod_fm::set_tau(double tau)
 {
     d_deemph->set_tau(tau);
+}
+
+/* Create a new instance of rx_demod_fm and return a shared_ptr. */
+rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev, double tau)
+{
+    return gnuradio::get_initial_sptr(new rx_demod_fmpll(quad_rate, max_dev, tau));
+}
+
+rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double tau)
+    : gr::hier_block2 ("rx_demod_fmpll",
+                      gr::io_signature::make (MIN_IN, MAX_IN, sizeof (gr_complex)),
+                      gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
+    d_quad_rate(quad_rate),
+    d_max_dev(max_dev),
+    d_pll_bw(0.02)
+{
+    float gain;
+
+    /* demodulator gain */
+    gain = d_quad_rate / (2.0 * M_PI * d_max_dev);
+
+    qDebug() << "FM demod gain:" << gain;
+
+    /* demodulator */
+    d_pll_demod = gr::analog::pll_freqdet_cf::make(d_pll_bw,
+                                                   (2.0*M_PI*max_dev/quad_rate),
+                                                   (2.0*M_PI*(-max_dev)/quad_rate));
+
+    /* DC removal */
+    d_fftaps.resize(2);
+    d_fbtaps.resize(2);
+    d_fftaps[0] = 1.0;      // FIXME: could be configurable with a specified time constant
+    d_fftaps[1] = -1.0;
+    d_fbtaps[0] = 0.0;
+    d_fbtaps[1] = 0.999;
+    d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
+
+    /* connect block */
+    connect(self(), 0, d_pll_demod, 0);
+    connect(d_pll_demod, 0, d_dcr, 0);
+    connect(d_dcr, 0, self(), 0);
+}
+
+rx_demod_fmpll::~rx_demod_fmpll ()
+{
+}
+
+/*! \brief Set maximum FM deviation.
+ *  \param max_dev The new mximum deviation in Hz
+ *
+ * The maximum deviation is related to the gain of the
+ * quadrature demodulator by:
+ *
+ *   gain = quad_rate / (2 * PI * max_dev)
+ */
+void rx_demod_fmpll::set_max_dev(float max_dev)
+{
+    if ((max_dev < 500.0) || (max_dev > d_quad_rate/2.0))
+    {
+        return;
+    }
+
+    d_max_dev = max_dev;
+
+    d_pll_demod->set_max_freq(2.0*M_PI*d_max_dev/d_quad_rate);
+    d_pll_demod->set_min_freq(-2.0*M_PI*d_max_dev/d_quad_rate);
+}
+
+/*! \brief Set FM de-emphasis time constant.
+ *  \param tau The new time constant.
+ */
+void rx_demod_fmpll::set_tau(double tau)
+{
+    if(tau > 0.00000001)
+    {
+        d_pll_demod->set_loop_bandwidth(0.000005/tau);
+        std::cout<<"bw="<<(0.000005/tau)<<"\n";
+    }else
+        d_pll_demod->set_loop_bandwidth(0.5);
+}
+
+void rx_demod_fmpll::set_pll_bw(float bw)
+{
+    // bw = 0.001 ... 0.5
+    d_pll_demod->set_loop_bandwidth(bw);
 }
