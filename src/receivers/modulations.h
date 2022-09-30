@@ -58,10 +58,11 @@ public:
         MODE_CWL        = 6, /*!< CW using LSB filter. */
         MODE_CWU        = 7, /*!< CW using USB filter. */
         MODE_NFM        = 8, /*!< Narrow band FM. */
-        MODE_WFM_MONO   = 9, /*!< Broadcast FM (mono). */
-        MODE_WFM_STEREO = 10, /*!< Broadcast FM (stereo). */
-        MODE_WFM_STEREO_OIRT = 11, /*!< Broadcast FM (stereo oirt). */
-        MODE_LAST       = 12
+        MODE_NFMPLL     = 9, /*!< Narrow band FM PLL. */
+        MODE_WFM_MONO   = 10, /*!< Broadcast FM (mono). */
+        MODE_WFM_STEREO = 11, /*!< Broadcast FM (stereo). */
+        MODE_WFM_STEREO_OIRT = 12, /*!< Broadcast FM (stereo oirt). */
+        MODE_LAST       = 13
     };
     typedef enum rxopt_mode_idx idx;
 

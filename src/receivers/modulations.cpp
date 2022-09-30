@@ -65,6 +65,7 @@ static const int filter_preset_table[Modulations::MODE_LAST][3][2] =
     {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWL
     {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWU
     {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_NFM
+    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_NFMPLL
     {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_MONO
     {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO
     {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}}   // MODE_WFM_STEREO_OIRT
@@ -82,6 +83,7 @@ static const int filter_ranges_table[Modulations::MODE_LAST][2][2] =
     {{  -5000,   -100}, {   100,  5000}},  // MODE_CWL
     {{  -5000,   -100}, {   100,  5000}},  // MODE_CWU
     {{ -40000,   -200}, {   200, 40000}},  // MODE_NFM
+    {{ -40000,   -200}, {   200, 40000}},  // MODE_NFMPLL
     {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_MONO
     {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_STEREO
     {{-120000, -10000}, { 10000,120000}}   // MODE_WFM_STEREO_OIRT
@@ -284,6 +286,7 @@ Modulations::Modulations()
         Modulations::Strings.append("CW-L");
         Modulations::Strings.append("CW-U");
         Modulations::Strings.append("Narrow FM");
+        Modulations::Strings.append("NFM PLL");
         Modulations::Strings.append("WFM (mono)");
         Modulations::Strings.append("WFM (stereo)");
         Modulations::Strings.append("WFM (oirt)");

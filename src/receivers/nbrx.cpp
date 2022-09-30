@@ -41,6 +41,7 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
     demod_fm = make_rx_demod_fm(NB_PREF_QUAD_RATE, 5000.0, 75.0e-6);
+    demod_fmpll = make_rx_demod_fmpll(NB_PREF_QUAD_RATE, 5000.0, 0.1);
     demod_am = make_rx_demod_am(NB_PREF_QUAD_RATE, true);
     demod_amsync = make_rx_demod_amsync(NB_PREF_QUAD_RATE, true, 0.001);
 
@@ -161,7 +162,7 @@ void nbrx::set_demod(Modulations::idx new_demod)
     }
 
     /* check if new demodulator selection is valid */
-    if ((new_demod < Modulations::MODE_OFF) || (new_demod > Modulations::MODE_NFM))
+    if ((new_demod < Modulations::MODE_OFF) || (new_demod >= Modulations::MODE_WFM_MONO))
         return;
 
 
@@ -221,6 +222,10 @@ void nbrx::set_demod(Modulations::idx new_demod)
 
     case Modulations::MODE_AM_SYNC:
         demod = demod_amsync;
+        break;
+
+    case Modulations::MODE_NFMPLL:
+        demod = demod_fmpll;
         break;
 
     case Modulations::MODE_NFM:
@@ -285,12 +290,19 @@ void nbrx::set_fm_maxdev(float maxdev_hz)
 {
     receiver_base_cf::set_fm_maxdev(maxdev_hz);
     demod_fm->set_max_dev(maxdev_hz);
+    demod_fmpll->set_max_dev(maxdev_hz);
 }
 
 void nbrx::set_fm_deemph(double tau)
 {
     receiver_base_cf::set_fm_deemph(tau);
     demod_fm->set_tau(tau);
+}
+
+void nbrx::set_fmpll_damping_factor(double df)
+{
+    receiver_base_cf::set_fmpll_damping_factor(df);
+    demod_fmpll->set_damping_factor(df);
 }
 
 void nbrx::set_am_dcr(bool enabled)
@@ -313,8 +325,9 @@ void nbrx::set_amsync_dcr(bool enabled)
         unlock();
 }
 
-void nbrx::set_amsync_pll_bw(float pll_bw)
+void nbrx::set_pll_bw(float pll_bw)
 {
-    receiver_base_cf::set_amsync_pll_bw(pll_bw);
+    receiver_base_cf::set_pll_bw(pll_bw);
     demod_amsync->set_pll_bw(pll_bw);
+    demod_fmpll->set_pll_bw(pll_bw);
 }
