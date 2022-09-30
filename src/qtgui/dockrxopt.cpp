@@ -77,10 +77,12 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
     connect(demodOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(demodOpt_fmMaxdevSelected(float)));
     connect(demodOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(demodOpt_fmEmphSelected(double)));
+    connect(demodOpt, SIGNAL(fmpllDampingFactorSelected(double)), this, SLOT(demodOpt_fmpllDampingFactor(double)));
+
     connect(demodOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(demodOpt_amDcrToggled(bool)));
     connect(demodOpt, SIGNAL(cwOffsetChanged(int)), this, SLOT(demodOpt_cwOffsetChanged(int)));
     connect(demodOpt, SIGNAL(amSyncDcrToggled(bool)), this, SLOT(demodOpt_amSyncDcrToggled(bool)));
-    connect(demodOpt, SIGNAL(amSyncPllBwSelected(float)), this, SLOT(demodOpt_amSyncPllBwSelected(float)));
+    connect(demodOpt, SIGNAL(pllBwSelected(float)), this, SLOT(demodOpt_pllBwSelected(float)));
 
     // AGC options dialog
     agcOpt = new CAgcOptions(this);
@@ -310,6 +312,11 @@ double DockRxOpt::currentEmph() const
     return demodOpt->getEmph();
 }
 
+float DockRxOpt::currentDampingFactor() const
+{
+    return demodOpt->getDampingFactor();
+}
+
 /**
  * @brief Set squelch level.
  * @param level Squelch level in dBFS
@@ -343,7 +350,7 @@ bool DockRxOpt::currentAmsyncDcr() const
     return demodOpt->getSyncDcr();
 }
 
-float DockRxOpt::currentAmsyncPll() const
+float DockRxOpt::currentPllBw() const
 {
     return demodOpt->getPllBw();
 }
@@ -466,7 +473,7 @@ void DockRxOpt::setAmSyncDcr(bool on)
     demodOpt->setSyncDcr(on);
 }
 
-void DockRxOpt::setAmSyncPllBw(float bw)
+void DockRxOpt::setPllBw(float bw)
 {
     demodOpt->setPllBw(bw);
 }
@@ -479,6 +486,11 @@ void DockRxOpt::setFmMaxdev(float max_hz)
 void DockRxOpt::setFmEmph(double tau)
 {
     demodOpt->setEmph(tau);
+}
+
+void DockRxOpt::setFmPLLDampingFactor(float df)
+{
+    demodOpt->setDampingFactor(df);
 }
 
 void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
@@ -583,6 +595,8 @@ void DockRxOpt::updateDemodOptPage(Modulations::idx demod)
     // update demodulator option widget
     if (demod == Modulations::MODE_NFM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
+    else if (demod == Modulations::MODE_NFMPLL)
+        demodOpt->setCurrentPage(CDemodOptions::PAGE_FMPLL_OPT);
     else if (demod == Modulations::MODE_AM)
         demodOpt->setCurrentPage(CDemodOptions::PAGE_AM_OPT);
     else if (demod == Modulations::MODE_CWL || demod == Modulations::MODE_CWU)
@@ -762,6 +776,15 @@ void DockRxOpt::demodOpt_fmEmphSelected(double tau)
 }
 
 /**
+ * @brief FM PLL damping factor changed by user.
+ * @param tau The new damping factor.
+ */
+void DockRxOpt::demodOpt_fmpllDampingFactor(double df)
+{
+    emit fmpllDampingFactorSelected(df);
+}
+
+/**
  * @brief AM DC removal toggled by user.
  * @param enabled Whether DCR is enabled or not.
  */
@@ -785,12 +808,12 @@ void DockRxOpt::demodOpt_amSyncDcrToggled(bool enabled)
 }
 
 /**
- * @brief AM-Sync PLL BW changed by user.
+ * @brief AM-Sync/NFM PLL BW changed by user.
  * @param pll_bw The new PLL BW.
  */
-void DockRxOpt::demodOpt_amSyncPllBwSelected(float pll_bw)
+void DockRxOpt::demodOpt_pllBwSelected(float pll_bw)
 {
-    emit amSyncPllBwSelected(pll_bw);
+    emit pllBwSelected(pll_bw);
 }
 
 /** Noise blanker 1 button has been toggled. */

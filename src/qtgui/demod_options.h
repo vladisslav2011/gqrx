@@ -47,7 +47,8 @@ public:
         PAGE_AM_OPT = 2,
         PAGE_CW_OPT = 3,
         PAGE_AMSYNC_OPT = 4,
-        PAGE_NUM    = 5
+        PAGE_FMPLL_OPT = 5,
+        PAGE_NUM    = 6
     };
 
     explicit CDemodOptions(QWidget *parent = 0);
@@ -67,6 +68,9 @@ public:
     void setEmph(double tau);
     double getEmph(void) const;
 
+    void setDampingFactor(float df);
+    float getDampingFactor(void) const;
+
     void setPllBw(float pll_bw);
     float getPllBw(void) const;
 
@@ -83,6 +87,9 @@ signals:
     /*! \brief Signal emitted when new FM de-emphasis constant is selected. */
     void fmEmphSelected(double tau);
 
+    /*! \brief Signal emitted when new FMPLL damping factor is selected. */
+    void fmpllDampingFactorSelected(double df);
+
     /*! \brief Signal emitted when AM DCR is toggled. */
     void amDcrToggled(bool enabled);
 
@@ -93,7 +100,7 @@ signals:
     void amSyncDcrToggled(bool enabled);
 
     /*! \brief Signal emitted when new PLL BW is selected. */
-    void amSyncPllBwSelected(float pll_bw);
+    void pllBwSelected(float pll_bw);
 
 private slots:
     void on_maxdevSelector_activated(int index);
@@ -102,6 +109,9 @@ private slots:
     void on_cwOffsetSpin_valueChanged(int value);
     void on_syncdcrCheckBox_clicked(bool checked);
     void on_pllBwSelector_activated(int index);
+    void on_pllBwSpinBox_valueChanged(double value);
+    void on_maxdevSpinBox_valueChanged(double value);
+    void on_dampingfactorSpinBox_valueChanged(double value);
 
 private:
     Ui::CDemodOptions *ui;

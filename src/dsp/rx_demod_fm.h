@@ -23,15 +23,20 @@
 #pragma once
 
 #include <gnuradio/analog/quadrature_demod_cf.h>
+#include <gnuradio/analog/pll_freqdet_cf.h>
 #include <gnuradio/hier_block2.h>
+#include <gnuradio/filter/iir_filter_ffd.h>
 #include <vector>
 #include "dsp/fm_deemph.h"
 
 class rx_demod_fm;
+class rx_demod_fmpll;
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<rx_demod_fm> rx_demod_fm_sptr;
+typedef boost::shared_ptr<rx_demod_fmpll> rx_demod_fmpll_sptr;
 #else
 typedef std::shared_ptr<rx_demod_fm> rx_demod_fm_sptr;
+typedef std::shared_ptr<rx_demod_fmpll> rx_demod_fmpll_sptr;
 #endif
 
 /*! \brief Return a shared_ptr to a new instance of rx_demod_fm.
@@ -66,9 +71,52 @@ private:
     /* GR blocks */
     gr::analog::quadrature_demod_cf::sptr   d_quad;      /*! The quadrature demodulator block. */
     fm_deemph_sptr                          d_deemph;    /*! De-emphasis IIR filter. */
-    std::vector<float>            d_taps;      /*! Taps for the PFB resampler. */
 
     /* other parameters */
     float       d_quad_rate;     /*! Quadrature rate. */
     float       d_max_dev;       /*! Max deviation. */
+};
+
+
+/*! \brief Return a shared_ptr to a new instance of rx_demod_fm.
+ *  \param quad_rate The input sample rate.
+ *  \param max_dev Maximum deviation in Hz
+ *  \param tau De-emphasis time constant in seconds (75us in US, 50us in EUR, 0.0 disables).
+ *
+ * This is effectively the public constructor. To avoid accidental use
+ * of raw pointers, rx_demod_fm's constructor is private.
+ * make_rx_dmod_fm is the public interface for creating new instances.
+ */
+rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev=5000.0, double pllbw=0.1);
+
+/*! \brief FM demodulator.
+ *  \ingroup DSP
+ *
+ * This class implements the FM demodulator using the gr_quadrature_demod block.
+ * It also provides de-emphasis with variable time constant (use 0.0 to disable).
+ *
+ */
+class rx_demod_fmpll : public gr::hier_block2
+{
+
+public:
+    rx_demod_fmpll(float quad_rate, float max_dev, double pllbw); // FIXME: should be private
+    ~rx_demod_fmpll();
+
+    void set_max_dev(float max_dev);
+    void set_damping_factor(double df);
+    void set_pll_bw(float bw);
+
+private:
+    /* GR blocks */
+    gr::analog::pll_freqdet_cf::sptr    d_pll_demod;
+    gr::filter::iir_filter_ffd::sptr    d_dcr;    /*! DC removal (IIR high pass). */
+    /* IIR DC-removal filter taps */
+    std::vector<double> d_fftaps;   /*! Feed forward taps. */
+    std::vector<double> d_fbtaps;   /*! Feed back taps. */
+
+    /* other parameters */
+    float       d_quad_rate;     /*! Quadrature rate. */
+    float       d_max_dev;       /*! Max deviation. */
+    float       d_pll_bw;
 };
