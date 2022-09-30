@@ -77,6 +77,7 @@ public:
 
     float currentMaxdev() const;
     double currentEmph() const;
+    double currentDampingFactor() const;
     double currentSquelchLevel() const;
 
     int     getCwOffset() const;
@@ -103,9 +104,10 @@ public:
 
     void    setAmDcr(bool on);
     void    setAmSyncDcr(bool on);
-    void    setAmSyncPllBw(float bw);
+    void    setPllBw(float bw);
     void    setFmMaxdev(float max_hz);
     void    setFmEmph(double tau);
+    void    setFmPLLDampingFactor(double df);
     void    setNoiseBlanker(int nbid, bool on, float threshold);
 
     void    setFreqLock(bool lock);
@@ -155,6 +157,9 @@ signals:
     /** Signal emitted when new FM de-emphasis constant is selected. */
     void fmEmphSelected(double tau);
 
+    /** Signal emitted when new FM PLL damping factor is selected. */
+    void fmpllDampingFactorSelected(double df);
+
     /** Signal emitted when AM DCR status is toggled. */
     void amDcrToggled(bool enabled);
 
@@ -162,7 +167,7 @@ signals:
     void amSyncDcrToggled(bool enabled);
 
     /** Signal emitted when new AM-Sync PLL BW is selected. */
-    void amSyncPllBwSelected(float pll_bw);
+    void pllBwSelected(float pll_bw);
 
     /** Signal emitted when baseband gain has changed. Gain is in dB. */
     //void bbGainChanged(float gain);
@@ -242,10 +247,11 @@ private slots:
     // Signals coming from demod options pop-up
     void demodOpt_fmMaxdevSelected(float max_dev);
     void demodOpt_fmEmphSelected(double tau);
+    void demodOpt_fmpllDampingFactor(double df);
     void demodOpt_amDcrToggled(bool enabled);
     void demodOpt_cwOffsetChanged(int offset);
     void demodOpt_amSyncDcrToggled(bool enabled);
-    void demodOpt_amSyncPllBwSelected(float pll_bw);
+    void demodOpt_pllBwSelected(float pll_bw);
 
     // Signals coming from AGC options popup
     void agcOpt_maxGainChanged(int value);

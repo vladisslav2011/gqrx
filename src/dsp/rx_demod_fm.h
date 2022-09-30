@@ -87,7 +87,7 @@ private:
  * of raw pointers, rx_demod_fm's constructor is private.
  * make_rx_dmod_fm is the public interface for creating new instances.
  */
-rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev=5000.0, double tau=50.0e-6);
+rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev=5000.0, double pllbw=0.1);
 
 /*! \brief FM demodulator.
  *  \ingroup DSP
@@ -100,11 +100,11 @@ class rx_demod_fmpll : public gr::hier_block2
 {
 
 public:
-    rx_demod_fmpll(float quad_rate, float max_dev, double tau); // FIXME: should be private
+    rx_demod_fmpll(float quad_rate, float max_dev, double pllbw); // FIXME: should be private
     ~rx_demod_fmpll();
 
     void set_max_dev(float max_dev);
-    void set_tau(double tau);
+    void set_damping_factor(double df);
     void set_pll_bw(float bw);
 
 private:
