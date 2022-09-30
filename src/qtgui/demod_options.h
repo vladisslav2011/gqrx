@@ -47,7 +47,8 @@ public:
         PAGE_AM_OPT = 2,
         PAGE_CW_OPT = 3,
         PAGE_AMSYNC_OPT = 4,
-        PAGE_NUM    = 5
+        PAGE_FMPLL_OPT = 5,
+        PAGE_NUM    = 6
     };
 
     explicit CDemodOptions(QWidget *parent = 0);
