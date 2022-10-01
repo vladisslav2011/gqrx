@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>368</width>
+    <width>287</width>
     <height>444</height>
    </rect>
   </property>
@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>327</width>
+    <width>200</width>
     <height>200</height>
    </size>
   </property>
@@ -70,9 +70,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-75</y>
-         <width>336</width>
-         <height>488</height>
+         <y>0</y>
+         <width>255</width>
+         <height>457</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -150,8 +150,8 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>50</width>
-              <height>32</height>
+              <width>32</width>
+              <height>0</height>
              </size>
             </property>
             <property name="toolTip">
@@ -226,7 +226,7 @@
           <item row="7" column="1" colspan="2">
            <widget class="ctkRangeSlider" name="pandRangeSlider">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -303,15 +303,15 @@
              <bool>true</bool>
             </property>
             <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
             <property name="minimumSize">
              <size>
-              <width>50</width>
-              <height>32</height>
+              <width>32</width>
+              <height>0</height>
              </size>
             </property>
             <property name="toolTip">
@@ -418,6 +418,12 @@
           </item>
           <item row="3" column="1" colspan="2">
            <widget class="QComboBox" name="fftWinComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>FFT window</string>
             </property>
@@ -605,8 +611,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>32</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -636,8 +642,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>32</height>
+                <width>0</width>
+                <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -677,6 +683,12 @@
           </item>
           <item row="8" column="1" colspan="2">
            <widget class="ctkRangeSlider" name="wfRangeSlider">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>Set waterfall dB range</string>
             </property>
@@ -709,8 +721,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>32</height>
+                <width>32</width>
+                <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -737,8 +749,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>32</height>
+                <width>32</width>
+                <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -765,8 +777,8 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>50</width>
-                <height>32</height>
+                <width>32</width>
+                <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
@@ -820,15 +832,15 @@
           <item row="12" column="2">
            <widget class="QPushButton" name="fillButton">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
             <property name="minimumSize">
              <size>
-              <width>50</width>
-              <height>32</height>
+              <width>32</width>
+              <height>0</height>
              </size>
             </property>
             <property name="maximumSize">
@@ -1104,6 +1116,12 @@
           </item>
           <item row="13" column="1" colspan="2">
            <widget class="QComboBox" name="cmapComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>Select waterfall color map</string>
             </property>
@@ -1121,6 +1139,12 @@
           </item>
           <item row="16" column="0" colspan="4">
            <widget class="QCheckBox" name="bandPlanCheckbox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>Enable Band Plan on bottom of spectrum</string>
             </property>
@@ -1139,20 +1163,26 @@
             </property>
            </widget>
           </item>
-          <item row="14" column="0" colspan="2">
-           <widget class="QLabel" name="threadsLabel">
-            <property name="text">
-             <string>Backgroung threads</string>
-            </property>
-           </widget>
-          </item>
           <item row="14" column="2" colspan="2">
            <widget class="QComboBox" name="threadsComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
             <property name="currentText">
              <string>Auto</string>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="0" colspan="2">
+           <widget class="QLabel" name="threadsLabel">
+            <property name="text">
+             <string>Backgroung threads</string>
             </property>
            </widget>
           </item>
