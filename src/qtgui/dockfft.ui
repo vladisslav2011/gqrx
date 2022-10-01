@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>444</width>
-    <height>644</height>
+    <width>287</width>
+    <height>444</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>300</width>
+    <width>200</width>
     <height>200</height>
    </size>
   </property>
@@ -85,8 +85,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>444</width>
-         <height>619</height>
+         <width>255</width>
+         <height>445</height>
         </rect>
        </property>
        <property name="sizePolicy">
@@ -1512,7 +1512,7 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>40</width>
+                <width>32</width>
                 <height>0</height>
                </size>
               </property>
@@ -1537,7 +1537,7 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>40</width>
+                <width>32</width>
                 <height>0</height>
                </size>
               </property>
@@ -1562,7 +1562,7 @@
               </property>
               <property name="minimumSize">
                <size>
-                <width>40</width>
+                <width>32</width>
                 <height>0</height>
                </size>
               </property>
@@ -1691,6 +1691,12 @@
           </item>
           <item row="20" column="1">
            <widget class="QComboBox" name="threadsComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="editable">
              <bool>true</bool>
             </property>
