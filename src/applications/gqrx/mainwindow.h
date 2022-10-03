@@ -205,6 +205,7 @@ private slots:
     void setFmMaxdev(float max_dev);
     void setFmEmph(double tau);
     void setFmpllDampingFactor(double df);
+    void setFmSubtoneFilter(bool state);
     void setAmDcr(bool enabled);
     void setCwOffset(int offset);
     void setAmSyncDcr(bool enabled);

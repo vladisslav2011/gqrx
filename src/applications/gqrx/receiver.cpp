@@ -1568,6 +1568,18 @@ double receiver::get_fmpll_damping_factor()
     return rx[d_current]->get_fmpll_damping_factor();
 }
 
+receiver::status receiver::set_fm_subtone_filter(bool state)
+{
+    rx[d_current]->set_subtone_filter(state);
+
+    return STATUS_OK;
+}
+
+bool receiver::get_fm_subtone_filter()
+{
+    return rx[d_current]->get_subtone_filter();
+}
+
 receiver::status receiver::set_am_dcr(bool enabled)
 {
     rx[d_current]->set_am_dcr(enabled);

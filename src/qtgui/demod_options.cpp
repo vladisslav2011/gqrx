@@ -223,6 +223,17 @@ double CDemodOptions::getDampingFactor(void) const
     return ui->dampingfactorSpinBox->value();
 }
 
+void CDemodOptions::setSubtoneFilter(bool state)
+{
+    ui->subtonefilterfmCheckBox->setChecked(state);
+    ui->subtonefilterfmpllCheckBox->setChecked(state);
+}
+
+bool CDemodOptions::getSubtoneFilter(void) const
+{
+    return ui->subtonefilterfmCheckBox->checkState();
+}
+
 void CDemodOptions::setPllBw(float pll_bw)
 {
     ui->pllBwSelector->setCurrentIndex(pll_bw_to_index(pll_bw));
@@ -281,4 +292,16 @@ void CDemodOptions::on_maxdevSpinBox_valueChanged(double value)
 void CDemodOptions::on_dampingfactorSpinBox_valueChanged(double value)
 {
     emit fmpllDampingFactorSelected(value);
+}
+
+void CDemodOptions::on_subtonefilterfmCheckBox_toggled(bool checked)
+{
+    ui->subtonefilterfmpllCheckBox->setChecked(checked);
+    emit fmSubtoneFilterSelected(checked);
+}
+
+void CDemodOptions::on_subtonefilterfmpllCheckBox_toggled(bool checked)
+{
+    ui->subtonefilterfmCheckBox->setChecked(checked);
+    emit fmSubtoneFilterSelected(checked);
 }
