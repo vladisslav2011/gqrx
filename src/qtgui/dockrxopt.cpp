@@ -89,6 +89,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     connect(demodOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(demodOpt_fmMaxdevSelected(float)));
     connect(demodOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(demodOpt_fmEmphSelected(double)));
     connect(demodOpt, SIGNAL(fmpllDampingFactorSelected(double)), this, SLOT(demodOpt_fmpllDampingFactor(double)));
+    connect(demodOpt, SIGNAL(fmSubtoneFilterSelected(bool)), this, SLOT(demodOpt_fmSubtoneFilter(bool)));
 
     connect(demodOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(demodOpt_amDcrToggled(bool)));
     connect(demodOpt, SIGNAL(cwOffsetChanged(int)), this, SLOT(demodOpt_cwOffsetChanged(int)));
@@ -328,6 +329,11 @@ double DockRxOpt::currentDampingFactor() const
     return demodOpt->getDampingFactor();
 }
 
+bool DockRxOpt::currentSubtoneFilter() const
+{
+    return demodOpt->getSubtoneFilter();
+}
+
 /**
  * @brief Set squelch level.
  * @param level Squelch level in dBFS
@@ -487,6 +493,11 @@ void DockRxOpt::setFmEmph(double tau)
 void DockRxOpt::setFmPLLDampingFactor(double df)
 {
     demodOpt->setDampinFactor(df);
+}
+
+void DockRxOpt::setFmSubtoneFilter(bool state)
+{
+    demodOpt->setSubtoneFilter(state);
 }
 
 void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
@@ -778,6 +789,15 @@ void DockRxOpt::demodOpt_fmEmphSelected(double tau)
 void DockRxOpt::demodOpt_fmpllDampingFactor(double df)
 {
     emit fmpllDampingFactorSelected(df);
+}
+
+/**
+ * @brief FM subtone filter state changed by user.
+ * @param state The new subtone filter state.
+ */
+void DockRxOpt::demodOpt_fmSubtoneFilter(bool state)
+{
+    emit fmSubtoneFilterSelected(state);
 }
 
 /**
