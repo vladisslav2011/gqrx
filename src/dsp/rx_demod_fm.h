@@ -26,6 +26,11 @@
 #include <gnuradio/analog/pll_freqdet_cf.h>
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/filter/iir_filter_ffd.h>
+#if GNURADIO_VERSION < 0x030800
+#include <gnuradio/filter/fir_filter_fff.h>
+#else
+#include <gnuradio/filter/fir_filter_blk.h>
+#endif
 #include <vector>
 #include "dsp/fm_deemph.h"
 
@@ -66,15 +71,18 @@ public:
 
     void set_max_dev(float max_dev);
     void set_tau(double tau);
+    void set_subtone_filter(bool state);
 
 private:
     /* GR blocks */
     gr::analog::quadrature_demod_cf::sptr   d_quad;      /*! The quadrature demodulator block. */
     fm_deemph_sptr                          d_deemph;    /*! De-emphasis IIR filter. */
+    gr::filter::fir_filter_fff::sptr        d_hpf;
 
     /* other parameters */
     float       d_quad_rate;     /*! Quadrature rate. */
     float       d_max_dev;       /*! Max deviation. */
+    bool        d_subtone_filter;
 };
 
 
@@ -106,17 +114,16 @@ public:
     void set_max_dev(float max_dev);
     void set_damping_factor(double df);
     void set_pll_bw(float bw);
+    void set_subtone_filter(bool state);
 
 private:
     /* GR blocks */
     gr::analog::pll_freqdet_cf::sptr    d_pll_demod;
-    gr::filter::iir_filter_ffd::sptr    d_dcr;    /*! DC removal (IIR high pass). */
-    /* IIR DC-removal filter taps */
-    std::vector<double> d_fftaps;   /*! Feed forward taps. */
-    std::vector<double> d_fbtaps;   /*! Feed back taps. */
+    gr::filter::fir_filter_fff::sptr    d_hpf;
 
     /* other parameters */
     float       d_quad_rate;     /*! Quadrature rate. */
     float       d_max_dev;       /*! Max deviation. */
     float       d_pll_bw;
+    bool        d_subtone_filter;
 };

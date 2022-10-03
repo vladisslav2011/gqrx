@@ -299,6 +299,20 @@ void nbrx::set_fmpll_damping_factor(double df)
     demod_fmpll->set_damping_factor(df);
 }
 
+void nbrx::set_subtone_filter(bool state)
+{
+    if(get_subtone_filter() != state)
+    {
+        receiver_base_cf::set_subtone_filter(state);
+        if(get_demod() != Modulations::MODE_OFF)
+            lock();
+        demod_fmpll->set_subtone_filter(state);
+        demod_fm->set_subtone_filter(state);
+        if(get_demod() != Modulations::MODE_OFF)
+            unlock();
+    }
+}
+
 void nbrx::set_am_dcr(bool enabled)
 {
     receiver_base_cf::set_am_dcr(enabled);
