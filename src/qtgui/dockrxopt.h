@@ -78,6 +78,7 @@ public:
     float currentMaxdev() const;
     double currentEmph() const;
     double currentDampingFactor() const;
+    bool currentSubtoneFilter() const;
     double currentSquelchLevel() const;
 
     int     getCwOffset() const;
@@ -108,6 +109,7 @@ public:
     void    setFmMaxdev(float max_hz);
     void    setFmEmph(double tau);
     void    setFmPLLDampingFactor(double df);
+    void    setFmSubtoneFilter(bool state);
     void    setNoiseBlanker(int nbid, bool on, float threshold);
 
     void    setFreqLock(bool lock);
@@ -159,6 +161,9 @@ signals:
 
     /** Signal emitted when new FM PLL damping factor is selected. */
     void fmpllDampingFactorSelected(double df);
+
+    /** Signal emitted when FM subtone filter is switched on/off. */
+    void fmSubtoneFilterSelected(bool);
 
     /** Signal emitted when AM DCR status is toggled. */
     void amDcrToggled(bool enabled);
@@ -248,6 +253,7 @@ private slots:
     void demodOpt_fmMaxdevSelected(float max_dev);
     void demodOpt_fmEmphSelected(double tau);
     void demodOpt_fmpllDampingFactor(double df);
+    void demodOpt_fmSubtoneFilter(bool state);
     void demodOpt_amDcrToggled(bool enabled);
     void demodOpt_cwOffsetChanged(int offset);
     void demodOpt_amSyncDcrToggled(bool enabled);

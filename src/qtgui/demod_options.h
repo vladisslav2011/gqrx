@@ -71,6 +71,9 @@ public:
     void setDampinFactor(double df);
     double getDampingFactor(void) const;
 
+    void setSubtoneFilter(bool state);
+    bool getSubtoneFilter(void) const;
+
     void setPllBw(float pll_bw);
     float getPllBw(void) const;
 
@@ -86,6 +89,9 @@ signals:
 
     /*! \brief Signal emitted when new FMPLL damping factor is selected. */
     void fmpllDampingFactorSelected(double df);
+
+    /*! \brief Signal emitted when new subtone filter state is selected. */
+    void fmSubtoneFilterSelected(bool state);
 
     /*! \brief Signal emitted when AM DCR is toggled. */
     void amDcrToggled(bool enabled);
@@ -109,6 +115,8 @@ private slots:
     void on_pllBwSpinBox_valueChanged(double value);
     void on_maxdevSpinBox_valueChanged(double value);
     void on_dampingfactorSpinBox_valueChanged(double value);
+    void on_subtonefilterfmCheckBox_toggled(bool checked);
+    void on_subtonefilterfmpllCheckBox_toggled(bool checked);
 
 private:
     Ui::CDemodOptions *ui;
