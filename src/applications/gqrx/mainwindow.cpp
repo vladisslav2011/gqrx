@@ -244,6 +244,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(setFmMaxdev(float)));
     connect(uiDockRxOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(setFmEmph(double)));
     connect(uiDockRxOpt, SIGNAL(fmpllDampingFactorSelected(double)), this, SLOT(setFmpllDampingFactor(double)));
+    connect(uiDockRxOpt, SIGNAL(fmSubtoneFilterSelected(bool)), this, SLOT(setFmSubtoneFilter(bool)));
     connect(uiDockRxOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(setAmDcr(bool)));
     connect(uiDockRxOpt, SIGNAL(cwOffsetChanged(int)), this, SLOT(setCwOffset(int)));
     connect(uiDockRxOpt, SIGNAL(amSyncDcrToggled(bool)), this, SLOT(setAmSyncDcr(bool)));
@@ -883,6 +884,11 @@ void MainWindow::storeSession()
             else
                 m_settings->setValue("fmpll_damping_factor", double_val);
 
+            if (!rx->get_fm_subtone_filter())
+                m_settings->remove("subtone_filter");
+            else
+                m_settings->setValue("subtone_filter", true);
+
             qint64 offs = rx->get_filter_offset();
                 m_settings->setValue("offset", offs);
 
@@ -1081,6 +1087,11 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
         dbl_val = m_settings->value("fmpll_damping_factor", 0.7).toDouble(&conv_ok);
         if (conv_ok && dbl_val > 0.0)
             rx->set_fmpll_damping_factor(dbl_val);
+
+        if (m_settings->value("subtone_filter", false).toBool())
+            rx->set_fm_subtone_filter(true);
+        else
+            rx->set_fm_subtone_filter(false);
 
         dbl_val = m_settings->value("sql_level", 1.0).toDouble(&conv_ok);
         if (conv_ok && dbl_val < 1.0)
@@ -1895,6 +1906,18 @@ void MainWindow::setFmpllDampingFactor(double df)
 
     /* receiver will check range */
     rx->set_fmpll_damping_factor(df);
+}
+
+/**
+ * @brief New FM subtone filter state selected.
+ * @param state The new subtone filter state
+ */
+void MainWindow::setFmSubtoneFilter(bool state)
+{
+    qDebug() << "Subtone filter is " << (state?"enabled":"disabled");
+
+    /* receiver will check range */
+    rx->set_fm_subtone_filter(state);
 }
 
 /**
@@ -3745,6 +3768,7 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setFmMaxdev(rx->get_fm_maxdev());
     uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
     uiDockRxOpt->setFmPLLDampingFactor(rx->get_fmpll_damping_factor());
+    uiDockRxOpt->setFmSubtoneFilter(rx->get_fm_subtone_filter());
     uiDockRxOpt->setCwOffset(rx->get_cw_offset());
 
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)

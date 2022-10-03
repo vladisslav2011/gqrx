@@ -72,6 +72,7 @@ public:
     void set_fm_maxdev(float maxdev_hz) override;
     void set_fm_deemph(double tau) override;
     void set_fmpll_damping_factor(double df) override;
+    void  set_subtone_filter(bool state) override;
 
     /* AM parameters */
     void set_am_dcr(bool enabled) override;

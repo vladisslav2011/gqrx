@@ -71,6 +71,7 @@ public:
         d_fm_maxdev(2500),
         d_fm_deemph(7.5e-5),
         d_fmpll_damping_factor(0.7),
+        d_subtone_filter(false),
         d_am_dcr(true),
         d_amsync_dcr(true),
         d_pll_bw(0.01),
@@ -127,6 +128,7 @@ public:
     inline float get_fm_maxdev() const { return d_fm_maxdev; }
     inline double get_fm_deemph() const { return d_fm_deemph; }
     inline double get_fmpll_damping_factor() const { return d_fmpll_damping_factor; }
+    inline bool get_subtone_filter() { return d_subtone_filter; }
     /* AM parameters */
     inline bool get_am_dcr() const { return d_am_dcr; }
 
@@ -178,6 +180,7 @@ public:
     virtual void  set_fm_maxdev(float maxdev_hz);
     virtual void  set_fm_deemph(double tau);
     virtual void  set_fmpll_damping_factor(double df);
+    virtual void  set_subtone_filter(bool state);
     /* AM parameters */
     virtual void set_am_dcr(bool enabled);
     /* AM-Sync parameters */
@@ -237,7 +240,7 @@ protected:
     float            d_fm_maxdev;
     double           d_fm_deemph;
     float            d_fmpll_damping_factor;
-
+    bool             d_subtone_filter;
     bool             d_am_dcr;
     bool             d_amsync_dcr;
     float            d_pll_bw;
