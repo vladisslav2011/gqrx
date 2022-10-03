@@ -305,7 +305,9 @@ public:
     status      set_fm_deemph(double tau);
     double      get_fm_deemph();
     status      set_fmpll_damping_factor(float df);
-    float      get_fmpll_damping_factor();
+    float       get_fmpll_damping_factor();
+    status      set_fm_subtone_filter(bool state);
+    bool        get_fm_subtone_filter();
 
 
     /* AM parameters */

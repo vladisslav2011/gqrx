@@ -44,7 +44,8 @@ rx_demod_fm::rx_demod_fm(float quad_rate, float max_dev, double tau)
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (gr_complex)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
     d_quad_rate(quad_rate),
-    d_max_dev(max_dev)
+    d_max_dev(max_dev),
+    d_subtone_filter(false)
 {
     float gain;
 
@@ -58,12 +59,12 @@ rx_demod_fm::rx_demod_fm(float quad_rate, float max_dev, double tau)
 
     /* de-emphasis */
     d_deemph = make_fm_deemph(d_quad_rate, tau);
+    d_hpf = gr::filter::fir_filter_fff::make(1, gr::filter::firdes::high_pass_2(1.0, (double)d_quad_rate, 300.0, 50.0, 15.0));
 
     /* connect block */
     connect(self(), 0, d_quad, 0);
     connect(d_quad, 0, d_deemph, 0);
     connect(d_deemph, 0, self(), 0);
-
 }
 
 rx_demod_fm::~rx_demod_fm ()
@@ -101,6 +102,28 @@ void rx_demod_fm::set_tau(double tau)
     d_deemph->set_tau(tau);
 }
 
+/*! \brief Enable/disable subtone filter.
+ *  \param state New filter state.
+ */
+void rx_demod_fm::set_subtone_filter(bool state)
+{
+    if(state == d_subtone_filter)
+        return;
+    d_subtone_filter = state;
+    if(state)
+    {
+        disconnect(d_deemph, 0, self(), 0);
+        connect(d_deemph, 0, d_hpf, 0);
+        connect(d_hpf, 0, self(), 0);
+    }
+    else
+    {
+        disconnect(d_deemph, 0, d_hpf, 0);
+        disconnect(d_hpf, 0, self(), 0);
+        connect(d_deemph, 0, self(), 0);
+    }
+}
+
 /* Create a new instance of rx_demod_fm and return a shared_ptr. */
 rx_demod_fmpll_sptr make_rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
 {
@@ -113,7 +136,8 @@ rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
     d_quad_rate(quad_rate),
     d_max_dev(max_dev),
-    d_pll_bw(pllbw)
+    d_pll_bw(pllbw),
+    d_subtone_filter(false)
 {
     float gain;
 
@@ -127,19 +151,11 @@ rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
                                                    (2.f*(float)M_PI*max_dev/quad_rate),
                                                    (2.f*(float)M_PI*(-max_dev)/quad_rate));
 
-    /* DC removal */
-    d_fftaps.resize(2);
-    d_fbtaps.resize(2);
-    d_fftaps[0] = 1.0;      // FIXME: could be configurable with a specified time constant
-    d_fftaps[1] = -1.0;
-    d_fbtaps[0] = 0.0;
-    d_fbtaps[1] = 0.99;
-    d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
+    d_hpf = gr::filter::fir_filter_fff::make(1, gr::filter::firdes::high_pass_2(1.0, (double)d_quad_rate, 300.0, 50.0, 15.0));
 
     /* connect block */
     connect(self(), 0, d_pll_demod, 0);
-    connect(d_pll_demod, 0, d_dcr, 0);
-    connect(d_dcr, 0, self(), 0);
+    connect(d_pll_demod, 0, self(), 0);
 }
 
 rx_demod_fmpll::~rx_demod_fmpll ()
@@ -180,4 +196,26 @@ void rx_demod_fmpll::set_pll_bw(float bw)
 {
     // bw = 0.001 ... 0.5
     d_pll_demod->set_loop_bandwidth(bw);
+}
+
+/*! \brief Enable/disable subtone filter.
+ *  \param state New filter state.
+ */
+void rx_demod_fmpll::set_subtone_filter(bool state)
+{
+    if(state == d_subtone_filter)
+        return;
+    d_subtone_filter = state;
+    if(state)
+    {
+        disconnect(d_pll_demod, 0, self(), 0);
+        connect(d_pll_demod, 0, d_hpf, 0);
+        connect(d_hpf, 0, self(), 0);
+    }
+    else
+    {
+        disconnect(d_pll_demod, 0, d_hpf, 0);
+        disconnect(d_hpf, 0, self(), 0);
+        connect(d_pll_demod, 0, self(), 0);
+    }
 }
