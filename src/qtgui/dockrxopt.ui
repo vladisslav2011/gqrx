@@ -18,7 +18,7 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>200</width>
+    <width>295</width>
     <height>355</height>
    </size>
   </property>
@@ -507,6 +507,9 @@ This is an offset from the hardware RF frequency.&lt;/p&gt;&lt;/body&gt;&lt;/htm
             <width>30</width>
             <height>30</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Audio noise blanker</string>
           </property>
           <property name="text">
            <string>NB3</string>
