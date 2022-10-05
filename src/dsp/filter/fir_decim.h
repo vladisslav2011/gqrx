@@ -22,21 +22,13 @@
  */
 #pragma once
 
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_ccf.h>
-#else
-#include <gnuradio/filter/fir_filter_blk.h>
-#endif
+#include "applications/gqrx/compat.h"
 
 #include <gnuradio/hier_block2.h>
 
 class fir_decim_cc;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<fir_decim_cc> fir_decim_cc_sptr;
-#else
-typedef std::shared_ptr<fir_decim_cc> fir_decim_cc_sptr;
-#endif
+typedef compat_shared_ptr<fir_decim_cc> fir_decim_cc_sptr;
 fir_decim_cc_sptr make_fir_decim_cc(unsigned int decim);
 
 class fir_decim_cc : public gr::hier_block2

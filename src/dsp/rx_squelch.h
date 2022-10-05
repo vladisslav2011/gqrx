@@ -23,6 +23,7 @@
 #ifndef RX_SQUELCH_CC_H
 #define RX_SQUELCH_CC_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/analog/pwr_squelch_cc.h>
@@ -31,11 +32,7 @@
 
 class rx_sql_cc;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_sql_cc> rx_sql_cc_sptr;
-#else
-typedef std::shared_ptr<rx_sql_cc> rx_sql_cc_sptr;
-#endif
+typedef compat_shared_ptr<rx_sql_cc> rx_sql_cc_sptr;
 
 /*! \brief Return a shared_ptr to a new instance of rx_sql_cc.
  *  \param db threshold (in dB) for squelch

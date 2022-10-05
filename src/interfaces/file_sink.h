@@ -24,6 +24,7 @@
 #ifndef GQRX_FILE_SINK_C_H
 #define GQRX_FILE_SINK_C_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_block.h>
 #include <thread>
@@ -38,11 +39,7 @@
 class BLOCKS_API file_sink : virtual public gr::sync_block
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<file_sink> sptr;
-#else
-    typedef std::shared_ptr<file_sink> sptr;
-#endif
+    typedef compat_shared_ptr<file_sink> sptr;
     typedef struct {
         int len;
         int size;

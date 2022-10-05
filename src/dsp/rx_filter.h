@@ -23,28 +23,16 @@
 #ifndef RX_FILTER_H
 #define RX_FILTER_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/hier_block2.h>
-
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_ccc.h>
-#include <gnuradio/filter/freq_xlating_fir_filter_ccc.h>
-#else
-#include <gnuradio/filter/fir_filter_blk.h>
-#include <gnuradio/filter/freq_xlating_fir_filter.h>
-#endif
 
 #include "receivers/defines.h"
 
 class rx_filter;
 class rx_xlating_filter;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_filter> rx_filter_sptr;
-typedef boost::shared_ptr<rx_xlating_filter> rx_xlating_filter_sptr;
-#else
-typedef std::shared_ptr<rx_filter> rx_filter_sptr;
-typedef std::shared_ptr<rx_xlating_filter> rx_xlating_filter_sptr;
-#endif
+typedef compat_shared_ptr<rx_filter> rx_filter_sptr;
+typedef compat_shared_ptr<rx_xlating_filter> rx_xlating_filter_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of rx_filter.

@@ -47,11 +47,7 @@ sniffer_f::sniffer_f(int buffsize)
 {
 
     /* allocate circular buffer */
-#if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(buffsize, sizeof(float));
-#else
     d_writer = gr::make_buffer(buffsize, sizeof(float), 1, 1);
-#endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
 }
@@ -135,11 +131,7 @@ void sniffer_f::set_buffer_size(int newsize)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-#if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(newsize, sizeof(float));
-#else
     d_writer = gr::make_buffer(newsize, sizeof(float), 1, 1);
-#endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 }
 

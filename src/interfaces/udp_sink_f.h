@@ -23,11 +23,7 @@
 #ifndef UDP_SINK_F_H
 #define UDP_SINK_F_H
 
-#if GNURADIO_VERSION < 0x031000
-#include <gnuradio/blocks/udp_sink.h>
-#else
-#include <gnuradio/network/udp_sink.h>
-#endif
+#include "applications/gqrx/compat.h"
 
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/blocks/float_to_short.h>
@@ -37,11 +33,7 @@
 
 class udp_sink_f;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<udp_sink_f> udp_sink_f_sptr;
-#else
-typedef std::shared_ptr<udp_sink_f> udp_sink_f_sptr;
-#endif
+typedef compat_shared_ptr<udp_sink_f> udp_sink_f_sptr;
 
 udp_sink_f_sptr make_udp_sink_f(void);
 
@@ -55,11 +47,7 @@ public:
     void stop_streaming(void);
 
 private:
-#if GNURADIO_VERSION < 0x031000
-    gr::blocks::udp_sink::sptr        d_sink;   /*!< The gnuradio UDP sink. */
-#else
     gr::network::udp_sink::sptr       d_sink;   /*!< The gnuradio UDP sink. */
-#endif
     gr::blocks::float_to_short::sptr  d_f2s;    /*!< Converts float to short. */
     gr::blocks::interleave::sptr      d_inter;  /*!< Stereo interleaver. */
     gr::blocks::null_sink::sptr       d_null0;  /*!< Null sink for mono. */

@@ -23,6 +23,7 @@
 #ifndef RX_AGC_XX_H
 #define RX_AGC_XX_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <gnuradio/sync_block.h>
 #include <gnuradio/gr_complex.h>
@@ -32,11 +33,7 @@
 
 class rx_agc_2f;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_agc_2f> rx_agc_2f_sptr;
-#else
-typedef std::shared_ptr<rx_agc_2f> rx_agc_2f_sptr;
-#endif
+typedef compat_shared_ptr<rx_agc_2f> rx_agc_2f_sptr;
 
 
 /**

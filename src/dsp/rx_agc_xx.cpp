@@ -132,7 +132,6 @@ int rx_agc_2f::work(int noutput_items,
     TYPEFLOAT mag_in = 0;
     if (d_agc_on)
     {
-#if GNURADIO_VERSION < 0x030800
         std::vector<gr::tag_t> work_tags;
         get_tags_in_window(work_tags, 0, 0, noutput_items);
         for (const auto& tag : work_tags)
@@ -140,7 +139,6 @@ int rx_agc_2f::work(int noutput_items,
         get_tags_in_window(work_tags, 1, 0, noutput_items);
         for (const auto& tag : work_tags)
             add_item_tag(1, tag.offset + d_buf_samples, tag.key, tag.value);
-#endif
         if (d_refill)
         {
             d_refill = false;
@@ -247,12 +245,6 @@ void rx_agc_2f::set_agc_on(bool agc_on)
     if (agc_on != d_agc_on) {
         std::lock_guard<std::mutex> lock(d_mutex);
         set_parameters(d_sample_rate, agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, d_panning);
-#if GNURADIO_VERSION >= 0x030800
-        if(d_agc_on)
-            declare_sample_delay(d_sample_rate * d_attack / 1000);
-        else
-            declare_sample_delay(0);
-#endif
     }
 }
 
@@ -268,10 +260,6 @@ void rx_agc_2f::set_sample_rate(double sample_rate)
     if (sample_rate != d_sample_rate) {
         std::lock_guard<std::mutex> lock(d_mutex);
         set_parameters(sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, d_attack, d_decay, d_hang, d_panning);
-#if GNURADIO_VERSION >= 0x030800
-        if(d_agc_on)
-            declare_sample_delay(d_sample_rate * d_attack / 1000);
-#endif
     }
 }
 
@@ -333,10 +321,6 @@ void rx_agc_2f::set_attack(int attack)
     if ((attack != d_attack) && (attack >= 20) && (attack <= 5000)) {
         std::lock_guard<std::mutex> lock(d_mutex);
         set_parameters(d_sample_rate, d_agc_on, d_target_level, d_manual_gain, d_max_gain, attack, d_decay, d_hang, d_panning);
-#if GNURADIO_VERSION >= 0x030800
-        if(d_agc_on)
-            declare_sample_delay(d_sample_rate * d_attack / 1000);
-#endif
     }
 }
 
@@ -402,12 +386,10 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
         agc_on_changed = true;
         if(d_agc_on && d_running)
             d_refill = true;
-#if GNURADIO_VERSION < 0x030800
         if(d_agc_on)
             set_tag_propagation_policy(TPP_DONT);
         else
             set_tag_propagation_policy(TPP_ONE_TO_ONE);
-#endif
     }
     if (d_target_level != target_level || force)
     {

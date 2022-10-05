@@ -23,6 +23,7 @@
 #ifndef BOOKMARKS_H
 #define BOOKMARKS_H
 
+#include "applications/gqrx/compat.h"
 #include <QtGlobal>
 #include <QObject>
 #include <QString>
@@ -62,11 +63,7 @@ struct TagInfo
 class BookmarkInfo:public vfo_s
 {
     public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<BookmarkInfo> sptr;
-#else
-    typedef std::shared_ptr<BookmarkInfo> sptr;
-#endif
+    typedef compat_shared_ptr<BookmarkInfo> sptr;
     static sptr make()
     {
         return sptr(new BookmarkInfo());

@@ -24,6 +24,7 @@
 #ifndef RX_DEMOD_AM_H
 #define RX_DEMOD_AM_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/blocks/complex_to_mag.h>
 #include <gnuradio/blocks/complex_to_real.h>
@@ -34,13 +35,8 @@
 class rx_demod_am;
 class rx_demod_amsync;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_demod_am> rx_demod_am_sptr;
-typedef boost::shared_ptr<rx_demod_amsync> rx_demod_amsync_sptr;
-#else
-typedef std::shared_ptr<rx_demod_am> rx_demod_am_sptr;
-typedef std::shared_ptr<rx_demod_amsync> rx_demod_amsync_sptr;
-#endif
+typedef compat_shared_ptr<rx_demod_am> rx_demod_am_sptr;
+typedef compat_shared_ptr<rx_demod_amsync> rx_demod_amsync_sptr;
 
 /*! \brief Return a shared_ptr to a new instance of rx_demod_am.
  *  \param quad_rate The input sample rate.

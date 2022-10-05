@@ -22,22 +22,14 @@
  */
 #pragma once
 
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/freq_xlating_fir_filter_ccf.h>
-#else
-#include <gnuradio/filter/freq_xlating_fir_filter.h>
-#endif
+#include "applications/gqrx/compat.h"
 
 #include <gnuradio/blocks/rotator_cc.h>
 #include <gnuradio/hier_block2.h>
 
 class downconverter_cc;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<downconverter_cc> downconverter_cc_sptr;
-#else
-typedef std::shared_ptr<downconverter_cc> downconverter_cc_sptr;
-#endif
+typedef compat_shared_ptr<downconverter_cc> downconverter_cc_sptr;
 downconverter_cc_sptr make_downconverter_cc(unsigned int decim, double center_freq, double samp_rate);
 
 class downconverter_cc : public gr::hier_block2

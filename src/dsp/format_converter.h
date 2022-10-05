@@ -23,6 +23,7 @@
 #ifndef INCLUDED_FORMAT_CONVERTER_H
 #define INCLUDED_FORMAT_CONVERTER_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_interpolator.h>
 #include <volk/volk.h>
@@ -36,11 +37,7 @@ namespace dispatcher
 class any_to_any_base: virtual public gr::sync_interpolator
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<any_to_any_base> sptr;
-#else
-    typedef std::shared_ptr<any_to_any_base> sptr;
-#endif
+    typedef compat_shared_ptr<any_to_any_base> sptr;
 
     virtual void convert(const void *in, void *out, int noutput_items) = 0;
 };
@@ -60,11 +57,7 @@ public:
 template <typename T_IN, typename T_OUT> class BLOCKS_API any_to_any : virtual public any_to_any_base
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<any_to_any<T_IN, T_OUT>> sptr;
-#else
-    typedef std::shared_ptr<any_to_any<T_IN, T_OUT>> sptr;
-#endif
+    typedef compat_shared_ptr<any_to_any<T_IN, T_OUT>> sptr;
 
 
     /*!

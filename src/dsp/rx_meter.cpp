@@ -40,11 +40,7 @@ rx_meter_c::rx_meter_c(double quad_rate)
       d_avgsize(quad_rate * 0.100)
 {
     /* allocate circular buffer */
-#if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(d_avgsize + d_quadrate, sizeof(gr_complex));
-#else
     d_writer = gr::make_buffer(d_avgsize + d_quadrate, sizeof(gr_complex), 1, 1);
-#endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
     d_lasttime = std::chrono::steady_clock::now();

@@ -22,16 +22,13 @@
  */
 #pragma once
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/filter/iir_filter_ffd.h>
 #include <gnuradio/hier_block2.h>
 #include <vector>
 
 class fm_deemph;
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<fm_deemph> fm_deemph_sptr;
-#else
-typedef std::shared_ptr<fm_deemph> fm_deemph_sptr;
-#endif
+typedef compat_shared_ptr<fm_deemph> fm_deemph_sptr;
 
 /*! \brief Return a shared_ptr to a new instance of fm_deemph.
  *  \param quad_rate The input sample rate.

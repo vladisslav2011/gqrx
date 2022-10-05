@@ -23,6 +23,7 @@
 #ifndef RX_RNNOISE_H
 #define RX_RNNOISE_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <vector>
 #include <gnuradio/sync_block.h>
@@ -32,11 +33,7 @@
 #endif
 class rx_rnnoise_f;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_rnnoise_f> rx_rnnoise_f_sptr;
-#else
-typedef std::shared_ptr<rx_rnnoise_f> rx_rnnoise_f_sptr;
-#endif
+typedef compat_shared_ptr<rx_rnnoise_f> rx_rnnoise_f_sptr;
 
 
 /**

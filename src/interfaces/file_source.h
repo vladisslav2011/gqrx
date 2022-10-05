@@ -23,6 +23,7 @@
 #ifndef GQRX_FILE_SOURCE_C_H
 #define GQRX_FILE_SOURCE_C_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_block.h>
 #include <thread>
@@ -32,11 +33,7 @@
 class BLOCKS_API file_source : public gr::sync_block
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<file_source> sptr;
-#else
-    typedef std::shared_ptr<file_source> sptr;
-#endif
+    typedef compat_shared_ptr<file_source> sptr;
 
     /*!
     * \brief Make a file sink.

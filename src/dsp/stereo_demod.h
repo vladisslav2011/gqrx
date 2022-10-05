@@ -24,24 +24,9 @@
 #ifndef STEREO_DEMOD_H
 #define STEREO_DEMOD_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/filter/firdes.h>
-
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_fcc.h>
-#include <gnuradio/filter/fir_filter_fff.h>
-#include <gnuradio/blocks/multiply_cc.h>
-#include <gnuradio/blocks/multiply_ff.h>
-#include <gnuradio/blocks/multiply_const_ff.h>
-#include <gnuradio/blocks/add_ff.h>
-#include <gnuradio/blocks/sub_ff.h>
-#else
-#include <gnuradio/filter/fir_filter_blk.h>
-#include <gnuradio/blocks/multiply.h>
-#include <gnuradio/blocks/multiply_const.h>
-#include <gnuradio/blocks/add_blk.h>
-#include <gnuradio/blocks/sub.h>
-#endif
 
 #include <gnuradio/analog/pll_refout_cc.h>
 #include <gnuradio/blocks/complex_to_imag.h>
@@ -54,11 +39,7 @@
 
 class stereo_demod;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<stereo_demod> stereo_demod_sptr;
-#else
-typedef std::shared_ptr<stereo_demod> stereo_demod_sptr;
-#endif
+typedef compat_shared_ptr<stereo_demod> stereo_demod_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of stere_demod.

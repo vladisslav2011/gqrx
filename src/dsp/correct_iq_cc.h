@@ -23,28 +23,18 @@
 #ifndef CORRECT_IQ_CC_H
 #define CORRECT_IQ_CC_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/blocks/complex_to_float.h>
 #include <gnuradio/blocks/float_to_complex.h>
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/filter/single_pole_iir_filter_cc.h>
 
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/blocks/sub_cc.h>
-#else
-#include <gnuradio/blocks/sub.h>
-#endif
-
 class dc_corr_cc;
 class iq_swap_cc;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<dc_corr_cc> dc_corr_cc_sptr;
-typedef boost::shared_ptr<iq_swap_cc> iq_swap_cc_sptr;
-#else
-typedef std::shared_ptr<dc_corr_cc> dc_corr_cc_sptr;
-typedef std::shared_ptr<iq_swap_cc> iq_swap_cc_sptr;
-#endif
+typedef compat_shared_ptr<dc_corr_cc> dc_corr_cc_sptr;
+typedef compat_shared_ptr<iq_swap_cc> iq_swap_cc_sptr;
 
 /*! \brief Return a shared_ptr to a new instance of dc_corr_cc.
  *  \param sample_rate The sample rate

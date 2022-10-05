@@ -22,6 +22,7 @@
  */
 #pragma once
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/sync_block.h>
 #include <portaudio.h>
 #include <string>
@@ -30,11 +31,7 @@
 
 class portaudio_sink;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<portaudio_sink> portaudio_sink_sptr;
-#else
-typedef std::shared_ptr<portaudio_sink> portaudio_sink_sptr;
-#endif
+typedef compat_shared_ptr<portaudio_sink> portaudio_sink_sptr;
 
 portaudio_sink_sptr make_portaudio_sink(const std::string device_name, int audio_rate,
                                         const std::string app_name,

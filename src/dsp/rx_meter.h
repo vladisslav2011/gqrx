@@ -23,22 +23,16 @@
 #ifndef RX_METER_H
 #define RX_METER_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/sync_block.h>
 #include <gnuradio/buffer.h>
-#if GNURADIO_VERSION >= 0x031000
-#include <gnuradio/buffer_reader.h>
-#endif
 #include <chrono>
 #include <mutex>
 
 
 class rx_meter_c;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_meter_c> rx_meter_c_sptr;
-#else
-typedef std::shared_ptr<rx_meter_c> rx_meter_c_sptr;
-#endif
+typedef compat_shared_ptr<rx_meter_c> rx_meter_c_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of rx_meter_c.

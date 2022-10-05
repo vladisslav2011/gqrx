@@ -23,17 +23,14 @@
 #ifndef PA_SOURCE_H
 #define PA_SOURCE_H
 
+#include "applications/gqrx/compat.h"
 #include <string>
 #include <gnuradio/sync_block.h>
 #include <pulse/simple.h>
 
 class pa_source;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<pa_source> pa_source_sptr;
-#else
-typedef std::shared_ptr<pa_source> pa_source_sptr;
-#endif
+typedef compat_shared_ptr<pa_source> pa_source_sptr;
 
 pa_source_sptr make_pa_source(const std::string device_name,
                               int sample_rate,

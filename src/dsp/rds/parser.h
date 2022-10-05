@@ -17,6 +17,7 @@
 #ifndef INCLUDED_RDS_PARSER_H
 #define INCLUDED_RDS_PARSER_H
 
+#include "applications/gqrx/compat.h"
 #include "dsp/rds/api.h"
 #include <gnuradio/block.h>
 
@@ -26,11 +27,7 @@ namespace rds {
 class RDS_API parser : virtual public gr::block
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-	typedef boost::shared_ptr<parser> sptr;
-#else
-	typedef std::shared_ptr<parser> sptr;
-#endif
+	typedef compat_shared_ptr<parser> sptr;
 	static sptr make(bool log, bool debug, unsigned char pty_locale);
 
 	virtual void reset() = 0;

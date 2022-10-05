@@ -23,6 +23,7 @@
 #ifndef RECEIVER_BASE_H
 #define RECEIVER_BASE_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/blocks/wavfile_sink.h>
 #include "dsp/resampler_xx.h"
@@ -54,11 +55,7 @@ enum rx_demod {
 };
 #endif
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<receiver_base_cf> receiver_base_cf_sptr;
-#else
-typedef std::shared_ptr<receiver_base_cf> receiver_base_cf_sptr;
-#endif
+typedef compat_shared_ptr<receiver_base_cf> receiver_base_cf_sptr;
 
 
 /*! \brief Base class for receivers that output audio.

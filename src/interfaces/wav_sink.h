@@ -25,6 +25,7 @@
 #ifndef GQRX_WAVFILE_SINK_C_H
 #define GQRX_WAVFILE_SINK_C_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/sync_block.h>
 #include <sndfile.h> // for SNDFILE
 #include <thread>
@@ -34,11 +35,7 @@ class wavfile_sink_gqrx : virtual public gr::sync_block
 {
 public:
     typedef std::function<void(std::string, bool)> rec_event_handler_t;
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<wavfile_sink_gqrx> sptr;
-#else
-    typedef std::shared_ptr<wavfile_sink_gqrx> sptr;
-#endif
+    typedef compat_shared_ptr<wavfile_sink_gqrx> sptr;
 
     enum wavfile_format_t {
         FORMAT_WAV = 0x010000,

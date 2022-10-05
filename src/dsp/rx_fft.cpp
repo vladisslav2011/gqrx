@@ -36,11 +36,7 @@ fft_c_basic::fft_c_basic(unsigned int fftsize, int wintype)
     : d_fftsize(fftsize),
       d_wintype(-1)
 {
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
     d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
     /* create FFT window */
     set_window_type(wintype);
 }
@@ -136,11 +132,7 @@ void fft_c_basic::set_params()
 
     /* reset FFT object (also reset FFTW plan) */
     delete d_fft;
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
     d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
 }
 
 void fft_c_basic::copy_params(fft_c_basic & from)
@@ -179,11 +171,7 @@ rx_fft_c::rx_fft_c(unsigned int fftsize, double quad_rate, int wintype)
     /* create FFT object */
 
     /* allocate circular buffer */
-#if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(MAX_FFT_SIZE * 2, sizeof(gr_complex));
-#else
     d_writer = gr::make_buffer(MAX_FFT_SIZE * 2, sizeof(gr_complex), 1, 1);
-#endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
     memset(d_writer->write_pointer(), 0, sizeof(gr_complex) * MAX_FFT_SIZE);
@@ -297,18 +285,10 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 {
 
     /* create FFT object */
-#if GNURADIO_VERSION < 0x030900
-    d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
     d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
 
     /* allocate circular buffer */
-#if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float));
-#else
     d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float), 1, 1);
-#endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
     memset(d_writer->write_pointer(), 0, sizeof(gr_complex) * d_fftsize);
@@ -432,11 +412,8 @@ void rx_fft_f::set_fft_size(unsigned int fftsize)
 
         /* reset FFT object (also reset FFTW plan) */
         delete d_fft;
-#if GNURADIO_VERSION < 0x030900
-        d_fft = new gr::fft::fft_complex(d_fftsize, true);
-#else
+
         d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
-#endif
     }
 }
 
@@ -517,11 +494,7 @@ void fft_channelizer_cc::start_threads()
     d_active = d_nthreads;
     for(int k = 0; k < d_nthreads; k++)
     {
-    #if GNURADIO_VERSION < 0x030900
-        d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
-    #else
         d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
-    #endif
         d_threads[k].finish = false;
         d_threads[k].in = nullptr;
         d_threads[k].out = nullptr;
@@ -737,11 +710,7 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
         for(int k = 0; k < d_nthreads; k++)
         {
             delete d_threads[k].d_fft;
-    #if GNURADIO_VERSION < 0x030900
-            d_threads[k].d_fft = new gr::fft::fft_complex(d_fftsize * d_osr, true);
-    #else
             d_threads[k].d_fft = new gr::fft::fft_complex_fwd(d_fftsize * d_osr);
-    #endif
         }
     set_relative_rate(1.0 / double(d_fftsize));
     set_decimation(d_fftsize);

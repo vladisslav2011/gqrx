@@ -24,6 +24,7 @@
 #ifndef WFMRX_H
 #define WFMRX_H
 
+#include "applications/gqrx/compat.h"
 #include "receivers/receiver_base.h"
 #include "dsp/rx_noise_blanker_cc.h"
 #include "dsp/rx_filter.h"
@@ -35,11 +36,7 @@
 
 class wfmrx;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<wfmrx> wfmrx_sptr;
-#else
-typedef std::shared_ptr<wfmrx> wfmrx_sptr;
-#endif
+typedef compat_shared_ptr<wfmrx> wfmrx_sptr;
 
 /*! \brief Public constructor of wfm_rx. */
 wfmrx_sptr make_wfmrx(float quad_rate, float audio_rate);

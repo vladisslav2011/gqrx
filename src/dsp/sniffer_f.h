@@ -23,21 +23,15 @@
 #ifndef SNIFFER_F_H
 #define SNIFFER_F_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <gnuradio/sync_block.h>
 #include <gnuradio/buffer.h>
-#if GNURADIO_VERSION >= 0x031000
-#include <gnuradio/buffer_reader.h>
-#endif
 
 
 class sniffer_f;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<sniffer_f> sniffer_f_sptr;
-#else
-typedef std::shared_ptr<sniffer_f> sniffer_f_sptr;
-#endif
+typedef compat_shared_ptr<sniffer_f> sniffer_f_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of sniffer_f.

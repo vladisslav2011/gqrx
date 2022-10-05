@@ -23,10 +23,7 @@
 #ifndef VFO_H
 #define VFO_H
 
-#if GNURADIO_VERSION < 0x030900
-    #include <boost/shared_ptr.hpp>
-#endif
-
+#include "applications/gqrx/compat.h"
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
 
@@ -35,11 +32,7 @@ class vfo_s;
 typedef class vfo_s
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-    typedef boost::shared_ptr<vfo_s> sptr;
-#else
-    typedef std::shared_ptr<vfo_s> sptr;
-#endif
+    typedef compat_shared_ptr<vfo_s> sptr;
     struct comp;
     typedef std::set<sptr, comp> set;
 public:

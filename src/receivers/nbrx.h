@@ -23,6 +23,7 @@
 #ifndef NBRX_H
 #define NBRX_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/basic_block.h>
 #include <gnuradio/blocks/complex_to_float.h>
 #include <gnuradio/blocks/complex_to_real.h>
@@ -34,11 +35,7 @@
 
 class nbrx;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<nbrx> nbrx_sptr;
-#else
-typedef std::shared_ptr<nbrx> nbrx_sptr;
-#endif
+typedef compat_shared_ptr<nbrx> nbrx_sptr;
 
 /*! \brief Public constructor of nbrx_sptr. */
 nbrx_sptr make_nbrx(float quad_rate, float audio_rate);

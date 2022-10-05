@@ -23,26 +23,11 @@
 #ifndef RX_RDS_H
 #define RX_RDS_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <gnuradio/hier_block2.h>
 
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_ccf.h>
-#include <gnuradio/filter/freq_xlating_fir_filter_fcf.h>
-#include <gnuradio/digital/clock_recovery_mm_cc.h>
-#else
-#include <gnuradio/filter/fir_filter_blk.h>
-#include <gnuradio/filter/freq_xlating_fir_filter.h>
-#include <gnuradio/digital/symbol_sync_cc.h>
-#endif
-
-#if GNURADIO_VERSION < 0x30800
-#include <gnuradio/filter/rational_resampler_base_ccf.h>
-#elif GNURADIO_VERSION < 0x30900
-#include <gnuradio/filter/rational_resampler_base.h>
-#else
-#include <gnuradio/filter/rational_resampler.h>
-#endif
+//for conditional includes see "applications/gqrx/compat.h"
 
 #include <gnuradio/analog/agc_cc.h>
 #include <gnuradio/digital/constellation_receiver_cb.h>
@@ -57,13 +42,8 @@
 class rx_rds;
 class rx_rds_store;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_rds> rx_rds_sptr;
-typedef boost::shared_ptr<rx_rds_store> rx_rds_store_sptr;
-#else
-typedef std::shared_ptr<rx_rds> rx_rds_sptr;
-typedef std::shared_ptr<rx_rds_store> rx_rds_store_sptr;
-#endif
+typedef compat_shared_ptr<rx_rds> rx_rds_sptr;
+typedef compat_shared_ptr<rx_rds_store> rx_rds_store_sptr;
 
 
 rx_rds_sptr make_rx_rds(double sample_rate);
@@ -101,11 +81,7 @@ private:
     gr::filter::fir_filter_ccf::sptr d_bpf;
     gr::filter::freq_xlating_fir_filter_fcf::sptr d_fxff;
 
-#if GNURADIO_VERSION < 0x030900
-    gr::filter::rational_resampler_base_ccf::sptr d_rsmp;
-#else
     gr::filter::rational_resampler_ccf::sptr d_rsmp;
-#endif
 
     std::vector<float> d_rrcf;
     std::vector<float> d_rrcf_manchester;

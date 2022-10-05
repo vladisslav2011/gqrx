@@ -23,6 +23,7 @@
 #ifndef RESAMPLER_XX_H
 #define RESAMPLER_XX_H
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 #include <gnuradio/filter/pfb_arb_resampler_fff.h>
@@ -31,13 +32,8 @@
 class resampler_cc;
 class resampler_ff;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<resampler_cc> resampler_cc_sptr;
-typedef boost::shared_ptr<resampler_ff> resampler_ff_sptr;
-#else
-typedef std::shared_ptr<resampler_cc> resampler_cc_sptr;
-typedef std::shared_ptr<resampler_ff> resampler_ff_sptr;
-#endif
+typedef compat_shared_ptr<resampler_cc> resampler_cc_sptr;
+typedef compat_shared_ptr<resampler_ff> resampler_ff_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of resampler_cc.

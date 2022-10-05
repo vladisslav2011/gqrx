@@ -17,6 +17,7 @@
 #ifndef INCLUDED_RDS_DECODER_H
 #define INCLUDED_RDS_DECODER_H
 
+#include "applications/gqrx/compat.h"
 #include "dsp/rds/api.h"
 #include <gnuradio/sync_block.h>
 
@@ -26,11 +27,7 @@ namespace rds {
 class RDS_API decoder : virtual public gr::sync_block
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-	typedef boost::shared_ptr<decoder> sptr;
-#else
-	typedef std::shared_ptr<decoder> sptr;
-#endif
+	typedef compat_shared_ptr<decoder> sptr;
 	static sptr make(bool log, bool debug);
 };
 

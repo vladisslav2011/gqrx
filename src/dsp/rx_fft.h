@@ -23,6 +23,7 @@
 #ifndef RX_FFT_H
 #define RX_FFT_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <gnuradio/sync_block.h>
 #include <gnuradio/sync_decimator.h>
@@ -30,9 +31,6 @@
 #include <gnuradio/filter/firdes.h>       /* contains enum win_type */
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/buffer.h>
-#if GNURADIO_VERSION >= 0x031000
-#include <gnuradio/buffer_reader.h>
-#endif
 #include <chrono>
 #include <thread>
 #include <condition_variable>
@@ -44,13 +42,8 @@
 class rx_fft_c;
 class rx_fft_f;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_fft_c> rx_fft_c_sptr;
-typedef boost::shared_ptr<rx_fft_f> rx_fft_f_sptr;
-#else
-typedef std::shared_ptr<rx_fft_c> rx_fft_c_sptr;
-typedef std::shared_ptr<rx_fft_f> rx_fft_f_sptr;
-#endif
+typedef compat_shared_ptr<rx_fft_c> rx_fft_c_sptr;
+typedef compat_shared_ptr<rx_fft_f> rx_fft_f_sptr;
 
 
 class fft_c_basic
@@ -69,11 +62,7 @@ protected:
     unsigned int d_fftsize;   /*! Current FFT size. */
     int          d_wintype;   /*! Current window type. */
 
-#if GNURADIO_VERSION < 0x030900
-    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
-#else
     gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
-#endif
     std::vector<float>  d_window; /*! FFT window taps. */
 
     virtual void apply_window(unsigned int size, gr_complex * p);
@@ -194,11 +183,7 @@ private:
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
 
-#if GNURADIO_VERSION < 0x030900
-    gr::fft::fft_complex    *d_fft;    /*! FFT object. */
-#else
     gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
-#endif
     std::vector<float>  d_window; /*! FFT window taps. */
 
     gr::buffer_sptr d_writer;
@@ -225,11 +210,7 @@ private:
 class fft_channelizer_cc : public gr::sync_decimator
 {
 public:
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<fft_channelizer_cc> sptr;
-#else
-typedef std::shared_ptr<fft_channelizer_cc> sptr;
-#endif
+typedef compat_shared_ptr<fft_channelizer_cc> sptr;
 
     static sptr make(int nchannels, int osr, int wintype=gr::fft::window::WIN_HAMMING, int nthreads=1);
 
@@ -264,11 +245,7 @@ public:
 
 private:
     typedef struct {
-    #if GNURADIO_VERSION < 0x030900
-        gr::fft::fft_complex    *d_fft;    /*! FFT object. */
-    #else
         gr::fft::fft_complex_fwd *d_fft;   /*! FFT object. */
-    #endif
         std::thread * thr;
         const gr_complex *in;
         gr_complex **out;

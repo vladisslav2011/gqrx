@@ -22,27 +22,18 @@
  */
 #pragma once
 
+#include "applications/gqrx/compat.h"
 #include <gnuradio/analog/quadrature_demod_cf.h>
 #include <gnuradio/analog/pll_freqdet_cf.h>
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/filter/iir_filter_ffd.h>
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_fff.h>
-#else
-#include <gnuradio/filter/fir_filter_blk.h>
-#endif
 #include <vector>
 #include "dsp/fm_deemph.h"
 
 class rx_demod_fm;
 class rx_demod_fmpll;
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_demod_fm> rx_demod_fm_sptr;
-typedef boost::shared_ptr<rx_demod_fmpll> rx_demod_fmpll_sptr;
-#else
-typedef std::shared_ptr<rx_demod_fm> rx_demod_fm_sptr;
-typedef std::shared_ptr<rx_demod_fmpll> rx_demod_fmpll_sptr;
-#endif
+typedef compat_shared_ptr<rx_demod_fm> rx_demod_fm_sptr;
+typedef compat_shared_ptr<rx_demod_fmpll> rx_demod_fmpll_sptr;
 
 /*! \brief Return a shared_ptr to a new instance of rx_demod_fm.
  *  \param quad_rate The input sample rate.

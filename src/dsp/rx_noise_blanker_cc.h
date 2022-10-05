@@ -23,17 +23,14 @@
 #ifndef RX_NB_CC_H
 #define RX_NB_CC_H
 
+#include "applications/gqrx/compat.h"
 #include <mutex>
 #include <gnuradio/sync_block.h>
 #include <gnuradio/gr_complex.h>
 
 class rx_nb_cc;
 
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<rx_nb_cc> rx_nb_cc_sptr;
-#else
-typedef std::shared_ptr<rx_nb_cc> rx_nb_cc_sptr;
-#endif
+typedef compat_shared_ptr<rx_nb_cc> rx_nb_cc_sptr;
 
 
 /*! \brief Return a shared_ptr to a new instance of rx_nb_cc.
