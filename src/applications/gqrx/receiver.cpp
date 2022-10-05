@@ -2485,8 +2485,12 @@ void receiver::fft_reader::task::thread_func()
         ready = false;
         lock.unlock();
 
-        owner->d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft.get_fft_size());
-        d_fft.get_fft_data(buf, fftsize, d_fftbuf.data());
+        if(owner->d_conv)
+        {
+            owner->d_conv->convert(d_buf.data(), d_fftbuf.data(), d_fft.get_fft_size());
+            d_fft.get_fft_data(buf, fftsize, d_fftbuf.data());
+        }else
+            d_fft.get_fft_data(buf, fftsize, (gr_complex*)d_buf.data());
         owner->data_ready(line, buf, (float*)d_fftbuf.data(), fftsize, ts);
 
         lock.lock();
