@@ -67,6 +67,7 @@ public:
         d_agc_hang_ms(0),
         d_agc_panning(0),
         d_agc_panning_auto(false),
+        d_agc_mute(false),
         d_cw_offset(700),
         d_fm_maxdev(2500),
         d_fm_deemph(7.5e-5),
@@ -122,6 +123,7 @@ public:
     inline int   get_agc_hang() const { return d_agc_hang_ms; }
     inline int   get_agc_panning() const { return d_agc_panning; }
     inline bool  get_agc_panning_auto() const { return d_agc_panning_auto; }
+    inline bool  get_agc_mute() const { return d_agc_mute; }
     /* CW parameters */
     inline int   get_cw_offset() const { return d_cw_offset; }
     /* FM parameters */
@@ -174,6 +176,7 @@ public:
     virtual void  set_agc_hang(int hang_ms);
     virtual void  set_agc_panning(int panning);
     virtual void  set_agc_panning_auto(bool mode);
+    virtual void  set_agc_mute(bool agc_mute);
     /* CW parameters */
     virtual void set_cw_offset(int offset);
     /* FM parameters */
@@ -234,6 +237,7 @@ protected:
     int              d_agc_hang_ms;
     int              d_agc_panning;
     int              d_agc_panning_auto;
+    bool             d_agc_mute;
 
     int              d_cw_offset;        /*!< CW offset */
 
