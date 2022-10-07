@@ -46,6 +46,15 @@ DockAudio::DockAudio(QWidget *parent) :
     ui->audioPlayButton->setMinimumSize(48, 24);
     ui->audioConfButton->setMinimumSize(48, 24);
 #endif
+    muteButtonMenu = new QMenu(this);
+    // MenuItem Global mute
+    {
+        muteAllAction = new QAction("Global Mute", this);
+        muteAllAction->setCheckable(true);
+        muteButtonMenu->addAction(muteAllAction);
+        connect(muteAllAction, SIGNAL(toggled(bool)), this, SLOT(menuMuteAll(bool)));
+    }
+    ui->audioMuteButton->setContextMenuPolicy(Qt::CustomContextMenu);
 
     audioOptions = new CAudioOptions(this);
 
@@ -184,6 +193,11 @@ void DockAudio::setRecMaxGap(int time_ms)
     audioOptions->setRecMaxGap(time_ms);
 }
 
+void DockAudio::setAudioMute(bool on)
+{
+    ui->audioMuteButton->setChecked(on);
+}
+
 /*! Public slot to set new RX frequency in Hz. */
 void DockAudio::setRxFrequency(qint64 freq)
 {
@@ -279,7 +293,12 @@ void DockAudio::on_audioConfButton_clicked()
 /*! \brief Mute audio. */
 void DockAudio::on_audioMuteButton_clicked(bool checked)
 {
-    emit audioMuteChanged(checked);
+    emit audioMuteChanged(checked, false);
+}
+
+void DockAudio::on_audioMuteButton_customContextMenuRequested(const QPoint& pos)
+{
+    muteButtonMenu->popup(ui->audioMuteButton->mapToGlobal(pos));
 }
 
 /*! \brief Set status of audio record button. */
@@ -521,4 +540,10 @@ void DockAudio::decreaseAudioGainShortcut() {
 void DockAudio::copyRecSettingsToAllVFOs_clicked()
 {
     emit copyRecSettingsToAllVFOs();
+}
+
+void DockAudio::menuMuteAll(bool checked)
+{
+    emit audioMuteChanged(checked, true);
+    ui->audioMuteButton->setStyleSheet(checked?"color: rgb(255,0,0)":"");
 }
