@@ -198,8 +198,7 @@ void DockAudio::on_audioGainSlider_valueChanged(int value)
 
     // update dB label
     ui->audioGainDbLabel->setText(QString("%1 dB").arg(gain, 5, 'f', 1));
-    if (!ui->audioMuteButton->isChecked())
-        emit audioGainChanged(gain);
+    emit audioGainChanged(gain);
 }
 
 /*! \brief Streaming button clicked.
