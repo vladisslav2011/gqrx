@@ -1668,14 +1668,6 @@ receiver::status receiver::start_audio_recording()
 
         return STATUS_ERROR;
     }
-    if (!d_running)
-    {
-        /* receiver is not running */
-        std::cout << "Can not start audio recorder (receiver not running)" << std::endl;
-
-        return STATUS_ERROR;
-    }
-
     if (rx[d_current]->start_audio_recording() == 0)
         return STATUS_OK;
     else
@@ -1688,13 +1680,6 @@ receiver::status receiver::stop_audio_recording()
     if (!is_recording_audio()){
         /* error: we are not recording */
         std::cout << "ERROR: Can not stop audio recorder (not recording)" << std::endl;
-
-        return STATUS_ERROR;
-    }
-    if (!d_running)
-    {
-        /* receiver is not running */
-        std::cout << "Can not stop audio recorder (receiver not running)" << std::endl;
 
         return STATUS_ERROR;
     }
