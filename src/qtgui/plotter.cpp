@@ -386,6 +386,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 }
                 m_Xzero = pt.x();
                 updateOverlay();
+                return;
             }
         }
         if (m_TooltipsEnabled)
@@ -2334,6 +2335,34 @@ void CPlotter::drawBlackWaterfallLine(int line)
     }
 }
 
+void CPlotter::scrollWaterfall(int dy)
+{
+    if(dy==0)
+        return;
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
+    int w = m_WaterfallPixmap.width();
+    int h = m_WaterfallPixmap.height();
+    if (std::abs(dy)>=h)
+        return;
+    m_WaterfallPixmap.scroll(0, dy, 0, 0, w, h);
+    if(dy>0)
+    {
+        for (int k = 0; k < dy; k++)
+        {
+            m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
+        }
+    }else{
+        if(m_wfLineStats.size()<-dy)
+            for (int k = 0; k < -dy; k++)
+            {
+                if(!m_wfLineStats.isEmpty())
+                    m_wfLineStats.removeFirst();
+            }
+        else
+            m_wfLineStats.clear();
+    }
+}
+
 void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
 {
     std::unique_lock<std::mutex> lock(m_wf_mutex);
@@ -2784,6 +2813,7 @@ qint64 CPlotter::freqFromX(int x)
 // Convert from screen coordinate to timestamp and frequency
 void CPlotter::tsFreqFromWfXY(int x, int y, qint64 &ts, qint64 &freq)
 {
+    std::unique_lock<std::mutex> lock(m_wf_mutex);
     int h = m_OverlayPixmap.height();
 
     // ensure we are in the waterfall region
