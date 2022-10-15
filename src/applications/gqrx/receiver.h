@@ -124,6 +124,9 @@ public:
         typedef std::function<void(int, gr_complex*, float*, unsigned, uint64_t)> fft_data_ready;
         fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
         ~fft_reader();
+        void start_threads(int nthreads, rx_fft_c_sptr fft);
+        void stop_threads();
+        void reconfigure(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads);
         uint64_t ms_available();
         bool get_iq_fft_data(uint64_t ms, int n);
         void wait();
@@ -148,6 +151,7 @@ public:
             std::thread *thread;
             std::condition_variable start{};
         };
+        std::string d_filename;
         FILE * d_fd;
         int d_sample_size;
         int d_sample_rate;
@@ -489,6 +493,7 @@ private:
     gr::basic_block_sptr  audio_snk;  /*!< Pulse audio sink. */
     audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
+    receiver::fft_reader_sptr d_fft_reader;
     static std::string get_zero_file(void);
     static void audio_rec_event(receiver * self, int idx, std::string filename,
                                 bool running);

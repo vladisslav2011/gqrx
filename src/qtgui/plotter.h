@@ -51,6 +51,7 @@ public:
     void setNewFftData(float *fftData, float *wfData, int size, qint64 ts);
     void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
     void drawBlackWaterfallLine(int line);
+    void scrollWaterfall(int dy);
     void getWaterfallMetrics(int &lines, double &ms_per_line);
 
     void setCenterFreq(quint64 f);

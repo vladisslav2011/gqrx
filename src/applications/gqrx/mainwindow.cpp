@@ -2614,7 +2614,10 @@ void MainWindow::waterfall_background_func()
     double ms_per_line = 0.0;
     int maxlines = 0;
     int k = 0;
+    int line = 0;
     quint64 seek_pos = 0;
+    quint64 old_seek_pos = 0;
+    qint64 seek_delta = 0;
     int background_request = MainWindow::WF_NONE;
     int set_request = MainWindow::WF_NONE;
     int last_request = MainWindow::WF_NONE;
@@ -2649,8 +2652,13 @@ void MainWindow::waterfall_background_func()
             lines=0;
             ms_per_line = 0.0;
             ui->plotter->getWaterfallMetrics(lines, ms_per_line);
+            seek_delta = seek_pos - old_seek_pos;
+            old_seek_pos = seek_pos;
             if(ms_per_line > 0.0)
             {
+                qint64 nlines = seek_delta * 1000ll/(rx->get_input_rate()*ms_per_line);
+                ui->plotter->scrollWaterfall(nlines);
+                emit requestPlotterUpdate();
                 rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,
                                 std::placeholders::_1,
                                 std::placeholders::_2,
@@ -2661,6 +2669,14 @@ void MainWindow::waterfall_background_func()
                 quint64 ms_available = rd->ms_available();
                 maxlines = std::min(lines, int(ms_available / ms_per_line));
                 k = 0;
+                if(std::abs(nlines) > lines)
+                    line = 0;
+                else{
+                    if(nlines>=0)
+                        line=0;
+                    else
+                        line=lines+nlines;
+                }
                 set_request = MainWindow::WF_RUNNING;
             }else{
                 rd.reset();
@@ -2671,19 +2687,21 @@ void MainWindow::waterfall_background_func()
         {
             if(k<lines)
             {
-                if(k<=maxlines)
+                if(line<=maxlines)
                 {
-                    rd->get_iq_fft_data(k * ms_per_line, k);
+                    rd->get_iq_fft_data(line * ms_per_line, line);
                 }else{
-                    ui->plotter->drawBlackWaterfallLine(k);
+                    ui->plotter->drawBlackWaterfallLine(line);
                 }
             }
             k++;
+            line++;
+            if(line>=lines)
+                line = 0;
             if(k >= lines && background_request == MainWindow::WF_RUNNING)
             {
                 rd->wait();
                 emit requestPlotterUpdate();
-                rd.reset();
                 set_request = MainWindow::WF_NONE;
             }
         }
@@ -2691,7 +2709,7 @@ void MainWindow::waterfall_background_func()
         {
             //FIXME: Is it better to fill remaining lines with black color?
             emit requestPlotterUpdate();
-            rd.reset();
+            rd->wait();
             set_request = MainWindow::WF_NONE;
         }
         if(background_request > MainWindow::WF_EXIT)
