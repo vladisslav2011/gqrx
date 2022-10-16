@@ -108,7 +108,7 @@ private:
     resampler_ff_sptr         audio_rr1;  /*!< Audio resampler. */
     gr::fax::fax_demod::sptr  fax_decoder;
     bool                      fax_decoder_enable;
-    gr::rtty::rtty_demod::sptr d_rtty;	  // RTTY decoder
+    gr::rtty::rtty_demod::sptr d_rtty;      // RTTY decoder
     bool                      d_rtty_enable;
 
 
