@@ -151,20 +151,11 @@ rx_demod_fmpll::rx_demod_fmpll(float quad_rate, float max_dev, double pllbw)
                                                    (2.0*M_PI*max_dev/quad_rate),
                                                    (2.0*M_PI*(-max_dev)/quad_rate));
 
-    /* DC removal */
-    d_fftaps.resize(2);
-    d_fbtaps.resize(2);
-    d_fftaps[0] = 1.0;      // FIXME: could be configurable with a specified time constant
-    d_fftaps[1] = -1.0;
-    d_fbtaps[0] = 0.0;
-    d_fbtaps[1] = 0.99;
-    d_dcr = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
     d_hpf = gr::filter::fir_filter_fff::make(1, gr::filter::firdes::high_pass_2(1.0, d_quad_rate, 300.0, 50.0, 15.0));
 
     /* connect block */
     connect(self(), 0, d_pll_demod, 0);
-    connect(d_pll_demod, 0, d_dcr, 0);
-    connect(d_dcr, 0, self(), 0);
+    connect(d_pll_demod, 0, self(), 0);
 }
 
 rx_demod_fmpll::~rx_demod_fmpll ()
@@ -217,14 +208,14 @@ void rx_demod_fmpll::set_subtone_filter(bool state)
     d_subtone_filter = state;
     if(state)
     {
-        disconnect(d_dcr, 0, self(), 0);
-        connect(d_dcr, 0, d_hpf, 0);
+        disconnect(d_pll_demod, 0, self(), 0);
+        connect(d_pll_demod, 0, d_hpf, 0);
         connect(d_hpf, 0, self(), 0);
     }
     else
     {
-        disconnect(d_dcr, 0, d_hpf, 0);
+        disconnect(d_pll_demod, 0, d_hpf, 0);
         disconnect(d_hpf, 0, self(), 0);
-        connect(d_dcr, 0, self(), 0);
+        connect(d_pll_demod, 0, self(), 0);
     }
 }
