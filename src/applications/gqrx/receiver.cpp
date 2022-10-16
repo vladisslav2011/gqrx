@@ -2243,11 +2243,26 @@ enum receiver::rx_chain receiver::get_rx_chain() {
 
 /* generic rx decoder functions */
 int receiver::start_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
+    if(rx[d_current]->is_decoder_active(decoder_type))
+        return 0;
     return rx[d_current]->start_decoder(decoder_type);
 }
 
 int receiver::stop_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
-    return rx[d_current]->stop_decoder(decoder_type);
+    int ret = -1;
+    if(!rx[d_current]->is_decoder_active(decoder_type))
+        return 0;
+    if (d_running)
+    {
+        stop();
+        ret = rx[d_current]->stop_decoder(decoder_type);
+        start();
+    }
+    else
+    {
+        ret = rx[d_current]->stop_decoder(decoder_type);
+    }
+    return ret;
 }
 
 bool receiver::is_decoder_active(enum receiver_base_cf::rx_decoder decoder_type) const {
@@ -2268,53 +2283,6 @@ int receiver::get_decoder_param(enum receiver_base_cf::rx_decoder decoder_type, 
 
 int receiver::get_decoder_data(enum receiver_base_cf::rx_decoder decoder_type,void* data, int &num) {
     return rx[d_current]->get_decoder_data(decoder_type,data,num);
-}
-
-void receiver::get_rds_data(std::string &outbuff, int &num)
-{
-    rx[d_current]->get_rds_data(outbuff, num);
-}
-
-void receiver::start_rds_decoder(void)
-{
-    if (is_rds_decoder_active())
-        return;
-    if (d_running)
-    {
-        stop();
-        rx[d_current]->start_rds_decoder();
-        start();
-    }
-    else
-    {
-        rx[d_current]->start_rds_decoder();
-    }
-}
-
-void receiver::stop_rds_decoder(void)
-{
-    if (!is_rds_decoder_active())
-        return;
-    if (d_running)
-    {
-        stop();
-        rx[d_current]->stop_rds_decoder();
-        start();
-    }
-    else
-    {
-        rx[d_current]->stop_rds_decoder();
-    }
-}
-
-bool receiver::is_rds_decoder_active(void) const
-{
-    return rx[d_current]->is_rds_decoder_active();
-}
-
-void receiver::reset_rds_parser(void)
-{
-    rx[d_current]->reset_rds_parser();
 }
 
 int receiver::sample_size_from_format(enum file_formats fmt)

@@ -5,6 +5,7 @@
  *
  * Copyright 2011-2014 Alexandru Csete OZ9AEC.
  * Copyright (C) 2013 by Elias Oenal <EliasOenal@gmail.com>
+ * Generic rx decoder interface and rds interface mod Copyright 2022 Marc CAPDEVILLE F4JMZ
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1355,8 +1356,8 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     uiDockBookmarks->setNewFrequency(rx_freq);
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
-    if (rx->is_rds_decoder_active())
-        rx->reset_rds_parser();
+    if (rx->is_decoder_active(receiver_base_cf::RX_DECODER_RDS))
+        rx->reset_decoder(receiver_base_cf::RX_DECODER_RDS);
     if (delta_freq)
     {
         std::set<int> del_list;
@@ -1514,7 +1515,6 @@ void MainWindow::setFilterOffset(qint64 freq_hz)
 
     auto rx_freq = d_hw_freq + d_lnb_lo + freq_hz;
     setNewFrequency(rx_freq);
-
 }
 
 /**
@@ -1661,7 +1661,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0;
     Modulations::filter_shape filter_shape;
-    bool    rds_enabled;
+    bool    rds_decoder_enabled;
 
     // validate mode_idx
     if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_LAST)
@@ -1695,8 +1695,8 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 
     if (mode_idx != rx->get_demod())
     {
-        rds_enabled = rx->is_rds_decoder_active();
-        if (rds_enabled)
+        rds_decoder_enabled = rx->is_decoder_active(receiver_base_cf::RX_DECODER_RDS);
+        if (rds_decoder_enabled)
             setRdsDecoder(false);
         uiDockRDS->setDisabled();
 
@@ -1734,7 +1734,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
         case Modulations::MODE_WFM_STEREO_OIRT:
             /* Broadcast FM */
             uiDockRDS->setEnabled();
-            if (rds_enabled)
+            if (rds_decoder_enabled)
                 setRdsDecoder(true);
             break;
 
@@ -2210,10 +2210,10 @@ void MainWindow::rdsTimeout()
     std::string buffer;
     int num;
 
-    rx->get_rds_data(buffer, num);
+    rx->get_decoder_data(receiver_base_cf::RX_DECODER_RDS, &buffer, num);
     while(num!=-1) {
         uiDockRDS->updateRDS(QString::fromStdString(buffer), num);
-        rx->get_rds_data(buffer, num);
+    rx->get_decoder_data(receiver_base_cf::RX_DECODER_RDS, &buffer, num);
     }
 }
 
@@ -3192,6 +3192,8 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
     }
 
     setNewFrequency(freq);
+    if (rx->is_decoder_active(receiver_base_cf::RX_DECODER_RDS))
+        rx->reset_decoder(receiver_base_cf::RX_DECODER_RDS);
 }
 
 /* CPlotter::NewDemodFreqLoad() is emitted */
@@ -3376,15 +3378,15 @@ void MainWindow::setRdsDecoder(bool checked)
     {
         qDebug() << "Starting RDS decoder.";
         uiDockRDS->showEnabled();
-        rx->start_rds_decoder();
-        rx->reset_rds_parser();
+        rx->start_decoder(receiver_base_cf::RX_DECODER_RDS);
+        rx->reset_decoder(receiver_base_cf::RX_DECODER_RDS);
         rds_timer->start(250);
     }
     else
     {
         qDebug() << "Stopping RDS decoder.";
         uiDockRDS->showDisabled();
-        rx->stop_rds_decoder();
+        rx->stop_decoder(receiver_base_cf::RX_DECODER_RDS);
         rds_timer->stop();
     }
     remote->setRDSstatus(checked);
@@ -3758,8 +3760,8 @@ void MainWindow::loadRxToGUI()
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
 
-    if (rx->is_rds_decoder_active())
-        rx->reset_rds_parser();
+    if (rx->is_decoder_active(receiver_base_cf::RX_DECODER_RDS))
+        rx->reset_decoder(receiver_base_cf::RX_DECODER_RDS);
 
     rx->get_filter(low, high, fs);
     updateDemodGUIRanges();
@@ -3813,7 +3815,7 @@ void MainWindow::loadRxToGUI()
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
         uiDockRDS->setEnabled();
-        setRdsDecoder(rx->is_rds_decoder_active());
+        setRdsDecoder(rx->is_decoder_active(receiver_base_cf::RX_DECODER_RDS));
         break;
     default:
         uiDockRDS->setDisabled();
