@@ -119,11 +119,7 @@ public:
 private:
     /* GR blocks */
     gr::analog::pll_freqdet_cf::sptr    d_pll_demod;
-    gr::filter::iir_filter_ffd::sptr    d_dcr;    /*! DC removal (IIR high pass). */
     gr::filter::fir_filter_fff::sptr    d_hpf;
-    /* IIR DC-removal filter taps */
-    std::vector<double> d_fftaps;   /*! Feed forward taps. */
-    std::vector<double> d_fbtaps;   /*! Feed back taps. */
 
     /* other parameters */
     float       d_quad_rate;     /*! Quadrature rate. */
