@@ -52,4 +52,11 @@ add_source_files(SRCS_LIST
 	rx_squelch.h
 	rx_rnnoise.cpp
 	rx_rnnoise.h
+	fax/fax_decoder.h
+	fax/fax_decoder_impl.cpp
+	fax/fax_decoder_impl.h
+	fax/fax_demod.cpp
+	fax/fax_demod.h
+	fax/fax_store.cpp
+	fax/fax_store.h
 )
