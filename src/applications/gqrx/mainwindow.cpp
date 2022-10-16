@@ -5,7 +5,7 @@
  *
  * Copyright 2011-2014 Alexandru Csete OZ9AEC.
  * Copyright (C) 2013 by Elias Oenal <EliasOenal@gmail.com>
- * Generic rx decoder interface and rds interface mod Copyright 2022 Marc CAPDEVILLE F4JMZ
+ * Copyright 2022 Marc CAPDEVILLE F4JMZ
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -134,6 +134,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     /* create dock widgets */
     uiDockRxOpt = new DockRxOpt();
     uiDockRDS = new DockRDS();
+    uiDockFAX = new DockFAX();
     uiDockAudio = new DockAudio();
     uiDockInputCtl = new DockInputCtl();
     uiDockFft = new DockFft();
@@ -173,7 +174,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     addDockWidget(Qt::RightDockWidgetArea, uiDockAudio);
     addDockWidget(Qt::RightDockWidgetArea, uiDockRDS);
+    addDockWidget(Qt::RightDockWidgetArea, uiDockFAX);
+
     tabifyDockWidget(uiDockAudio, uiDockRDS);
+    tabifyDockWidget(uiDockRDS, uiDockFAX);
     uiDockAudio->raise();
 
     addDockWidget(Qt::BottomDockWidgetArea, uiDockBookmarks);
@@ -181,6 +185,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     /* hide docks that we don't want to show initially */
     uiDockBookmarks->hide();
     uiDockRDS->hide();
+    uiDockFAX->hide();
 
     /* Add dock widget actions to View menu. By doing it this way all signal/slot
        connections will be established automagially.
@@ -188,6 +193,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addAction(uiDockInputCtl->toggleViewAction());
     ui->menu_View->addAction(uiDockRxOpt->toggleViewAction());
     ui->menu_View->addAction(uiDockRDS->toggleViewAction());
+    ui->menu_View->addAction(uiDockFAX->toggleViewAction());
     ui->menu_View->addAction(uiDockAudio->toggleViewAction());
     ui->menu_View->addAction(uiDockFft->toggleViewAction());
     ui->menu_View->addAction(uiDockBookmarks->toggleViewAction());
@@ -273,6 +279,17 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(fftPeakHoldToggled(bool)), this, SLOT(setFftPeakHold(bool)));
     connect(uiDockFft, SIGNAL(peakDetectionToggled(bool)), this, SLOT(setPeakDetection(bool)));
     connect(uiDockRDS, SIGNAL(rdsDecoderToggled(bool)), this, SLOT(setRdsDecoder(bool)));
+    connect(uiDockFAX, SIGNAL(fax_start_decoder()), this, SLOT(start_fax_decoder()));
+    connect(uiDockFAX, SIGNAL(fax_stop_decoder()), this, SLOT(stop_fax_decoder()));
+    connect(uiDockFAX, SIGNAL(fax_reset_Clicked()), this, SLOT(reset_fax_decoder()));
+    connect(uiDockFAX, SIGNAL(fax_black_freq_Changed(float)), this, SLOT(set_fax_black_freq(float)));
+    connect(uiDockFAX, SIGNAL(fax_white_freq_Changed(float)), this, SLOT(set_fax_white_freq(float)));
+    connect(uiDockFAX, SIGNAL(fax_lpm_Changed(float)), this, SLOT(set_fax_lpm(float)));
+    connect(uiDockFAX, SIGNAL(fax_ioc_Changed(float)), this, SLOT(set_fax_ioc(float)));
+    connect(uiDockFAX, SIGNAL(fax_reset_Clicked()), this, SLOT(force_fax_reset()));
+    connect(uiDockFAX, SIGNAL(fax_sync_Clicked()), this, SLOT(force_fax_sync()));
+    connect(uiDockFAX, SIGNAL(fax_start_Clicked()), this, SLOT(force_fax_start()));
+    connect(uiDockFAX, SIGNAL(fax_save_Clicked()), this, SLOT(save_fax()));
 
     // Bookmarks
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(qint64, QString, int)), this, SLOT(onBookmarkActivated(qint64, QString, int)));
@@ -310,6 +327,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     rds_timer = new QTimer(this);
     connect(rds_timer, SIGNAL(timeout()), this, SLOT(rdsTimeout()));
+
+    fax_timer = new QTimer(this);
+    connect(fax_timer, SIGNAL(timeout()), this, SLOT(faxTimeout()));
 
     // enable frequency tooltips on FFT plot
     ui->plotter->setTooltipsEnabled(true);
@@ -403,6 +423,7 @@ MainWindow::~MainWindow()
     delete uiDockFft;
     delete uiDockInputCtl;
     delete uiDockRDS;
+    delete uiDockFAX;
     delete rx;
     delete remote;
     delete [] d_fftData;
@@ -1056,6 +1077,7 @@ void MainWindow::selectDemod(int mode_idx)
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0, click_res=100;
     bool    rds_decoder_enabled;
+    bool    fax_decoder_enabled;
 
     // validate mode_idx
     if (mode_idx < DockRxOpt::MODE_OFF || mode_idx >= DockRxOpt::MODE_LAST)
@@ -1072,6 +1094,11 @@ void MainWindow::selectDemod(int mode_idx)
     if (rds_decoder_enabled)
         setRdsDecoder(false);
     uiDockRDS->setDisabled();
+
+    fax_decoder_enabled = rx->is_decoder_active(receiver_base_cf::RX_DECODER_FAX);
+    if (fax_decoder_enabled)
+        stop_fax_decoder();
+    uiDockFAX->set_Disabled();
 
     switch (mode_idx) {
 
@@ -1180,6 +1207,12 @@ void MainWindow::selectDemod(int mode_idx)
         fhi = 5000;
         click_res = 100;
         break;
+    }
+
+    if (rx->get_rx_chain() == receiver::RX_CHAIN_NBRX) {
+        uiDockFAX->set_Enabled();
+        if (fax_decoder_enabled)
+            start_fax_decoder();
     }
 
     qDebug() << "Filter preset for mode" << mode_idx << "LO:" << flo << "HI:" << fhi;
@@ -1838,6 +1871,7 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         iq_fft_timer->stop();
         audio_fft_timer->stop();
         rds_timer->stop();
+        fax_timer->stop();
 
         /* stop receiver */
         rx->stop();
@@ -2435,4 +2469,143 @@ void MainWindow::updateClusterSpots()
 void MainWindow::frequencyFocusShortcut()
 {
     ui->freqCtrl->setFrequencyFocus();
+}
+
+/** FAX image update timeout. */
+void MainWindow::faxTimeout() {
+    int num = 0;
+    unsigned char * data = NULL;
+
+
+    while (rx->get_decoder_data(receiver_base_cf::RX_DECODER_FAX,data, num) != -1) {
+        if (!fax_running && num) { // New Image is starting
+            auto freq = (qint64)(rx->get_rf_freq());
+            fax_name = QDateTime::currentDateTimeUtc().toString("'gqrx_'yyyyMMdd_hhmmss_%1_'fax.png'").arg(freq);
+            fprintf(stderr,"FAX : Startting image %s\n",fax_name.toLocal8Bit().data());
+            fax_image=QImage(1,1,QImage::Format::Format_Grayscale8);
+            fax_running = true;
+        }
+
+        if (num) {
+            if (fax_image.width() < num)
+                fax_image = fax_image.copy(0,0,num,fax_image.height()+1);
+            else
+                fax_image = fax_image.copy(0,0,fax_image.width(),fax_image.height()+1);
+
+            data = fax_image.scanLine(fax_image.height()-1);
+        }
+        else { // End of image
+            fprintf(stderr,"FAX : end of image\n");
+            if (uiDockFAX->autoSave()) {
+                if (save_fax(fax_name) == 0 )
+                    fprintf(stderr,"FAX : Image saved to %s\n",fax_name.toLocal8Bit().data());
+                fax_running = false;
+            }
+        }
+    }
+
+    uiDockFAX->update_image(fax_image);
+}
+
+void MainWindow::start_fax_decoder() {
+        qDebug() << "Starting FAX decoder.";
+        uiDockFAX->show_Enabled();
+        rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"lpm",std::to_string(uiDockFAX->get_lpm()));
+        rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"black_freq",std::to_string(uiDockFAX->get_black_freq()));
+        rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"white_freq",std::to_string(uiDockFAX->get_white_freq()));
+        rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"ioc",std::to_string(uiDockFAX->get_ioc()));
+        rx->start_decoder(receiver_base_cf::RX_DECODER_FAX);
+        rx->reset_decoder(receiver_base_cf::RX_DECODER_FAX);
+        fax_timer->start(250);
+        fax_running = false;
+}
+
+void MainWindow::stop_fax_decoder() {
+        qDebug() << "Stopping FAX decoder.";
+        uiDockFAX->show_Disabled();
+        rx->stop_decoder(receiver_base_cf::RX_DECODER_FAX);
+        fax_timer->stop();
+        fax_running = false;
+}
+
+void MainWindow::set_fax_lpm(float baud_rate) {
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"lpm",std::to_string(baud_rate));
+}
+
+void MainWindow::set_fax_black_freq(float black_freq) {
+    std::string Val;
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"black_freq",std::to_string(black_freq));
+}
+
+void MainWindow::set_fax_white_freq(float white_freq) {
+    std::string Val;
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"white_freq",std::to_string(white_freq));
+}
+
+void MainWindow::set_fax_ioc(float ioc) {
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"ioc",std::to_string(ioc));
+}
+
+void MainWindow::reset_fax_decoder() {
+    fax_image=QImage(1,1,QImage::Format::Format_Grayscale8);
+    rx->reset_decoder(receiver_base_cf::RX_DECODER_FAX);
+    uiDockFAX->clearView();
+    fax_running = false;
+    fax_name.clear();
+}
+
+void MainWindow::force_fax_reset() {
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"force","reset");
+    fax_running = false;
+}
+
+void MainWindow::force_fax_sync() {
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"force","sync");
+    fax_running = false;
+}
+
+void MainWindow::force_fax_start() {
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_FAX,"force","start");
+}
+
+int MainWindow::save_fax(QString name) {
+    char Buff[256];
+    time_t t;
+
+    if (name.isEmpty())
+        return -1;
+
+    time(&t);
+    if (strftime(Buff,sizeof(Buff),"%c",localtime(&t))>0)
+        fax_image.setText("Date",Buff);
+
+    fax_image.setText("Frequency",QString::number(ui->freqCtrl->getFrequency()));
+
+    if (fax_image.save(name))
+        return 0;
+    else
+        return -1;
+}
+
+void MainWindow::save_fax() {
+    QString name = QFileDialog::getSaveFileName(this, "Save image", "", "All Files (*)");
+    QMessageBox msg;
+    char Buff[256];
+    time_t t;
+
+    if (name.isEmpty())
+        return;
+
+    time(&t);
+    if (strftime(Buff,sizeof(Buff),"%c",localtime(&t))>0)
+        fax_image.setText("Date",Buff);
+
+    fax_image.setText("Frequency",QString::number(ui->freqCtrl->getFrequency()));
+
+    if (fax_image.save(name))
+        msg.setText("Saved.");
+    else
+        msg.setText("Not saved.");
+
+    msg.exec();
 }
