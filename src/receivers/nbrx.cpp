@@ -45,6 +45,9 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     demod_am = make_rx_demod_am(NB_PREF_QUAD_RATE, true);
     demod_amsync = make_rx_demod_amsync(NB_PREF_QUAD_RATE, true, 0.001);
 
+    fax_decoder = gr::fax::fax_demod::make(NB_PREF_QUAD_RATE,-425,425,120,576);
+    fax_decoder_enable = false;
+
     audio_rr0.reset();
     audio_rr1.reset();
     if (d_audio_rate != NB_PREF_QUAD_RATE)
@@ -327,4 +330,138 @@ void nbrx::set_pll_bw(float pll_bw)
     receiver_base_cf::set_pll_bw(pll_bw);
     demod_amsync->set_pll_bw(pll_bw);
     demod_fmpll->set_pll_bw(pll_bw);
+}
+
+int nbrx::start_decoder(enum rx_decoder decoder_type) {
+    if (!is_decoder_active(decoder_type)) {
+        switch (decoder_type) {
+            case RX_DECODER_FAX:
+                lock();
+                connect(sql, 0, fax_decoder, 0);
+                unlock();
+                fax_decoder_enable = true;
+                return 0;
+            default:
+                break;
+        }
+    }
+
+    return -1;
+}
+
+int nbrx::stop_decoder(enum rx_decoder decoder_type) {
+    if (is_decoder_active(decoder_type)) {
+        switch (decoder_type) {
+            case RX_DECODER_FAX:
+                lock();
+                disconnect(sql, 0, fax_decoder, 0);
+                unlock();
+                fax_decoder_enable = false;
+                return 0;
+            default:
+                break;
+        }
+    }
+
+    return -1;
+}
+
+bool nbrx::is_decoder_active(enum rx_decoder decoder_type) {
+    switch (decoder_type) {
+        case RX_DECODER_ANY:
+        case RX_DECODER_FAX:
+            return fax_decoder_enable;
+        default:
+            break;
+    }
+    return false;
+}
+
+int nbrx::reset_decoder(enum rx_decoder decoder_type) {
+    switch (decoder_type) {
+        case RX_DECODER_ALL:
+        case RX_DECODER_FAX:
+            fax_decoder->reset();
+            return 0;
+        default:
+            break;
+    }
+
+    return -1;
+}
+
+int nbrx::set_decoder_param(enum rx_decoder decoder_type, std::string param, std::string val) {
+    switch (decoder_type) {
+        case RX_DECODER_FAX:
+            if (param == "black_freq")
+                fax_decoder->set_black_freq(std::stof(val));
+            else if (param == "white_freq")
+                fax_decoder->set_white_freq(std::stof(val));
+            else if (param == "lpm")
+                fax_decoder->set_lpm(std::stof(val));
+            else if (param == "ioc")
+                fax_decoder->set_ioc(std::stof(val));
+            else if (param == "force") {
+                if (val == "reset")
+                    fax_decoder->set_decoder_state(0);
+                else if (val == "sync")
+                    fax_decoder->set_decoder_state(2);
+                else if (val == "start")
+                    fax_decoder->set_decoder_state(5);
+                else return -1;
+            }
+            else return -1;
+            return 0;
+        default:
+            break;
+    }
+
+    return -1;
+}
+
+int nbrx::get_decoder_param(enum rx_decoder decoder_type, std::string param, std::string &val) {
+    switch (decoder_type) {
+        case RX_DECODER_FAX:
+            if (param == "black_freq")
+                val = std::to_string(fax_decoder->black_freq());
+            else if (param == "white_freq")
+                val = std::to_string(fax_decoder->white_freq());
+            else if (param == "lpm")
+                val = std::to_string(fax_decoder->lpm());
+            else if (param == "ioc")
+                val = std::to_string(fax_decoder->ioc());
+            else if (param == "state")
+                switch (fax_decoder->decoder_state()) {
+                    case 0: val = "Reset"; break;
+                    case 1: val = "Wait start"; break;
+                    case 2: val = "Wait white"; break;
+                    case 3: val = "Measure white"; break;
+                    case 4: val = "Measure black"; break;
+                    case 5: val = "Get lines"; break;
+                    default : return -1;
+                }
+            else return -1;
+            return 0;
+        default:
+            break;
+    }
+
+    return -1;
+}
+
+int nbrx::get_decoder_data(enum rx_decoder decoder_type,void* data, int& num) {
+    if (is_decoder_active(decoder_type)) {
+        switch (decoder_type) {
+            case RX_DECODER_FAX:
+                if (num==-1)
+                    return fax_decoder->get_data((unsigned char*)NULL,(unsigned int*)&num);
+                else
+                    return fax_decoder->get_data((unsigned char*)data,(unsigned int*)&num);
+                break;
+            default:
+                break;
+        }
+    }
+
+    return -1;
 }

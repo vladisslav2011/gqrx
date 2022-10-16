@@ -31,6 +31,7 @@
 #include "dsp/rx_filter.h"
 #include "dsp/rx_demod_fm.h"
 #include "dsp/rx_demod_am.h"
+#include "dsp/fax/fax_demod.h"
 
 class nbrx;
 
@@ -68,6 +69,15 @@ public:
 
     void set_demod(Modulations::idx new_demod) override;
 
+    /* generic rx decoder interface  decoder */
+    int  start_decoder(enum rx_decoder decoder_type);
+    int  stop_decoder(enum rx_decoder decoder_type);
+    bool is_decoder_active(enum rx_decoder decoder_type);
+    int  reset_decoder(enum rx_decoder decoder_type);
+    int  set_decoder_param(enum rx_decoder decoder_type, std::string param, std::string val);
+    int  get_decoder_param(enum rx_decoder decoder_type, std::string param, std::string &val);
+    int  get_decoder_data(enum rx_decoder decoder_type,void* data, int& num);
+
     /* FM parameters */
     void set_fm_maxdev(float maxdev_hz) override;
     void set_fm_deemph(double tau) override;
@@ -95,6 +105,8 @@ private:
     rx_demod_amsync_sptr      demod_amsync;   /*!< AM-Sync demodulator. */
     resampler_ff_sptr         audio_rr0;  /*!< Audio resampler. */
     resampler_ff_sptr         audio_rr1;  /*!< Audio resampler. */
+    gr::fax::fax_demod::sptr  fax_decoder;
+    bool                      fax_decoder_enable;
 
     gr::basic_block_sptr      demod;    // dummy pointer used for simplifying reconf
 };
