@@ -4,6 +4,7 @@
  *           https://gqrx.dk/
  *
  * Copyright 2011-2014 Alexandru Csete OZ9AEC.
+ * Generic rx decoder interface Copyright 2022 Marc CAPDEVILLE F4JMZ
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -87,9 +88,10 @@ public:
 
     /** Supported receiver types. */
     enum rx_chain {
-        RX_CHAIN_NONE  = 0,   /*!< No receiver, just spectrum analyzer. */
-        RX_CHAIN_NBRX  = 1,   /*!< Narrow band receiver (AM, FM, SSB). */
-        RX_CHAIN_WFMRX = 2    /*!< Wide band FM receiver (for broadcast). */
+        RX_CHAIN_INVALID =-1,   /*!< Error. */
+        RX_CHAIN_NONE    = 0,   /*!< No receiver, just spectrum analyzer. */
+        RX_CHAIN_NBRX    = 1,   /*!< Narrow band receiver (AM, FM, SSB). */
+        RX_CHAIN_WFMRX   = 2    /*!< Wide band FM receiver (for broadcast). */
     };
 
     /** Filter shape (convenience wrappers for "transition width"). */
@@ -302,6 +304,7 @@ public:
     status      set_mute(bool mute);
     bool        get_mute();
     /* Demod */
+    rx_chain    rx_chain_from_demod(Modulations::idx demod);
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
@@ -384,6 +387,15 @@ public:
     bool        is_rds_decoder_active(void) const;
     void        reset_rds_parser(void);
 
+    /* generic rx decoder functions */
+    int         start_decoder(enum receiver_base_cf::rx_decoder decoder_type);
+    int         stop_decoder(enum receiver_base_cf::rx_decoder decoder_type);
+    bool        is_decoder_active(enum receiver_base_cf::rx_decoder decoder_type) const;
+    int         reset_decoder(enum receiver_base_cf::rx_decoder decoder_type);
+    int         set_decoder_param(enum receiver_base_cf::rx_decoder decoder_type, std::string param, std::string val);
+    int         get_decoder_param(enum receiver_base_cf::rx_decoder decoder_type, std::string param, std::string &val);
+    int         get_decoder_data(enum receiver_base_cf::rx_decoder decoder_type, void* data, int& num);
+
     /* utility functions */
     static std::string escape_filename(std::string filename);
     static int sample_size_from_format(enum file_formats fmt);
@@ -393,6 +405,7 @@ public:
     }
     uint64_t get_filesource_timestamp_ms();
     fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb, int nthreads);
+    enum rx_chain get_rx_chain();
 
 private:
     void        connect_all(enum file_formats fmt);
@@ -433,6 +446,7 @@ private:
     std::string output_devstr;      /*!< Current output device string. */
 
     gr::basic_block_sptr iq_src;    /*!< Points to the block, connected to rx[]. */
+    rx_chain    d_rx_chain;    /*! Current Rx chain */
 
     gr::top_block_sptr         tb;        /*!< The GNU Radio top block. */
 

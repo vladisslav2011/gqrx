@@ -4,6 +4,7 @@
  *           https://gqrx.dk/
  *
  * Copyright 2012 Alexandru Csete OZ9AEC.
+ * Generic rx decoder interface Copyright 2022 Marc CAPDEVILLE F4JMZ
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -265,6 +266,45 @@ void receiver_base_cf::set_agc_mute(bool agc_mute)
 float receiver_base_cf::get_agc_gain()
 {
     return agc->get_current_gain();
+}
+
+/* Generic rx decoder virtual function default implementation */
+int receiver_base_cf::start_decoder(enum rx_decoder decoder_type) {
+    (void) decoder_type;
+    return -1;
+}
+
+int receiver_base_cf::stop_decoder(enum rx_decoder decoder_type) {
+    (void) decoder_type;
+    return -1;
+}
+
+int receiver_base_cf::reset_decoder(enum rx_decoder decoder_type) {
+    (void) decoder_type;
+    return -1;
+}
+
+bool receiver_base_cf::is_decoder_active(enum rx_decoder decoder_type) {
+    return false;
+}
+
+int receiver_base_cf::set_decoder_param(enum rx_decoder decoder_type, std::string param, std::string val) {
+    (void) param;
+    (void) val;
+    return -1;
+}
+
+int receiver_base_cf::get_decoder_param(enum rx_decoder decoder_type, std::string param, std::string &val) {
+    (void) param;
+    (void) val;
+    return -1;
+}
+
+int receiver_base_cf::get_decoder_data(enum rx_decoder decoder_type, void* data, int &num) {
+    (void) decoder_type;
+        (void) data;
+    (void) num;
+        return -1;
 }
 
 void receiver_base_cf::get_rds_data(std::string &outbuff, int &num)

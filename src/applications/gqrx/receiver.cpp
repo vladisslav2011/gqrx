@@ -4,6 +4,7 @@
  *           https://gqrx.dk/
  *
  * Copyright 2011-2014 Alexandru Csete OZ9AEC.
+ * Generic rx decoder interface Copyright 2022 Marc CAPDEVILLE F4JMZ
  *
  * Gqrx is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +76,8 @@ receiver::receiver(const std::string input_device,
       d_iq_balance(false),
       d_mute(false),
       d_iq_fmt(FILE_FORMAT_NONE),
-      d_last_format(FILE_FORMAT_NONE)
+      d_last_format(FILE_FORMAT_NONE),
+      d_rx_chain(RX_CHAIN_NONE)
 {
 
     tb = gr::make_top_block("gqrx");
@@ -1363,21 +1365,12 @@ bool receiver::get_mute()
     return d_mute;
 }
 
-
-receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
+receiver::rx_chain receiver::rx_chain_from_demod(Modulations::idx demod)
 {
-    status ret = STATUS_OK;
-    rx_chain rxc = RX_CHAIN_NONE;
-    if (old_idx == -1)
-    {
-        background_rx();
-        disconnect_rx();
-    }
-
     switch (demod)
     {
     case Modulations::MODE_OFF:
-        rxc = RX_CHAIN_NONE;
+        return RX_CHAIN_NONE;
         break;
 
     case Modulations::MODE_RAW:
@@ -1389,20 +1382,33 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
     case Modulations::MODE_USB:
     case Modulations::MODE_CWL:
     case Modulations::MODE_CWU:
-        rxc = RX_CHAIN_NBRX;
+        return RX_CHAIN_NBRX;
         break;
 
     case Modulations::MODE_WFM_MONO:
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
-        rxc = RX_CHAIN_WFMRX;
+        return RX_CHAIN_WFMRX;
         break;
 
     default:
-        ret = STATUS_ERROR;
+        return RX_CHAIN_INVALID;
         break;
     }
-    if (ret != STATUS_ERROR)
+}
+
+receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
+{
+    status ret = STATUS_OK;
+    rx_chain rxc = RX_CHAIN_NONE;
+    if (old_idx == -1)
+    {
+        background_rx();
+        disconnect_rx();
+    }
+
+    rxc = rx_chain_from_demod(demod);
+    if (rxc != RX_CHAIN_INVALID)
     {
         receiver_base_cf_sptr old_rx = rx[(old_idx == -1) ? d_current : old_idx];
         // RX demod chain
@@ -2206,6 +2212,7 @@ void receiver::background_rx()
 void receiver::foreground_rx()
 {
     std::cerr<<"foreground_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
+    d_rx_chain = rx_chain_from_demod(rx[d_current]->get_demod());
     if (rx[d_current]->get_demod() != Modulations::MODE_OFF)
     {
         tb->connect(rx[d_current], 0, audio_fft, 0);
@@ -2228,6 +2235,39 @@ void receiver::foreground_rx()
     }
     d_mute = !d_mute;
     set_mute(!d_mute);
+}
+
+enum receiver::rx_chain receiver::get_rx_chain() {
+    return d_rx_chain;
+}
+
+/* generic rx decoder functions */
+int receiver::start_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
+    return rx[d_current]->start_decoder(decoder_type);
+}
+
+int receiver::stop_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
+    return rx[d_current]->stop_decoder(decoder_type);
+}
+
+bool receiver::is_decoder_active(enum receiver_base_cf::rx_decoder decoder_type) const {
+    return rx[d_current]->is_decoder_active(decoder_type);
+}
+
+int receiver::reset_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
+    return rx[d_current]->reset_decoder(decoder_type);
+}
+
+int receiver::set_decoder_param(enum receiver_base_cf::rx_decoder decoder_type, std::string param, std::string val) {
+    return rx[d_current]->set_decoder_param(decoder_type,param,val);
+}
+
+int receiver::get_decoder_param(enum receiver_base_cf::rx_decoder decoder_type, std::string param, std::string &val) {
+    return rx[d_current]->get_decoder_param(decoder_type,param,val);
+}
+
+int receiver::get_decoder_data(enum receiver_base_cf::rx_decoder decoder_type,void* data, int &num) {
+    return rx[d_current]->get_decoder_data(decoder_type,data,num);
 }
 
 void receiver::get_rds_data(std::string &outbuff, int &num)
