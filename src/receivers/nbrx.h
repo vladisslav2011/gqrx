@@ -31,6 +31,7 @@
 #include "dsp/rx_filter.h"
 #include "dsp/rx_demod_fm.h"
 #include "dsp/rx_demod_am.h"
+#include "dsp/rtty/rtty_demod.h"
 #include "dsp/fax/fax_demod.h"
 
 class nbrx;
@@ -107,6 +108,9 @@ private:
     resampler_ff_sptr         audio_rr1;  /*!< Audio resampler. */
     gr::fax::fax_demod::sptr  fax_decoder;
     bool                      fax_decoder_enable;
+    gr::rtty::rtty_demod::sptr d_rtty;	  // RTTY decoder
+    bool                      d_rtty_enable;
+
 
     gr::basic_block_sptr      demod;    // dummy pointer used for simplifying reconf
 };

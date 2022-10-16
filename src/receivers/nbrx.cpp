@@ -48,6 +48,13 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     fax_decoder = gr::fax::fax_demod::make(NB_PREF_QUAD_RATE,-425,425,120,576);
     fax_decoder_enable = false;
 
+    d_rtty = gr::rtty::rtty_demod::make(NB_PREF_QUAD_RATE,
+                                        -225,225,
+                                        50,
+                                        gr::rtty::rtty_demod::RTTY_MODE_5BITS_BAUDOT,
+                                        gr::rtty::rtty_demod::RTTY_PARITY_NONE);
+    d_rtty_enable = false;
+
     audio_rr0.reset();
     audio_rr1.reset();
     if (d_audio_rate != NB_PREF_QUAD_RATE)
@@ -341,6 +348,12 @@ int nbrx::start_decoder(enum rx_decoder decoder_type) {
                 unlock();
                 fax_decoder_enable = true;
                 return 0;
+            case RX_DECODER_RTTY:
+                lock();
+                connect(sql, 0, d_rtty, 0);
+                d_rtty_enable = true;
+                unlock();
+                return 0;
             default:
                 break;
         }
@@ -358,6 +371,12 @@ int nbrx::stop_decoder(enum rx_decoder decoder_type) {
                 unlock();
                 fax_decoder_enable = false;
                 return 0;
+            case RX_DECODER_RTTY:
+                lock();
+                d_rtty_enable = false;
+                disconnect(sql, 0, d_rtty, 0);
+                unlock();
+                return 0;
             default:
                 break;
         }
@@ -369,8 +388,11 @@ int nbrx::stop_decoder(enum rx_decoder decoder_type) {
 bool nbrx::is_decoder_active(enum rx_decoder decoder_type) {
     switch (decoder_type) {
         case RX_DECODER_ANY:
+            return d_rtty_enable || fax_decoder_enable;
         case RX_DECODER_FAX:
             return fax_decoder_enable;
+        case RX_DECODER_RTTY:
+            return d_rtty_enable;
         default:
             break;
     }
@@ -382,6 +404,9 @@ int nbrx::reset_decoder(enum rx_decoder decoder_type) {
         case RX_DECODER_ALL:
         case RX_DECODER_FAX:
             fax_decoder->reset();
+            return 0;
+        case RX_DECODER_RTTY:
+            d_rtty->reset();
             return 0;
         default:
             break;
@@ -410,6 +435,19 @@ int nbrx::set_decoder_param(enum rx_decoder decoder_type, std::string param, std
                     fax_decoder->set_decoder_state(5);
                 else return -1;
             }
+            else return -1;
+            return 0;
+        case RX_DECODER_RTTY:
+            if (param == "mark_freq")
+                d_rtty->set_mark_freq(std::stof(val));
+            else if (param == "space_freq")
+                d_rtty->set_space_freq(std::stof(val));
+            else if (param == "baud_rate")
+                d_rtty->set_baud_rate(std::stof(val));
+            else if (param == "mode")
+                d_rtty->set_mode((gr::rtty::rtty_demod::rtty_mode)std::stoi(val));
+            else if (param == "parity")
+                d_rtty->set_parity((gr::rtty::rtty_demod::rtty_parity)std::stoi(val));
             else return -1;
             return 0;
         default:
@@ -442,6 +480,19 @@ int nbrx::get_decoder_param(enum rx_decoder decoder_type, std::string param, std
                 }
             else return -1;
             return 0;
+        case RX_DECODER_RTTY:
+            if (param == "mark_freq")
+                val = std::to_string(d_rtty->mark_freq());
+            else if (param == "space_freq")
+                val = std::to_string(d_rtty->space_freq());
+            else if (param == "baud_rate")
+                val = std::to_string(d_rtty->baud_rate());
+            else if (param == "mode")
+                val = std::to_string(d_rtty->mode());
+            else if (param == "parity")
+                val = std::to_string(d_rtty->parity());
+            else return -1;
+            return 0;
         default:
             break;
     }
@@ -458,6 +509,11 @@ int nbrx::get_decoder_data(enum rx_decoder decoder_type,void* data, int& num) {
                 else
                     return fax_decoder->get_data((unsigned char*)data,(unsigned int*)&num);
                 break;
+            case RX_DECODER_RTTY:
+                num = d_rtty->get_data(*(std::string*)data);
+                if (num == -1)
+                    return -1;
+                return 0;
             default:
                 break;
         }
