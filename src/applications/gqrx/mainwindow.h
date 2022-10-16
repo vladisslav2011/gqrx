@@ -40,6 +40,7 @@
 #include "qtgui/dockbookmarks.h"
 #include "qtgui/dockrds.h"
 #include "qtgui/dockfax.h"
+#include "qtgui/dockrtty.h"
 #include "qtgui/afsk1200win.h"
 #include "qtgui/iq_tool.h"
 #include "qtgui/dxc_options.h"
@@ -101,7 +102,8 @@ private:
     DockFft        *uiDockFft;
     DockBookmarks  *uiDockBookmarks;
     DockRDS        *uiDockRDS;
-    DockFAX       *uiDockFAX;
+    DockFAX        *uiDockFAX;
+    DockRTTY       *uiDockRTTY;
 
     CIqTool        *iq_tool;
     DXCOptions     *dxc_options;
@@ -117,6 +119,7 @@ private:
     QTimer   *audio_fft_timer;
     QTimer   *rds_timer;
     QTimer   *fax_timer;
+    QTimer   *rtty_timer;
 
     receiver *rx;
 
@@ -226,6 +229,17 @@ private slots:
     int  save_fax(QString name);
     void save_fax();
 
+    /* RTTY */
+    void start_rtty_decoder();
+    void stop_rtty_decoder();
+    void reset_rtty_decoder();
+    void set_rtty_baud_rate(float);
+    void set_rtty_mark_freq(float);
+    void set_rtty_space_freq(float);
+    void set_rtty_mode(int);
+    void set_rtty_parity(int);
+    void save_rtty(QString text);
+
     /* Bookmarks */
     void onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth);
 
@@ -264,6 +278,7 @@ private slots:
     void audioFftTimeout();
     void rdsTimeout();
     void faxTimeout();
+    void rttyTimeout();
 };
 
 #endif // MAINWINDOW_H
