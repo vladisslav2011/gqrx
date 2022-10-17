@@ -528,8 +528,38 @@
              <string>FFT refresh rate</string>
             </property>
             <property name="currentIndex">
-             <number>3</number>
+             <number>9</number>
             </property>
+            <item>
+             <property name="text">
+              <string>500 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>400 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>300 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>200 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>100 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>75 fps</string>
+             </property>
+            </item>
             <item>
              <property name="text">
               <string>60 fps</string>
