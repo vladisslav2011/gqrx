@@ -54,9 +54,6 @@ namespace gr {
                     d_mark_freq(mark_freq),
                     d_space_freq(space_freq) {
 
-            d_rrc_taps = gr::filter::firdes::root_raised_cosine(1.0, d_sample_rate, d_symbol_rate, FSK_DEMOD_ALPHA, FSK_DEMOD_NTAPS);
-            set_history(d_rrc_taps.size());
-
             set_mark_freq(d_mark_freq);
             set_space_freq(d_space_freq);
         }
@@ -73,9 +70,6 @@ namespace gr {
 
             d_sample_rate = sample_rate;
 
-            d_rrc_taps = gr::filter::firdes::root_raised_cosine(1.0, d_sample_rate, d_symbol_rate, FSK_DEMOD_ALPHA, FSK_DEMOD_NTAPS);
-            set_history(d_rrc_taps.size());
-
             set_mark_freq(d_mark_freq);
             set_space_freq(d_space_freq);
 
@@ -91,9 +85,6 @@ namespace gr {
 
             gr::sync_decimator::set_decimation(decimation);
 
-            d_rrc_taps = gr::filter::firdes::root_raised_cosine(1.0, d_sample_rate, d_symbol_rate, FSK_DEMOD_ALPHA, FSK_DEMOD_NTAPS);
-            set_history(d_rrc_taps.size());
-
             set_mark_freq(d_mark_freq);
             set_space_freq(d_space_freq);
         }
@@ -107,9 +98,6 @@ namespace gr {
 
             d_symbol_rate = symbol_rate;
 
-            d_rrc_taps = gr::filter::firdes::root_raised_cosine(1.0, d_sample_rate, d_symbol_rate, FSK_DEMOD_ALPHA, FSK_DEMOD_NTAPS);
-            set_history(d_rrc_taps.size());
-
             set_mark_freq(d_mark_freq);
             set_space_freq(d_space_freq);
         }
@@ -121,17 +109,10 @@ namespace gr {
         void fsk_demod_impl::set_mark_freq(float mark_freq) {
             std::lock_guard<std::recursive_mutex> lock(d_mutex);
 
-            std::vector<gr_complex> ctaps(d_rrc_taps.size());
-            float fwT0 = 2* GR_M_PI * (mark_freq/d_sample_rate);
-
-
-            for (unsigned int i=0; i< d_rrc_taps.size(); i++) {
-                ctaps[i] = d_rrc_taps[i] * exp(gr_complex(0, i * fwT0));
-            }
-
-            d_mark_fir.set_taps(ctaps);
             d_mark_freq = mark_freq;
-
+            d_mark_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_mark_freq - d_symbol_rate*0.75, d_mark_freq + d_symbol_rate*0.75, d_symbol_rate/4);
+            set_history(std::max(d_mark_taps.size(), d_space_taps.size()));
+            d_mark_fir.set_taps(d_mark_taps);
         }
 
         float fsk_demod_impl::mark_freq() const {
@@ -141,16 +122,10 @@ namespace gr {
         void fsk_demod_impl::set_space_freq(float space_freq) {
             std::lock_guard<std::recursive_mutex> lock(d_mutex);
 
-            std::vector<gr_complex> ctaps(d_rrc_taps.size());
-            float fwT0 = 2* GR_M_PI * (space_freq/d_sample_rate);
-
-
-            for (unsigned int i=0; i< d_rrc_taps.size(); i++) {
-                ctaps[i] = d_rrc_taps[i] * exp(gr_complex(0, i * fwT0));
-            }
-
-            d_space_fir.set_taps(ctaps);
             d_space_freq = space_freq;
+            d_space_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_space_freq - d_symbol_rate*0.75, d_space_freq + d_symbol_rate*0.75, d_symbol_rate/4);
+            set_history(std::max(d_mark_taps.size(), d_space_taps.size()));
+            d_space_fir.set_taps(d_space_taps);
 
         }
 

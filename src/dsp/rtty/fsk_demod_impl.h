@@ -55,7 +55,8 @@ namespace gr {
             private:
                 std::recursive_mutex d_mutex;
 
-                std::vector<float> d_rrc_taps;
+                std::vector<gr_complex> d_mark_taps;
+                std::vector<gr_complex> d_space_taps;
 
                 gr::filter::kernel::fir_filter_ccc d_mark_fir;
                 gr::filter::kernel::fir_filter_ccc d_space_fir;
