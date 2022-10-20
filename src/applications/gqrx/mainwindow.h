@@ -136,7 +136,8 @@ private:
     static const int WF_RESTART = 1;
     static const int WF_RUNNING = 2;
     static const int WF_STOP = 3;
-    static const int WF_EXIT = 4;
+    static const int WF_SET_POS = 4;
+    static const int WF_EXIT = 5;
     std::atomic<int> waterfall_background_request{0};
     std::atomic<quint64> d_seek_pos{0};
     std::mutex waterfall_background_mutex;

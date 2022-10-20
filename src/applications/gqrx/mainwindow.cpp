@@ -2628,6 +2628,11 @@ void MainWindow::waterfall_background_func()
             waterfall_background_wake.wait(lock);
             lock.unlock();
         }
+        if(background_request == MainWindow::WF_SET_POS)
+        {
+            old_seek_pos = seek_pos = d_seek_pos;
+            set_request = MainWindow::WF_NONE;
+        }
         if(background_request == MainWindow::WF_EXIT)
         {
             return;
@@ -2716,7 +2721,7 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
         iqFftToMag(n,data,tmpbuf);
         ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
         if((line & 15) == 0)
-            emit plotterUpdate();
+            emit requestPlotterUpdate();
     }
 }
 
@@ -2951,6 +2956,11 @@ void MainWindow::on_actionDSP_triggered(bool checked)
     }
     else
     {
+        {
+            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+            waterfall_background_request = MainWindow::WF_SET_POS;
+            waterfall_background_wake.notify_one();
+        }
         /* stop GUI timers */
         meter_timer->stop();
         iq_fft_timer->stop();
@@ -3000,6 +3010,11 @@ void MainWindow::on_plotter_setPlaying(bool state)
         }
         else
         {
+            {
+                std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+                waterfall_background_request = MainWindow::WF_SET_POS;
+                waterfall_background_wake.notify_one();
+            }
             /* stop GUI timers */
             meter_timer->stop();
             iq_fft_timer->stop();
