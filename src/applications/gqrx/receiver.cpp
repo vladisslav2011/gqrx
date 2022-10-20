@@ -2243,9 +2243,20 @@ enum receiver::rx_chain receiver::get_rx_chain() {
 
 /* generic rx decoder functions */
 int receiver::start_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
+    int ret = -1;
     if(rx[d_current]->is_decoder_active(decoder_type))
         return 0;
-    return rx[d_current]->start_decoder(decoder_type);
+    if (d_running)
+    {
+        stop();
+        ret = rx[d_current]->start_decoder(decoder_type);
+        start();
+    }
+    else
+    {
+        ret = rx[d_current]->stop_decoder(decoder_type);
+    }
+    return ret;
 }
 
 int receiver::stop_decoder(enum receiver_base_cf::rx_decoder decoder_type) {
