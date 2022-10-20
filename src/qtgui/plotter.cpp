@@ -379,11 +379,8 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 qint64 delta_hz = delta_px * m_Span / (m_OverlayPixmap.width() / m_DPR);
                 setFftCenterFreq(m_FftCenter + delta_hz);
                 emit newFftCenterFreq(m_FftCenter + delta_hz);
-                if(delta_py != 0)
-                {
-                    qint64 ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
-                    emit seekIQ(m_CapturedTs + ms_per_line * delta_py);
-                }
+                qint64 ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
+                emit seekIQ(m_CapturedTs + ms_per_line * delta_py);
                 m_Xzero = pt.x();
                 updateOverlay();
                 return;
