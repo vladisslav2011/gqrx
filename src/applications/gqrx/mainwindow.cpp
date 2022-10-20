@@ -2612,6 +2612,11 @@ void MainWindow::waterfall_background_func()
             waterfall_background_wake.wait(lock);
             lock.unlock();
         }
+        if(background_request == MainWindow::WF_SET_POS)
+        {
+            old_seek_pos = seek_pos = d_seek_pos;
+            set_request = MainWindow::WF_NONE;
+        }
         if(background_request == MainWindow::WF_EXIT)
         {
             return;
@@ -2626,7 +2631,7 @@ void MainWindow::waterfall_background_func()
             old_seek_pos = seek_pos;
             if(ms_per_line > 0.0)
             {
-                qint64 nlines = seek_delta * 1000ll/(rx->get_input_rate()*ms_per_line);
+                qint64 nlines = std::round(double(seek_delta) * 1000.0/double(rx->get_input_rate()*ms_per_line));
                 ui->plotter->scrollWaterfall(nlines);
                 emit requestPlotterUpdate();
                 rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,
@@ -2699,7 +2704,7 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
         iqFftToMag(n,data,tmpbuf);
         ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
         if((line & 15) == 0)
-            emit plotterUpdate();
+            emit requestPlotterUpdate();
     }
 }
 
@@ -2934,6 +2939,11 @@ void MainWindow::on_actionDSP_triggered(bool checked)
     }
     else
     {
+        {
+            std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+            waterfall_background_request = MainWindow::WF_SET_POS;
+            waterfall_background_wake.notify_one();
+        }
         /* stop GUI timers */
         meter_timer->stop();
         iq_fft_timer->stop();
@@ -2983,6 +2993,11 @@ void MainWindow::on_plotter_setPlaying(bool state)
         }
         else
         {
+            {
+                std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+                waterfall_background_request = MainWindow::WF_SET_POS;
+                waterfall_background_wake.notify_one();
+            }
             /* stop GUI timers */
             meter_timer->stop();
             iq_fft_timer->stop();
