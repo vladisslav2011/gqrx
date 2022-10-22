@@ -83,6 +83,7 @@ namespace gr {
         float start,stop;
 
         float threshold;
+        FILE * fd;
     };
 }
 }

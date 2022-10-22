@@ -22,8 +22,7 @@
 #include <gnuradio/io_signature.h>
 #include <gnuradio/filter/firdes.h>
 #include <dsp/rtty/rtty_demod.h>
-
-#define RTTY_DEMOD_RATE 8000    // 8KHz fsk_demod output
+#include <gnuradio/blocks/null_sink.h>
 
 namespace gr {
     namespace rtty {
@@ -52,7 +51,19 @@ rtty_demod::rtty_demod(float quad_rate, float mark_freq, float space_freq, float
     enum gr::rtty::async_rx::async_rx_parity async_parity;
 
     /* demodulator */
-    d_fsk_demod = gr::rtty::fsk_demod::make(d_quad_rate,round(d_quad_rate/RTTY_DEMOD_RATE),d_baud_rate,mark_freq,space_freq);
+//    d_fsk_demod = gr::rtty::fsk_demod::make(d_quad_rate,round(d_quad_rate/RTTY_DEMOD_RATE),d_baud_rate,mark_freq,space_freq);
+    /* generate taps */
+    double rate = d_baud_rate*RTTY_OSR/d_quad_rate;
+
+    double cutoff = rate > 1.0 ? 0.4 : 0.4*rate;
+    double trans_width = rate > 1.0 ? 0.2 : 0.2*rate;
+    unsigned int flt_size = 32;
+
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
+
+    /* create the filter */
+    d_resampler = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
+    d_fsk_demod = gr::rtty::fsk_demod::make(baud_rate*RTTY_OSR,d_baud_rate,mark_freq,space_freq);
 
     /* Decode */
     switch (d_mode) {
@@ -89,24 +100,45 @@ rtty_demod::rtty_demod(float quad_rate, float mark_freq, float space_freq, float
             async_parity = gr::rtty::async_rx::ASYNC_RX_PARITY_DONTCARE;
             break;
     }
-    d_async = gr::rtty::async_rx::make(RTTY_DEMOD_RATE,d_baud_rate,word_len,async_parity);
+    d_async = gr::rtty::async_rx::make(baud_rate*RTTY_OSR,d_baud_rate,word_len,async_parity);
 
     /* baudot decodding and storage */
     d_data = char_store::make(100,true);
 
     /* connect blocks */
-    connect(self(), 0, d_fsk_demod, 0);
+    connect(self(), 0, d_resampler, 0);
+    connect(d_resampler, 0, d_fsk_demod, 0);
     connect(d_fsk_demod, 0, d_async, 0);
+    connect(d_fsk_demod, 1, d_async, 1);
+    connect(d_fsk_demod, 2, d_async, 2);
+    connect(d_fsk_demod, 3, d_async, 3);
     connect(d_async, 0, d_data, 0);
 }
 
 rtty_demod::~rtty_demod () {
 }
 
+
+void rtty_demod::update_settings()
+{
+    double rate = d_baud_rate*RTTY_OSR/d_quad_rate;
+    double cutoff = rate > 1.0 ? 0.4 : 0.4*rate;
+    double trans_width = rate > 1.0 ? 0.2 : 0.2*rate;
+    unsigned int flt_size = 32;
+
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
+
+    d_resampler->set_taps(d_taps);
+    d_resampler->set_rate(rate);
+    d_fsk_demod->set_symbol_rate(d_baud_rate);
+    d_fsk_demod->set_sample_rate(d_baud_rate*RTTY_OSR);
+    d_async->set_sample_rate(d_baud_rate*RTTY_OSR);
+    d_async->set_bit_rate(d_baud_rate);
+}
+
 void  rtty_demod::set_quad_rate(float quad_rate) {
     d_quad_rate = quad_rate;
-    d_fsk_demod->set_sample_rate(d_quad_rate);
-    d_fsk_demod->set_decimation(round(d_quad_rate/RTTY_DEMOD_RATE));
+    update_settings();
 }
 
 float rtty_demod::quad_rate() const {
@@ -135,9 +167,7 @@ void rtty_demod::set_baud_rate(float baud_rate) {
     if (!baud_rate)
         return;
     d_baud_rate = baud_rate;
-    d_fsk_demod->set_symbol_rate(d_baud_rate);
-    d_async->set_sample_rate(RTTY_DEMOD_RATE);
-    d_async->set_bit_rate(d_baud_rate);
+    update_settings();
     d_async->reset();
 }
 

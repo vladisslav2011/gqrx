@@ -24,6 +24,8 @@
 
 #include <gnuradio/block.h>
 
+#define RTTY_OSR 11.0    // oversampling ratio
+
 namespace gr {
     namespace rtty {
         class async_rx : virtual public gr::block

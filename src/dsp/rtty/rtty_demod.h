@@ -27,6 +27,7 @@
 #include <dsp/rtty/char_store.h>
 #include <dsp/rtty/fsk_demod.h>
 #include <dsp/rtty/async_rx.h>
+#include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 
 namespace gr {
     namespace rtty {
@@ -92,11 +93,14 @@ private:
 
     rtty_demod(float quad_rate, float mark_freq, float space_freq,float baud_rate,enum rtty_mode mode, enum rtty_parity parity);
     ~rtty_demod();
+    void update_settings();
 
+    std::vector<float>            d_taps;
     /* GR blocks */
     gr::rtty::fsk_demod::sptr d_fsk_demod; /*! fsk demodulator */
     gr::rtty::async_rx::sptr d_async; /*! Async receiver */
     char_store::sptr d_data;    /*! char data storage */
+    gr::filter::pfb_arb_resampler_ccf::sptr d_resampler;
 
     /* other parameters */
     float   d_quad_rate;   /*! Sample rate */

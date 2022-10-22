@@ -32,7 +32,7 @@ async_rx::sptr async_rx::make(float sample_rate, float bit_rate, char word_len, 
 
 async_rx_impl::async_rx_impl(float sample_rate, float bit_rate, char word_len, enum async_rx_parity parity) :
             gr::block("async_rx",
-            gr::io_signature::make(1, 1, sizeof(float)),
+            gr::io_signature::make(4, 4, sizeof(float)),
             gr::io_signature::make(1, 1, sizeof(unsigned char))),
             d_sample_rate(sample_rate),
             d_bit_rate(bit_rate),
@@ -41,9 +41,13 @@ async_rx_impl::async_rx_impl(float sample_rate, float bit_rate, char word_len, e
     bit_len = (sample_rate / bit_rate);
     state = ASYNC_WAIT_IDLE;
     threshold = 0;
+//    fd=fopen("/home/vlad/iq/fsk.raw","w+");
+    fd=nullptr;
 }
 
 async_rx_impl::~async_rx_impl() {
+    if(fd)
+        fclose(fd);
 }
 
 void async_rx_impl::set_word_len(char word_len) {
@@ -60,7 +64,7 @@ void async_rx_impl::set_sample_rate(float sample_rate) {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     d_sample_rate = sample_rate;
-    bit_len = (sample_rate / d_bit_rate);
+    bit_len = (d_sample_rate / d_bit_rate);
 }
 
 float async_rx_impl::sample_rate() const {
@@ -71,7 +75,7 @@ void async_rx_impl::set_bit_rate(float bit_rate) {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     d_bit_rate = bit_rate;
-    bit_len = (d_sample_rate / bit_rate);
+    bit_len = (d_sample_rate / d_bit_rate);
 }
 
 float async_rx_impl::bit_rate() const {
@@ -93,7 +97,7 @@ void async_rx_impl::reset() {
 
     max0=0;
     max1=0;
-    threshold = (max0+max1)/2;
+    threshold = 0;
     state = ASYNC_WAIT_IDLE;
 }
 
@@ -120,21 +124,20 @@ int async_rx_impl::general_work (int noutput_items,
     //InAcc = in[(int)round(in_count)];
         switch (state) {
             case ASYNC_IDLE:    // Wait for MARK to SPACE transition
-                if (InAcc<=threshold) { // transition detected
+                if (InAcc<threshold) { // transition detected
                     in_count+=bit_len/2;
                     state = ASYNC_CHECK_START;
                 } else
                     in_count++;
                 break;
             case ASYNC_CHECK_START:    // Check start bit
-                if (InAcc<=threshold) { // Start bit verified
+                if (InAcc<threshold) { // Start bit verified
                     in_count += bit_len;
                     state = ASYNC_GET_BIT;
                     bit_pos = 0;
                     bit_count = 0;
                     word = 0;
                     max0 = InAcc;
-                    threshold = (max1+max0)/2;
                 } else { // Noise detection on start
                     in_count -= bit_len/2 -1;
                     state = ASYNC_IDLE;
@@ -148,7 +151,6 @@ int async_rx_impl::general_work (int noutput_items,
                 }
                 else
                     max0 = InAcc;
-                threshold = (max1+max0)/2;
                 in_count+=bit_len;
                 bit_pos++;
                 if (bit_pos == d_word_len) {
@@ -165,7 +167,7 @@ int async_rx_impl::general_work (int noutput_items,
                         state = ASYNC_CHECK_STOP;
                         break;
                     case ASYNC_RX_PARITY_ODD:
-                        if ((InAcc<=threshold && (bit_count&1)) || (InAcc>threshold && !(bit_count&1))) {
+                        if ((InAcc<threshold && (bit_count&1)) || (InAcc>threshold && !(bit_count&1))) {
                             in_count += bit_len;
                             state = ASYNC_CHECK_STOP;
                             if (bit_count&1)
@@ -184,7 +186,7 @@ int async_rx_impl::general_work (int noutput_items,
                         }
                         break;
                     case ASYNC_RX_PARITY_EVEN:
-                        if ((InAcc<=threshold && !(bit_count&1)) || (InAcc>threshold && (bit_count&1))) {
+                        if ((InAcc<threshold && !(bit_count&1)) || (InAcc>threshold && (bit_count&1))) {
                             in_count += bit_len;
                             state = ASYNC_CHECK_STOP;
                         if (bit_count&1)
@@ -214,7 +216,7 @@ int async_rx_impl::general_work (int noutput_items,
                         }
                         break;
                     case ASYNC_RX_PARITY_SPACE:
-                        if (InAcc<=threshold) {
+                        if (InAcc<threshold) {
                             in_count += bit_len;
                             state = ASYNC_CHECK_STOP;
                             max0=InAcc;
@@ -233,7 +235,6 @@ int async_rx_impl::general_work (int noutput_items,
                             max0 = InAcc;
                         break;
                 }
-                threshold = (max0+max1)/2;
                 break;
             case ASYNC_CHECK_STOP: // Check stop bit
                 if (InAcc>threshold) { // Stop bit verified
@@ -242,7 +243,6 @@ int async_rx_impl::general_work (int noutput_items,
                     out_count++;
                     state = ASYNC_IDLE;
                     max1=InAcc;
-                    threshold = (max0+max1)/2;
                 } else { // Framming error
                     state = ASYNC_WAIT_IDLE;
                 }
@@ -265,7 +265,6 @@ int async_rx_impl::general_work (int noutput_items,
                     bit_count = 0;
                     word = 0;
                     max1 = InAcc;
-                    threshold = (max0+max1)/2;
                 } else { // Noise detection on stop
                     in_count -= bit_len/2 -1;
                     state = ASYNC_WAIT_IDLE;
@@ -274,6 +273,8 @@ int async_rx_impl::general_work (int noutput_items,
         }
     }
 
+    if(fd)
+        fwrite(in,sizeof(float),std::round(in_count),fd);
     consume_each ((int)roundf(in_count));
 
     return (out_count);

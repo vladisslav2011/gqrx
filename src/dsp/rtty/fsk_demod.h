@@ -28,7 +28,7 @@
 
 namespace gr {
     namespace rtty {
-        class fsk_demod : virtual public gr::sync_decimator {
+        class fsk_demod : virtual public gr::sync_block {
             public:
                 #if GNURADIO_VERSION < 0x030900
                 typedef boost::shared_ptr<fsk_demod> sptr;
@@ -36,7 +36,7 @@ namespace gr {
                 typedef std::shared_ptr<fsk_demod> sptr;
                 #endif
 
-                static sptr make(float sample_rate,unsigned int decimation,float symbol_rate, float mark_freq,float space_freq);
+                static sptr make(float sample_rate, float symbol_rate, float mark_freq,float space_freq);
 
                 virtual    int work(int noutput_items,
                                     gr_vector_const_void_star &input_items,
@@ -45,10 +45,7 @@ namespace gr {
                 virtual void set_sample_rate(float sample_rate) = 0;
                 virtual float sample_rate() const = 0;
 
-                virtual void set_decimation(unsigned int decimation) = 0;
-                virtual int decimation() const = 0;
-
-                virtual void set_symbol_rate(float symbol_rate) = 0;
+                virtual void set_symbol_rate(float sample_rate) = 0;
                 virtual float symbol_rate() const = 0;
 
                 virtual void set_mark_freq(float mark_freq) = 0;
