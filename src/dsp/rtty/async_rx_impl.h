@@ -25,6 +25,8 @@
 #include "async_rx.h"
 #include <mutex>
 
+#define NO_DEBUG_ASYNC
+
 namespace gr {
   namespace rtty {
 
@@ -91,7 +93,9 @@ namespace gr {
 
         float threshold;
         float snr_mark,snr_space;
+        #if DEBUG_ASYNC
         FILE * fd[5];
+        #endif
     };
 }
 }

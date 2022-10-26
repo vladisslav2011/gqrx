@@ -51,15 +51,19 @@ async_rx_impl::async_rx_impl(float sample_rate, float bit_rate, char word_len, e
     snr_mark=snr_space=0.0;
     d_raw_len = d_word_len+2+(d_parity?1:0);
     set_history(bit_len*SYMBOLS_MAX);
+    #if DEBUG_ASYNC
     fd[0]=fopen("/home/vlad/iq/fsk0.raw","w+");
     fd[1]=fopen("/home/vlad/iq/fsk1.raw","w+");
     fd[2]=fopen("/home/vlad/iq/corr.raw","w+");
+    #endif
 }
 
 async_rx_impl::~async_rx_impl() {
+    #if DEBUG_ASYNC
     for(int p=0;p<3;p++)
         if(fd[p])
             fclose(fd[p]);
+    #endif
 }
 
 void async_rx_impl::set_word_len(char word_len) {
@@ -313,16 +317,21 @@ int async_rx_impl::general_work (int noutput_items,
     corr[0]=correlate_word(mark,space,0,chars[0]);
     corr[2]=corr[1]=corr[0];
     chars[2]=chars[1]=chars[0];
+    #if DEBUG_ASYNC
     if(fd[2])
     {
         float * x=(float*)malloc(in_max*sizeof(float));
+    #endif
         for(p=0;p<in_max;p++)
         {
             corr[0]=corr[1];
             corr[1]=corr[2];
             chars[0]=chars[1];
             chars[1]=chars[2];
-            x[p]=corr[2]=correlate_word(mark,space,p,chars[2],false);
+        #if DEBUG_ASYNC
+            x[p]=
+        #endif
+            corr[2]=correlate_word(mark,space,p,chars[2],false);
             if(p>=in_count)
             {
                 if(corr[0]<corr[1] && corr[2]<corr[1] && corr[1] > threshold && corr[0] > threshold && corr[2] > threshold && chars[1]!=-1 && chars[0]==chars[1] && chars[1]==chars[2])
@@ -336,12 +345,14 @@ int async_rx_impl::general_work (int noutput_items,
                 }
             }
         }
+    #if DEBUG_ASYNC
         fwrite(x,sizeof(float),p,fd[2]);
         free(x);
     }
     for(int j=0;j<2;j++)
         if(fd[j])
                 fwrite(input_items[j],sizeof(float),p,fd[j]);
+    #endif
     d_in_offset=in_count-p;
     consume_each(p);
     return out_count;
