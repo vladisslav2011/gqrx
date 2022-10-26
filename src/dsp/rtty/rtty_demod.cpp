@@ -24,6 +24,8 @@
 #include <dsp/rtty/rtty_demod.h>
 #include <gnuradio/blocks/null_sink.h>
 
+#define RTTY_OSR 8    // oversampling ratio
+
 namespace gr {
     namespace rtty {
 
@@ -53,7 +55,15 @@ rtty_demod::rtty_demod(float quad_rate, float mark_freq, float space_freq, float
     /* demodulator */
 //    d_fsk_demod = gr::rtty::fsk_demod::make(d_quad_rate,round(d_quad_rate/RTTY_DEMOD_RATE),d_baud_rate,mark_freq,space_freq);
     /* generate taps */
-    double rate = d_baud_rate*RTTY_OSR/d_quad_rate;
+    float freq_max=2*(std::max(std::abs(d_mark_freq),std::abs(d_space_freq))+d_baud_rate);
+    d_decimation=std::ceil(freq_max/d_baud_rate);
+    if(d_decimation<RTTY_OSR)
+        d_decimation=RTTY_OSR;
+    if(d_decimation%RTTY_OSR)
+    {
+        d_decimation+=d_decimation%RTTY_OSR;
+    }
+    double rate = d_baud_rate*float(d_decimation)/d_quad_rate;
 
     double cutoff = rate > 1.0 ? 0.4 : 0.4*rate;
     double trans_width = rate > 1.0 ? 0.2 : 0.2*rate;
@@ -63,7 +73,7 @@ rtty_demod::rtty_demod(float quad_rate, float mark_freq, float space_freq, float
 
     /* create the filter */
     d_resampler = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
-    d_fsk_demod = gr::rtty::fsk_demod::make(baud_rate*RTTY_OSR,d_baud_rate,mark_freq,space_freq);
+    d_fsk_demod = gr::rtty::fsk_demod::make(baud_rate*float(d_decimation),d_decimation/RTTY_OSR,d_baud_rate,mark_freq,space_freq);
 
     /* Decode */
     switch (d_mode) {
@@ -108,11 +118,16 @@ rtty_demod::rtty_demod(float quad_rate, float mark_freq, float space_freq, float
     /* connect blocks */
     connect(self(), 0, d_resampler, 0);
     connect(d_resampler, 0, d_fsk_demod, 0);
+    #if 1
+
     connect(d_fsk_demod, 0, d_async, 0);
     connect(d_fsk_demod, 1, d_async, 1);
-    connect(d_fsk_demod, 2, d_async, 2);
-    connect(d_fsk_demod, 3, d_async, 3);
     connect(d_async, 0, d_data, 0);
+
+    #else
+    connect(d_fsk_demod, 0, gr::blocks::null_sink::make(sizeof(float)), 0);
+    connect(d_fsk_demod, 1, gr::blocks::null_sink::make(sizeof(float)), 0);
+    #endif
 }
 
 rtty_demod::~rtty_demod () {
@@ -121,17 +136,38 @@ rtty_demod::~rtty_demod () {
 
 void rtty_demod::update_settings()
 {
-    double rate = d_baud_rate*RTTY_OSR/d_quad_rate;
+    float freq_max=2*(std::max(std::abs(d_mark_freq),std::abs(d_space_freq))+d_baud_rate);
+    d_decimation=std::ceil(freq_max/d_baud_rate);
+    if(d_decimation<RTTY_OSR)
+        d_decimation=RTTY_OSR;
+    if(d_decimation%RTTY_OSR)
+    {
+        d_decimation+=d_decimation%RTTY_OSR;
+    }
+    double rate = d_baud_rate*float(d_decimation)/d_quad_rate;
+
     double cutoff = rate > 1.0 ? 0.4 : 0.4*rate;
     double trans_width = rate > 1.0 ? 0.2 : 0.2*rate;
     unsigned int flt_size = 32;
 
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
+    #if 1
     d_resampler->set_taps(d_taps);
     d_resampler->set_rate(rate);
+    #else
+    lock();
+    disconnect(self(), 0, d_resampler, 0);
+    disconnect(d_resampler, 0, d_fsk_demod, 0);
+    d_resampler.reset();
+    d_resampler = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
+    connect(self(), 0, d_resampler, 0);
+    connect(d_resampler, 0, d_fsk_demod, 0);
+    unlock();
+    #endif
     d_fsk_demod->set_symbol_rate(d_baud_rate);
-    d_fsk_demod->set_sample_rate(d_baud_rate*RTTY_OSR);
+    d_fsk_demod->set_sample_rate(d_baud_rate*float(d_decimation));
+    d_fsk_demod->set_decimation(d_decimation/RTTY_OSR);
     d_async->set_sample_rate(d_baud_rate*RTTY_OSR);
     d_async->set_bit_rate(d_baud_rate);
 }
@@ -147,6 +183,7 @@ float rtty_demod::quad_rate() const {
 
 void rtty_demod::set_mark_freq(float mark_freq) {
     d_mark_freq = mark_freq;
+    update_settings();
     d_fsk_demod->set_mark_freq(d_mark_freq);
 }
 
@@ -156,6 +193,7 @@ float rtty_demod::mark_freq() {
 
 void rtty_demod::set_space_freq(float space_freq) {
     d_space_freq = space_freq;
+    update_settings();
     d_fsk_demod->set_space_freq(d_space_freq);
 }
 

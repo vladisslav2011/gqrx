@@ -107,6 +107,7 @@ private:
     float   d_mark_freq;   /*! MARK frequency */
     float   d_space_freq;   /*! SPACE frequency */
     float   d_baud_rate;   /*! Baud rate */
+    int     d_decimation;
     enum rtty_mode d_mode;    /* decoder mode */
     enum rtty_parity d_parity;
 

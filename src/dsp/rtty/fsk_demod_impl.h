@@ -30,7 +30,7 @@ namespace gr {
     namespace rtty {
         class fsk_demod_impl : public fsk_demod {
             public:
-                fsk_demod_impl(float sample_rate, float symbol_rate, float mark_freq, float space_freq);
+                fsk_demod_impl(float sample_rate, float symbol_rate, int decimation, float mark_freq, float space_freq);
                 ~fsk_demod_impl();
 
                 int work(int noutput_items,
@@ -39,6 +39,9 @@ namespace gr {
 
                 void set_sample_rate(float sample_rate);
                 float sample_rate() const;
+
+                void set_decimation(unsigned int decimation);
+                int decimation() const;
 
                 void set_symbol_rate(float symbol_rate);
                 float symbol_rate() const;
@@ -60,12 +63,15 @@ namespace gr {
                 gr::filter::kernel::fir_filter_ccc d_mark_fir;
                 gr::filter::kernel::fir_filter_ccc d_space_fir;
 
+                gr_complex * d_mark;
+                gr_complex * d_space;
+                float * d_fmark;
+                float * d_fspace;
                 float d_sample_rate;
                 float d_symbol_rate;
                 float d_mark_freq;
                 float d_space_freq;
-                int d_symbol_size;
-                FILE * fd[4];
+                int d_decimation;
     };
   } // namespace rtty
 } // namespace gr

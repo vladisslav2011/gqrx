@@ -344,13 +344,13 @@ int nbrx::start_decoder(enum rx_decoder decoder_type) {
         switch (decoder_type) {
             case RX_DECODER_FAX:
                 lock();
-                connect(sql, 0, fax_decoder, 0);
+                connect(nb, 0, fax_decoder, 0);
                 unlock();
                 fax_decoder_enable = true;
                 return 0;
             case RX_DECODER_RTTY:
                 lock();
-                connect(sql, 0, d_rtty, 0);
+                connect(nb, 0, d_rtty, 0);
                 d_rtty_enable = true;
                 unlock();
                 return 0;
@@ -367,14 +367,14 @@ int nbrx::stop_decoder(enum rx_decoder decoder_type) {
         switch (decoder_type) {
             case RX_DECODER_FAX:
                 lock();
-                disconnect(sql, 0, fax_decoder, 0);
+                disconnect(nb, 0, fax_decoder, 0);
                 unlock();
                 fax_decoder_enable = false;
                 return 0;
             case RX_DECODER_RTTY:
                 lock();
                 d_rtty_enable = false;
-                disconnect(sql, 0, d_rtty, 0);
+                disconnect(nb, 0, d_rtty, 0);
                 unlock();
                 return 0;
             default:

@@ -66,24 +66,32 @@ namespace gr {
             ASYNC_CHECK_STOP
         };
 
+        float correlate_word(const float *mark,const float *space,int ofs,int &out,bool d=false);
+        float avg(const float *in,int cc);
+        void minmax(const float *in,int cc,int l,float &a_min, float &a_max);
+
         float d_sample_rate;
         float d_bit_rate;
-            char d_word_len;
+        int d_word_len;
+        int d_raw_len;
         enum async_rx_parity d_parity;
 
         std::mutex d_mutex;
 
-        enum async_rx_impl_state state;
-        float bit_len;
-            unsigned char bit_pos;
+        int bit_len;
+        int bit_len2;
+        int bit_len4;
+        unsigned char bit_pos;
         unsigned char bit_count;
         unsigned char word;
 
-        float max0,max1;
-        float start,stop;
+        float d_start_thr;
+        float d_bit_thr;
+        int d_in_offset;
 
         float threshold;
-        FILE * fd;
+        float snr_mark,snr_space;
+        FILE * fd[5];
     };
 }
 }

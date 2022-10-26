@@ -23,6 +23,8 @@
 #include <volk/volk.h>
 #include "async_rx_impl.h"
 
+#define SYMBOLS_MAX 24
+
 namespace gr {
 namespace rtty {
 
@@ -32,28 +34,39 @@ async_rx::sptr async_rx::make(float sample_rate, float bit_rate, char word_len, 
 
 async_rx_impl::async_rx_impl(float sample_rate, float bit_rate, char word_len, enum async_rx_parity parity) :
             gr::block("async_rx",
-            gr::io_signature::make(4, 4, sizeof(float)),
-            gr::io_signature::make(1, 1, sizeof(unsigned char))),
+            gr::io_signature::make(2, 2, sizeof(float)),
+            gr::io_signature::make(1, 1, sizeof(int))),
             d_sample_rate(sample_rate),
             d_bit_rate(bit_rate),
             d_word_len(word_len),
-            d_parity(parity) {
-    bit_len = (sample_rate / bit_rate);
-    state = ASYNC_WAIT_IDLE;
-    threshold = 0;
-//    fd=fopen("/home/vlad/iq/fsk.raw","w+");
-    fd=nullptr;
+            d_parity(parity),
+            d_start_thr(1.0),
+            d_bit_thr(1.0),
+            d_in_offset(0)
+{
+    bit_len = std::round(sample_rate / bit_rate);
+    bit_len2 = bit_len/2;
+    bit_len4 = bit_len/4;
+    threshold = 0.0;
+    snr_mark=snr_space=0.0;
+    d_raw_len = d_word_len+2+(d_parity?1:0);
+    set_history(bit_len*SYMBOLS_MAX);
+    fd[0]=fopen("/home/vlad/iq/fsk0.raw","w+");
+    fd[1]=fopen("/home/vlad/iq/fsk1.raw","w+");
+    fd[2]=fopen("/home/vlad/iq/corr.raw","w+");
 }
 
 async_rx_impl::~async_rx_impl() {
-    if(fd)
-        fclose(fd);
+    for(int p=0;p<3;p++)
+        if(fd[p])
+            fclose(fd[p]);
 }
 
 void async_rx_impl::set_word_len(char word_len) {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     d_word_len = word_len;
+    d_raw_len = d_word_len+2+(d_parity?1:0);
 }
 
 char async_rx_impl::word_len() const {
@@ -65,6 +78,9 @@ void async_rx_impl::set_sample_rate(float sample_rate) {
 
     d_sample_rate = sample_rate;
     bit_len = (d_sample_rate / d_bit_rate);
+    bit_len2 = bit_len/2;
+    bit_len4 = bit_len/4;
+    set_history(bit_len*SYMBOLS_MAX);
 }
 
 float async_rx_impl::sample_rate() const {
@@ -76,6 +92,9 @@ void async_rx_impl::set_bit_rate(float bit_rate) {
 
     d_bit_rate = bit_rate;
     bit_len = (d_sample_rate / d_bit_rate);
+    bit_len2 = bit_len/2;
+    bit_len4 = bit_len/4;
+    set_history(bit_len*SYMBOLS_MAX);
 }
 
 float async_rx_impl::bit_rate() const {
@@ -86,6 +105,7 @@ void async_rx_impl::set_parity(enum async_rx::async_rx_parity parity) {
     std::lock_guard<std::mutex> lock(d_mutex);
 
     d_parity = parity;
+    d_raw_len = d_word_len+2+(d_parity?1:0);
 }
 
 enum async_rx::async_rx_parity async_rx_impl::parity() const {
@@ -95,16 +115,184 @@ enum async_rx::async_rx_parity async_rx_impl::parity() const {
 void async_rx_impl::reset() {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-    max0=0;
-    max1=0;
     threshold = 0;
-    state = ASYNC_WAIT_IDLE;
+    d_in_offset=0;
 }
 
 void async_rx_impl::forecast (int noutput_items, gr_vector_int &ninput_items_required) {
     std::lock_guard<std::mutex> lock(d_mutex);
 
-    ninput_items_required[0] = noutput_items * (d_word_len+2+(d_parity==ASYNC_RX_PARITY_NONE?0:1)) * bit_len;
+    ninput_items_required[0] =
+    ninput_items_required[1] = noutput_items * (d_word_len+2+(d_parity==ASYNC_RX_PARITY_NONE?0:1)) * bit_len + history();
+}
+
+float async_rx_impl::avg(const float *in,int cc)
+{
+    float acc=0.0;
+    float dev=0.0;
+    for(int k=0;k<cc;k++)
+        acc+=in[k];
+    acc/=float(cc);
+    for(int k=0;k<cc;k++)
+        dev+=std::abs(acc-in[k]);
+    dev/=float(cc);
+    return acc-dev;
+}
+
+void async_rx_impl::minmax(const float *in,int cc,int l,float &a_min, float &a_max)
+{
+    a_min=1e7;
+    a_max=-1e7;
+    float a_buf=0.0;
+//    for(int k=0;k<l;k++)
+//        a_buf+=in[k];
+    for(int k=0;k<cc;k++)
+    {
+        a_buf=avg(&in[k],l);
+        if(a_min>a_buf)
+            a_min=a_buf;
+        if(a_max<a_buf)
+            a_max=a_buf;
+        //a_buf+=in[k+l]-in[k];
+    }
+//    a_min/=float(l);
+//    a_max/=float(l);
+}
+
+float async_rx_impl::correlate_word(const float *mark,const float *space,int ofs,int &out,bool d)
+{
+    float corr_acc=0.0;
+    float corr=0.0;
+    float prev_mark=0.0;
+    float prev_space=0.0;
+    float last_mark=0.0;
+    float last_space=0.0;
+    float thr_mark=0.0;
+    float thr_space=0.0;
+    float min_mark=0.0;
+    float max_mark=0.0;
+    float min_space=0.0;
+    float max_space=0.0;
+    int k=0;
+    out=-1;
+    int p=0;
+    int c=0;
+    int par=0;
+    int parity_point=100;
+    int stop_point=d_word_len;
+    int nbits=d_word_len+1;
+    int mask=1<<d_word_len;
+    if(d_parity)
+    {
+        nbits++;
+        parity_point=stop_point;
+        stop_point++;
+    }
+    int avg_level=bit_len2;
+    int avg_trans=bit_len4;
+    int avg_initial=bit_len2;
+
+    minmax(&mark[ofs],(nbits+2)*bit_len*2.0f,avg_initial,min_mark,max_mark);
+    minmax(&space[ofs],(nbits+2)*bit_len*2.0f,avg_initial,min_space,max_space);
+    snr_mark=max_mark-min_mark;
+    snr_space=max_space-min_space;
+    thr_mark=(min_mark+max_mark)*0.5;
+    thr_space=(min_space+max_space)*0.5;
+    //correlate mark
+    prev_mark=avg(&mark[ofs+p],avg_level);
+    prev_space=avg(&space[ofs+p],avg_level);
+    if(d)printf("thr=%1.5f %1.5f %1.5f; %1.5f %1.5f %1.5f; %1.5f %1.5f  ",min_mark,thr_mark,max_mark,min_space,thr_space,max_space,prev_mark,prev_space);
+    corr+= prev_mark - thr_mark + thr_space - prev_space;
+    //correlate transition
+    p=bit_len2;
+    for(int j=0;j<bit_len2;j++)
+        corr+=avg(&mark[ofs+p+j],avg_trans)-avg(&mark[ofs+p+j+1],avg_trans)+avg(&space[ofs+p+j+1],avg_trans)-avg(&space[ofs+p+j],avg_trans);
+    //correlate space
+    p=bit_len;
+    last_space=avg(&space[ofs+p],avg_level);
+    last_mark=avg(&mark[ofs+p],avg_level);
+    corr+= last_space - prev_space;
+    corr+= prev_mark - last_mark;
+    //correlate stop
+    corr+=avg(&mark[ofs+bit_len*(stop_point+2)],avg_level)-avg(&space[ofs+bit_len*(stop_point+2)],avg_level);
+    corr_acc=corr-std::max(max_mark,max_space);
+    thr_mark=(prev_mark+last_mark)*0.5;
+    thr_space=(prev_space+last_space)*0.5;
+    if(d)printf("c=%1.5f %1.5f %1.5f ",corr,prev_mark,last_space);
+    prev_mark=last_mark;
+    prev_space=last_space;
+    if(corr>0.0)
+    {
+        out=0;
+        for(k=0;k<nbits;k++)
+        {
+            corr=0;
+            p=bit_len*(k+2);
+            last_space=avg(&space[ofs+p],avg_level);
+            last_mark=avg(&mark[ofs+p],avg_level);
+            if(c==0)
+            {
+                //space-mark
+                corr=(thr_space-last_space)+(last_mark-thr_mark);
+//                corr=(thr_space-last_space)*thr_space/thr_mark+(last_mark-thr_mark)*thr_mark/thr_space;
+            }else{
+                //mark-space
+                corr=(last_space-thr_space)+(thr_mark-last_mark);
+//                corr=(last_space-thr_space)*thr_space/thr_mark+(thr_mark-last_mark)*thr_mark/thr_space;
+            }
+            if(corr>0)
+            {
+                c^=1;
+                //corr_acc+=corr;
+                thr_mark=(thr_mark+(prev_mark+last_mark)*0.5)*0.5;
+                thr_space=(thr_space+(prev_space+last_space)*0.5)*0.5;
+                prev_mark=last_mark;
+                prev_space=last_space;
+            }
+            if(k==stop_point)
+            {
+                if(!c)
+                {
+                    if(d)printf("[S] ");
+                    out =-1;
+                    corr_acc*=0.5;
+                }
+            }else if(k<parity_point)
+            {
+                 if(d)printf("%d",c);
+            #if 1
+                if(c)
+                    out|=mask;
+                out>>=1;
+            #else
+                out<<=1;
+                out|=c;
+            #endif
+                par^=c;
+            }
+            if(k==parity_point)
+            {
+                if(d_parity==ASYNC_RX_PARITY_ODD)
+                    par^=1;
+                if(d_parity==ASYNC_RX_PARITY_MARK)
+                    par=1;
+                if(d_parity==ASYNC_RX_PARITY_SPACE)
+                    par=0;
+                if(d_parity!=ASYNC_RX_PARITY_DONTCARE)
+                {
+                    if(c!=par)
+                    {
+                        out =-1;
+                        if(d)printf("[P] ");
+                        corr_acc/=2.0;
+                    }
+                }
+            }
+        }
+        if(d)printf("d=%d %1.5f %1.5f",out,thr_mark,thr_space);
+    }
+    if(d)printf("\n");
+    return corr_acc;
 }
 
 int async_rx_impl::general_work (int noutput_items,
@@ -113,171 +301,50 @@ int async_rx_impl::general_work (int noutput_items,
         gr_vector_void_star &output_items) {
 
     std::lock_guard<std::mutex> lock(d_mutex);
-    float in_count = 0;
+    int in_max = noutput_items*d_raw_len*bit_len;
+    int in_count = d_in_offset;
     int out_count = 0;
-    const float *in = reinterpret_cast<const float*>(input_items[0]);
-    unsigned char *out = reinterpret_cast<unsigned char*>(output_items[0]);
-    float InAcc;
-
-    while( (out_count < noutput_items) && (((int)roundf(in_count)) < (ninput_items[0]-bit_len))) {
-        volk_32f_accumulator_s32f(&InAcc,&in[(int)roundf(in_count)],bit_len);
-    //InAcc = in[(int)round(in_count)];
-        switch (state) {
-            case ASYNC_IDLE:    // Wait for MARK to SPACE transition
-                if (InAcc<threshold) { // transition detected
-                    in_count+=bit_len/2;
-                    state = ASYNC_CHECK_START;
-                } else
-                    in_count++;
-                break;
-            case ASYNC_CHECK_START:    // Check start bit
-                if (InAcc<threshold) { // Start bit verified
-                    in_count += bit_len;
-                    state = ASYNC_GET_BIT;
-                    bit_pos = 0;
-                    bit_count = 0;
-                    word = 0;
-                    max0 = InAcc;
-                } else { // Noise detection on start
-                    in_count -= bit_len/2 -1;
-                    state = ASYNC_IDLE;
-                }
-                break;
-            case ASYNC_GET_BIT:
-                if (InAcc>threshold) {
-                    word |= 1<<bit_pos;
-                    bit_count++;
-                    max1 = InAcc;
-                }
-                else
-                    max0 = InAcc;
-                in_count+=bit_len;
-                bit_pos++;
-                if (bit_pos == d_word_len) {
-                    if (d_parity == ASYNC_RX_PARITY_NONE)
-                        state = ASYNC_CHECK_STOP;
-                    else
-                        state = ASYNC_CHECK_PARITY;
-                }
-                break;
-            case ASYNC_CHECK_PARITY: // Check parity bit
-                switch (d_parity) {
-                    default:
-                    case ASYNC_RX_PARITY_NONE:
-                        state = ASYNC_CHECK_STOP;
-                        break;
-                    case ASYNC_RX_PARITY_ODD:
-                        if ((InAcc<threshold && (bit_count&1)) || (InAcc>threshold && !(bit_count&1))) {
-                            in_count += bit_len;
-                            state = ASYNC_CHECK_STOP;
-                            if (bit_count&1)
-                                max0=InAcc;
-                            else
-                                max1=InAcc;
-                        }
-                        else {
-                            if (InAcc>threshold) {
-                                max1 = InAcc;
-                                state = ASYNC_IDLE;
-                            }
-                            else
-                                state = ASYNC_WAIT_IDLE;
-                            in_count++;
-                        }
-                        break;
-                    case ASYNC_RX_PARITY_EVEN:
-                        if ((InAcc<threshold && !(bit_count&1)) || (InAcc>threshold && (bit_count&1))) {
-                            in_count += bit_len;
-                            state = ASYNC_CHECK_STOP;
-                        if (bit_count&1)
-                            max1=InAcc;
-                        else
-                            max0=InAcc;
-                        }
-                        else {
-                            if (InAcc>threshold) {
-                                state = ASYNC_IDLE;
-                                max1 = InAcc;
-                            }
-                            else
-                                state = ASYNC_WAIT_IDLE;
-                            in_count++;
-                        }
-                        break;
-                    case ASYNC_RX_PARITY_MARK:
-                        if (InAcc>threshold) {
-                            in_count += bit_len;
-                            state = ASYNC_CHECK_STOP;
-                            max1=InAcc;
-                        }
-                        else {
-                            state = ASYNC_WAIT_IDLE;
-                            in_count++;
-                        }
-                        break;
-                    case ASYNC_RX_PARITY_SPACE:
-                        if (InAcc<threshold) {
-                            in_count += bit_len;
-                            state = ASYNC_CHECK_STOP;
-                            max0=InAcc;
-                        }
-                        else {
-                            state = ASYNC_IDLE;
-                            in_count++;
-                        }
-                        break;
-                    case ASYNC_RX_PARITY_DONTCARE:
-                        in_count += bit_len;
-                        state = ASYNC_CHECK_STOP;
-                        if (InAcc>threshold)
-                            max1 = InAcc;
-                        else
-                            max0 = InAcc;
-                        break;
-                }
-                break;
-            case ASYNC_CHECK_STOP: // Check stop bit
-                if (InAcc>threshold) { // Stop bit verified
-                    *out = word;
-                    out++;
+    const float *mark = reinterpret_cast<const float*>(input_items[0]);
+    const float *space = reinterpret_cast<const float*>(input_items[1]);
+    int *out = reinterpret_cast<int*>(output_items[0]);
+    int chars[3];
+    float corr[3]={0.0,0.0,0.0};
+    int p = 0;
+    corr[0]=correlate_word(mark,space,0,chars[0]);
+    corr[2]=corr[1]=corr[0];
+    chars[2]=chars[1]=chars[0];
+    if(fd[2])
+    {
+        float * x=(float*)malloc(in_max*sizeof(float));
+        for(p=0;p<in_max;p++)
+        {
+            corr[0]=corr[1];
+            corr[1]=corr[2];
+            chars[0]=chars[1];
+            chars[1]=chars[2];
+            x[p]=corr[2]=correlate_word(mark,space,p,chars[2],false);
+            if(p>=in_count)
+            {
+                if(corr[0]<corr[1] && corr[2]<corr[1] && corr[1] > threshold && corr[0] > threshold && corr[2] > threshold && chars[1]!=-1 && chars[0]==chars[1] && chars[1]==chars[2])
+                {
+                    in_count=p+(d_word_len+1+(d_parity==ASYNC_RX_PARITY_NONE?0:1)) * bit_len;//last mark may be the first mark of the new word, so keep it
                     out_count++;
-                    state = ASYNC_IDLE;
-                    max1=InAcc;
-                } else { // Framming error
-                    state = ASYNC_WAIT_IDLE;
+                    *out=chars[1];
+                    out++;
+//                    printf("+ %d %3.1f %3.1f\n",chars[1], snr_mark, snr_space);
+                    break;
                 }
-                in_count+=1;
-                break;
-            default:
-            case ASYNC_WAIT_IDLE:    // Wait for SPACE to MARK transition
-                if (InAcc>threshold) { // transition detected
-                    in_count+=bit_len/2;
-                    state = ASYNC_CHECK_IDLE;
-                } else {
-                    in_count++;
-                }
-                break;
-            case ASYNC_CHECK_IDLE:    // Check idle
-                if (InAcc>threshold) { // Idle for 1 bit verified
-                    in_count += 1;
-                    state = ASYNC_IDLE;
-                    bit_pos = 0;
-                    bit_count = 0;
-                    word = 0;
-                    max1 = InAcc;
-                } else { // Noise detection on stop
-                    in_count -= bit_len/2 -1;
-                    state = ASYNC_WAIT_IDLE;
-                }
-                break;
+            }
         }
+        fwrite(x,sizeof(float),p,fd[2]);
+        free(x);
     }
-
-    if(fd)
-        fwrite(in,sizeof(float),std::round(in_count),fd);
-    consume_each ((int)roundf(in_count));
-
-    return (out_count);
+    for(int j=0;j<2;j++)
+        if(fd[j])
+                fwrite(input_items[j],sizeof(float),p,fd[j]);
+    d_in_offset=in_count-p;
+    consume_each(p);
+    return out_count;
 }
 
 }

@@ -28,7 +28,7 @@ char_store::sptr char_store::make(int size,bool baudot)
 }
 
 char_store::char_store(int size,bool baudot) : gr::sync_block ("char_store",
-                                gr::io_signature::make (1,1, sizeof(char)),
+                                gr::io_signature::make (1,1, sizeof(int)),
                                 gr::io_signature::make (0, 0, 0)),
     d_data(size),
     d_baudot(baudot),
@@ -65,10 +65,12 @@ int char_store::work (int noutput_items,
     gr_vector_void_star &output_items) {
     std::string data;
     int i;
-    unsigned int c;
+    int c;
 
     for (i=0;i<noutput_items;i++) {
-        c = ((char*)input_items[0])[i];
+        c = ((int*)input_items[0])[i];
+        if(c<0)
+            continue;
         if (d_baudot) {
             c &= 0x1f;
             if (d_figures) {

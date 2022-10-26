@@ -4073,13 +4073,13 @@ void MainWindow::rttyTimeout() {
 
 void MainWindow::start_rtty_decoder() {
     qDebug() << "Starting RTTY decoder.";
-    rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"baud_rate",std::to_string(uiDockRTTY->get_baud_rate()));
+    rx->start_decoder(receiver_base_cf::RX_DECODER_RTTY);
     rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"mark_freq",std::to_string(uiDockRTTY->get_mark_freq()));
     rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"space_freq",std::to_string(uiDockRTTY->get_space_freq()));
+    rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"baud_rate",std::to_string(uiDockRTTY->get_baud_rate()));
     rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"mode",std::to_string(uiDockRTTY->get_mode()));
     rx->set_decoder_param(receiver_base_cf::RX_DECODER_RTTY,"parity",std::to_string(uiDockRTTY->get_parity()));
     uiDockRTTY->show_Enabled();
-    rx->start_decoder(receiver_base_cf::RX_DECODER_RTTY);
     rx->reset_decoder(receiver_base_cf::RX_DECODER_RTTY);
     rtty_timer->start(250);
 }
