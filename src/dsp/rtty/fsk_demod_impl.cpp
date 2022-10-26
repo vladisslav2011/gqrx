@@ -137,7 +137,7 @@ namespace gr {
                 double tw=std::abs(d_mark_freq-d_space_freq)-bw*2.0;
                 if(tw<bw*0.5)
                     tw=bw*0.5;
-                d_mark_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_mark_freq - bw, d_mark_freq + bw, tw,gr::filter::firdes::WIN_HANN);
+                d_mark_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_mark_freq - bw, d_mark_freq + bw, tw);
                 d_mark_fir.set_taps(d_mark_taps);
                 update_history();
             }else{
@@ -159,7 +159,7 @@ namespace gr {
                 double tw=std::abs(d_mark_freq-d_space_freq)-bw*2.0;
                 if(tw<bw*0.5)
                     tw=bw*0.5;
-                d_space_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_space_freq - bw, d_space_freq + bw, tw,gr::filter::firdes::WIN_HANN);
+                d_space_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_space_freq - bw, d_space_freq + bw, tw);
                 d_space_fir.set_taps(d_space_taps);
                 update_history();
             }else{
