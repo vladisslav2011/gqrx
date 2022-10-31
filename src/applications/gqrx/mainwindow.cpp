@@ -959,6 +959,16 @@ void MainWindow::storeSession()
                 m_settings->endGroup();
                 m_settings->beginGroup("audio");
             }
+
+            if(!rx->get_agc_on())
+            {
+                if(rx->get_agc_manual_gain() != -6.0f)
+                    m_settings->setValue("gain", int(std::round(rx->get_agc_manual_gain()*10.0f)));
+                else
+                    m_settings->remove("gain");
+            }else
+                m_settings->remove("gain");
+
             if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
                 m_settings->setValue("rec_dir", QString::fromStdString(rx->get_audio_rec_dir()));
             else
@@ -1138,7 +1148,7 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
         int_val = m_settings->value("gain", QVariant(-60)).toInt(&conv_ok);
         if (conv_ok)
             if (!rx->get_agc_on())
-                rx->set_agc_manual_gain(int_val);
+                rx->set_agc_manual_gain(float(int_val)*0.1f);
 
         QString rec_dir = m_settings->value("rec_dir", QDir::homePath()).toString();
         rx->set_audio_rec_dir(rec_dir.toStdString());
