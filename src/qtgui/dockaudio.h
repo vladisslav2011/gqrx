@@ -85,6 +85,7 @@ public slots:
     void setWfColormap(const QString &cmap);
     void audioRecStarted(const QString filename);
     void audioRecStopped();
+    void setAudioGainDb(float gain);
 
 signals:
     /*! \brief Signal emitted when audio gain has changed. Gain is in dB. */
