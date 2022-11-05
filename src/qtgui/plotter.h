@@ -7,7 +7,11 @@
 #include <QFrame>
 #include <QImage>
 #include <vector>
+#include <set>
 #include <QMap>
+#include "bookmarks.h"
+#include "receivers/defines.h"
+#include "receivers/vfo.h"
 
 #define HORZ_DIVS_MAX 12    //50
 #define VERT_DIVS_MIN 5
@@ -88,7 +92,7 @@ public:
             m_Span = (qint32)s;
             setFftCenterFreq(m_FftCenter);
         }
-        drawOverlay();
+        updateOverlay();
     }
 
     void setHdivDelta(int delta) { m_HdivDelta = delta; }
@@ -122,15 +126,23 @@ public:
     void    setFftRate(int rate_hz);
     void    clearWaterfall();
     bool    saveWaterfall(const QString & filename) const;
+    void    setCurrentVfo(int current);
+    void    addVfo(vfo::sptr n_vfo);
+    void    removeVfo(vfo::sptr n_vfo);
+    void    clearVfos();
+    void    getLockedVfos(std::vector<vfo::sptr> &to);
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
+    void newDemodFreqLoad(qint64 freq, qint64 delta);/* tune and load demodulator settings */
+    void newDemodFreqAdd(qint64 freq, qint64 delta);/* new demodulator here */
     void newLowCutFreq(int f);
     void newHighCutFreq(int f);
     void newFilterFreq(int low, int high);  /* substitute for NewLow / NewHigh */
     void pandapterRangeChanged(float min, float max);
     void newZoomLevel(float level);
     void newSize();
+    void selectVfo(int);
 
 public slots:
     // zoom functions
@@ -184,6 +196,9 @@ private:
     };
 
     void        drawOverlay();
+    void        drawVfo(QPainter &painter, const int demodFreqX,
+                        const int demodLowCutFreqX, const int dw, const int h,
+                        const int index, const bool is_selected);
     void        makeFrequencyStrs();
     int         xFromFreq(qint64 freq);
     qint64      freqFromX(int x);
@@ -286,6 +301,12 @@ private:
     QMap<int,int>   m_Peaks;
 
     QList< QPair<QRect, qint64> >     m_Taglist;
+    vfo::set    m_vfos;
+    vfo::set::iterator m_vfos_ub;
+    vfo::set::iterator m_vfos_lb;
+    vfo::sptr   m_lookup_vfo;
+    int         m_currentVfo;
+    int         m_capturedVfo;
 
     // Waterfall averaging
     quint64     tlast_wf_ms;        // last time waterfall has been updated
