@@ -43,7 +43,7 @@ typedef std::shared_ptr<wfmrx> wfmrx_sptr;
 #endif
 
 /*! \brief Public constructor of wfm_rx. */
-wfmrx_sptr make_wfmrx(float quad_rate, float audio_rate);
+wfmrx_sptr make_wfmrx(double quad_rate, float audio_rate);
 
 /*! \brief Wide band FM receiver.
  *  \ingroup RX
@@ -54,40 +54,21 @@ class wfmrx : public receiver_base_cf
 {
 
 public:
-    /*! \brief Available demodulators. */
-    enum wfmrx_demod {
-        WFMRX_DEMOD_MONO       = 0,  /*!< Mono. */
-        WFMRX_DEMOD_STEREO     = 1,  /*!< FM stereo. */
-        WFMRX_DEMOD_STEREO_UKW = 2,  /*!< UKW stereo. */
-        WFMRX_DEMOD_NUM        = 3   /*!< Included for convenience. */
-    };
-    wfmrx(float quad_rate, float audio_rate);
+    wfmrx(double quad_rate, float audio_rate);
     ~wfmrx();
 
     bool start() override;
     bool stop() override;
 
 
-    void set_filter(double low, double high, double tw) override;
-    void set_cw_offset(double offset) override { (void)offset; }
+    void set_filter(int low, int high, int tw) override;
 
     /* Noise blanker */
     bool has_nb() override { return false; }
-    //void set_nb_on(int nbid, bool on);
-    //void set_nb_threshold(int nbid, float threshold);
 
-    /* Squelch parameter */
-    bool has_sql() override { return true; }
+    void set_demod(Modulations::idx demod) override;
 
-    /* AGC */
-    bool has_agc() override { return true; }
-
-    void set_demod(int demod) override;
-
-    /* FM parameters */
-    bool has_fm() override {return true; }
-    void set_wfm_deemph(double tau) override;
-
+    void set_wfm_deemph(float tau) override;
     void get_rds_data(std::string &outbuff, int &num) override;
     void start_rds_decoder() override;
     void stop_rds_decoder() override;
@@ -96,8 +77,6 @@ public:
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
-
-    wfmrx_demod               d_demod;   /*!< Current demodulator. */
 
     rx_filter_sptr            filter;    /*!< Non-translating bandpass filter.*/
 

@@ -33,8 +33,7 @@
 #include <gnuradio/filter/freq_xlating_fir_filter.h>
 #endif
 
-
-#define RX_FILTER_MIN_WIDTH 100  /*! Minimum width of filter */
+#include "receivers/defines.h"
 
 class rx_filter;
 class rx_xlating_filter;
