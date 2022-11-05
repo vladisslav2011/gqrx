@@ -142,9 +142,14 @@ public:
         d_scale_i = 1.0 / scale;
    }
     int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items)
+    gr_vector_void_star &output_items) override
     {
         return work(noutput_items, input_items, output_items, dispatcher::tag<any_to_any>());
+    }
+
+    void convert(const void *in, void *out, int noutput_items)
+    {
+        convert(in, out, noutput_items, dispatcher::tag<any_to_any>());
     }
 
 private:
@@ -154,168 +159,115 @@ private:
     template<typename U_IN, typename U_OUT> int work(int noutput_items, gr_vector_const_void_star &input_items,
     gr_vector_void_star &output_items, dispatcher::tag<any_to_any<U_IN, U_OUT>>)
     {
+        const U_IN *in = (const U_IN *) input_items[0];
+        U_OUT *out = (U_OUT *) output_items[0];
+
+        convert(in, out, noutput_items);
         return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, gr_complex>>)
+    template<typename U_IN, typename U_OUT> void convert(const void *in, void *out, int noutput_items, dispatcher::tag<any_to_any<U_IN, U_OUT>>)
     {
-        const T_IN *in = (const T_IN *) input_items[0];
-        T_OUT *out = (T_OUT *) output_items[0];
+        const U_IN *u_in = (const U_IN *) in;
+        U_OUT *u_out = (U_OUT *) out;
 
-        memcpy(out, in, noutput_items * 2 * sizeof(gr_complex));
-        return noutput_items;
+        convert(u_in, u_out, noutput_items);
     }
 
-
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<int32_t>>>)
+    void convert(const gr_complex *in, gr_complex * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        int32_t *out = (int32_t *) output_items[0];
-
-        volk_32f_s32f_convert_32i(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        memcpy(out, in, noutput_items * sizeof(gr_complex));
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<int32_t>, gr_complex>>)
+    void convert(const gr_complex *in, std::complex<int32_t> * out, int noutput_items)
     {
-        const int32_t *in = (const int32_t *) input_items[0];
-        float *out = (float *) output_items[0];
-
-        volk_32i_s32f_convert_32f(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        volk_32f_s32f_convert_32i((int32_t *)out, (const float *)in, d_scale, noutput_items * 2);
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<uint32_t>>>)
+    void convert(const std::complex<int32_t> *in, gr_complex * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        int32_t *out = (int32_t *) output_items[0];
-        uint32_t *out_u = (uint32_t *) output_items[0];
+        volk_32i_s32f_convert_32f((float *)out, (const int32_t *)in, d_scale, noutput_items * 2);
+    }
 
-        volk_32f_s32f_convert_32i(out, in, d_scale, noutput_items * 2);
+    void convert(const gr_complex *in, std::complex<uint32_t> * out, int noutput_items)
+    {
+        volk_32f_s32f_convert_32i((int32_t *)out, (const float *)in, d_scale, noutput_items * 2);
+        uint32_t *out_u = (uint32_t *) out;
         for(int k = 0;k < noutput_items;k++)
         {
             *(out_u++) += uint32_t(INT32_MAX) + 1;
             *(out_u++) += uint32_t(INT32_MAX) + 1;
         }
-        return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<uint32_t>, gr_complex>>)
+    void convert(const std::complex<uint32_t> *in, gr_complex * out, int noutput_items)
     {
-        const uint32_t *in = (const uint32_t *) input_items[0];
-        float *out = (float *) output_items[0];
 
-        for(int k = 0;k < noutput_items;k++)
+        for(int k = 0;k < noutput_items;k++,in++,out++)
         {
-            *(out++) = (float(*(in++))+float(INT32_MIN)) * d_scale_i;
-            *(out++) = (float(*(in++))+float(INT32_MIN)) * d_scale_i;
+            *out = gr_complex((float(in->real())+float(INT32_MIN)) * d_scale_i, (float(in->imag())+float(INT32_MIN)) * d_scale_i);
         }
-        return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<int16_t>>>)
+    void convert(const gr_complex *in, std::complex<int16_t> * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        int16_t *out = (int16_t *) output_items[0];
-
-        volk_32f_s32f_convert_16i(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        volk_32f_s32f_convert_16i((int16_t *)out, (const float *)in, d_scale, noutput_items * 2);
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<int16_t>, gr_complex>>)
+    void convert(const std::complex<int16_t> *in, gr_complex * out, int noutput_items)
     {
-        const int16_t *in = (const int16_t *) input_items[0];
-        float *out = (float *) output_items[0];
-
-        volk_16i_s32f_convert_32f(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        volk_16i_s32f_convert_32f((float *)out, (const int16_t *)in, d_scale, noutput_items * 2);
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<uint16_t>>>)
+    void convert(const gr_complex *in, std::complex<uint16_t> * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        uint16_t *out_u = (uint16_t *) output_items[0];
-        int16_t *out = (int16_t *) output_items[0];
-
-        volk_32f_s32f_convert_16i(out, in, d_scale, noutput_items * 2);
+        uint16_t *out_u = (uint16_t *) out;
+        volk_32f_s32f_convert_16i((int16_t *)out, (const float *)in, d_scale, noutput_items * 2);
         for(int k = 0;k < noutput_items;k++)
         {
             *(out_u++) += INT16_MAX + 1;
             *(out_u++) += INT16_MAX + 1;
         }
-        return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<uint16_t>, gr_complex>>)
+    void convert(const std::complex<uint16_t> *in, gr_complex * out, int noutput_items)
     {
-        const uint16_t *in = (const uint16_t *) input_items[0];
-        float *out = (float *) output_items[0];
-
-        for(int k = 0;k < noutput_items;k++)
+        for(int k = 0;k < noutput_items;k++,in++,out++)
         {
-            *(out++) = (float(*(in++)) + float(INT16_MIN)) * d_scale_i;
-            *(out++) = (float(*(in++)) + float(INT16_MIN)) * d_scale_i;
+            *out = gr_complex((float(in->real())+float(INT16_MIN)) * d_scale_i, (float(in->imag())+float(INT16_MIN)) * d_scale_i);
         }
-        return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<int8_t>>>)
+    void convert(const gr_complex *in, std::complex<int8_t> * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        int8_t *out = (int8_t *) output_items[0];
-
-        volk_32f_s32f_convert_8i(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        volk_32f_s32f_convert_8i((int8_t *)out, (const float *)in, d_scale, noutput_items * 2);
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<int8_t>, gr_complex>>)
+    void convert(const std::complex<int8_t> *in, gr_complex * out, int noutput_items)
     {
-        const int8_t *in = (const int8_t *) input_items[0];
-        float *out = (float *) output_items[0];
-
-        volk_8i_s32f_convert_32f(out, in, d_scale, noutput_items * 2);
-        return noutput_items;
+        volk_8i_s32f_convert_32f((float *)out, (const int8_t *)in, d_scale, noutput_items * 2);
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<gr_complex, std::complex<uint8_t>>>)
+    void convert(const gr_complex *in, std::complex<uint8_t> * out, int noutput_items)
     {
-        const float *in = (const float *) input_items[0];
-        uint8_t *out_u = (uint8_t *) output_items[0];
-        int8_t *out = (int8_t *) output_items[0];
-
-        volk_32f_s32f_convert_8i(out, in, d_scale, noutput_items * 2);
+        uint8_t *out_u = (uint8_t *) out;
+        volk_32f_s32f_convert_8i((int8_t *)out, (const float *)in, d_scale, noutput_items * 2);
         for(int k = 0;k < noutput_items;k++)
         {
             *(out_u++) += INT8_MAX + 1;
             *(out_u++) += INT8_MAX + 1;
         }
-        return noutput_items;
     }
 
-    int work(int noutput_items, gr_vector_const_void_star &input_items,
-    gr_vector_void_star &output_items, dispatcher::tag<any_to_any<std::complex<uint8_t>, gr_complex>>)
+    void convert(const std::complex<uint8_t> *in, gr_complex * out, int noutput_items)
     {
-        const uint8_t *in = (const uint8_t *) input_items[0];
-        float *out = (float *) output_items[0];
-        for(int k = 0;k < noutput_items;k++)
+        for(int k = 0;k < noutput_items;k++,in++,out++)
         {
-            *(out++) = (float(*(in++)) + float(INT8_MIN)) * d_scale_i;
-            *(out++) = (float(*(in++)) + float(INT8_MIN)) * d_scale_i;
+            *out = gr_complex((float(in->real())+float(INT8_MIN)) * d_scale_i, (float(in->imag())+float(INT8_MIN)) * d_scale_i);
         }
-        return noutput_items;
     }
+
+
 };
 
 
