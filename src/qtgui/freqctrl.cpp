@@ -887,7 +887,7 @@ void CFreqCtrl::setFrequencyFocus()
     const QPointF localPos = m_DigitInfo[position].dQRect.center();
     QMouseEvent mouseEvent(QEvent::MouseMove,
                            localPos,
-                           mapToGlobal(localPos),
+                           mapToGlobal(QPoint(localPos.x(),localPos.y())),
                            Qt::NoButton,
                            Qt::NoButton,
                            Qt::NoModifier);
