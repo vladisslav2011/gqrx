@@ -43,6 +43,7 @@
 #include <osmosdr/source.h>
 #include <string>
 #include <memory>
+#include <atomic>
 
 #include "dsp/correct_iq_cc.h"
 #include "dsp/filter/fir_decim.h"
