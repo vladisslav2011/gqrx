@@ -289,6 +289,40 @@ bool Bookmarks::removeTag(QString tagName)
     return true;
 }
 
+bool Bookmarks::renameTag(QString oldName, QString newName)
+{
+    oldName = oldName.trimmed();
+    newName = newName.trimmed();
+
+    // Do not rename "Untagged" tag.
+    if(oldName.compare(TagInfo::strUntagged)==0)
+        return false;
+
+    int idx = getTagIndex(oldName);
+    if (idx == -1)
+        return false;
+
+    // Rename Tag in all Bookmarks that use it.
+    TagInfo* pTagToRename = &m_TagList[idx];
+    for(int i=0; i<m_BookmarkList.size(); ++i)
+    {
+        BookmarkInfo& bmi = m_BookmarkList[i];
+        for(int t=0; t<bmi.tags.size(); ++t)
+        {
+            TagInfo* pTag = bmi.tags[t];
+            if(pTag == pTagToRename)
+            {
+                bmi.tags[t] = &findOrAddTag(newName);
+            }
+        }
+    }
+
+    emit BookmarksChanged();
+    emit TagListChanged();
+
+    return true;
+}
+
 bool Bookmarks::setTagChecked(QString tagName, bool bChecked)
 {
     int idx = getTagIndex(tagName);
