@@ -298,24 +298,22 @@ bool Bookmarks::renameTag(QString oldName, QString newName)
     if(oldName.compare(TagInfo::strUntagged)==0)
         return false;
 
+    if(oldName.compare(newName)==0)
+        return false;
+
+
     int idx = getTagIndex(oldName);
     if (idx == -1)
         return false;
 
-    // Rename Tag in all Bookmarks that use it.
-    TagInfo* pTagToRename = &m_TagList[idx];
-    for(int i=0; i<m_BookmarkList.size(); ++i)
+    if (getTagIndex(newName) != -1 || newName.compare("")==0)
     {
-        BookmarkInfo& bmi = m_BookmarkList[i];
-        for(int t=0; t<bmi.tags.size(); ++t)
-        {
-            TagInfo* pTag = bmi.tags[t];
-            if(pTag == pTagToRename)
-            {
-                bmi.tags[t] = &findOrAddTag(newName);
-            }
-        }
-    }
+        m_TagList[idx].name=oldName;
+        emit TagListChanged();
+        return false;
+    }else
+        m_TagList[idx].name=newName;
+
 
     emit BookmarksChanged();
     emit TagListChanged();
