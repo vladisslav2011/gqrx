@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <QMenu>
 #include <QHeaderView>
+#include <QDebug>
 
 BookmarksTagList::BookmarksTagList(QWidget *parent, bool bShowUntagged )
     : QTableWidget(parent)
