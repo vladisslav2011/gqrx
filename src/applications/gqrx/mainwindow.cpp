@@ -2425,6 +2425,15 @@ void MainWindow::startIqRecording(const QString& recdir, receiver::file_formats 
     case receiver::FILE_FORMAT_CS8:
         suffix = "8";
     break;
+    case receiver::FILE_FORMAT_CS10L:
+        suffix = "10";
+    break;
+    case receiver::FILE_FORMAT_CS12L:
+        suffix = "12";
+    break;
+    case receiver::FILE_FORMAT_CS14L:
+        suffix = "14";
+    break;
     case receiver::FILE_FORMAT_CS16L:
         suffix = "16";
     break;
