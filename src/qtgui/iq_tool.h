@@ -105,7 +105,7 @@ private:
 
     bool    is_recording;
     bool    is_playing;
-    int     bytes_per_sample;  /*!< Bytes per sample (fc = 4) */
+    float   bytes_per_sample;  /*!< Bytes per sample (fc = 4) */
     int     rec_bytes_per_sample;  /*!< Bytes per sample for recording */
     enum receiver::file_formats fmt;
     enum receiver::file_formats rec_fmt;

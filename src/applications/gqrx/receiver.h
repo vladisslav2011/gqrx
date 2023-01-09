@@ -106,6 +106,9 @@ public:
         FILE_FORMAT_CS8U,
         FILE_FORMAT_CS16LU,
         FILE_FORMAT_CS32LU,
+        FILE_FORMAT_CS10L,
+        FILE_FORMAT_CS12L,
+        FILE_FORMAT_CS14L,
     };
 
     struct iq_tool_stats
@@ -470,7 +473,10 @@ private:
         any_to_any<gr_complex,std::complex<int32_t>>::make(),
         any_to_any<gr_complex,std::complex<uint8_t>>::make(),
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
-        any_to_any<gr_complex,std::complex<uint32_t>>::make()
+        any_to_any<gr_complex,std::complex<uint32_t>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,5>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,3>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,7>>::make(),
     };
     std::vector<any_to_any_base::sptr> convert_from
     {
@@ -482,7 +488,10 @@ private:
         any_to_any<std::complex<int32_t>,gr_complex>::make(),
         any_to_any<std::complex<uint8_t>,gr_complex>::make(),
         any_to_any<std::complex<uint16_t>,gr_complex>::make(),
-        any_to_any<std::complex<uint32_t>,gr_complex>::make()
+        any_to_any<std::complex<uint32_t>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,5>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,3>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,7>,gr_complex>::make(),
     };
 
     gr::blocks::throttle::sptr                     input_throttle;
