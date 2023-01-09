@@ -1602,6 +1602,12 @@ int receiver::sample_size_from_format(enum file_formats fmt)
     case FILE_FORMAT_CS32L:
     case FILE_FORMAT_CS32LU:
         return 8;
+    case FILE_FORMAT_CS10L:
+        return 5;
+    case FILE_FORMAT_CS12L:
+        return 3;
+    case FILE_FORMAT_CS14L:
+        return 7;
     case FILE_FORMAT_CS16L:
     case FILE_FORMAT_CS16LU:
         return 4;

@@ -67,6 +67,9 @@ CIqTool::CIqTool(QWidget *parent) :
     ui->formatCombo->addItem("uint 32", receiver::FILE_FORMAT_CS32LU);
     ui->formatCombo->addItem("ushort 16", receiver::FILE_FORMAT_CS16LU);
     ui->formatCombo->addItem("uchar 8", receiver::FILE_FORMAT_CS8U);
+    ui->formatCombo->addItem("10 bit", receiver::FILE_FORMAT_CS10L);
+    ui->formatCombo->addItem("12 bit", receiver::FILE_FORMAT_CS12L);
+    ui->formatCombo->addItem("14 bit", receiver::FILE_FORMAT_CS14L);
     ui->bufferStats->hide();
     ui->sizeStats->hide();
 }
@@ -486,37 +489,52 @@ void CIqTool::parseFileName(const QString &filename)
         center_freq = center;
     if(fmt_str.compare("fc") == 0)
     {
-        bytes_per_sample = 8;
+        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CF;
     }
     if(fmt_str.compare("32") == 0)
     {
-        bytes_per_sample = 8;
+        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CS32L;
     }
     if(fmt_str.compare("16") == 0)
     {
-        bytes_per_sample = 4;
+        bytes_per_sample = 4.0f;
         fmt = receiver::FILE_FORMAT_CS16L;
+    }
+    if(fmt_str.compare("14") == 0)
+    {
+        bytes_per_sample = 3.5f;
+        fmt = receiver::FILE_FORMAT_CS14L;
+    }
+    if(fmt_str.compare("12") == 0)
+    {
+        bytes_per_sample = 3.0f;
+        fmt = receiver::FILE_FORMAT_CS12L;
+    }
+    if(fmt_str.compare("10") == 0)
+    {
+        bytes_per_sample = 2.5f;
+        fmt = receiver::FILE_FORMAT_CS10L;
     }
     if(fmt_str.compare("8") == 0)
     {
-        bytes_per_sample = 2;
+        bytes_per_sample = 2.0f;
         fmt = receiver::FILE_FORMAT_CS8;
     }
     if(fmt_str.compare("32u") == 0)
     {
-        bytes_per_sample = 8;
+        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CS32LU;
     }
     if(fmt_str.compare("16u") == 0)
     {
-        bytes_per_sample = 4;
+        bytes_per_sample = 4.0f;
         fmt = receiver::FILE_FORMAT_CS16LU;
     }
     if(fmt_str.compare("8u") == 0)
     {
-        bytes_per_sample = 2;
+        bytes_per_sample = 2.0f;
         fmt = receiver::FILE_FORMAT_CS8U;
     }
 }
