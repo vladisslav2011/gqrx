@@ -2112,7 +2112,7 @@ void MainWindow::meterTimeout()
     if (iq_stats.playing)
     {
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
-        d_seek_pos = iq_stats.sample_pos;
+        d_seek_pos = iq_stats.file_pos;
     }
     if (uiDockRxOpt->getAgcOn())
     {
@@ -2680,7 +2680,7 @@ void MainWindow::waterfall_background_func()
             old_seek_pos = seek_pos;
             if(ms_per_line > 0.0)
             {
-                qint64 nlines = std::round(double(seek_delta) * 1000.0/double(rx->get_input_rate()*ms_per_line));
+                qint64 nlines = std::round(double(seek_delta * rx->samples_per_chunk[rx->get_last_format()]) * 1000.0/double(rx->get_input_rate()*ms_per_line));
                 ui->plotter->scrollWaterfall(nlines);
                 emit requestPlotterUpdate();
                 rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,

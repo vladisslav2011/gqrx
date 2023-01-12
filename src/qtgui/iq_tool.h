@@ -105,8 +105,8 @@ private:
 
     bool    is_recording;
     bool    is_playing;
-    float   bytes_per_sample;  /*!< Bytes per sample (fc = 4) */
-    int     rec_bytes_per_sample;  /*!< Bytes per sample for recording */
+    int     chunk_size;
+    int     samples_per_chunk;
     enum receiver::file_formats fmt;
     enum receiver::file_formats rec_fmt;
     quint64 time_ms;
