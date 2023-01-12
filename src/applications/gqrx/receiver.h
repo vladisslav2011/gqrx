@@ -109,6 +109,7 @@ public:
         FILE_FORMAT_CS10L,
         FILE_FORMAT_CS12L,
         FILE_FORMAT_CS14L,
+        FILE_FORMAT_COUNT,
     };
 
     struct iq_tool_stats
@@ -126,11 +127,11 @@ public:
     struct fft_reader
     {
         typedef std::function<void(int, float*, unsigned, uint64_t)> fft_data_ready;
-        fft_reader(std::string filename, int sample_size, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
+        fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate,uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
         ~fft_reader();
         void start_threads(int nthreads, rx_fft_c_sptr fft);
         void stop_threads();
-        void reconfigure(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads);
+        void reconfigure(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads);
         uint64_t ms_available();
         bool get_iq_fft_data(uint64_t ms, int n);
         void wait();
@@ -157,7 +158,8 @@ public:
         };
         std::string d_filename;
         FILE * d_fd;
-        int d_sample_size;
+        int d_chunk_size;
+        int d_samples_per_chunk;
         int d_sample_rate;
         uint64_t d_base_ts;
         uint64_t d_offset;
@@ -394,13 +396,13 @@ public:
 
     /* utility functions */
     static std::string escape_filename(std::string filename);
-    static int sample_size_from_format(enum file_formats fmt);
     template <typename T> void set_audio_rec_event_handler(T handler)
     {
         d_audio_rec_event_handler = handler;
     }
     uint64_t get_filesource_timestamp_ms();
-    fft_reader_sptr get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb, int nthreads);
+    fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
+    enum file_formats get_last_format() const { return d_last_format; }
 
 private:
     void        connect_all(enum file_formats fmt);
@@ -414,6 +416,38 @@ private:
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
     void        configure_channelizer(bool reconnect);
+
+public:
+    static constexpr int chunk_size[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        8,
+        2,
+        4,
+        8,
+        2,
+        4,
+        8,
+        5,
+        3,
+        7
+    };
+    static constexpr int samples_per_chunk[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        1,
+        2
+    };
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
