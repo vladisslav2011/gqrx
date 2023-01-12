@@ -337,7 +337,7 @@ bool file_sink::get_failed()
 
 size_t file_sink::get_written()
 {
-    return d_written;
+    return d_written/d_itemsize;
 }
 
 void file_sink::set_buffers_max(int buffers_max)

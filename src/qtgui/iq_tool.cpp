@@ -45,8 +45,8 @@ CIqTool::CIqTool(QWidget *parent) :
 
     is_recording = false;
     is_playing = false;
-    bytes_per_sample = 8;
-    rec_bytes_per_sample = 8;
+    chunk_size = 8;
+    samples_per_chunk = 1;
     fmt = receiver::FILE_FORMAT_CF;
     rec_fmt = receiver::FILE_FORMAT_CF;
     sample_rate = 192000;
@@ -95,7 +95,7 @@ void CIqTool::setSampleRate(qint64 sr)
     {
         // Get duration of selected recording and update label
         QFileInfo info(*recdir, current_file);
-        rec_len = (int)(info.size() / (sample_rate * bytes_per_sample));
+        rec_len = (int)(info.size() * samples_per_chunk / (sample_rate * chunk_size));
         refreshTimeWidgets();
     }
 }
@@ -109,7 +109,7 @@ void CIqTool::on_listWidget_currentTextChanged(const QString &currentText)
     QFileInfo info(*recdir, current_file);
 
     parseFileName(currentText);
-    rec_len = (int)(info.size() / (sample_rate * bytes_per_sample));
+    rec_len = (int)(info.size() * samples_per_chunk / (sample_rate * chunk_size));
 
     // Get duration of selected recording and update label
     refreshTimeWidgets();
@@ -212,9 +212,9 @@ void CIqTool::on_slider_valueChanged(int value)
 {
     refreshTimeWidgets();
 
-    qint64 seek_pos = (qint64)(value)*sample_rate;
+    qint64 seek_pos = (qint64)(value) * sample_rate / samples_per_chunk;
     emit seek(seek_pos);
-    o_fileSize = seek_pos * bytes_per_sample;
+    o_fileSize = seek_pos;
 }
 
 
@@ -272,7 +272,7 @@ void CIqTool::updateStats(bool hasFailed, int buffersUsed, size_t fileSize)
             if(o_buffersUsed!=buffersUsed)
                 ui->bufferStats->setText(QString("Buffer: %1%").arg(buffersUsed));
             if(o_fileSize != fileSize)
-                ui->sizeStats->setText(QString("Size: %1 bytes").arg(fileSize));
+                ui->sizeStats->setText(QString("Size: %1 bytes").arg(fileSize * chunk_size));
             o_buffersUsed = buffersUsed;
             o_fileSize = fileSize;
         }
@@ -282,7 +282,7 @@ void CIqTool::updateStats(bool hasFailed, int buffersUsed, size_t fileSize)
         if(o_buffersUsed!=buffersUsed)
             ui->bufferStats->setText(QString("Buffer: %1%").arg(buffersUsed));
         if(o_fileSize != fileSize)
-            ui->sizeStats->setText(QString("Pos: %1 bytes").arg(fileSize));
+            ui->sizeStats->setText(QString("Pos: %1 bytes").arg(fileSize * chunk_size));
         o_buffersUsed = buffersUsed;
         o_fileSize = fileSize;
     }
@@ -338,11 +338,9 @@ void CIqTool::readSettings(QSettings *settings)
     if(found == -1)
     {
         rec_fmt = receiver::FILE_FORMAT_CF;
-        rec_bytes_per_sample = 8;
     }
     else
     {
-        rec_bytes_per_sample = receiver::sample_size_from_format((enum receiver::file_formats)ui->formatCombo->itemData(found).toInt());
         ui->formatCombo->setCurrentIndex(found);
     }
     ui->buffersSpinBox->setValue(settings->value("baseband/rec_buffers", 1).toInt());
@@ -386,7 +384,7 @@ void CIqTool::timeoutFunction(void)
 
     if (is_playing)
     {
-        int val = o_fileSize / (sample_rate * bytes_per_sample);
+        int val = o_fileSize * samples_per_chunk / sample_rate ;
         if (val < ui->slider->maximum())
         {
             ui->slider->blockSignals(true);
@@ -402,7 +400,6 @@ void CIqTool::timeoutFunction(void)
 void CIqTool::on_formatCombo_currentIndexChanged(int index)
 {
     rec_fmt = (enum receiver::file_formats)ui->formatCombo->currentData().toInt();
-    rec_bytes_per_sample = receiver::sample_size_from_format(rec_fmt);
 }
 
 /*! \brief Refresh list of files in current working directory. */
@@ -427,7 +424,7 @@ void CIqTool::refreshDir()
         // update rec_len; if the file being recorded is the one selected
         // in the list, the length will update periodically
         QFileInfo info(*recdir, current_file);
-        rec_len = (int)(info.size() / (sample_rate * bytes_per_sample));
+        rec_len = (int)(info.size() * samples_per_chunk / (sample_rate * chunk_size));
     }
 }
 
@@ -493,53 +490,25 @@ void CIqTool::parseFileName(const QString &filename)
     if (center_ok)
         center_freq = center;
     if(fmt_str.compare("fc") == 0)
-    {
-        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CF;
-    }
     if(fmt_str.compare("32") == 0)
-    {
-        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CS32L;
-    }
     if(fmt_str.compare("16") == 0)
-    {
-        bytes_per_sample = 4.0f;
         fmt = receiver::FILE_FORMAT_CS16L;
-    }
     if(fmt_str.compare("14") == 0)
-    {
-        bytes_per_sample = 3.5f;
         fmt = receiver::FILE_FORMAT_CS14L;
-    }
     if(fmt_str.compare("12") == 0)
-    {
-        bytes_per_sample = 3.0f;
         fmt = receiver::FILE_FORMAT_CS12L;
-    }
     if(fmt_str.compare("10") == 0)
-    {
-        bytes_per_sample = 2.5f;
         fmt = receiver::FILE_FORMAT_CS10L;
-    }
     if(fmt_str.compare("8") == 0)
-    {
-        bytes_per_sample = 2.0f;
         fmt = receiver::FILE_FORMAT_CS8;
-    }
     if(fmt_str.compare("32u") == 0)
-    {
-        bytes_per_sample = 8.0f;
         fmt = receiver::FILE_FORMAT_CS32LU;
-    }
     if(fmt_str.compare("16u") == 0)
-    {
-        bytes_per_sample = 4.0f;
         fmt = receiver::FILE_FORMAT_CS16LU;
-    }
     if(fmt_str.compare("8u") == 0)
-    {
-        bytes_per_sample = 2.0f;
         fmt = receiver::FILE_FORMAT_CS8U;
-    }
+    samples_per_chunk = receiver::samples_per_chunk[fmt];
+    chunk_size = receiver::chunk_size[fmt];
 }

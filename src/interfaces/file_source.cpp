@@ -485,7 +485,7 @@ int file_source::work(int noutput_items,
 uint64_t file_source::tell()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
-    return (d_length_items - d_items_remaining) * d_itemsize;
+    return d_length_items - d_items_remaining;
 }
 
 int file_source::get_buffer_usage()

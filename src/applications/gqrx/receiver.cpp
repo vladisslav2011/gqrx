@@ -264,11 +264,10 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
                               int buffers_max, bool repeat)
 {
     std::string error = "";
-    size_t sample_size = sample_size_from_format(fmt);
 
     d_iq_filename = name;
     d_iq_time_ms = time_ms;
-    input_file = file_source::make(sample_size, name.c_str(), 0, 0, sample_rate,
+    input_file = file_source::make(chunk_size[fmt], name.c_str(), 0, 0, sample_rate / samples_per_chunk[fmt],
                                    time_ms, repeat, buffers_max);
 
     if (d_running)
@@ -1867,7 +1866,7 @@ receiver::status receiver::connect_iq_recorder()
  */
 receiver::status receiver::start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max)
 {
-    int sink_bytes_per_sample = sample_size_from_format(fmt);
+    int sink_bytes_per_chunk = chunk_size[fmt];
 
     if (d_recording_iq) {
         std::cout << __func__ << ": already recording" << std::endl;
@@ -1876,7 +1875,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = file_sink::make(sink_bytes_per_sample, filename.c_str(), d_input_rate, true, buffers_max);
+        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate, true, buffers_max);
     }
     catch (std::runtime_error &e)
     {
@@ -1936,7 +1935,6 @@ receiver::status receiver::seek_iq_file(long pos)
         tb->wait();
         tb->start();
     }
-
     return status;
 }
 
@@ -1975,14 +1973,14 @@ void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
         stats.failed = iq_sink->get_failed();
         stats.buffer_usage = iq_sink->get_buffer_usage();
         stats.file_pos = iq_sink->get_written();
-        stats.sample_pos = stats.file_pos / sample_size_from_format(d_iq_fmt);
+        stats.sample_pos = stats.file_pos * samples_per_chunk[d_last_format];
     }
-    else
+    if(stats.playing)
     {
         stats.failed = input_file->get_failed();
         stats.buffer_usage = input_file->get_buffer_usage();
         stats.file_pos = input_file->tell();
-        stats.sample_pos = stats.file_pos / sample_size_from_format(d_last_format);
+        stats.sample_pos = stats.file_pos * samples_per_chunk[d_last_format];
     }
 }
 
@@ -2278,49 +2276,21 @@ void receiver::reset_rds_parser(void)
     rx[d_current]->reset_rds_parser();
 }
 
-int receiver::sample_size_from_format(enum file_formats fmt)
-{
-    switch(fmt)
-    {
-    case FILE_FORMAT_LAST:
-            throw std::runtime_error("receiver::sample_size_from_format: Invalid format requested");
-    case FILE_FORMAT_NONE:
-    case FILE_FORMAT_CF:
-    case FILE_FORMAT_CS32L:
-    case FILE_FORMAT_CS32LU:
-        return 8;
-    case FILE_FORMAT_CS10L:
-        return 5;
-    case FILE_FORMAT_CS12L:
-        return 3;
-    case FILE_FORMAT_CS14L:
-        return 7;
-    case FILE_FORMAT_CS16L:
-    case FILE_FORMAT_CS16LU:
-        return 4;
-    case FILE_FORMAT_CS8:
-    case FILE_FORMAT_CS8U:
-        return 2;
-    }
-    throw std::runtime_error("receiver::sample_size_from_format: Invalid format requested");
-    return 0;
-}
-
 uint64_t receiver::get_filesource_timestamp_ms()
 {
     return input_file->get_timestamp_ms();
 }
 
-receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t ts, receiver::fft_reader::fft_data_ready cb, int nthreads)
+receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads)
 {
     if( d_fft_reader)
     {
-        d_fft_reader->reconfigure(d_iq_filename, sample_size_from_format(d_last_format), d_input_rate, d_iq_time_ms, ts,
+        d_fft_reader->reconfigure(d_iq_filename, chunk_size[d_last_format], samples_per_chunk[d_last_format], d_input_rate, d_iq_time_ms, offset,
                                   convert_from[d_last_format], iq_fft, cb, nthreads);
         return d_fft_reader;
     }else
-        return d_fft_reader = std::make_shared<receiver::fft_reader>(d_iq_filename, sample_size_from_format(d_last_format),
-                                                                     d_input_rate, d_iq_time_ms, ts, convert_from[d_last_format],
+        return d_fft_reader = std::make_shared<receiver::fft_reader>(d_iq_filename, chunk_size[d_last_format], samples_per_chunk[d_last_format],
+                                                                     d_input_rate, d_iq_time_ms, offset, convert_from[d_last_format],
                                                                      iq_fft, cb, nthreads);
 }
 
@@ -2363,14 +2333,15 @@ void receiver::audio_rec_event(receiver * self, int idx, std::string filename, b
 #define GR_STAT stat
 #endif
 
-receiver::fft_reader::fft_reader(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads)
+receiver::fft_reader::fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads)
 {
     d_filename = filename;
-    d_sample_size = sample_size;
+    d_chunk_size = chunk_size;
+    d_samples_per_chunk = samples_per_chunk;
     d_sample_rate = sample_rate;
     d_base_ts = base_ts;
     d_offset = offset;
-    d_offset_ms = offset * 1000llu / d_sample_rate;
+    d_offset_ms = offset * d_samples_per_chunk * 1000llu / d_sample_rate;
     d_conv = conv;
     if(nthreads == 0)
         nthreads=std::max(1u,std::thread::hardware_concurrency() / 2);
@@ -2410,7 +2381,7 @@ void receiver::fft_reader::start_threads(int nthreads, rx_fft_c_sptr fft)
         else
             t.d_fft.copy_params(threads[0].d_fft);
         t.samples = t.d_fft.get_fft_size();
-        t.d_buf.resize(d_sample_size * t.samples);
+        t.d_buf.resize(d_chunk_size * (t.samples / d_samples_per_chunk));
         t.d_fftbuf.resize(t.samples);
         t.index = k;
         t.ready = false;
@@ -2433,17 +2404,18 @@ void receiver::fft_reader::stop_threads()
         threads[k].thread->join();
 }
 
-void receiver::fft_reader::reconfigure(std::string filename, int sample_size, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads)
+void receiver::fft_reader::reconfigure(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts, uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, receiver::fft_reader::fft_data_ready handler, int nthreads)
 {
     std::unique_lock<std::mutex> lock(mutex);
     while(busy)
         finished.wait(lock);
-    bool sample_size_changed = (d_sample_size != sample_size);
-    d_sample_size = sample_size;
+    bool sample_size_changed = (d_chunk_size != chunk_size) || (d_samples_per_chunk != samples_per_chunk);
+    d_chunk_size = chunk_size;
+    d_samples_per_chunk = samples_per_chunk;
     d_sample_rate = sample_rate;
     d_base_ts = base_ts;
-    d_offset = offset;
-    d_offset_ms = offset * 1000llu / d_sample_rate;
+    d_offset = offset * d_samples_per_chunk;
+    d_offset_ms = offset * d_samples_per_chunk * 1000llu / d_sample_rate;
     d_conv = conv;
     if(nthreads == 0)
         nthreads=std::max(1u,std::thread::hardware_concurrency() / 2);
@@ -2469,7 +2441,7 @@ void receiver::fft_reader::reconfigure(std::string filename, int sample_size, in
                 t.d_fftbuf.resize(t.samples);
             }
             if(update_fft || sample_size_changed)
-                t.d_buf.resize(d_sample_size * t.samples);
+                t.d_buf.resize(d_chunk_size * (t.samples / d_samples_per_chunk));
         }
     }
     data_ready = handler;
@@ -2520,7 +2492,7 @@ bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, int n)
     else
         samp = d_offset - samp;
     if(samp>=threads[0].samples)
-        GR_FSEEK(d_fd, (samp - threads[0].samples) * d_sample_size, SEEK_SET);
+        GR_FSEEK(d_fd, ((samp - threads[0].samples) / d_samples_per_chunk) * d_chunk_size , SEEK_SET);
     else{
         GR_FSEEK(d_fd, 0, SEEK_SET);
         read_ofs = threads[0].samples - samp;
@@ -2536,9 +2508,9 @@ bool receiver::fft_reader::get_iq_fft_data(uint64_t ms, int n)
     busy++;
     lock.unlock();
     if(read_ofs > 0)
-        std::memset(threads[k].d_buf.data(), 0, read_ofs * d_sample_size);
-    size_t nread = fread(&threads[k].d_buf[read_ofs * d_sample_size], d_sample_size, threads[k].samples - read_ofs, d_fd);
-    if(nread != threads[k].samples-read_ofs)
+        std::memset(threads[k].d_buf.data(), 0, (read_ofs / d_samples_per_chunk) * d_chunk_size);
+    size_t nread = fread(&threads[k].d_buf[(read_ofs / d_samples_per_chunk) * d_chunk_size], d_chunk_size, (threads[k].samples - read_ofs) / d_samples_per_chunk, d_fd);
+    if(nread != (threads[k].samples - read_ofs) / d_samples_per_chunk)
     {
         //FIXME: Handle error?
     }
@@ -2580,3 +2552,5 @@ void receiver::fft_reader::task::thread_func()
     }
 }
 
+constexpr int receiver::chunk_size[FILE_FORMAT_COUNT];
+constexpr int receiver::samples_per_chunk[FILE_FORMAT_COUNT];
