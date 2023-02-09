@@ -338,7 +338,14 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high, bool
     {
         const BookmarkInfo& info = *lb;
         if (!autoAdded || lb->get_freq_lock())
-            found.append(info);
+        {
+            for(int iTag=0; iTag<info.tags.size(); ++iTag)
+                if(info.tags[iTag]->active)
+                {
+                    found.append(info);
+                    break;
+                }
+        }
         lb++;
     }
 
