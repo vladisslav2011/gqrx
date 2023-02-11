@@ -65,6 +65,7 @@ void fft_c_basic::get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr
 /*! \brief Set new window type. */
 void fft_c_basic::set_window_type(int wintype)
 {
+    float tmp;
     if (wintype == d_wintype)
     {
         /* nothing to do */
@@ -80,6 +81,8 @@ void fft_c_basic::set_window_type(int wintype)
 
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize, 6.76);
+    volk_32f_accumulator_s32f(&tmp, d_window.data(), d_fftsize);
+    volk_32f_s32f_normalize(d_window.data(),tmp/float(d_fftsize),d_fftsize);
 }
 
 /*! \brief Get currently used window type. */
