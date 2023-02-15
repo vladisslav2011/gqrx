@@ -48,8 +48,8 @@ public:
     void setDXCSpotsEnabled(bool enabled) { m_DXCSpotsEnabled = enabled; }
 
     void setNewFftData(float *fftData, int size);
-    void setNewFftData(float *fftData, float *wfData, int size, qint64 ts);
-    void drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts);
+    void setNewFftData(float *fftData, float *wfData, float *phaseData, int size, qint64 ts);
+    void drawOneWaterfallLine(int line, float *fftData, float *phaseData, int size, qint64 ts);
     void drawBlackWaterfallLine(int line);
     void scrollWaterfall(int dy);
     void getWaterfallMetrics(int &lines, double &ms_per_line);
@@ -240,6 +240,7 @@ private:
                                  float maxdB, float mindB,
                                  qint64 startFreq, qint64 stopFreq,
                                  float *inBuf, qint32 *outBuf,
+                                 float *inPhase, qint32 *outPhase,
                                  qint32 *maxbin, qint32 *minbin);
     static void calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &adjlow, qint64 &step, int& divs);
     void        showToolTip(QMouseEvent* event, QString toolTipText);
@@ -247,10 +248,13 @@ private:
     bool        m_PeakHoldActive;
     bool        m_PeakHoldValid;
     qint32      m_fftbuf[MAX_SCREENSIZE]{};
+    qint32      m_phasebuf[MAX_SCREENSIZE]{};
     qint32      m_fftbuf2[MAX_SCREENSIZE]{};
     quint8      m_wfbuf[MAX_SCREENSIZE]{}; // used for accumulating waterfall data at high time spans
     qint32      m_fftPeakHoldBuf[MAX_SCREENSIZE]{};
     float      *m_fftData{};     /*! pointer to incoming FFT data */
+    float      *m_phaseData{};     /*! pointer to incoming FFT phase data */
+    qint32      m_phasePrv[4096*1024]{};     /*! pointer to incoming FFT phase data */
     float      *m_wfData{};
     QList<wfLineStats> m_wfLineStats;
     int         m_fftDataSize{};

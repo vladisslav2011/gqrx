@@ -124,6 +124,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     d_fftData = new std::complex<float>[MAX_FFT_SIZE];
     d_realFftData = new float[MAX_FFT_SIZE];
+    d_realPhaseData = new float[MAX_FFT_SIZE];
     d_iirFftData = new float[MAX_FFT_SIZE];
     for (int i = 0; i < MAX_FFT_SIZE; i++)
         d_iirFftData[i] = -140.0;  // dBFS
@@ -465,6 +466,7 @@ MainWindow::~MainWindow()
     delete remote;
     delete [] d_fftData;
     delete [] d_realFftData;
+    delete [] d_realPhaseData;
     delete [] d_iirFftData;
     delete qsvg_dummy;
     delete rxSpinBox;
@@ -2116,7 +2118,7 @@ void MainWindow::iqFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize, d_fftData, d_realFftData);
+    iqFftToMag(fftsize, d_fftData, d_realFftData, d_realPhaseData);
 
     for (i = 0; i < fftsize; i++)
     {
@@ -2124,16 +2126,18 @@ void MainWindow::iqFftTimeout()
         d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
     }
 
-    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
+    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, d_realPhaseData, fftsize, fft_approx_timestamp);
 }
 
-void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const
+void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData, float* realPhaseData) const
 {
     // NB: without cast to float the multiplication will overflow at 64k
     // and pwr_scale will be inf
     float pwr_scale = 1.0 / ((float)fftsize * (float)fftsize);
 
     /* Normalize, calculate power and shift the FFT */
+    volk_32fc_s32f_atan2_32f(realPhaseData, fftData + (fftsize/2), M_2_PI/36.0,fftsize/2);
+    volk_32fc_s32f_atan2_32f(realPhaseData + (fftsize/2), fftData, M_2_PI/36.0,fftsize/2);
     volk_32fc_magnitude_squared_32f(realFftData, fftData + (fftsize/2), fftsize/2);
     volk_32fc_magnitude_squared_32f(realFftData + (fftsize/2), fftData, fftsize/2);
     volk_32f_s32f_multiply_32f(realFftData, realFftData, pwr_scale, fftsize);
@@ -2665,7 +2669,8 @@ void MainWindow::waterfall_background_func()
                                 std::placeholders::_2,
                                 std::placeholders::_3,
                                 std::placeholders::_4,
-                                std::placeholders::_5
+                                std::placeholders::_5,
+                                std::placeholders::_6
                                 ), waterfall_background_threads);
                 quint64 ms_available = rd->ms_available();
                 maxlines = std::min(lines, int(ms_available / ms_per_line));
@@ -2718,17 +2723,17 @@ void MainWindow::waterfall_background_func()
     }
 }
 
-void MainWindow::plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts)
+void MainWindow::plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, float *tmpphase, unsigned n, quint64 ts)
 {
-    self->plotterWfCb(line, data, tmpbuf, n, ts);
+    self->plotterWfCb(line, data, tmpbuf, tmpphase, n, ts);
 }
 
-void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts)
+void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, float *tmpphase, unsigned n, quint64 ts)
 {
     if(n > 0)
     {
-        iqFftToMag(n,data,tmpbuf);
-        ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
+        iqFftToMag(n,data,tmpbuf, tmpphase);
+        ui->plotter->drawOneWaterfallLine(line, tmpbuf, tmpphase, n, ts);
         if((line & 15) == 0)
             emit requestPlotterUpdate();
     }

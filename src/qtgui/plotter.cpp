@@ -1100,6 +1100,7 @@ void CPlotter::draw()
                                 m_FftCenter - (qint64)m_Span / 2,
                                 m_FftCenter + (qint64)m_Span / 2,
                                 m_wfData, m_fftbuf,
+                                m_phaseData, m_phasebuf,
                                 &xmin, &xmax);
 
         if (msec_per_wfline > 0)
@@ -1141,7 +1142,9 @@ void CPlotter::draw()
                 // user set time span
                 for (i = xmin; i < xmax; i++)
                 {
-                    painter1.setPen(m_ColorTbl[255 - m_wfbuf[i]]);
+                    //painter1.setPen(m_ColorTbl[255 - m_wfbuf[i]]);
+                    painter1.setPen(QColor::fromHsv(m_phasebuf[i],255,255 - m_wfbuf[i]));
+                    //painter1.setPen(QColor::fromHsv(5,255,255 - m_wfbuf[i]));
                     painter1.drawPoint(i, 0);
                     m_wfbuf[i] = 255;
                 }
@@ -1150,7 +1153,9 @@ void CPlotter::draw()
             {
                 for (i = xmin; i < xmax; i++)
                 {
-                    painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+                    //painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
+                    painter1.setPen(QColor::fromHsv(m_phasebuf[i],255,255 - m_fftbuf[i]));
+                    //painter1.setPen(QColor::fromHsv(5,255,255 - m_fftbuf[i]));
                     painter1.drawPoint(i, 0);
                 }
             }
@@ -1174,6 +1179,7 @@ void CPlotter::draw()
                                 m_FftCenter - (qint64)m_Span/2,
                                 m_FftCenter + (qint64)m_Span/2,
                                 m_fftData, m_fftbuf,
+                                m_phaseData, m_phasebuf,
                                 &xmin, &xmax);
 
         // draw the pandapter
@@ -1267,6 +1273,7 @@ void CPlotter::setNewFftData(float *fftData, int size)
 
     m_wfData = fftData;
     m_fftData = fftData;
+    m_phaseData = nullptr;
     m_fftDataSize = size;
     tnow_wf_ms = QDateTime::currentMSecsSinceEpoch();
 
@@ -1283,7 +1290,7 @@ void CPlotter::setNewFftData(float *fftData, int size)
  * waterfall.
  */
 
-void CPlotter::setNewFftData(float *fftData, float *wfData, int size, qint64 ts)
+void CPlotter::setNewFftData(float *fftData, float *wfData, float *phaseData, int size, qint64 ts)
 {
     /** FIXME **/
     if (!m_Running)
@@ -1291,6 +1298,7 @@ void CPlotter::setNewFftData(float *fftData, float *wfData, int size, qint64 ts)
 
     m_wfData = wfData;
     m_fftData = fftData;
+    m_phaseData = phaseData;
     m_fftDataSize = size;
     tnow_wf_ms = ts;
     if(tnow_wf_ms < tlast_wf_ms)
@@ -1299,7 +1307,7 @@ void CPlotter::setNewFftData(float *fftData, float *wfData, int size, qint64 ts)
     draw();
 }
 
-void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 ts)
+void CPlotter::drawOneWaterfallLine(int line, float *fftData, float *phaseData, int size, qint64 ts)
 {
     int     i, n;
     int     w;
@@ -1309,6 +1317,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     std::unique_lock<std::mutex> lock(m_wf_mutex);
     m_wfData = fftData;
     m_fftDataSize = size;
+    m_phaseData = phaseData;
     // get/draw the waterfall
     w = m_WaterfallPixmap.width();
     h = m_WaterfallPixmap.height();
@@ -1322,6 +1331,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
                                 m_FftCenter - (qint64)m_Span / 2,
                                 m_FftCenter + (qint64)m_Span / 2,
                                 m_wfData, m_fftbuf2,
+                                m_phaseData, m_phasebuf,
                                 &xmin, &xmax);
 
         while(line>m_wfLineStats.size())
@@ -1341,7 +1351,8 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
         for (i = xmin; i < xmax; i++)
         {
-            painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
+//            painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
+            painter1.setPen(QColor::fromHsv(m_phasebuf[i],255,255 - m_fftbuf2[i]));
             painter1.drawPoint(i, line);
         }
     }
@@ -1404,6 +1415,7 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
                                        float maxdB, float mindB,
                                        qint64 startFreq, qint64 stopFreq,
                                        float *inBuf, qint32 *outBuf,
+                                       float *inPhase, qint32 *outPhase,
                                        int *xmin, int *xmax)
 {
     qint32 i;
@@ -1501,6 +1513,11 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
                 if (y < ymax) // store only the max value
                 {
                     outBuf[x] = y;
+                    if(inPhase)
+                    {
+                        outPhase[x] = (int(inPhase[i]) + 360 - m_phasePrv[i])%360;
+                        m_phasePrv[i] = inPhase[i];
+                    }
                     ymax = y;
                 }
 
@@ -1508,6 +1525,11 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
             else
             {
                 outBuf[x] = y;
+                if(inPhase)
+                {
+                    outPhase[x] = (int(inPhase[i]) + 360 - m_phasePrv[i])%360;
+                    m_phasePrv[i] = inPhase[i];
+                }
                 xprev = x;
                 ymax = y;
             }
@@ -1516,9 +1538,16 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     else
     {
         // more plot points than FFT points
+        int prvi = m_pTranslateTbl[0];
         for (x = 0; x < plotWidth; x++ )
         {
             i = m_pTranslateTbl[x]; // get plot to fft bin coordinate transform
+            if(i!=prvi)
+            {
+                if(inPhase)
+                    m_phasePrv[prvi] = inPhase[prvi];
+                prvi=i;
+            }
             if(i < 0 || i >= m_FFTSize)
                 y = plotHeight;
             else
@@ -1530,6 +1559,10 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
                 y = 0;
 
             outBuf[x] = y;
+            if(inPhase)
+            {
+                outPhase[x] = (int(inPhase[i]) + 360 - m_phasePrv[i])%360;
+            }
         }
     }
 }

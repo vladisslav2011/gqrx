@@ -126,7 +126,7 @@ public:
 
     struct fft_reader
     {
-        typedef std::function<void(int, gr_complex*, float*, unsigned, uint64_t)> fft_data_ready;
+        typedef std::function<void(int, gr_complex*, float*, float*, unsigned, uint64_t)> fft_data_ready;
         fft_reader(std::string filename, int chunk_size, int samples_per_chunk, int sample_rate, uint64_t base_ts,uint64_t offset, any_to_any_base::sptr conv, rx_fft_c_sptr fft, fft_data_ready handler, int nthreads=0);
         ~fft_reader();
         void start_threads(int nthreads, rx_fft_c_sptr fft);

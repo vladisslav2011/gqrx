@@ -94,6 +94,7 @@ private:
     Modulations::filter_shape d_filter_shape;
     std::complex<float>* d_fftData;
     float          *d_realFftData;
+    float          *d_realPhaseData;
     float          *d_iirFftData;
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
 
@@ -156,10 +157,10 @@ private:
     void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
-    void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const;
+    void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData, float *realPhaseData) const;
     void waterfall_background_func();
-    static void plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
-    void plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
+    static void plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, float *tmpphase, unsigned n, quint64 ts);
+    void plotterWfCb(int line, gr_complex* data, float *tmpbuf, float *tmpphase, unsigned n, quint64 ts);
 
 private slots:
     /* RecentConfig */
