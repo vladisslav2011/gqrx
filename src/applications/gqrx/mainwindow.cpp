@@ -282,7 +282,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
-    connect(uiDockFft, SIGNAL(fftWindowChanged(int)), this, SLOT(setIqFftWindow(int)));
+    connect(uiDockFft, SIGNAL(fftWindowChanged(int,int)), this, SLOT(setIqFftWindow(int,int)));
     connect(uiDockFft, SIGNAL(wfSpanChanged(quint64)), this, SLOT(setWfTimeSpan(quint64)));
     connect(uiDockFft, SIGNAL(fftSplitChanged(int)), this, SLOT(setIqFftSplit(int)));
     connect(uiDockFft, SIGNAL(fftAvgChanged(float)), this, SLOT(setIqFftAvg(float)));
@@ -2802,10 +2802,10 @@ void MainWindow::setIqFftRate(int fps)
     triggerIQFftRedraw();
 }
 
-void MainWindow::setIqFftWindow(int type)
+void MainWindow::setIqFftWindow(int type, int correction)
 {
 //    stopIQFftRedraw();
-    rx->set_iq_fft_window(type);
+    rx->set_iq_fft_window(type, correction);
     triggerIQFftRedraw();
 }
 

@@ -42,7 +42,7 @@ fft_c_basic::fft_c_basic(unsigned int fftsize, int wintype)
     d_fft = new gr::fft::fft_complex_fwd(d_fftsize);
 #endif
     /* create FFT window */
-    set_window_type(wintype);
+    set_window_type(wintype, 0);
 }
 
 fft_c_basic::~fft_c_basic()
@@ -63,16 +63,17 @@ void fft_c_basic::get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr
 }
 
 /*! \brief Set new window type. */
-void fft_c_basic::set_window_type(int wintype)
+void fft_c_basic::set_window_type(int wintype, int correction)
 {
     float tmp;
-    if (wintype == d_wintype)
+    if (wintype == d_wintype && correction == d_correction)
     {
         /* nothing to do */
         return;
     }
 
     d_wintype = wintype;
+    d_correction = correction;
 
     if ((d_wintype < gr::fft::window::WIN_HAMMING) || (d_wintype > gr::fft::window::WIN_FLATTOP))
     {
@@ -81,14 +82,31 @@ void fft_c_basic::set_window_type(int wintype)
 
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize, 6.76);
-    volk_32f_accumulator_s32f(&tmp, d_window.data(), d_fftsize);
-    volk_32f_s32f_normalize(d_window.data(),tmp/float(d_fftsize),d_fftsize);
+    switch(d_correction)
+    {
+    case 0:
+        break;
+    case 1:
+        volk_32f_accumulator_s32f(&tmp, d_window.data(), d_fftsize);
+        volk_32f_s32f_normalize(d_window.data(),tmp/float(d_fftsize),d_fftsize);
+        break;
+    case 2:
+        volk_32f_x2_dot_prod_32f(&tmp, d_window.data(), d_window.data(), d_fftsize);
+        volk_32f_s32f_normalize(d_window.data(), std::sqrt(tmp / float(d_fftsize)), d_fftsize);
+        break;
+    }
 }
 
 /*! \brief Get currently used window type. */
 int  fft_c_basic::get_window_type() const
 {
     return d_wintype;
+}
+
+/*! \brief Get currently used window correction. */
+int  fft_c_basic::get_window_correction() const
+{
+    return d_correction;
 }
 
 /*! \brief Set new FFT size. */
@@ -135,7 +153,7 @@ void fft_c_basic::set_params()
     /* reset window */
     int wintype = d_wintype; // FIXME: would be nicer with a window_reset()
     d_wintype = -1;
-    set_window_type(wintype);
+    set_window_type(wintype, d_correction);
 
     /* reset FFT object (also reset FFTW plan) */
     delete d_fft;
@@ -153,8 +171,8 @@ void fft_c_basic::copy_params(fft_c_basic & from)
         d_fftsize = from.d_fftsize;
         set_params();
     }
-    if(from.d_wintype != d_wintype)
-        set_window_type(from.d_wintype);
+    if(from.d_wintype != d_wintype || from.d_correction != d_correction)
+        set_window_type(from.d_wintype, from.d_correction);
 }
 
 
