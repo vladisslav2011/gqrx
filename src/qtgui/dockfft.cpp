@@ -35,6 +35,7 @@
 #define DEFAULT_FFT_SIZE        8192
 #define DEFAULT_FFT_ZOOM        1
 #define DEFAULT_FFT_WINDOW      1       // Hann
+#define DEFAULT_FFT_WINDOW_CORRECTION 1       // Amplitude
 #define DEFAULT_WATERFALL_SPAN  0       // Auto
 #define DEFAULT_FFT_SPLIT       35
 #define DEFAULT_FFT_AVG         0
@@ -211,6 +212,12 @@ void DockFft::saveSettings(QSettings *settings)
     else
         settings->remove("fft_window");
 
+    intval = ui->windowCorrectionComboBox->currentIndex();
+    if (intval != DEFAULT_FFT_WINDOW_CORRECTION)
+        settings->setValue("fft_window_correction", intval);
+    else
+        settings->remove("fft_window_correction");
+
     intval = ui->wfSpanComboBox->currentIndex();
     if (intval != DEFAULT_WATERFALL_SPAN)
         settings->setValue("waterfall_span", intval);
@@ -333,6 +340,10 @@ void DockFft::readSettings(QSettings *settings)
     if (conv_ok)
         ui->fftWinComboBox->setCurrentIndex(intval);
 
+    intval = settings->value("fft_window_correction", DEFAULT_FFT_WINDOW_CORRECTION).toInt(&conv_ok);
+    if (conv_ok)
+        ui->windowCorrectionComboBox->setCurrentIndex(intval);
+
     intval = settings->value("waterfall_span", DEFAULT_WATERFALL_SPAN).toInt(&conv_ok);
     if (conv_ok)
         ui->wfSpanComboBox->setCurrentIndex(intval);
@@ -448,7 +459,12 @@ void DockFft::on_fftRateComboBox_currentIndexChanged(int index)
 
 void DockFft::on_fftWinComboBox_currentIndexChanged(int index)
 {
-    emit fftWindowChanged(index);
+    emit fftWindowChanged(index, ui->windowCorrectionComboBox->currentIndex());
+}
+
+void DockFft::on_windowCorrectionComboBox_currentIndexChanged(int index)
+{
+    emit fftWindowChanged(ui->fftWinComboBox->currentIndex(), index);
 }
 
 static const quint64 wf_span_table[] =
