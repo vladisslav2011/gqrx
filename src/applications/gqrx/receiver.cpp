@@ -976,9 +976,9 @@ void receiver::set_iq_fft_size(int newsize)
     iq_fft->set_fft_size(newsize);
 }
 
-void receiver::set_iq_fft_window(int window_type)
+void receiver::set_iq_fft_window(int window_type, int correction)
 {
-    iq_fft->set_window_type(window_type);
+    iq_fft->set_window_type(window_type, correction);
 }
 
 /** Get latest baseband FFT data. */
@@ -2421,6 +2421,7 @@ void receiver::fft_reader::reconfigure(std::string filename, int chunk_size, int
     }else{
         bool update_fft = (fft->get_fft_size() != threads[0].d_fft.get_fft_size());
         update_fft |= (fft->get_window_type() != threads[0].d_fft.get_window_type());
+        update_fft |= (fft->get_window_correction() != threads[0].d_fft.get_window_correction());
         for(int k=0;k<nthreads;k++)
         {
             task & t=threads[k];

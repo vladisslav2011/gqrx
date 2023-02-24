@@ -59,8 +59,9 @@ public:
     fft_c_basic(unsigned int fftsize = 16384, int wintype = -1);
     virtual ~fft_c_basic();
     virtual void get_fft_data(gr_complex* &fftPoints, unsigned int &fftSize, gr_complex * data);
-    virtual void set_window_type(int wintype);
+    virtual void set_window_type(int wintype, int correction);
     virtual int  get_window_type() const;
+    virtual int  get_window_correction() const;
 
     virtual void set_fft_size(unsigned int fftsize);
     virtual unsigned int get_fft_size() const;
@@ -68,6 +69,7 @@ public:
 protected:
     unsigned int d_fftsize;   /*! Current FFT size. */
     int          d_wintype;   /*! Current window type. */
+    int          d_correction;
 
 #if GNURADIO_VERSION < 0x030900
     gr::fft::fft_complex    *d_fft;    /*! FFT object. */
