@@ -602,7 +602,7 @@ void DockFft::updateInfoLabels(void)
 
     rbw = m_sample_rate / size;
     if (rbw < 1.e3f)
-        ui->fftRbwLabel->setText(QString("RBW: %1 Hz").arg((double)rbw, 0, 'f', 1));
+        ui->fftRbwLabel->setText(QString("RBW: %1 Hz").arg((double)rbw, 0, 'f', (rbw > 1.0f) ? 1 : 3));
     else if (rbw < 1.e6f)
         ui->fftRbwLabel->setText(QString("RBW: %1 kHz").arg(1.e-3 * (double)rbw, 0, 'f', 1));
     else
