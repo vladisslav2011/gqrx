@@ -71,7 +71,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>300</width>
+         <width>301</width>
          <height>457</height>
         </rect>
        </property>
@@ -475,8 +475,13 @@
              <string>FFT refresh rate</string>
             </property>
             <property name="currentIndex">
-             <number>9</number>
+             <number>10</number>
             </property>
+            <item>
+             <property name="text">
+              <string>1000 fps</string>
+             </property>
+            </item>
             <item>
              <property name="text">
               <string>500 fps</string>
@@ -550,6 +555,11 @@
             <item>
              <property name="text">
               <string>5 fps</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>2 fps</string>
              </property>
             </item>
             <item>
