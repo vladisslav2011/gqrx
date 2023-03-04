@@ -128,6 +128,7 @@ public:
         FILE_FORMAT_CS10L,
         FILE_FORMAT_CS12L,
         FILE_FORMAT_CS14L,
+        FILE_FORMAT_COUNT
     };
     static const unsigned int DEFAULT_FFT_SIZE = 8192;
 
@@ -276,6 +277,38 @@ private:
     void        setup_source(enum file_formats fmt);
     status      connect_iq_recorder();
 
+public:
+    static constexpr int chunk_size[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        8,
+        2,
+        4,
+        8,
+        2,
+        4,
+        8,
+        5*8,
+        3,
+        7
+    };
+    static constexpr int samples_per_chunk[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2*8,
+        1,
+        2
+    };
+
 private:
     bool        d_running;          /*!< Whether receiver is running or not. */
     double      d_input_rate;       /*!< Input sample rate. */
@@ -331,7 +364,7 @@ private:
         any_to_any<gr_complex,std::complex<uint8_t>>::make(),
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make(),
-        any_to_any<gr_complex,std::array<int8_t,5>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,40>>::make(),
         any_to_any<gr_complex,std::array<int8_t,3>>::make(),
         any_to_any<gr_complex,std::array<int8_t,7>>::make(),
     };
@@ -346,7 +379,7 @@ private:
         any_to_any<std::complex<uint8_t>,gr_complex>::make(),
         any_to_any<std::complex<uint16_t>,gr_complex>::make(),
         any_to_any<std::complex<uint32_t>,gr_complex>::make(),
-        any_to_any<std::array<int8_t,5>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,40>,gr_complex>::make(),
         any_to_any<std::array<int8_t,3>,gr_complex>::make(),
         any_to_any<std::array<int8_t,7>,gr_complex>::make(),
     };
