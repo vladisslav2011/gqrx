@@ -429,7 +429,7 @@ public:
         2,
         4,
         8,
-        5,
+        5*8,
         3,
         7
     };
@@ -444,7 +444,7 @@ public:
         1,
         1,
         1,
-        2,
+        2*8,
         1,
         2
     };
@@ -508,7 +508,7 @@ private:
         any_to_any<gr_complex,std::complex<uint8_t>>::make(),
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make(),
-        any_to_any<gr_complex,std::array<int8_t,5>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,40>>::make(),
         any_to_any<gr_complex,std::array<int8_t,3>>::make(),
         any_to_any<gr_complex,std::array<int8_t,7>>::make(),
     };
@@ -523,7 +523,7 @@ private:
         any_to_any<std::complex<uint8_t>,gr_complex>::make(),
         any_to_any<std::complex<uint16_t>,gr_complex>::make(),
         any_to_any<std::complex<uint32_t>,gr_complex>::make(),
-        any_to_any<std::array<int8_t,5>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,40>,gr_complex>::make(),
         any_to_any<std::array<int8_t,3>,gr_complex>::make(),
         any_to_any<std::array<int8_t,7>,gr_complex>::make(),
     };

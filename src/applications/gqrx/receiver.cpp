@@ -1886,7 +1886,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate, true, buffers_max);
+        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate / samples_per_chunk[fmt], true, buffers_max);
     }
     catch (std::runtime_error &e)
     {
