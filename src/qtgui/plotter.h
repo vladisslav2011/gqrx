@@ -2,6 +2,7 @@
 #ifndef PLOTTER_H
 #define PLOTTER_H
 
+#include <chrono>
 #include <QtGui>
 #include <QFont>
 #include <QFrame>
@@ -341,6 +342,9 @@ private:
     quint64     tlast_peaks_ms;     // last time peaks were updated
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
+    double ms_paint{0.0};
+    double ms_draw{0.0};
+    double ms_overlay{0.0};
 };
 
 #endif // PLOTTER_H

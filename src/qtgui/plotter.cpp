@@ -40,6 +40,11 @@
 #include "bookmarks.h"
 #include "dxc_spots.h"
 
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
+
 Q_LOGGING_CATEGORY(plotter, "plotter")
 
 #define CUR_CUT_DELTA         5     // cursor capture delta in pixels
@@ -1160,6 +1165,7 @@ void CPlotter::paintEvent(QPaintEvent *)
     // Pixmap resolution scales with DPR. Here, they are rescaled to fit the
     // the CPlotter resolution.
 
+    auto t1 = high_resolution_clock::now();
     QPainter painter(this);
 
     int plotHeightT = 0;
@@ -1188,6 +1194,22 @@ void CPlotter::paintEvent(QPaintEvent *)
 
         painter.drawPixmap(wfRectT, m_WaterfallPixmap, wfRectS);
     }
+    auto t2 = high_resolution_clock::now();
+    duration<double, std::milli> diff = t2 - t1;
+    ms_paint=diff.count();
+    //perf counter
+    painter.setPen(QPen(QColor(255,0,255), 2, Qt::SolidLine));
+    painter.drawText(1, 0, 60,
+                    QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
+                    QString::number(ms_paint,'g',2));
+    painter.setPen(QPen(QColor(255,0,0), 2, Qt::SolidLine));
+    painter.drawText(71, 0, 60,
+                    QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
+                    QString::number(ms_draw,'g',2));
+    painter.setPen(QPen(QColor(255,255,0), 2, Qt::SolidLine));
+    painter.drawText(141, 0, 300,
+                    QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
+                    QString::number(ms_overlay,'g',2));
 }
 
 // Called to update spectrum data for displaying on the screen
@@ -1196,6 +1218,7 @@ void CPlotter::draw(bool newData)
     qint32        i, j;
     double        histMax;
     QFontMetricsF metrics(m_Font);
+    auto t1 = high_resolution_clock::now();
 
     // No fft data yet? Draw overlay if needed and return.
     if (m_fftDataSize == 0)
@@ -1842,6 +1865,9 @@ void CPlotter::draw(bool newData)
         painter2.drawPixmap(QPointF(0.0, 0.0), m_OverlayPixmap);
     }
 
+    auto t2 = high_resolution_clock::now();
+    duration<double, std::milli> diff = t2 - t1;
+    ms_draw=diff.count();
     // trigger a new paintEvent
     update();
 }
@@ -1996,6 +2022,7 @@ void CPlotter::setWaterfallRange(float min, float max)
 // does not need to be recreated every fft data update.
 void CPlotter::drawOverlay()
 {
+    auto t1 = high_resolution_clock::now();
     if (m_OverlayPixmap.isNull())
         return;
 
@@ -2292,6 +2319,9 @@ void CPlotter::drawOverlay()
     // Draw a black line at the bottom of the plotter to separate it from the
     // waterfall
     painter.fillRect(QRectF(0.0, h - 1.0 * m_DPR, w, 1.0 * m_DPR), Qt::black);
+    auto t2 = high_resolution_clock::now();
+    duration<double, std::milli> diff = t2 - t1;
+    ms_overlay=diff.count();
 
     painter.end();
 }
