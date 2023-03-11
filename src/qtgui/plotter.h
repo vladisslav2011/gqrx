@@ -2,6 +2,7 @@
 #ifndef PLOTTER_H
 #define PLOTTER_H
 
+#include <chrono>
 #include <QtGui>
 #include <QFont>
 #include <QFrame>
@@ -353,6 +354,9 @@ private:
     double old_fftstep{0.0};
     qint64 old_startFreq;
     qint64 old_stopFreq;
+    double ms_paint{0.0};
+    double ms_draw{0.0};
+    double ms_overlay{0.0};
 };
 
 #endif // PLOTTER_H
