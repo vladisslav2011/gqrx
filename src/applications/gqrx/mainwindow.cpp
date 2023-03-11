@@ -2738,7 +2738,7 @@ void MainWindow::waterfall_background_func()
         }
         if(background_request == MainWindow::WF_RUNNING)
         {
-            if(k<lines)
+            if(k<=lines)
             {
                 if(line<=maxlines)
                 {
@@ -2957,6 +2957,7 @@ void MainWindow::setFftColor(const QColor& color)
     ui->plotter->setFftPlotColor(color);
     uiDockAudio->setFftColor(color);
     uiDockProbe->setFftColor(color);
+    triggerIQFftRedraw();
 }
 
 /** Enable/disable filling the aread below the FFT plot. */
@@ -2965,6 +2966,7 @@ void MainWindow::setFftFill(bool enable)
     ui->plotter->setFftFill(enable);
     uiDockAudio->setFftFill(enable);
     uiDockProbe->setFftFill(enable);
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setFftPeakHold(bool enable)

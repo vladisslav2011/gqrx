@@ -340,7 +340,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 // pan viewable range or move center frequency
                 int delta_px = m_Xzero - pt.x();
                 int delta_py = pt.y() - m_Yzero;
-                qint64 delta_hz = delta_px * m_Span / (m_OverlayPixmap.width() / m_DPR);
+                qint64 delta_hz = delta_px * m_Span / (m_WaterfallPixmap.width() / m_DPR);
                 setFftCenterFreq(m_FftCenter + delta_hz);
                 emit newFftCenterFreq(m_FftCenter + delta_hz);
                 qint64 ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
@@ -959,16 +959,16 @@ void CPlotter::resizeEvent(QResizeEvent* )
         m_Size = size();
         m_DPR = devicePixelRatio();
         fft_plot_height = m_Percent2DScreen * m_Size.height() / 100;
-        m_OverlayPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
-        m_OverlayPixmap.setDevicePixelRatio(m_DPR);
-        m_OverlayPixmap.fill(Qt::black);
-        m_2DPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
-        m_2DPixmap.setDevicePixelRatio(m_DPR);
-        m_2DPixmap.fill(Qt::black);
-
-        int height = m_Size.height() - fft_plot_height;
         {
             std::unique_lock<std::mutex> lock(m_wf_mutex);
+            m_OverlayPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
+            m_OverlayPixmap.setDevicePixelRatio(m_DPR);
+            m_OverlayPixmap.fill(Qt::black);
+            m_2DPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
+            m_2DPixmap.setDevicePixelRatio(m_DPR);
+            m_2DPixmap.fill(QColor(0,0,0,0));
+
+            int height = m_Size.height() - fft_plot_height;
             if (m_WaterfallPixmap.isNull())
             {
                 m_WaterfallPixmap = QPixmap(m_Size.width(), height);
@@ -998,6 +998,7 @@ void CPlotter::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
 
+    painter.drawPixmap(0, 0, m_OverlayPixmap);
     painter.drawPixmap(0, 0, m_2DPixmap);
     painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
                         m_WaterfallPixmap);
@@ -1099,8 +1100,8 @@ void CPlotter::draw()
 
     if (w != 0 && h != 0)
     {
-        // first copy into 2Dbitmap the overlay bitmap.
-        m_2DPixmap = m_OverlayPixmap.copy(m_OverlayPixmap.rect());
+        std::unique_lock<std::mutex> lock(m_wf_mutex);
+        m_2DPixmap.fill(QColor(0,0,0,0));
 
         QPainter painter2(&m_2DPixmap);
 
@@ -1182,7 +1183,6 @@ void CPlotter::draw()
         painter2.end();
 
     }
-
     // trigger a new paintEvent
     update();
 }
@@ -1280,7 +1280,48 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
             painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
             painter1.drawPoint(i, line);
         }
+        painter1.end();
     }
+
+    if(line == 0)
+    {
+        QPointF LineBuf[MAX_SCREENSIZE];
+        // get/draw the 2D spectrum
+        w = m_2DPixmap.width() / m_DPR;
+        h = m_2DPixmap.height() / m_DPR;
+
+        if (w != 0 && h != 0)
+        {
+            m_2DPixmap.fill(QColor(0,0,0,0));
+
+            QPainter painter2(&m_2DPixmap);
+
+            // get new scaled fft data
+            getScreenIntegerFFTData(h, qMin(w, MAX_SCREENSIZE),
+                                    m_PandMaxdB, m_PandMindB,
+                                    m_FftCenter - (qint64)m_Span/2,
+                                    m_FftCenter + (qint64)m_Span/2,
+                                    m_wfData, m_fftbuf2,
+                                    &xmin, &xmax);
+
+            // draw the pandapter
+            QBrush fillBrush = QBrush(m_FftFillCol);
+            n = xmax - xmin;
+            for (i = 0; i < n; i++)
+            {
+                LineBuf[i].setX(i + xmin + 0.5);
+                LineBuf[i].setY(m_fftbuf2[i + xmin] + 0.5);
+                if (m_FftFill)
+                    painter2.fillRect(i + xmin, m_fftbuf2[i + xmin] + 1, 1, h, fillBrush);
+            }
+
+            painter2.setPen(m_FftColor);
+            painter2.drawPolyline(LineBuf, n);
+
+            painter2.end();
+        }
+    }
+
 }
 
 void CPlotter::drawBlackWaterfallLine(int line)
@@ -1501,255 +1542,254 @@ void CPlotter::setWaterfallRange(float min, float max)
 // does not need to be recreated every fft data update.
 void CPlotter::drawOverlay()
 {
-    if (m_OverlayPixmap.isNull())
-        return;
-
-    int     w = m_OverlayPixmap.width() / m_DPR;
-    int     h = m_OverlayPixmap.height() / m_DPR;
-    int     x,y;
-    float   pixperdiv;
-    float   adjoffset;
-    float   dbstepsize;
-    float   mindbadj;
-    QRect   rect;
-    QFontMetrics    metrics(m_Font);
-    QPainter        painter(&m_OverlayPixmap);
-
-    painter.setFont(m_Font);
-
-    // solid background
-    painter.setBrush(Qt::SolidPattern);
-    painter.fillRect(0, 0, w, h, QColor(PLOTTER_BGD_COLOR));
-
-    QList<BookmarkInfo> tags;
-
-    // X and Y axis areas
-    m_YAxisWidth = metrics.boundingRect("-120").width() + 2 * HOR_MARGIN;
-    m_XAxisYCenter = h - metrics.height()/2;
-    int xAxisHeight = metrics.height() + 2 * VER_MARGIN;
-    int xAxisTop = h - xAxisHeight;
-    int fLabelTop = xAxisTop + VER_MARGIN;
-
-    if (m_BookmarksEnabled || m_DXCSpotsEnabled)
+    if (!m_OverlayPixmap.isNull())
     {
-        m_Taglist.clear();
-        static const QFontMetrics fm(painter.font());
-        static const int fontHeight = fm.ascent() + 1;
-        static const int slant = 5;
-        static const int levelHeight = fontHeight + 5;
-        static const int nLevels = h / (levelHeight + slant) + 1;
-        if (m_BookmarksEnabled)
+
+        int     w = m_OverlayPixmap.width() / m_DPR;
+        int     h = m_OverlayPixmap.height() / m_DPR;
+        int     x,y;
+        float   pixperdiv;
+        float   adjoffset;
+        float   dbstepsize;
+        float   mindbadj;
+        QRect   rect;
+        QFontMetrics    metrics(m_Font);
+        QPainter        painter(&m_OverlayPixmap);
+
+        painter.setFont(m_Font);
+
+        // solid background
+        painter.setBrush(Qt::SolidPattern);
+        painter.fillRect(0, 0, w, h, QColor(PLOTTER_BGD_COLOR));
+
+        QList<BookmarkInfo> tags;
+
+        // X and Y axis areas
+        m_YAxisWidth = metrics.boundingRect("-120").width() + 2 * HOR_MARGIN;
+        m_XAxisYCenter = h - metrics.height()/2;
+        int xAxisHeight = metrics.height() + 2 * VER_MARGIN;
+        int xAxisTop = h - xAxisHeight;
+        int fLabelTop = xAxisTop + VER_MARGIN;
+
+        if (m_BookmarksEnabled || m_DXCSpotsEnabled)
         {
-            tags = Bookmarks::Get().getBookmarksInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
-                                                        m_CenterFreq + m_FftCenter + m_Span / 2);
-        }
-        else
-        {
-            tags.clear();
-        }
-        if (m_DXCSpotsEnabled)
-        {
-            QList<DXCSpotInfo> dxcspots = DXCSpots::Get().getDXCSpotsInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
-                                                                             m_CenterFreq + m_FftCenter + m_Span / 2);
-            QListIterator<DXCSpotInfo> iter(dxcspots);
-            while(iter.hasNext())
+            m_Taglist.clear();
+            static const QFontMetrics fm(painter.font());
+            static const int fontHeight = fm.ascent() + 1;
+            static const int slant = 5;
+            static const int levelHeight = fontHeight + 5;
+            static const int nLevels = h / (levelHeight + slant) + 1;
+            if (m_BookmarksEnabled)
             {
-                BookmarkInfo tempDXCSpot;
-                DXCSpotInfo IterDXCSpot = iter.next();
-                tempDXCSpot.name = IterDXCSpot.name;
-                tempDXCSpot.frequency = IterDXCSpot.frequency;
-                tags.append(tempDXCSpot);
+                tags = Bookmarks::Get().getBookmarksInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
+                                                            m_CenterFreq + m_FftCenter + m_Span / 2);
             }
-            std::stable_sort(tags.begin(),tags.end());
-        }
-        QVector<int> tagEnd(nLevels + 1);
-        for (auto & tag : tags)
-        {
-            x = xFromFreq(tag.frequency);
-            int nameWidth = fm.boundingRect(tag.name).width();
-
-            int level = 1;
-            while(level < nLevels && tagEnd[level] > x)
-                level++;
-
-            if(level >= nLevels)
+            else
             {
-                level = 1;
-                if (tagEnd[level] > x)
-                    continue; // no overwrite at level 0
+                tags.clear();
             }
-
-            tagEnd[level] = x + nameWidth + slant - 1;
-
-            const auto levelNHeight = level * levelHeight;
-            const auto levelNHeightBottom = levelNHeight + fontHeight;
-            const auto levelNHeightBottomSlant = levelNHeightBottom + slant;
-
-            m_Taglist.append(qMakePair(QRect(x, levelNHeight, nameWidth + slant, fontHeight), tag.frequency));
-
-            QColor color = QColor(tag.GetColor());
-            color.setAlpha(0x60);
-            // Vertical line
-            painter.setPen(QPen(color, 1, Qt::DashLine));
-            painter.drawLine(x, levelNHeightBottomSlant, x, xAxisTop);
-
-            // Horizontal line
-            painter.setPen(QPen(color, 1, Qt::SolidLine));
-            painter.drawLine(x + slant, levelNHeightBottom,
-                             x + nameWidth + slant - 1,
-                             levelNHeightBottom);
-            // Diagonal line
-            painter.drawLine(x + 1, levelNHeightBottomSlant - 1,
-                             x + slant - 1, levelNHeightBottom + 1);
-
-            color.setAlpha(0xFF);
-            painter.setPen(QPen(color, 2, Qt::SolidLine));
-            painter.drawText(x + slant, levelNHeight, nameWidth,
-                             fontHeight, Qt::AlignVCenter | Qt::AlignHCenter,
-                             tag.name);
-        }
-    }
-
-    if (m_BandPlanEnabled)
-    {
-        QList<BandInfo> bands = BandPlan::Get().getBandsInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
-                                                                m_CenterFreq + m_FftCenter + m_Span / 2);
-
-        for (auto & band : bands)
-        {
-            int band_left = xFromFreq(band.minFrequency);
-            int band_right = xFromFreq(band.maxFrequency);
-            int band_width = band_right - band_left;
-            rect.setRect(band_left, xAxisTop - m_BandPlanHeight, band_width, m_BandPlanHeight);
-            painter.fillRect(rect, band.color);
-            QString band_label = band.name + " (" + band.modulation + ")";
-            int textWidth = metrics.boundingRect(band_label).width();
-            if (band_left < w && band_width > textWidth + 20)
+            if (m_DXCSpotsEnabled)
             {
-                painter.setOpacity(1.0);
-                rect.setRect(band_left, xAxisTop - m_BandPlanHeight, band_width, metrics.height());
-                painter.setPen(QColor(PLOTTER_TEXT_COLOR));
-                painter.drawText(rect, Qt::AlignCenter, band_label);
+                QList<DXCSpotInfo> dxcspots = DXCSpots::Get().getDXCSpotsInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
+                                                                                m_CenterFreq + m_FftCenter + m_Span / 2);
+                QListIterator<DXCSpotInfo> iter(dxcspots);
+                while(iter.hasNext())
+                {
+                    BookmarkInfo tempDXCSpot;
+                    DXCSpotInfo IterDXCSpot = iter.next();
+                    tempDXCSpot.name = IterDXCSpot.name;
+                    tempDXCSpot.frequency = IterDXCSpot.frequency;
+                    tags.append(tempDXCSpot);
+                }
+                std::stable_sort(tags.begin(),tags.end());
+            }
+            QVector<int> tagEnd(nLevels + 1);
+            for (auto & tag : tags)
+            {
+                x = xFromFreq(tag.frequency);
+                int nameWidth = fm.boundingRect(tag.name).width();
+
+                int level = 1;
+                while(level < nLevels && tagEnd[level] > x)
+                    level++;
+
+                if(level >= nLevels)
+                {
+                    level = 1;
+                    if (tagEnd[level] > x)
+                        continue; // no overwrite at level 0
+                }
+
+                tagEnd[level] = x + nameWidth + slant - 1;
+
+                const auto levelNHeight = level * levelHeight;
+                const auto levelNHeightBottom = levelNHeight + fontHeight;
+                const auto levelNHeightBottomSlant = levelNHeightBottom + slant;
+
+                m_Taglist.append(qMakePair(QRect(x, levelNHeight, nameWidth + slant, fontHeight), tag.frequency));
+
+                QColor color = QColor(tag.GetColor());
+                color.setAlpha(0x60);
+                // Vertical line
+                painter.setPen(QPen(color, 1, Qt::DashLine));
+                painter.drawLine(x, levelNHeightBottomSlant, x, xAxisTop);
+
+                // Horizontal line
+                painter.setPen(QPen(color, 1, Qt::SolidLine));
+                painter.drawLine(x + slant, levelNHeightBottom,
+                                x + nameWidth + slant - 1,
+                                levelNHeightBottom);
+                // Diagonal line
+                painter.drawLine(x + 1, levelNHeightBottomSlant - 1,
+                                x + slant - 1, levelNHeightBottom + 1);
+
+                color.setAlpha(0xFF);
+                painter.setPen(QPen(color, 2, Qt::SolidLine));
+                painter.drawText(x + slant, levelNHeight, nameWidth,
+                                fontHeight, Qt::AlignVCenter | Qt::AlignHCenter,
+                                tag.name);
             }
         }
-    }
 
-    if (m_CenterLineEnabled)
-    {
-        x = xFromFreq(m_CenterFreq);
-        if (x > 0 && x < w)
+        if (m_BandPlanEnabled)
         {
-            painter.setPen(QColor(PLOTTER_CENTER_LINE_COLOR));
-            painter.drawLine(x, 0, x, xAxisTop);
-        }
-    }
+            QList<BandInfo> bands = BandPlan::Get().getBandsInRange(m_CenterFreq + m_FftCenter - m_Span / 2,
+                                                                    m_CenterFreq + m_FftCenter + m_Span / 2);
 
-    // Frequency grid
-    qint64  StartFreq = m_CenterFreq + m_FftCenter - m_Span / 2;
-    QString label;
-    label.setNum(float((StartFreq + m_Span) / m_FreqUnits), 'f', m_FreqDigits);
-    calcDivSize(StartFreq, StartFreq + m_Span,
-                qMin(w/(metrics.boundingRect(label).width() + metrics.boundingRect("O").width()), HORZ_DIVS_MAX),
-                m_StartFreqAdj, m_FreqPerDiv, m_HorDivs);
-    pixperdiv = (float)w * (float) m_FreqPerDiv / (float) m_Span;
-    adjoffset = pixperdiv * float (m_StartFreqAdj - StartFreq) / (float) m_FreqPerDiv;
-
-    painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
-    for (int i = 0; i <= m_HorDivs; i++)
-    {
-        x = (int)((float)i * pixperdiv + adjoffset);
-        if (x > m_YAxisWidth)
-            painter.drawLine(x, 0, x, xAxisTop);
-    }
-
-    // draw frequency values (x axis)
-    makeFrequencyStrs();
-    painter.setPen(QColor(PLOTTER_TEXT_COLOR));
-    for (int i = 0; i <= m_HorDivs; i++)
-    {
-        int tw = w;
-        x = (int)((float)i*pixperdiv + adjoffset);
-        if (x > m_YAxisWidth)
-        {
-            rect.setRect(x - tw/2, fLabelTop, tw, metrics.height());
-            painter.drawText(rect, Qt::AlignHCenter|Qt::AlignBottom, m_HDivText[i]);
-        }
-    }
-
-    // Level grid
-    qint64 mindBAdj64 = 0;
-    qint64 dbDivSize = 0;
-
-    calcDivSize((qint64) m_PandMindB, (qint64) m_PandMaxdB,
-                qMax(h/m_VdivDelta, VERT_DIVS_MIN), mindBAdj64, dbDivSize,
-                m_VerDivs);
-
-    dbstepsize = (qreal) dbDivSize;
-    mindbadj = mindBAdj64;
-
-    pixperdiv = (float) h * (float) dbstepsize / (m_PandMaxdB - m_PandMindB);
-    adjoffset = (float) h * (mindbadj - m_PandMindB) / (m_PandMaxdB - m_PandMindB);
-
-    qCDebug(plotter) << "minDb =" << m_PandMindB << "maxDb =" << m_PandMaxdB
-                     << "mindbadj =" << mindbadj << "dbstepsize =" << dbstepsize
-                     << "pixperdiv =" << pixperdiv << "adjoffset =" << adjoffset;
-
-    painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
-    for (int i = 0; i <= m_VerDivs; i++)
-    {
-        y = h - (int)((float) i * pixperdiv + adjoffset);
-        if (y < h - xAxisHeight)
-            painter.drawLine(m_YAxisWidth, y, w, y);
-    }
-
-    // draw amplitude values (y axis)
-    painter.setPen(QColor(PLOTTER_TEXT_COLOR));
-    for (int i = 0; i < m_VerDivs; i++)
-    {
-        y = h - (int)((float) i * pixperdiv + adjoffset);
-        int th = metrics.height();
-        qreal th_2 = th / 2.0;
-        if ((y < h -xAxisHeight) && (y > th_2))
-        {
-            int dB = mindbadj + dbstepsize * i;
-            rect.setRect(HOR_MARGIN, y - th_2, m_YAxisWidth - 2 * HOR_MARGIN, th);
-            painter.drawText(rect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
-        }
-    }
-
-    // Draw demod filter box
-    if (m_FilterBoxEnabled)
-    {
-        for(auto &vfoc : m_vfos)
-        {
-            const qint64 vfoFreq = m_CenterFreq + qint64(vfoc->get_offset());
-            const int demodFreqX = xFromFreq(vfoFreq);
-            const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_low()));
-            const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_high()));
-
-            const int dw = demodHiCutFreqX - demodLowCutFreqX;
-            drawVfo(painter, demodFreqX, demodLowCutFreqX, dw, h, vfoc->get_index(), false);
+            for (auto & band : bands)
+            {
+                int band_left = xFromFreq(band.minFrequency);
+                int band_right = xFromFreq(band.maxFrequency);
+                int band_width = band_right - band_left;
+                rect.setRect(band_left, xAxisTop - m_BandPlanHeight, band_width, m_BandPlanHeight);
+                painter.fillRect(rect, band.color);
+                QString band_label = band.name + " (" + band.modulation + ")";
+                int textWidth = metrics.boundingRect(band_label).width();
+                if (band_left < w && band_width > textWidth + 20)
+                {
+                    painter.setOpacity(1.0);
+                    rect.setRect(band_left, xAxisTop - m_BandPlanHeight, band_width, metrics.height());
+                    painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+                    painter.drawText(rect, Qt::AlignCenter, band_label);
+                }
+            }
         }
 
-        m_DemodFreqX = xFromFreq(m_DemodCenterFreq);
-        m_DemodLowCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodLowCutFreq);
-        m_DemodHiCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodHiCutFreq);
+        if (m_CenterLineEnabled)
+        {
+            x = xFromFreq(m_CenterFreq);
+            if (x > 0 && x < w)
+            {
+                painter.setPen(QColor(PLOTTER_CENTER_LINE_COLOR));
+                painter.drawLine(x, 0, x, xAxisTop);
+            }
+        }
 
-        int dw = m_DemodHiCutFreqX - m_DemodLowCutFreqX;
-        drawVfo(painter, m_DemodFreqX, m_DemodLowCutFreqX, dw, h, m_currentVfo, true);
+        // Frequency grid
+        qint64  StartFreq = m_CenterFreq + m_FftCenter - m_Span / 2;
+        QString label;
+        label.setNum(float((StartFreq + m_Span) / m_FreqUnits), 'f', m_FreqDigits);
+        calcDivSize(StartFreq, StartFreq + m_Span,
+                    qMin(w/(metrics.boundingRect(label).width() + metrics.boundingRect("O").width()), HORZ_DIVS_MAX),
+                    m_StartFreqAdj, m_FreqPerDiv, m_HorDivs);
+        pixperdiv = (float)w * (float) m_FreqPerDiv / (float) m_Span;
+        adjoffset = pixperdiv * float (m_StartFreqAdj - StartFreq) / (float) m_FreqPerDiv;
+
+        painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
+        for (int i = 0; i <= m_HorDivs; i++)
+        {
+            x = (int)((float)i * pixperdiv + adjoffset);
+            if (x > m_YAxisWidth)
+                painter.drawLine(x, 0, x, xAxisTop);
+        }
+
+        // draw frequency values (x axis)
+        makeFrequencyStrs();
+        painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+        for (int i = 0; i <= m_HorDivs; i++)
+        {
+            int tw = w;
+            x = (int)((float)i*pixperdiv + adjoffset);
+            if (x > m_YAxisWidth)
+            {
+                rect.setRect(x - tw/2, fLabelTop, tw, metrics.height());
+                painter.drawText(rect, Qt::AlignHCenter|Qt::AlignBottom, m_HDivText[i]);
+            }
+        }
+
+        // Level grid
+        qint64 mindBAdj64 = 0;
+        qint64 dbDivSize = 0;
+
+        calcDivSize((qint64) m_PandMindB, (qint64) m_PandMaxdB,
+                    qMax(h/m_VdivDelta, VERT_DIVS_MIN), mindBAdj64, dbDivSize,
+                    m_VerDivs);
+
+        dbstepsize = (qreal) dbDivSize;
+        mindbadj = mindBAdj64;
+
+        pixperdiv = (float) h * (float) dbstepsize / (m_PandMaxdB - m_PandMindB);
+        adjoffset = (float) h * (mindbadj - m_PandMindB) / (m_PandMaxdB - m_PandMindB);
+
+        qCDebug(plotter) << "minDb =" << m_PandMindB << "maxDb =" << m_PandMaxdB
+                        << "mindbadj =" << mindbadj << "dbstepsize =" << dbstepsize
+                        << "pixperdiv =" << pixperdiv << "adjoffset =" << adjoffset;
+
+        painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
+        for (int i = 0; i <= m_VerDivs; i++)
+        {
+            y = h - (int)((float) i * pixperdiv + adjoffset);
+            if (y < h - xAxisHeight)
+                painter.drawLine(m_YAxisWidth, y, w, y);
+        }
+
+        // draw amplitude values (y axis)
+        painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+        for (int i = 0; i < m_VerDivs; i++)
+        {
+            y = h - (int)((float) i * pixperdiv + adjoffset);
+            int th = metrics.height();
+            qreal th_2 = th / 2.0;
+            if ((y < h -xAxisHeight) && (y > th_2))
+            {
+                int dB = mindbadj + dbstepsize * i;
+                rect.setRect(HOR_MARGIN, y - th_2, m_YAxisWidth - 2 * HOR_MARGIN, th);
+                painter.drawText(rect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
+            }
+        }
+
+        // Draw demod filter box
+        if (m_FilterBoxEnabled)
+        {
+            for(auto &vfoc : m_vfos)
+            {
+                const qint64 vfoFreq = m_CenterFreq + qint64(vfoc->get_offset());
+                const int demodFreqX = xFromFreq(vfoFreq);
+                const int demodLowCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_low()));
+                const int demodHiCutFreqX = xFromFreq(vfoFreq + qint64(vfoc->get_filter_high()));
+
+                const int dw = demodHiCutFreqX - demodLowCutFreqX;
+                drawVfo(painter, demodFreqX, demodLowCutFreqX, dw, h, vfoc->get_index(), false);
+            }
+
+            m_DemodFreqX = xFromFreq(m_DemodCenterFreq);
+            m_DemodLowCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodLowCutFreq);
+            m_DemodHiCutFreqX = xFromFreq(m_DemodCenterFreq + m_DemodHiCutFreq);
+
+            int dw = m_DemodHiCutFreqX - m_DemodLowCutFreqX;
+            drawVfo(painter, m_DemodFreqX, m_DemodLowCutFreqX, dw, h, m_currentVfo, true);
+        }
+
+        painter.end();
     }
-
     if (!m_Running)
     {
         // if not running so is no data updates to draw to screen
-        // copy into 2Dbitmap the overlay bitmap.
-        m_2DPixmap = m_OverlayPixmap.copy(m_OverlayPixmap.rect());
-
+        if(!m_PlayingIQ)
+            m_2DPixmap.fill(QColor(0,0,0,0));
         // trigger a new paintEvent
         update();
     }
-
-    painter.end();
 }
 
 void CPlotter::drawVfo(QPainter &painter, const int demodFreqX, const int demodLowCutFreqX, const int dw, const int h, const int index, const bool is_selected)
