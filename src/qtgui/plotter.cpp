@@ -2615,4 +2615,5 @@ void CPlotter::setWfColormap(const QString &cmap)
             m_ColorTbl[i]=QColor(F2B(viridis[i][0]), F2B(viridis[i][1]), F2B(viridis[i][2])).rgb();
     }
     m_WaterfallImage.setColorTable(m_ColorTbl);
+    update();
 }
