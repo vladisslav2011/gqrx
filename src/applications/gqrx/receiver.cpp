@@ -2340,7 +2340,7 @@ receiver::fft_reader::fft_reader(std::string filename, int chunk_size, int sampl
     d_samples_per_chunk = samples_per_chunk;
     d_sample_rate = sample_rate;
     d_base_ts = base_ts;
-    d_offset = offset;
+    d_offset = offset * d_samples_per_chunk;
     d_offset_ms = offset * d_samples_per_chunk * 1000llu / d_sample_rate;
     d_conv = conv;
     if(nthreads == 0)
