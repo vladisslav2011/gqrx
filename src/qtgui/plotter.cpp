@@ -1391,82 +1391,70 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     qint32 i;
     qint32 y;
     qint32 x;
+    qint32 minbin=old_minbin, maxbin=old_maxbin;
+    bool largeFft = old_largeFft;
     qint32 ymax = 10000;
     qint32 xprev = -1;
-    qint32 minbin, maxbin;
-    qint32 m_BinMin, m_BinMax;
     qint32 m_FFTSize = m_fftDataSize;
     float *m_pFFTAveBuf = inBuf;
     float  dBGainFactor = ((float)plotHeight) / fabsf(maxdB - mindB);
     quint32 tt_size = qMax(m_FFTSize, plotWidth);
     if(m_pTranslateTbl.size() < tt_size)
         m_pTranslateTbl.resize(tt_size);
-
-    /** FIXME: qint64 -> qint32 **/
-    m_BinMin = (qint32)((float)startFreq * (float)m_FFTSize / m_SampleFreq);
-    m_BinMin += (m_FFTSize/2);
-    m_BinMax = (qint32)((float)stopFreq * (float)m_FFTSize / m_SampleFreq);
-    m_BinMax += (m_FFTSize/2);
-
-    minbin = m_BinMin < 0 ? 0 : m_BinMin;
-    if (m_BinMin > m_FFTSize)
-        m_BinMin = m_FFTSize - 1;
-    if (m_BinMax <= m_BinMin)
-        m_BinMax = m_BinMin + 1;
-    maxbin = m_BinMax < m_FFTSize ? m_BinMax : m_FFTSize;
-    bool largeFft = (m_BinMax-m_BinMin) > plotWidth; // true if more fft point than plot points
-
-    if (largeFft)
+    if((old_startFreq!=startFreq)
+     ||(old_stopFreq!=stopFreq)
+     ||(old_plotWidth!=plotWidth)
+     ||(old_FFTSize!=m_FFTSize)
+     ||(old_SampleFreq!=m_SampleFreq))
     {
-        // more FFT points than plot points
-        if((old_minbin != minbin)
-         ||(old_maxbin != maxbin)
-         ||(old_BinMin != m_BinMin)
-         ||(old_BinMax != m_BinMax)
-         ||(old_plotWidth != plotWidth)
-         ||(old_largeFft != (largeFft?2:1)))
+        qint32 m_BinMin, m_BinMax;
+        /** FIXME: qint64 -> qint32 **/
+        old_startFreq=startFreq;
+        old_stopFreq=stopFreq;
+        old_plotWidth = plotWidth;
+        old_FFTSize=m_FFTSize;
+        old_SampleFreq=m_SampleFreq;
+
+        m_BinMin = (qint32)((float)startFreq * (float)m_FFTSize / m_SampleFreq);
+        m_BinMin += (m_FFTSize/2);
+        m_BinMax = (qint32)((float)stopFreq * (float)m_FFTSize / m_SampleFreq);
+        m_BinMax += (m_FFTSize/2);
+
+        minbin = m_BinMin < 0 ? 0 : m_BinMin;
+        if (m_BinMin > m_FFTSize)
+            m_BinMin = m_FFTSize - 1;
+        if (m_BinMax <= m_BinMin)
+            m_BinMax = m_BinMin + 1;
+        maxbin = m_BinMax < m_FFTSize ? m_BinMax : m_FFTSize;
+        largeFft = (m_BinMax-m_BinMin) > plotWidth; // true if more fft point than plot points
+
+        if (largeFft)
         {
+            // more FFT points than plot points
             for (i = minbin; i < maxbin; i++)
                 m_pTranslateTbl[i] = ((qint64)(i-m_BinMin)*plotWidth) / (m_BinMax - m_BinMin);
             old_minbin = minbin;
             old_maxbin = maxbin;
-            old_BinMin = m_BinMin;
-            old_BinMax = m_BinMax;
-            old_plotWidth = plotWidth;
-            old_largeFft = (largeFft?2:1);
+            old_largeFft = largeFft;
         }
-        *xmin = m_pTranslateTbl[minbin];
-        *xmax = m_pTranslateTbl[maxbin - 1] + 1;
-    }
-    else
-    {
-        // more plot points than FFT points
-        double fftstep = (double)m_SampleFreq / (double)m_FFTSize; // FFT frequency bin width
-        if((old_fftstep != fftstep)
-         ||(old_startFreq != startFreq)
-         ||(old_stopFreq != stopFreq)
-         ||(old_plotWidth != plotWidth)
-         ||(old_largeFft != (largeFft?2:1)))
+        else
         {
+            // more plot points than FFT points
+            double fftstep = (double)m_SampleFreq / (double)m_FFTSize; // FFT frequency bin width
             for (i = 0; i < plotWidth; i++)
             {
                 double ratio = (double)i / (double)plotWidth;
                 double freq = startFreq + ratio * (stopFreq - startFreq);
                 m_pTranslateTbl[i] = qint32(m_FFTSize / 2 + freq / fftstep + 0.5);
             }
-            old_fftstep = fftstep;
-            old_startFreq = startFreq;
-            old_stopFreq = stopFreq;
-            old_plotWidth = plotWidth;
-            old_largeFft = (largeFft?2:1);
+            old_largeFft = largeFft;
         }
-        *xmin = 0;
-        *xmax = plotWidth;
     }
-
     if (largeFft)
     {
         // more FFT points than plot points
+        *xmin = m_pTranslateTbl[minbin];
+        *xmax = m_pTranslateTbl[maxbin - 1] + 1;
         for (i = minbin; i < maxbin; i++ )
         {
             y = (qint32)(dBGainFactor*(maxdB-m_pFFTAveBuf[i]));
@@ -1498,6 +1486,8 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     else
     {
         // more plot points than FFT points
+        *xmin = 0;
+        *xmax = plotWidth;
         for (x = 0; x < plotWidth; x++ )
         {
             i = m_pTranslateTbl[x]; // get plot to fft bin coordinate transform
