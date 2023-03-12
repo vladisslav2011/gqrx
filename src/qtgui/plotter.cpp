@@ -84,7 +84,7 @@ static inline bool out_of_range(float min, float max)
     "Drag and scroll X and Y axes for pan and zoom. " \
     "Drag filter edges to adjust filter."
 
-CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
+CPlotter::CPlotter(QWidget *parent) : QFrame(parent), m_ColorTbl(256)
 {
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     setFocusPolicy(Qt::StrongFocus);
@@ -138,6 +138,8 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     m_DrawOverlay = true;
     m_2DPixmap = QPixmap(0,0);
     m_OverlayPixmap = QPixmap(0,0);
+    m_WaterfallLine = QImage(0,0,QImage::Format_Indexed8);
+    m_WaterfallLine.setColorTable(m_ColorTbl);
     m_WaterfallPixmap = QPixmap(0,0);
     m_Size = QSize(0,0);
     m_GrabPosition = 0;
@@ -161,7 +163,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     msec_per_wfline = 0;
     wf_span = 0;
     fft_rate = 15;
-    memset(m_wfbuf, 255, MAX_SCREENSIZE);
+    memset(m_wfbuf, 0, MAX_SCREENSIZE);
     m_currentVfo = 0;
     m_capturedVfo = 0;
     m_lookup_vfo = vfo::make();
@@ -1044,6 +1046,8 @@ void CPlotter::resizeEvent(QResizeEvent* )
                                                             Qt::IgnoreAspectRatio,
                                                             Qt::SmoothTransformation);
             }
+            m_WaterfallLine=QImage(m_WaterfallPixmap.width(),1,QImage::Format_Indexed8);
+            m_WaterfallLine.setColorTable(m_ColorTbl);
 
             m_PeakHoldValid = false;
 
@@ -1124,26 +1128,25 @@ void CPlotter::draw()
 
             // move current data down one line(must do before attaching a QPainter object)
             m_WaterfallPixmap.scroll(0, 1, 0, 0, w, h);
+            QPainter painter(&m_WaterfallPixmap);
             m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
             while(h < m_wfLineStats.size())
                 m_wfLineStats.removeLast();
 
-            QPainter painter1(&m_WaterfallPixmap);
 
+            uint8_t * p = m_WaterfallLine.scanLine(0);
             // draw new line of fft data at top of waterfall bitmap
-            painter1.setPen(QColor(0, 0, 0));
-            for (i = 0; i < xmin; i++)
-                painter1.drawPoint(i, 0);
-            for (i = xmax; i < w; i++)
-                painter1.drawPoint(i, 0);
+            if(xmin)
+                memset(p,0,xmin);
+            if(xmax < w)
+                memset(&p[xmax],0,w-xmax);
 
             if (msec_per_wfline > 0)
             {
                 // user set time span
                 for (i = xmin; i < xmax; i++)
                 {
-                    painter1.setPen(m_ColorTbl[255 - m_wfbuf[i]]);
-                    painter1.drawPoint(i, 0);
+                    p[i]=255 - m_wfbuf[i];
                     m_wfbuf[i] = 255;
                 }
             }
@@ -1151,10 +1154,11 @@ void CPlotter::draw()
             {
                 for (i = xmin; i < xmax; i++)
                 {
-                    painter1.setPen(m_ColorTbl[255 - m_fftbuf[i]]);
-                    painter1.drawPoint(i, 0);
+                    p[i]=255 - m_fftbuf[i];
                 }
             }
+            painter.drawImage(0,0,m_WaterfallLine);
+            painter.end();
         }
     }
 
@@ -1330,21 +1334,21 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
             m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
         else
             m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
-        QPainter painter1(&m_WaterfallPixmap);
+        uint8_t *p = m_WaterfallLine.scanLine(0);
 
         // draw new line of fft data at top of waterfall bitmap
-        painter1.setPen(QColor(0, 0, 0));
-        for (i = 0; i < xmin; i++)
-            painter1.drawPoint(i, line);
-        for (i = xmax; i < w; i++)
-            painter1.drawPoint(i, line);
+        if(xmin)
+            memset(p,0,xmin);
+        if(xmax < w)
+            memset(&p[xmax],0,w-xmax);
 
         for (i = xmin; i < xmax; i++)
         {
-            painter1.setPen(m_ColorTbl[255 - m_fftbuf2[i]]);
-            painter1.drawPoint(i, line);
+            p[i]=255 - m_fftbuf2[i];
         }
-        painter1.end();
+        QPainter painter(&m_WaterfallPixmap);
+        painter.drawImage(0, line, m_WaterfallLine);
+        painter.end();
     }
 
     if(line == 0)
@@ -1391,15 +1395,15 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 void CPlotter::drawBlackWaterfallLine(int line)
 {
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    int i;
     int w = m_WaterfallPixmap.width();
     int h = m_WaterfallPixmap.height();
     if (w != 0 && h != 0)
     {
-        QPainter painter1(&m_WaterfallPixmap);
-        painter1.setPen(QColor(0, 0, 0));
-        for (i = 0; i < w; i++)
-            painter1.drawPoint(i, line);
+        uint8_t *p=m_WaterfallLine.scanLine(0);
+        memset(p,0,w);
+        QPainter painter(&m_WaterfallPixmap);
+        painter.drawImage(0, line, m_WaterfallLine);
+        painter.end();
     }
 }
 
@@ -1413,6 +1417,7 @@ void CPlotter::scrollWaterfall(int dy)
     if (std::abs(dy)>=h)
         return;
     m_WaterfallPixmap.scroll(0, dy, 0, 0, w, h);
+
     if(dy>0)
     {
         for (int k = 0; k < dy; k++)
@@ -2530,33 +2535,33 @@ void CPlotter::setWfColormap(const QString &cmap)
         {
             // level 0: black background
             if (i < 20)
-                m_ColorTbl[i].setRgb(0, 0, 0);
+                m_ColorTbl[i]=QColor(0, 0, 0).rgb();
                 // level 1: black -> blue
             else if ((i >= 20) && (i < 70))
-                m_ColorTbl[i].setRgb(0, 0, 140*(i-20)/50);
+                m_ColorTbl[i]=QColor(0, 0, 140*(i-20)/50).rgb();
                 // level 2: blue -> light-blue / greenish
             else if ((i >= 70) && (i < 100))
-                m_ColorTbl[i].setRgb(60*(i-70)/30, 125*(i-70)/30, 115*(i-70)/30 + 140);
+                m_ColorTbl[i]=QColor(60*(i-70)/30, 125*(i-70)/30, 115*(i-70)/30 + 140).rgb();
                 // level 3: light blue -> yellow
             else if ((i >= 100) && (i < 150))
-                m_ColorTbl[i].setRgb(195*(i-100)/50 + 60, 130*(i-100)/50 + 125, 255-(255*(i-100)/50));
+                m_ColorTbl[i]=QColor(195*(i-100)/50 + 60, 130*(i-100)/50 + 125, 255-(255*(i-100)/50)).rgb();
                 // level 4: yellow -> red
             else if ((i >= 150) && (i < 250))
-                m_ColorTbl[i].setRgb(255, 255-255*(i-150)/100, 0);
+                m_ColorTbl[i]=QColor(255, 255-255*(i-150)/100, 0).rgb();
                 // level 5: red -> white
             else if (i >= 250)
-                m_ColorTbl[i].setRgb(255, 255*(i-250)/5, 255*(i-250)/5);
+                m_ColorTbl[i]=QColor(255, 255*(i-250)/5, 255*(i-250)/5).rgb();
         }
     }
     else if (cmap.compare("turbo", Qt::CaseInsensitive) == 0)
     {
         for (i = 0; i < 256; i++)
-            m_ColorTbl[i].setRgb(turbo[i][0], turbo[i][1], turbo[i][2]);
+            m_ColorTbl[i]=QColor(turbo[i][0], turbo[i][1], turbo[i][2]).rgb();
     }
     else if (cmap.compare("plasma",Qt::CaseInsensitive) == 0)
     {
         for (i = 0; i < 256; i++)
-            m_ColorTbl[i].setRgb(plasma[i][0], plasma[i][1], plasma[i][2]);
+            m_ColorTbl[i]=QColor(plasma[i][0], plasma[i][1], plasma[i][2]).rgb();
     }
     else if (cmap.compare("whitehotcompressed",Qt::CaseInsensitive) == 0)
     {
@@ -2567,27 +2572,28 @@ void CPlotter::setWfColormap(const QString &cmap)
         {
             if (i < 64)
             {
-                m_ColorTbl[i].setRgb(i*4, i*4, i*4);
+                m_ColorTbl[i]=QColor(i*4, i*4, i*4).rgb();
             }
             else
             {
-                m_ColorTbl[i].setRgb(255, 255, 255);
+                m_ColorTbl[i]=QColor(255, 255, 255).rgb();
             }
         }
     }
     else if (cmap.compare("whitehot",Qt::CaseInsensitive) == 0)
     {
         for (i = 0; i < 256; i++)
-            m_ColorTbl[i].setRgb(i, i, i);
+            m_ColorTbl[i]=QColor(i, i, i).rgb();
     }
     else if (cmap.compare("blackhot",Qt::CaseInsensitive) == 0)
     {
         for (i = 0; i < 256; i++)
-            m_ColorTbl[i].setRgb(255-i, 255-i, 255-i);
+            m_ColorTbl[i]=QColor(255-i, 255-i, 255-i).rgb();
     }
     else if (cmap.compare("viridis",Qt::CaseInsensitive) == 0)
     {
         for (i = 0; i < 256; i++)
-            m_ColorTbl[i].setRgb(F2B(viridis[i][0]), F2B(viridis[i][1]), F2B(viridis[i][2]));
+            m_ColorTbl[i]=QColor(F2B(viridis[i][0]), F2B(viridis[i][1]), F2B(viridis[i][2])).rgb();
     }
+    m_WaterfallLine.setColorTable(m_ColorTbl);
 }
