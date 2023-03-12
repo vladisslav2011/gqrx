@@ -143,8 +143,9 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent), m_ColorTbl(256)
     m_DrawOverlay = true;
     m_2DPixmap = QPixmap(0,0);
     m_OverlayPixmap = QPixmap(0,0);
-    m_WaterfallImage = QImage(0,0,QImage::Format_Indexed8);
-    m_WaterfallImage.setColorTable(m_ColorTbl);
+    m_WaterfallLine = QImage(0,0,QImage::Format_Indexed8);
+    m_WaterfallLine.setColorTable(m_ColorTbl);
+    m_WaterfallPixmap = QPixmap(0,0);
     m_Size = QSize(0,0);
     m_GrabPosition = 0;
     m_Percent2DScreen = 35;	//percent of screen used for 2D display
@@ -345,7 +346,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 // pan viewable range or move center frequency
                 int delta_px = m_Xzero - pt.x();
                 int delta_py = pt.y() - m_Yzero;
-                qint64 delta_hz = delta_px * m_Span / (m_WaterfallImage.width() / m_DPR);
+                qint64 delta_hz = delta_px * m_Span / (m_WaterfallPixmap.width() / m_DPR);
                 setFftCenterFreq(m_FftCenter + delta_hz);
                 emit newFftCenterFreq(m_FftCenter + delta_hz);
                 qint64 ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
@@ -572,8 +573,8 @@ int CPlotter::getNearestPeak(QPoint pt)
 void CPlotter::setWaterfallSpan(quint64 span_ms)
 {
     wf_span = span_ms;
-    if (m_WaterfallImage.height() > 0) {
-        msec_per_wfline = wf_span / m_WaterfallImage.height();
+    if (m_WaterfallPixmap.height() > 0) {
+        msec_per_wfline = wf_span / m_WaterfallPixmap.height();
     }
     clearWaterfall();
 }
@@ -581,8 +582,7 @@ void CPlotter::setWaterfallSpan(quint64 span_ms)
 void CPlotter::clearWaterfall()
 {
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    //m_WaterfallImage.fill(Qt::black);
-    memset(m_WaterfallImage.scanLine(0),0,m_WaterfallImage.width()*m_WaterfallImage.height());
+    m_WaterfallPixmap.fill(Qt::black);
     memset(m_wfbuf, 255, MAX_SCREENSIZE);
 }
 
@@ -596,7 +596,7 @@ void CPlotter::clearWaterfall()
 bool CPlotter::saveWaterfall(const QString & filename) const
 {
     QBrush          axis_brush(QColor(0x00, 0x00, 0x00, 0x70), Qt::SolidPattern);
-    QPixmap         pixmap(m_WaterfallImage.width(),m_WaterfallImage.height());
+    QPixmap         pixmap(m_WaterfallPixmap);
     QPainter        painter(&pixmap);
     QRect           rect;
     QDateTime       tt;
@@ -607,7 +607,6 @@ bool CPlotter::saveWaterfall(const QString & filename) const
     int             hxa, wya = 85;
     int             i;
 
-    painter.drawImage(0,0,m_WaterfallImage);
     w = pixmap.width();
     h = pixmap.height();
     hxa = font_metrics.height() + 5;    // height of X axis
@@ -1041,9 +1040,19 @@ void CPlotter::resizeEvent(QResizeEvent* )
             m_2DPixmap.fill(QColor(0,0,0,0));
 
             int height = m_Size.height() - fft_plot_height;
-            m_WaterfallImage = QImage(m_Size.width(), height,QImage::Format_Indexed8);
-            m_WaterfallImage.setColorTable(m_ColorTbl);
-            memset(m_WaterfallImage.scanLine(0),0,m_Size.width()*height);
+            if (m_WaterfallPixmap.isNull())
+            {
+                m_WaterfallPixmap = QPixmap(m_Size.width(), height);
+                m_WaterfallPixmap.fill(Qt::black);
+            }
+            else
+            {
+                m_WaterfallPixmap = m_WaterfallPixmap.scaled(m_Size.width(), height,
+                                                            Qt::IgnoreAspectRatio,
+                                                            Qt::SmoothTransformation);
+            }
+            m_WaterfallLine=QImage(m_WaterfallPixmap.width(),1,QImage::Format_Indexed8);
+            m_WaterfallLine.setColorTable(m_ColorTbl);
 
             m_PeakHoldValid = false;
 
@@ -1066,8 +1075,8 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     painter.drawPixmap(0, 0, m_OverlayPixmap);
     painter.drawPixmap(0, 0, m_2DPixmap);
-    painter.drawImage(0, m_Percent2DScreen * m_Size.height() / 100,
-                        m_WaterfallImage);
+    painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
+                        m_WaterfallPixmap);
     auto t2 = high_resolution_clock::now();
     duration<double, std::milli> diff = t2 - t1;
     ms_paint=diff.count();
@@ -1107,8 +1116,8 @@ void CPlotter::draw()
         return;
 
     // get/draw the waterfall
-    w = m_WaterfallImage.width();
-    h = m_WaterfallImage.height();
+    w = m_WaterfallPixmap.width();
+    h = m_WaterfallPixmap.height();
 
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
@@ -1142,14 +1151,14 @@ void CPlotter::draw()
             tlast_wf_ms = tnow_wf_ms;
 
             // move current data down one line(must do before attaching a QPainter object)
-            //m_WaterfallImage.scroll(0, 1, 0, 0, w, h);
-            memmove(m_WaterfallImage.scanLine(1),m_WaterfallImage.scanLine(0),w*(h-1));
+            m_WaterfallPixmap.scroll(0, 1, 0, 0, w, h);
+            QPainter painter(&m_WaterfallPixmap);
             m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
             while(h < m_wfLineStats.size())
                 m_wfLineStats.removeLast();
 
 
-            uint8_t * p = m_WaterfallImage.scanLine(0);
+            uint8_t * p = m_WaterfallLine.scanLine(0);
             // draw new line of fft data at top of waterfall bitmap
             if(xmin)
                 memset(p,0,xmin);
@@ -1172,6 +1181,8 @@ void CPlotter::draw()
                     p[i]=255 - m_fftbuf[i];
                 }
             }
+            painter.drawImage(0,0,m_WaterfallLine);
+            painter.end();
         }
     }
 
@@ -1331,8 +1342,8 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     m_wfData = fftData;
     m_fftDataSize = size;
     // get/draw the waterfall
-    w = m_WaterfallImage.width();
-    h = m_WaterfallImage.height();
+    w = m_WaterfallPixmap.width();
+    h = m_WaterfallPixmap.height();
 
     // no need to draw if pixmap is invisible
     if (w != 0 && h != 0)
@@ -1351,7 +1362,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
             m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
         else
             m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
-        uint8_t *p = m_WaterfallImage.scanLine(line);
+        uint8_t *p = m_WaterfallLine.scanLine(0);
 
         // draw new line of fft data at top of waterfall bitmap
         if(xmin)
@@ -1363,6 +1374,9 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
         {
             p[i]=255 - m_fftbuf2[i];
         }
+        QPainter painter(&m_WaterfallPixmap);
+        painter.drawImage(0, line, m_WaterfallLine);
+        painter.end();
     }
 
     if(line == 0)
@@ -1409,12 +1423,15 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 void CPlotter::drawBlackWaterfallLine(int line)
 {
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    int w = m_WaterfallImage.width();
-    int h = m_WaterfallImage.height();
+    int w = m_WaterfallPixmap.width();
+    int h = m_WaterfallPixmap.height();
     if (w != 0 && h != 0)
     {
-        uint8_t *p=m_WaterfallImage.scanLine(line);
+        uint8_t *p=m_WaterfallLine.scanLine(0);
         memset(p,0,w);
+        QPainter painter(&m_WaterfallPixmap);
+        painter.drawImage(0, line, m_WaterfallLine);
+        painter.end();
     }
 }
 
@@ -1423,14 +1440,12 @@ void CPlotter::scrollWaterfall(int dy)
     if(dy==0)
         return;
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    int w = m_WaterfallImage.width();
-    int h = m_WaterfallImage.height();
+    int w = m_WaterfallPixmap.width();
+    int h = m_WaterfallPixmap.height();
     if (std::abs(dy)>=h)
         return;
-    if (dy > 0)
-        memmove(m_WaterfallImage.scanLine(dy),m_WaterfallImage.scanLine(0),w*(h-dy));
-    else
-        memmove(m_WaterfallImage.scanLine(0),m_WaterfallImage.scanLine(-dy),w*(h+dy));
+    m_WaterfallPixmap.scroll(0, dy, 0, 0, w, h);
+
     if(dy>0)
     {
         for (int k = 0; k < dy; k++)
@@ -1452,7 +1467,7 @@ void CPlotter::scrollWaterfall(int dy)
 void CPlotter::getWaterfallMetrics(int &lines, double &ms_per_line)
 {
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    lines = m_WaterfallImage.height();
+    lines = m_WaterfallPixmap.height();
     if(fft_rate == 0)
         ms_per_line = -1.0;
     else
@@ -2614,6 +2629,5 @@ void CPlotter::setWfColormap(const QString &cmap)
         for (i = 0; i < 256; i++)
             m_ColorTbl[i]=QColor(F2B(viridis[i][0]), F2B(viridis[i][1]), F2B(viridis[i][2])).rgb();
     }
-    m_WaterfallImage.setColorTable(m_ColorTbl);
-    update();
+    m_WaterfallLine.setColorTable(m_ColorTbl);
 }

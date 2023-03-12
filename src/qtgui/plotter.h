@@ -262,7 +262,8 @@ private:
     eCapturetype    m_CursorCaptured;
     QPixmap     m_2DPixmap;
     QPixmap     m_OverlayPixmap;
-    QImage      m_WaterfallImage;
+    QPixmap     m_WaterfallPixmap;
+    QImage      m_WaterfallLine;
     QVector<QRgb> m_ColorTbl;
     QSize       m_Size;
     qreal       m_DPR{};

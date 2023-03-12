@@ -2884,6 +2884,7 @@ void MainWindow::setWfColormap(const QString colormap)
     ui->plotter->setWfColormap(colormap);
     uiDockAudio->setWfColormap(colormap);
     uiDockProbe->setWfColormap(colormap);
+    triggerIQFftRedraw();
 }
 
 void MainWindow::setWfThreads(const int n)
