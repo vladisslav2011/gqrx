@@ -350,11 +350,12 @@ private:
     std::vector<qint32> m_pTranslateTbl;
     qint32 old_plotWidth{0};
     qint32 old_minbin{0}, old_maxbin{0};
-    qint32 old_BinMin{0}, old_BinMax{0};
-    int old_largeFft{0};
-    double old_fftstep{0.0};
-    qint64 old_startFreq;
-    qint64 old_stopFreq;
+    int    old_largeFft{0};
+    qint64 old_startFreq{-1};
+    qint64 old_stopFreq{-1};
+    qint32 old_FFTSize{-1};
+    float  old_SampleFreq{-1.0};
+
     double ms_paint{0.0};
     double ms_draw{0.0};
     double ms_overlay{0.0};
