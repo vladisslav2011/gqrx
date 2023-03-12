@@ -261,8 +261,8 @@ private:
     eCapturetype    m_CursorCaptured;
     QPixmap     m_2DPixmap;
     QPixmap     m_OverlayPixmap;
-    QPixmap     m_WaterfallPixmap;
-    QColor      m_ColorTbl[256];
+    QImage      m_WaterfallImage;
+    QVector<QRgb> m_ColorTbl;
     QSize       m_Size;
     qreal       m_DPR{};
     QString     m_HDivText[HORZ_DIVS_MAX+1];
