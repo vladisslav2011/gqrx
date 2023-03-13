@@ -50,4 +50,5 @@ add_source_files(SRCS_LIST
 	stereo_demod.cpp
 	stereo_demod.h
 	format_converter.h
+	format_converter.cpp
 )
