@@ -118,11 +118,12 @@ void any_to_any_impl::convert(const std::complex<uint8_t> *in, gr_complex * out,
 
 void any_to_any_impl::convert(const gr_complex *in, std::array<int8_t,40> * out, int noutput_items)
 {
+    uint8_t * p = (uint8_t *) &(*out)[0];
+    noutput_items*=8;
     while(noutput_items)
     {
         int i;
         int q;
-        uint8_t * p = (uint8_t *) &(*out)[0];
         i = std::round(in->real()*d_scale);
         q = std::round(in->imag()*d_scale);
         in++;
@@ -135,7 +136,7 @@ void any_to_any_impl::convert(const gr_complex *in, std::array<int8_t,40> * out,
         p[2] |= (i & 0x0f) << 4;
         p[3] = ((i & 0x3f0) >> 4) | ((q & 0x03) << 6);
         p[4] = q >> 2;
-        out++;
+        p+=5;
         noutput_items--;
     }
 }
@@ -155,7 +156,7 @@ void any_to_any_impl::convert(const std::array<int8_t,40> *in, gr_complex * out,
         q = (p[3] >> 6) | (p[4] << 2);
         *out=gr_complex(float((i&(1<<9))?i-1024:i)*d_scale_i, float((q&(1<<9))?q-1024:q)*d_scale_i);
         out++;
-        in++;
+        p+=5;
         noutput_items-=2;
     }
 }
