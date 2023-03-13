@@ -98,12 +98,19 @@ public:
             consume_each(r * decimation() / interpolation());
         return r;
     }
+
+    static inline bool is_le()
+    {
+        return *((const uint8_t*)(const void*)&endianness_test);
+    }
+
     protected:
     float d_scale;
     float d_scale_i;
     private:
     unsigned d_decimation;
     unsigned d_interpolation;
+    static const uint32_t endianness_test{1};
 };
 
 class any_to_any_impl : virtual public gr::sync_block, virtual public any_to_any_base
@@ -229,29 +236,39 @@ using any_to_any_base::sptr;
 
     static sptr make(dispatcher::tag<any_to_any<gr_complex, std::array<int8_t,40>>>)
     {
-        if(UINTPTR_MAX == 0xffffffffffffffff)
+        if(is_le())
         {
-            #ifdef __BMI2__
-            if( __builtin_cpu_supports("bmi2"))
-                return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
-            #endif
-            return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+            if(UINTPTR_MAX == 0xffffffffffffffff)
+            {
+                #ifdef __BMI2__
+                if( __builtin_cpu_supports("bmi2"))
+                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+                #endif
+                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+            }else{
+                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+            }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
         }
     }
 
     static sptr make(dispatcher::tag<any_to_any<std::array<int8_t,40>, gr_complex>>)
     {
-        if(UINTPTR_MAX == 0xffffffffffffffff)
+        if(is_le())
         {
-            #ifdef __BMI2__
-            if( __builtin_cpu_supports("bmi2"))
-                return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
-            #endif
-            return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+            if(UINTPTR_MAX == 0xffffffffffffffff)
+            {
+                #ifdef __BMI2__
+                if( __builtin_cpu_supports("bmi2"))
+                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+                #endif
+                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+            }else{
+                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+            }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
         }
     }
 
