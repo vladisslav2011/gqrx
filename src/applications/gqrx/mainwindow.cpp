@@ -2165,9 +2165,6 @@ void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, 
 void MainWindow::audioFftTimeout()
 {
     unsigned int    fftsize;
-    unsigned int    i;
-    float           pwr;
-    float           pwr_scale;
     std::complex<float> pt;             /* a single FFT point used in calculations */
 
     if(uiDockProbe->isVisible())
@@ -2175,20 +2172,7 @@ void MainWindow::audioFftTimeout()
         rx->get_probe_fft_data(d_fftData, fftsize);
         if (fftsize > 0)
         {
-            pwr_scale = 1.0 / (fftsize * fftsize);
-            for (i = 0; i < fftsize; i++)
-            {
-                /* normalize and shift */
-                if (i < fftsize/2)
-                    pt = d_fftData[fftsize/2+i];
-                else
-                    pt = d_fftData[i-fftsize/2];
-
-                /* calculate power in dBFS */
-                pwr = pwr_scale * (pt.imag() * pt.imag() + pt.real() * pt.real());
-                d_realFftData[i] = 10.0 * log10f(pwr + 1.0e-20);
-            }
-
+            iqFftToMag(fftsize, d_fftData, d_realFftData);
             uiDockProbe->setNewFftData(d_realFftData, fftsize);
         }
     }
@@ -2205,27 +2189,7 @@ void MainWindow::audioFftTimeout()
         return;
     }
 
-    pwr_scale = 1.0 / (fftsize * fftsize);
-
-    /** FIXME: move post processing to rx_fft_f **/
-    /* Normalize, calculate power and shift the FFT */
-    for (i = 0; i < fftsize; i++)
-    {
-        /* normalize and shift */
-        if (i < fftsize/2)
-        {
-            pt = d_fftData[fftsize/2+i];
-        }
-        else
-        {
-            pt = d_fftData[i-fftsize/2];
-        }
-
-        /* calculate power in dBFS */
-        pwr = pwr_scale * (pt.imag() * pt.imag() + pt.real() * pt.real());
-        d_realFftData[i] = 10.0 * log10f(pwr + 1.0e-20);
-    }
-
+    iqFftToMag(fftsize, d_fftData, d_realFftData);
     uiDockAudio->setNewFftData(d_realFftData, fftsize);
 }
 
