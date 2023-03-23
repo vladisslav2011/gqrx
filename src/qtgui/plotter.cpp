@@ -1084,15 +1084,15 @@ void CPlotter::paintEvent(QPaintEvent *)
     painter.setPen(QPen(QColor(255,0,255), 2, Qt::SolidLine));
     painter.drawText(1, 0, 60,
                     QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
-                    QString::number(ms_paint,'g',2));
+                    QString::number(ms_paint,'g',4));
     painter.setPen(QPen(QColor(255,0,0), 2, Qt::SolidLine));
     painter.drawText(71, 0, 60,
                     QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
-                    QString::number(ms_draw,'g',2));
+                    QString::number(ms_draw,'g',4));
     painter.setPen(QPen(QColor(255,255,0), 2, Qt::SolidLine));
     painter.drawText(141, 0, 300,
                     QFontMetrics(m_Font).ascent() + 1, Qt::AlignTop | Qt::AlignLeft,
-                    QString::number(ms_overlay,'g',2));
+                    QString::number(ms_overlay,'g',4));
 }
 
 // Called to update spectrum data for displaying on the screen
