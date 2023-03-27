@@ -143,6 +143,12 @@ public:
     void    clearVfos();
     void    getLockedVfos(std::vector<vfo::sptr> &to);
 
+    enum eSamplingMode {
+        SAMPLING_MODE_MAX = 0,
+        SAMPLING_MODE_AVG = 1,
+        SAMPLING_MODE_MIN = 2
+    };
+
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
     void newDemodFreqLoad(qint64 freq, qint64 delta);/* tune and load demodulator settings */
@@ -164,6 +170,7 @@ public slots:
     void moveToCenterFreq();
     void moveToDemodFreq();
     void zoomOnXAxis(float level);
+    void setSamplingMode(int mode);
 
     // other FFT slots
     void setFftPlotColor(const QColor& color);
@@ -241,7 +248,8 @@ private:
                                  float maxdB, float mindB,
                                  qint64 startFreq, qint64 stopFreq,
                                  float *inBuf, qint32 *outBuf,
-                                 qint32 *maxbin, qint32 *minbin);
+                                 qint32 *maxbin, qint32 *minbin,
+                                 enum eSamplingMode mode = SAMPLING_MODE_MAX);
     static void calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &adjlow, qint64 &step, int& divs);
     void        showToolTip(QMouseEvent* event, QString toolTipText);
 
@@ -312,6 +320,7 @@ private:
     qint32      m_FreqUnits;
     int         m_ClickResolution;
     int         m_FilterClickResolution;
+    eSamplingMode m_SamplingMode;
 
     int         m_Xzero{};
     int         m_Yzero{};  /*!< Used to measure mouse drag direction. */
