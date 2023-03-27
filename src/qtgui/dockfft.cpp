@@ -310,6 +310,12 @@ void DockFft::saveSettings(QSettings *settings)
     else
         settings->remove("waterfall_threads");
 
+    intval = ui->samplingModeBox->currentIndex();
+    if (intval != 0)
+        settings->setValue("sampling_mode", intval);
+    else
+        settings->remove("sampling_mode");
+
     settings->endGroup();
 }
 
@@ -407,6 +413,9 @@ void DockFft::readSettings(QSettings *settings)
         wf_threads = 0;
     ui->threadsComboBox->setCurrentText((wf_threads>0)?QString::number(wf_threads):"Auto");
     //emit wfThreadsChanged(wf_threads);
+    intval = settings->value("sampling_mode", 0).toInt(&conv_ok);
+    if (conv_ok && intval >=0 && intval <=2)
+        ui->samplingModeBox->setCurrentIndex(intval);
 
     settings->endGroup();
 }
@@ -526,6 +535,11 @@ void DockFft::on_fftZoomSlider_valueChanged(int level)
 {
     ui->zoomLevelLabel->setText(QString("%1x").arg(level));
     emit fftZoomChanged((float)level);
+}
+
+void DockFft::on_samplingModeBox_currentIndexChanged(int index)
+{
+    emit samplingModeChanged(index);
 }
 
 void DockFft::on_pandRangeSlider_valuesChanged(int min, int max)
