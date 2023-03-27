@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>332</width>
-    <height>366</height>
+    <width>488</width>
+    <height>611</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -71,8 +71,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>301</width>
-         <height>457</height>
+         <width>470</width>
+         <height>568</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -121,7 +121,7 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="0">
+          <item row="5" column="0">
            <widget class="QLabel" name="fftAvgLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -140,7 +140,7 @@
             </property>
            </widget>
           </item>
-          <item row="12" column="1">
+          <item row="13" column="1">
            <widget class="QtColorPicker" name="colorPicker">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -168,7 +168,7 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="3">
+          <item row="6" column="3">
            <widget class="QLabel" name="wfLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -184,7 +184,7 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="0">
+          <item row="6" column="0">
            <widget class="QLabel" name="pandLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -223,7 +223,7 @@
             </property>
            </widget>
           </item>
-          <item row="7" column="1" colspan="2">
+          <item row="8" column="1" colspan="2">
            <widget class="ctkRangeSlider" name="pandRangeSlider">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -254,7 +254,7 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="1" rowspan="2" colspan="2">
+          <item row="10" column="1" rowspan="2" colspan="2">
            <widget class="QSlider" name="fftZoomSlider">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -297,7 +297,7 @@
             </property>
            </widget>
           </item>
-          <item row="7" column="3">
+          <item row="8" column="3">
            <widget class="QPushButton" name="lockButton">
             <property name="enabled">
              <bool>true</bool>
@@ -426,7 +426,7 @@
             </property>
            </widget>
           </item>
-          <item row="5" column="1" colspan="2">
+          <item row="6" column="1" colspan="2">
            <widget class="QSlider" name="fftSplitSlider">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -574,7 +574,7 @@
             </item>
            </widget>
           </item>
-          <item row="6" column="1" colspan="3">
+          <item row="7" column="1" colspan="3">
            <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
             <property name="spacing">
              <number>2</number>
@@ -668,7 +668,7 @@
             </property>
            </widget>
           </item>
-          <item row="8" column="1" colspan="2">
+          <item row="9" column="1" colspan="2">
            <widget class="ctkRangeSlider" name="wfRangeSlider">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -693,7 +693,7 @@
             </property>
            </widget>
           </item>
-          <item row="11" column="0" colspan="4">
+          <item row="12" column="0" colspan="4">
            <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
             <property name="spacing">
              <number>2</number>
@@ -784,7 +784,7 @@
             </item>
            </layout>
           </item>
-          <item row="8" column="0">
+          <item row="9" column="0">
            <widget class="QLabel" name="wfRangeLabel">
             <property name="toolTip">
              <string>Set waterfall dB range</string>
@@ -800,7 +800,7 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="0" rowspan="2">
+          <item row="10" column="0" rowspan="2">
            <widget class="QLabel" name="zoomLAbel">
             <property name="toolTip">
              <string>Set zoom level on the frequency axis</string>
@@ -816,7 +816,7 @@
             </property>
            </widget>
           </item>
-          <item row="12" column="2">
+          <item row="13" column="2">
            <widget class="QPushButton" name="fillButton">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -850,7 +850,7 @@
             </property>
            </widget>
           </item>
-          <item row="17" column="0" colspan="4">
+          <item row="18" column="0" colspan="4">
            <spacer name="verticalSpacer">
             <property name="orientation">
              <enum>Qt::Vertical</enum>
@@ -876,7 +876,7 @@
             </property>
            </widget>
           </item>
-          <item row="6" column="0">
+          <item row="7" column="0">
            <widget class="QLabel" name="peakLabel">
             <property name="text">
              <string>Peak</string>
@@ -886,7 +886,7 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="1" colspan="2">
+          <item row="5" column="1" colspan="2">
            <widget class="QSlider" name="fftAvgSlider">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -1037,7 +1037,7 @@
             </item>
            </widget>
           </item>
-          <item row="12" column="0">
+          <item row="13" column="0">
            <widget class="QLabel" name="colorLabel">
             <property name="toolTip">
              <string>Color for the FFT plot</string>
@@ -1050,7 +1050,7 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="3" rowspan="2">
+          <item row="10" column="3" rowspan="2">
            <widget class="QLabel" name="zoomLevelLabel">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -1072,7 +1072,7 @@
             </property>
            </widget>
           </item>
-          <item row="7" column="0">
+          <item row="8" column="0">
            <widget class="QLabel" name="pandRangeLabel">
             <property name="toolTip">
              <string>Set pandapter dB range</string>
@@ -1101,7 +1101,7 @@
             </property>
            </widget>
           </item>
-          <item row="13" column="1" colspan="2">
+          <item row="14" column="1" colspan="2">
            <widget class="QComboBox" name="cmapComboBox">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -1114,7 +1114,7 @@
             </property>
            </widget>
           </item>
-          <item row="13" column="0">
+          <item row="14" column="0">
            <widget class="QLabel" name="label_3">
             <property name="text">
              <string>Colormap</string>
@@ -1124,7 +1124,7 @@
             </property>
            </widget>
           </item>
-          <item row="16" column="0" colspan="4">
+          <item row="17" column="0" colspan="4">
            <widget class="QCheckBox" name="bandPlanCheckbox">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -1140,7 +1140,7 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="3">
+          <item row="5" column="3">
            <widget class="QLabel" name="fftAvgValue">
             <property name="text">
              <string>1</string>
@@ -1150,7 +1150,7 @@
             </property>
            </widget>
           </item>
-          <item row="14" column="2" colspan="2">
+          <item row="15" column="2" colspan="2">
            <widget class="QComboBox" name="threadsComboBox">
             <property name="sizePolicy">
              <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -1166,7 +1166,7 @@
             </property>
            </widget>
           </item>
-          <item row="14" column="0" colspan="2">
+          <item row="15" column="0" colspan="2">
            <widget class="QLabel" name="threadsLabel">
             <property name="text">
              <string>Backgroung threads</string>
@@ -1248,7 +1248,7 @@
             </item>
            </widget>
           </item>
-          <item row="17" column="0">
+          <item row="4" column="0">
            <widget class="QLabel" name="label_4">
             <property name="text">
              <string>Sampling</string>
@@ -1258,7 +1258,7 @@
             </property>
            </widget>
           </item>
-          <item row="17" column="1">
+          <item row="4" column="1">
            <widget class="QComboBox" name="samplingModeBox">
             <item>
              <property name="text">
