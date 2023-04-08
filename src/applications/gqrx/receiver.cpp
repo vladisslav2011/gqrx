@@ -1964,6 +1964,13 @@ receiver::status receiver::seek_iq_file_ts(uint64_t ts, uint64_t &res_point)
     return status;
 }
 
+receiver::status receiver::save_file_range_ts(const uint64_t from_s, const uint64_t len_s, const std::string name)
+{
+    if (input_file->save_ts(from_s, len_s, name))
+        return STATUS_OK;
+    return STATUS_ERROR;
+}
+
 void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
 {
     stats.recording = d_recording_iq;

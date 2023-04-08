@@ -30,6 +30,7 @@
 #include <QStringList>
 #include <QScrollBar>
 #include <QDateTime>
+#include <QShortcut>
 
 #include <math.h>
 
@@ -74,6 +75,48 @@ CIqTool::CIqTool(QWidget *parent) :
     ui->formatCombo->addItem("14 bit", receiver::FILE_FORMAT_CS14L);
     ui->bufferStats->hide();
     ui->sizeStats->hide();
+    sliderMenu = new QMenu(this);
+    // MenuItem A
+    {
+        QAction* action = new QAction("A", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderA()));
+        QKeySequence seq(Qt::Key_BracketLeft);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderA()));
+        action->setShortcut(seq);
+        setA=action;
+        setA->setEnabled(false);
+    }
+    // MenuItem B
+    {
+        QAction* action = new QAction("B", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderB()));
+        QKeySequence seq(Qt::Key_BracketRight);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderB()));
+        action->setShortcut(seq);
+        setB=action;
+        setB->setEnabled(false);
+    }
+    {
+        QAction* action = new QAction("Reset", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderReset()));
+    }
+    {
+        QAction* action = new QAction("Save", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderSave()));
+        QKeySequence seq(Qt::CTRL+Qt::Key_S);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderSave()));
+        action->setShortcut(seq);
+        selSave=action;
+        selSave->setEnabled(false);
+    }
+    ui->slider->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 CIqTool::~CIqTool()
@@ -132,6 +175,8 @@ void CIqTool::switchControlsState(bool recording, bool playback)
     ui->formatCombo->setEnabled(!(recording || playback));
     ui->repeat->setEnabled(!(recording || playback));
     ui->buffersSpinBox->setEnabled(!(recording || playback));
+    setA->setEnabled(playback);
+    setB->setEnabled(playback);
     if (recording || playback)
     {
         ui->formatLabel->hide();
@@ -177,6 +222,8 @@ void CIqTool::on_playButton_clicked(bool checked)
         }
         else
         {
+            sel_A=sel_B=-1.0;
+            updateSliderStylesheet();
             on_listWidget_currentTextChanged(current_file);
             switchControlsState(false, true);
 
@@ -397,10 +444,101 @@ void CIqTool::timeoutFunction(void)
         refreshTimeWidgets();
 }
 
+void CIqTool::on_slider_customContextMenuRequested(const QPoint& pos)
+{
+    sliderMenu->popup(ui->slider->mapToGlobal(pos));
+}
+
 void CIqTool::on_formatCombo_currentIndexChanged(int index)
 {
     rec_fmt = (enum receiver::file_formats)ui->formatCombo->currentData().toInt();
 }
+
+void CIqTool::updateSliderStylesheet()
+{
+    if((sel_A<0.0)&&(sel_B<0.0))
+    {
+        ui->slider->setStyleSheet("");
+        setA->setText("A");
+        setB->setText("B");
+        selSave->setText("Save");
+        selSave->setEnabled(false);
+        return;
+    }
+    if((sel_A>=0.0) && (sel_B<0.0))
+    {
+        sel_B=1.0;
+    }
+    if((sel_B>=0.0) && (sel_A<0.0))
+    {
+        sel_A=0.0;
+    }
+    if(sel_A>sel_B)
+        std::swap(sel_A,sel_B);
+    setA->setText(QString("A: %1 s").arg(quint64(sel_A * double(rec_len))));
+    setB->setText(QString("B: %1 s").arg(quint64(sel_B * double(rec_len))));
+    selSave->setText(QString("Save: %1 - %2 s")
+        .arg(quint64(sel_A * double(rec_len)))
+        .arg(quint64(sel_B * double(rec_len)))
+    );
+    selSave->setEnabled(true);
+    double selLen=sel_B-sel_A;
+    if(selLen<0.00001)
+        selLen=0.00001;
+    selLen+=sel_A;
+    if(selLen>1.0)
+        selLen=1.0;
+    ui->slider->setStyleSheet(QString(
+    "background-color: qlineargradient("
+        "spread:repeat,"
+        "x1:0,"
+        "y1:0,"
+        "x2:1,"
+        "y2:0,"
+        "stop:0 rgba(255, 255, 255, 0),"
+        "stop:%1 rgba(255, 255, 255, 0),"
+        "stop:%2 rgba(255, 0, 0, 255),"
+        "stop:%3 rgba(255, 0, 0, 255),"
+        "stop:%4 rgba(255, 255, 255, 0),"
+        "stop:1 rgba(255, 255, 255, 0)"
+    ");").arg(sel_A+0.000001)
+         .arg(sel_A+0.000002)
+         .arg(selLen-0.000002)
+         .arg(selLen-0.000001)
+        );
+}
+
+
+void CIqTool::sliderA()
+{
+    sel_A=double(o_fileSize * samples_per_chunk / sample_rate)/double(rec_len);
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderB()
+{
+    sel_B=double(o_fileSize * samples_per_chunk / sample_rate)/double(rec_len);
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderReset()
+{
+    sel_A=sel_B=-1.0;
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderSave()
+{
+    quint64 from_s=sel_A*double(rec_len)+time_ms/1000;
+    quint64 len_s=(sel_B-sel_A)*double(rec_len);
+    if(len_s<1.0)
+        len_s=1.0;
+    emit saveFileRange(recdir->path(), fmt, from_s, len_s);
+    sel_A=sel_B=-1.0;
+    updateSliderStylesheet();
+}
+
+
 
 /*! \brief Refresh list of files in current working directory. */
 void CIqTool::refreshDir()

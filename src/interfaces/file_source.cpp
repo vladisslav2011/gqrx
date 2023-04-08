@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <cstdio>
 #include <stdexcept>
+#include <vector>
 
 #ifdef _MSC_VER
 #define GR_FSEEK _fseeki64
@@ -505,4 +506,37 @@ uint64_t file_source::get_items_remaining()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
     return d_items_remaining;
+}
+
+bool file_source::save_ts(const uint64_t from_s, const uint64_t len_s, const std::string name)
+{
+    int64_t seek_point = from_s * 1000llu - d_time_ms;
+    size_t len = len_s;
+    if(seek_point < 0)
+        seek_point = 0;
+    seek_point *= d_sample_rate;
+    seek_point /= 1000;
+    len *= d_sample_rate;
+    FILE * ffrom = fdopen(fileno(d_fp), "rb");
+    FILE * fto = fopen(name.c_str(),"wb");
+    size_t block_len = 1024*1024;
+    std::vector<uint8_t> copybuf;
+    copybuf.resize(d_itemsize * block_len);
+    GR_FSEEK(ffrom, seek_point * d_itemsize, SEEK_SET);
+    size_t written = 0;
+    while(written <len)
+    {
+        size_t bb = std::min(block_len,len-written);
+        size_t rr = fread(copybuf.data(),d_itemsize,bb,ffrom);
+        if(rr == 0)
+            break;
+        size_t ww = fwrite(copybuf.data(),d_itemsize,rr,fto);
+        fprintf(stderr,"\r %lu %lu             ",written,len);
+        if(ww == 0)
+            break;
+        written+=ww;
+    }
+    fclose(ffrom);
+    fclose(fto);
+    return written == len;
 }
