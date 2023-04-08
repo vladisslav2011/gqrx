@@ -31,6 +31,7 @@
 #include <QShowEvent>
 #include <QString>
 #include <QTimer>
+#include <QMenu>
 #include "dsp/format_converter.h"
 
 
@@ -62,6 +63,7 @@ public:
 
     void saveSettings(QSettings *settings);
     void readSettings(QSettings *settings);
+    qint64 selectionLength();
 
 signals:
     void startRecording(const QString recdir, file_formats fmt,
@@ -72,11 +74,13 @@ signals:
                        qint64 time_ms, int buffers_max, bool repeat);
     void stopPlayback();
     void seek(qint64 seek_pos);
+    void saveFileRange(const QString &, file_formats, quint64,quint64);
 
 public slots:
     void cancelRecording();
     void cancelPlayback();
     void updateStats(bool hasFailed, int buffersUsed, size_t fileSize);
+    void updateSaveProgress(const qint64 save_progress);
 
 private slots:
     void on_recDirEdit_textChanged(const QString &text);
@@ -87,24 +91,45 @@ private slots:
     void on_listWidget_currentTextChanged(const QString &currentText);
     void timeoutFunction(void);
     void on_formatCombo_currentIndexChanged(int index);
+    void on_slider_customContextMenuRequested(const QPoint& pos);
+    void sliderA();
+    void sliderB();
+    void sliderReset();
+    void sliderSave();
+    void sliderGoA();
+    void sliderGoB();
+    void sliderSetExtractDir();
 
 private:
     void refreshDir(void);
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);
     void switchControlsState(bool recording, bool playback);
+    void updateSliderStylesheet(qint64 save_progress = -2);
 
 private:
     Ui::CIqTool *ui;
 
     QDir        *recdir;
+    QDir        *extractDir;
     QTimer      *timer;
     QPalette    *error_palette; /*!< Palette used to indicate an error. */
 
     QString current_file;      /*!< Selected file in file browser. */
+    QMenu       *sliderMenu;
+    QAction     *setA;
+    QAction     *setB;
+    QAction     *selSave;
+    QAction     *selReset;
+    QAction     *goA;
+    QAction     *goB;
+    QAction     *setExtractDir;
 
+    double  sel_A{-1.0};
+    double  sel_B{-1.0};
     bool    is_recording;
     bool    is_playing;
+    bool    is_saving{false};
     qint64  chunk_size;
     qint64  samples_per_chunk;
     file_formats fmt;

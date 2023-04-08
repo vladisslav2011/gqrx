@@ -107,6 +107,7 @@ public:
      };
 
     typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
+    typedef std::function<void(int64_t)> iq_save_progress_t;
 
     struct fft_reader
     {
@@ -360,6 +361,11 @@ public:
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
     bool        is_playing_iq() { return d_last_format != FILE_FORMAT_NONE; }
     bool        is_recording_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
+    status      save_file_range_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name);
+    template <typename T> void set_iq_save_progress_cb(T handler)
+    {
+        d_save_progress = handler;
+    }
 
     /* sample sniffer */
     status      start_sniffer(unsigned int samplrate, int buffsize);
@@ -508,6 +514,7 @@ private:
     static std::string get_zero_file(void);
     static void audio_rec_event(receiver * self, int idx, std::string filename,
                                 bool running);
+     iq_save_progress_t d_save_progress{};
 };
 
 #endif // RECEIVER_H
