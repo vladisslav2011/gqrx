@@ -333,6 +333,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
                  this, SLOT(startIqPlayback(QString, float, qint64, file_formats, qint64, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
+    connect(iq_tool, SIGNAL(saveFileRange(const QString &, file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, file_formats, quint64,quint64)));
 
     // remote control
     connect(remote, SIGNAL(newRDSmode(bool)), uiDockRDS, SLOT(setRDSmode(bool)));
@@ -401,6 +402,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     qsvg_dummy = new QSvgWidget();
     connect(this,SIGNAL(requestPlotterUpdate()), this, SLOT(plotterUpdate()), Qt::QueuedConnection);
+    connect(this,SIGNAL(sigSaveProgress(const qint64)), this, SLOT(updateSaveProgress(const qint64)), Qt::QueuedConnection);
+    rx->set_iq_save_progress_cb([=](int64_t saved_ms)
+        {
+            emit sigSaveProgress(saved_ms);
+        });
 }
 
 MainWindow::~MainWindow()
@@ -2557,6 +2563,18 @@ void MainWindow::seekIqFile(qint64 seek_pos)
         waterfall_background_request = MainWindow::WF_RESTART;
         waterfall_background_wake.notify_one();
     }
+}
+
+void MainWindow::saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms)
+{
+    std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_ms)).toStdString();
+    rx->save_file_range_ts(from_ms,len_ms,name);
+}
+
+void MainWindow::updateSaveProgress(const qint64 saved_ms)
+{
+    ui->statusBar->showMessage(QString("Saving fragment ... %1 %").arg(saved_ms*100ll/iq_tool->selectionLength()));
+    iq_tool->updateSaveProgress(saved_ms);
 }
 
 /**

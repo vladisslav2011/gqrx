@@ -30,6 +30,7 @@
 #include <QStringList>
 #include <QScrollBar>
 #include <QDateTime>
+#include <QShortcut>
 
 #include <math.h>
 
@@ -55,6 +56,7 @@ CIqTool::CIqTool(QWidget *parent) :
     time_ms = 0;
 
     recdir = new QDir(QDir::homePath(), "*.raw");
+    extractDir = new QDir(QDir::homePath(), "*.raw");
 
     error_palette = new QPalette();
     error_palette->setColor(QPalette::Text, Qt::red);
@@ -66,6 +68,82 @@ CIqTool::CIqTool(QWidget *parent) :
         ui->formatCombo->addItem(any_to_any_base::fmt[k].name,k);
     ui->bufferStats->hide();
     ui->sizeStats->hide();
+    sliderMenu = new QMenu(this);
+    // marker A
+    {
+        QAction* action = new QAction("A", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderA()));
+        QKeySequence seq(Qt::Key_BracketLeft);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderA()));
+        action->setShortcut(seq);
+        setA=action;
+        setA->setEnabled(false);
+    }
+    // marker B
+    {
+        QAction* action = new QAction("B", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderB()));
+        QKeySequence seq(Qt::Key_BracketRight);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderB()));
+        action->setShortcut(seq);
+        setB=action;
+        setB->setEnabled(false);
+    }
+    // Reset selection
+    {
+        QAction* action = new QAction("Reset", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderReset()));
+        selReset=action;
+    }
+    // Save selection
+    {
+        QAction* action = new QAction("Save", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderSave()));
+        QKeySequence seq(Qt::CTRL|Qt::Key_S);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderSave()));
+        action->setShortcut(seq);
+        selSave=action;
+        selSave->setEnabled(false);
+    }
+    // Go to marker A
+    {
+        QAction* action = new QAction("Go to A", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderGoA()));
+        QKeySequence seq(Qt::CTRL|Qt::Key_BracketLeft);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderGoA()));
+        action->setShortcut(seq);
+        goA=action;
+        goA->setEnabled(false);
+    }
+    // Go to marker B
+    {
+        QAction* action = new QAction("Go to B", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderGoB()));
+        QKeySequence seq(Qt::CTRL|Qt::Key_BracketRight);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderGoB()));
+        action->setShortcut(seq);
+        goB=action;
+        goB->setEnabled(false);
+    }
+    // Set extract dir
+    {
+        QAction* action = new QAction(extractDir->path()+" ...", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderSetExtractDir()));
+        setExtractDir=action;
+    }
+    ui->slider->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
 CIqTool::~CIqTool()
@@ -74,6 +152,7 @@ CIqTool::~CIqTool()
     delete timer;
     delete ui;
     delete recdir;
+    delete extractDir;
     delete error_palette;
 
 }
@@ -124,6 +203,8 @@ void CIqTool::switchControlsState(bool recording, bool playback)
     ui->formatCombo->setEnabled(!(recording || playback));
     ui->repeat->setEnabled(!(recording || playback));
     ui->buffersSpinBox->setEnabled(!(recording || playback));
+    setA->setEnabled(playback);
+    setB->setEnabled(playback);
     if (recording || playback)
     {
         ui->formatLabel->hide();
@@ -169,6 +250,8 @@ void CIqTool::on_playButton_clicked(bool checked)
         }
         else
         {
+            sel_A=sel_B=-1.0;
+            updateSliderStylesheet();
             on_listWidget_currentTextChanged(current_file);
             switchControlsState(false, true);
 
@@ -280,6 +363,18 @@ void CIqTool::updateStats(bool hasFailed, int buffersUsed, size_t fileSize)
     }
  }
 
+void CIqTool::updateSaveProgress(const qint64 save_progress)
+{
+    if(save_progress<0)
+    {
+        sel_A=sel_B=-1.0;
+        is_saving = false;
+        updateSliderStylesheet();
+    }else
+        updateSliderStylesheet(save_progress);
+}
+
+
 /*! \brief Catch window close events.
  *
  * This method is called when the user closes the audio options dialog
@@ -350,6 +445,8 @@ void CIqTool::on_recDirEdit_textChanged(const QString &dir)
         ui->recDirEdit->setPalette(QPalette());  // Clear custom color
         recdir->setPath(dir);
         recdir->cd(dir);
+        extractDir->setPath(dir);
+        extractDir->cd(dir);
         //emit newRecDirSelected(dir);
     }
     else
@@ -368,6 +465,21 @@ void CIqTool::on_recDirButton_clicked()
 
     if (!dir.isNull())
         ui->recDirEdit->setText(dir);
+}
+
+void CIqTool::sliderSetExtractDir()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select a directory to place extracted files"),
+                                                    ui->recDirEdit->text(),
+                                                    QFileDialog::ShowDirsOnly |
+                                                    QFileDialog::DontResolveSymlinks);
+
+    if (!dir.isNull())
+    {
+        extractDir->setPath(dir);
+        extractDir->cd(dir);
+        setExtractDir->setText(extractDir->path()+" ...");
+    }
 }
 
 void CIqTool::timeoutFunction(void)
@@ -389,10 +501,176 @@ void CIqTool::timeoutFunction(void)
         refreshTimeWidgets();
 }
 
+void CIqTool::on_slider_customContextMenuRequested(const QPoint& pos)
+{
+    sliderMenu->popup(ui->slider->mapToGlobal(pos));
+}
+
 void CIqTool::on_formatCombo_currentIndexChanged(int index)
 {
     rec_fmt = (file_formats)ui->formatCombo->currentData().toInt();
 }
+
+void CIqTool::updateSliderStylesheet(qint64 save_progress)
+{
+    if((sel_A<0.0)&&(sel_B<0.0))
+    {
+        ui->slider->setStyleSheet("");
+        setA->setText("A");
+        setB->setText("B");
+        selSave->setText("Save");
+        selSave->setEnabled(false);
+        goA->setEnabled(false);
+        goB->setEnabled(false);
+        setA->setEnabled(true);
+        setB->setEnabled(true);
+        selReset->setEnabled(true);
+        return;
+    }
+    goA->setEnabled(true);
+    goB->setEnabled(true);
+    if((sel_A>=0.0) && (sel_B<0.0))
+    {
+        sel_B=1.0;
+    }
+    if((sel_B>=0.0) && (sel_A<0.0))
+    {
+        sel_A=0.0;
+    }
+    if(sel_A>sel_B)
+        std::swap(sel_A,sel_B);
+    setA->setText(QString("A: %1 s").arg(quint64(sel_A * double(rec_len))));
+    setB->setText(QString("B: %1 s").arg(quint64(sel_B * double(rec_len))));
+    selSave->setText(QString("Save: %1 s %2 mb")
+        .arg(quint64((sel_B-sel_A) * double(rec_len)))
+        .arg((sel_B-sel_A) * double(rec_len) * double(sample_rate) * double(chunk_size)/double(samples_per_chunk)*1e-6,2,'f',2,' ')
+    );
+    double selLen=sel_B-sel_A;
+    if(selLen<0.00001)
+        selLen=0.00001;
+    selLen+=sel_A;
+    if(selLen>1.0)
+        selLen=1.0;
+    if(save_progress == -1)
+    {
+        setA->setEnabled(true);
+        setB->setEnabled(true);
+        if(sel_A * double(rec_len) >= 1.0)
+            selSave->setEnabled(true);
+        selReset->setEnabled(true);
+    }
+    if(save_progress>0)
+    {
+        double prgLen = sel_A + double(save_progress)/(double(rec_len)*1000.0);
+        if(prgLen>1.0)
+            prgLen=1.0;
+        if(prgLen<0.000007)
+            prgLen=0.000007;
+        ui->slider->setStyleSheet(QString(
+        "background-color: qlineargradient("
+            "spread:repeat,"
+            "x1:0,"
+            "y1:0,"
+            "x2:1,"
+            "y2:0,"
+            "stop:0 rgba(255, 255, 255, 0),"
+            "stop:%1 rgba(255, 255, 255, 0),"
+            "stop:%2 rgba(0, 255, 0, 255),"
+            "stop:%3 rgba(0, 255, 0, 255),"
+            "stop:%4 rgba(255, 0, 0, 255),"
+            "stop:%5 rgba(255, 0, 0, 255),"
+            "stop:%6 rgba(255, 255, 255, 0),"
+            "stop:1 rgba(255, 255, 255, 0)"
+        ");").arg(sel_A+0.000001)
+            .arg(sel_A+0.000002)
+            .arg(prgLen-0.000004)
+            .arg(prgLen-0.000003)
+            .arg(selLen-0.000002)
+            .arg(selLen-0.000001)
+            );
+    }
+    else
+    {
+        ui->slider->setStyleSheet(QString(
+        "background-color: qlineargradient("
+            "spread:repeat,"
+            "x1:0,"
+            "y1:0,"
+            "x2:1,"
+            "y2:0,"
+            "stop:0 rgba(255, 255, 255, 0),"
+            "stop:%1 rgba(255, 255, 255, 0),"
+            "stop:%2 rgba(255, 0, 0, 255),"
+            "stop:%3 rgba(255, 0, 0, 255),"
+            "stop:%4 rgba(255, 255, 255, 0),"
+            "stop:1 rgba(255, 255, 255, 0)"
+        ");").arg(sel_A+0.000001)
+            .arg(sel_A+0.000002)
+            .arg(selLen-0.000002)
+            .arg(selLen-0.000001)
+            );
+        if(sel_A * double(rec_len) >= 1.0)
+            selSave->setEnabled(true);
+    }
+}
+
+
+void CIqTool::sliderA()
+{
+    if(is_saving)
+        return;
+    sel_A=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderB()
+{
+    if(is_saving)
+        return;
+    sel_B=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderGoA()
+{
+    ui->slider->setValue(sel_A*ui->slider->maximum());
+}
+
+void CIqTool::sliderGoB()
+{
+    ui->slider->setValue(sel_B*ui->slider->maximum());
+}
+
+void CIqTool::sliderReset()
+{
+    if(is_saving)
+        return;
+    sel_A=sel_B=-1.0;
+    updateSliderStylesheet();
+}
+
+void CIqTool::sliderSave()
+{
+    if(sel_A<0.0)
+        return;
+    is_saving=true;
+    quint64 from_ms=sel_A*double(rec_len)*1000.0+time_ms;
+    quint64 len_ms=(sel_B-sel_A)*double(rec_len)*1000.0;
+    if(len_ms<1.0)
+        len_ms=1.0;
+    emit saveFileRange(extractDir->path(), fmt, from_ms, len_ms);
+    updateSliderStylesheet(0);
+    setA->setEnabled(false);
+    setB->setEnabled(false);
+    selSave->setEnabled(false);
+    selReset->setEnabled(false);
+}
+
+qint64 CIqTool::selectionLength()
+{
+    return (sel_B-sel_A)*double(rec_len)*1000.0;
+}
+
 
 /*! \brief Refresh list of files in current working directory. */
 void CIqTool::refreshDir()

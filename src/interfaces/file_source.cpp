@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <cstdio>
 #include <stdexcept>
+#include <vector>
 
 #ifdef _MSC_VER
 #define GR_FSEEK _fseeki64
@@ -222,6 +223,13 @@ file_source::~file_source()
         fclose((FILE*)d_fp);
     if (d_new_fp)
         fclose((FILE*)d_new_fp);
+    d_save_progress = nullptr;
+    if(d_save_thread)
+    {
+        d_save_terminate=true;
+        d_save_thread->join();
+        delete d_save_thread;
+    }
 }
 
 bool file_source::seek(int64_t seek_point, int whence)
@@ -366,6 +374,7 @@ void file_source::open(const char* filename,
     d_start_offset_items = start_offset_items;
     d_length_items = length_items;
     d_items_remaining = length_items;
+    d_filename = filename;
 }
 
 void file_source::close()
@@ -505,4 +514,74 @@ uint64_t file_source::get_items_remaining()
 {
     std::unique_lock<std::mutex> guard(d_mutex);
     return d_items_remaining;
+}
+
+bool file_source::save_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name)
+{
+    if(from_ms < 1000llu)
+        return false;
+    if(d_save_thread)
+    {
+        uint64_t written = d_save_written_ms;
+        if((written > 0)&&(d_save_mutex.try_lock()))
+        {
+            d_save_mutex.unlock();
+            d_save_thread->join();
+            delete d_save_thread;
+            d_save_thread = nullptr;
+        }else
+            return false;
+    }
+    d_save_from_ms = from_ms;
+    d_save_len_ms = len_ms;
+    d_save_to = name;
+    d_save_written_ms = 0;
+    d_save_terminate=false;
+    d_save_thread = new std::thread(&file_source::save_thread_fn,this);
+    return true;
+}
+
+void file_source::save_thread_fn()
+{
+    std::unique_lock<std::mutex> guard(d_save_mutex);
+    int64_t seek_point = d_save_from_ms - d_time_ms;
+    size_t len = d_save_len_ms;
+    size_t itemsize=d_itemsize;
+    if(seek_point < 0)
+        seek_point = 0;
+    seek_point *= d_sample_rate;
+    seek_point /= 1000;
+    len *= d_sample_rate;
+    len /= 1000;
+    FILE * ffrom = fopen(d_filename.c_str(), "rb");
+    FILE * fto = fopen(d_save_to.c_str(),"wb");
+    size_t block_len = 1024*1024;
+    std::vector<uint8_t> copybuf;
+    copybuf.resize(itemsize * block_len);
+    GR_FSEEK(ffrom, seek_point * itemsize, SEEK_SET);
+    size_t written = 0;
+    while(written <len)
+    {
+        size_t bb = std::min(block_len,len-written);
+        size_t rr = fread(copybuf.data(),itemsize,bb,ffrom);
+        if(rr == 0)
+            break;
+        size_t ww = fwrite(copybuf.data(),itemsize,rr,fto);
+        //fprintf(stderr,"\r %lu %lu             ",written,len);
+        d_save_written_ms = written * 1000llu / d_sample_rate;
+        if(ww == 0)
+            break;
+        written+=ww;
+        if(d_save_terminate)
+        {
+            d_save_terminate=false;
+            break;
+        }
+        if(d_save_progress)
+            d_save_progress(d_save_written_ms);
+    }
+    fclose(ffrom);
+    fclose(fto);
+    if(d_save_progress)
+        d_save_progress(-1);
 }

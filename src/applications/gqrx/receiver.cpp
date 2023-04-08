@@ -283,6 +283,7 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex), sample_rate);
 
     //set_demod(d_demod, fmt, true);
+    input_file->set_save_progress_cb(d_save_progress);
     reconnect_all(fmt, true);
     set_input_rate(sample_rate);
 
@@ -1961,6 +1962,13 @@ receiver::status receiver::seek_iq_file_ts(uint64_t ts, uint64_t &res_point)
     }
 
     return status;
+}
+
+receiver::status receiver::save_file_range_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name)
+{
+    if (input_file->save_ts(from_ms, len_ms, name))
+        return STATUS_OK;
+    return STATUS_ERROR;
 }
 
 void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
