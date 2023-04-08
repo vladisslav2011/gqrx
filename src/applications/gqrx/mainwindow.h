@@ -237,6 +237,7 @@ private slots:
     void audioDedicatedDevChanged(bool enabled, std::string name);
 
     /* I/Q playback and recording*/
+    QString makeIQFilename(const QString& recdir, receiver::file_formats fmt, const QDateTime ts);
     void startIqRecording(const QString& recdir,
                           enum receiver::file_formats fmt, int buffers_max);
     void stopIqRecording();
@@ -246,6 +247,7 @@ private slots:
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
+    void saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_s, quint64 len_s);
     void plotterUpdate();
     void triggerIQFftRedraw();
     void stopIQFftRedraw();

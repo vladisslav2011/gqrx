@@ -31,6 +31,7 @@
 #include <QShowEvent>
 #include <QString>
 #include <QTimer>
+#include <QMenu>
 #include "applications/gqrx/receiver.h"
 
 
@@ -72,6 +73,7 @@ signals:
                        qint64 time_ms, int buffers_max, bool repeat);
     void stopPlayback();
     void seek(qint64 seek_pos);
+    void saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64);
 
 public slots:
     void cancelRecording();
@@ -87,12 +89,18 @@ private slots:
     void on_listWidget_currentTextChanged(const QString &currentText);
     void timeoutFunction(void);
     void on_formatCombo_currentIndexChanged(int index);
+    void on_slider_customContextMenuRequested(const QPoint& pos);
+    void sliderA();
+    void sliderB();
+    void sliderReset();
+    void sliderSave();
 
 private:
     void refreshDir(void);
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);
     void switchControlsState(bool recording, bool playback);
+    void updateSliderStylesheet();
 
 private:
     Ui::CIqTool *ui;
@@ -102,7 +110,13 @@ private:
     QPalette    *error_palette; /*!< Palette used to indicate an error. */
 
     QString current_file;      /*!< Selected file in file browser. */
+    QMenu       *sliderMenu;
+    QAction     *setA;
+    QAction     *setB;
+    QAction     *selSave;
 
+    double  sel_A{-1.0};
+    double  sel_B{-1.0};
     bool    is_recording;
     bool    is_playing;
     int     chunk_size;

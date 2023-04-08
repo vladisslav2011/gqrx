@@ -329,6 +329,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
                  this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
+    connect(iq_tool, SIGNAL(saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64)));
 
     // remote control
     connect(remote, SIGNAL(newRDSmode(bool)), uiDockRDS, SLOT(setRDSmode(bool)));
@@ -2352,8 +2353,7 @@ void MainWindow::audioDedicatedDevChanged(bool enabled, std::string name)
     rx->set_dedicated_audio_sink(enabled);
 }
 
-/** Start I/Q recording. */
-void MainWindow::startIqRecording(const QString& recdir, receiver::file_formats fmt, int buffers_max)
+QString MainWindow::makeIQFilename(const QString& recdir, receiver::file_formats fmt, const QDateTime ts)
 {
     // generate file name using date, time, rf freq in kHz and BW in Hz
     // gqrx_iq_yyyymmdd_hhmmss_freq_bw_fc.raw
@@ -2394,10 +2394,16 @@ void MainWindow::startIqRecording(const QString& recdir, receiver::file_formats 
         fmt = receiver::FILE_FORMAT_CF;
         suffix = "fc";
     }
-    auto lastRec = QDateTime::currentDateTimeUtc().
+    return ts.
             toString("%1/gqrx_yyyyMMdd_hhmmss_%2_%3_%4.'raw'")
             .arg(recdir).arg(freq).arg(sr/dec).arg(suffix);
+}
 
+/** Start I/Q recording. */
+void MainWindow::startIqRecording(const QString& recdir, receiver::file_formats fmt, int buffers_max)
+{
+
+    auto lastRec = makeIQFilename(recdir, fmt, QDateTime::currentDateTimeUtc());
     ui->actionIoConfig->setDisabled(true);
     ui->actionLoadSettings->setDisabled(true);
     // start recorder; fails if recording already in progress
@@ -2563,6 +2569,12 @@ void MainWindow::seekIqFile(qint64 seek_pos)
         waterfall_background_request = MainWindow::WF_RESTART;
         waterfall_background_wake.notify_one();
     }
+}
+
+void MainWindow::saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_s, quint64 len_s)
+{
+    std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_s * 1000)).toStdString();
+    rx->save_file_range_ts(from_s,len_s,name);
 }
 
 /**

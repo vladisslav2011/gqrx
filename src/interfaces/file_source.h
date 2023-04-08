@@ -113,6 +113,7 @@ public:
     void set_begin_tag(pmt::pmt_t val);
     uint64_t get_timestamp_ms();
     uint64_t get_items_remaining();
+    bool save_ts(const uint64_t from_s, const uint64_t len_s, const std::string name);
 };
 
 #endif
