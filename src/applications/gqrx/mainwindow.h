@@ -60,6 +60,7 @@ class MainWindow : public QMainWindow
 signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
     void requestPlotterUpdate();
+    void sigSaveProgress(const qint64);
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -250,6 +251,7 @@ private slots:
     void audioDedicatedDevChanged(bool enabled, std::string name);
 
     /* I/Q playback and recording*/
+    QString makeIQFilename(const QString& recdir, receiver::file_formats fmt, const QDateTime ts);
     void startIqRecording(const QString& recdir,
                           enum receiver::file_formats fmt, int buffers_max);
     void stopIqRecording();
@@ -259,6 +261,8 @@ private slots:
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
+    void saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_ms, quint64 len_ms);
+    void updateSaveProgress(const qint64 saved_ms);
     void plotterUpdate();
     void triggerIQFftRedraw();
     void stopIQFftRedraw();
