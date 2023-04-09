@@ -248,7 +248,7 @@ private slots:
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
-    void saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_s, quint64 len_s);
+    void saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_ms, quint64 len_ms);
     void plotterUpdate();
     void triggerIQFftRedraw();
     void stopIQFftRedraw();

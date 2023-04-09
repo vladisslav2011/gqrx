@@ -508,15 +508,16 @@ uint64_t file_source::get_items_remaining()
     return d_items_remaining;
 }
 
-bool file_source::save_ts(const uint64_t from_s, const uint64_t len_s, const std::string name)
+bool file_source::save_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name)
 {
-    int64_t seek_point = from_s * 1000llu - d_time_ms;
-    size_t len = len_s;
+    int64_t seek_point = from_ms - d_time_ms;
+    size_t len = len_ms;
     if(seek_point < 0)
         seek_point = 0;
     seek_point *= d_sample_rate;
     seek_point /= 1000;
     len *= d_sample_rate;
+    len /= 1000;
     FILE * ffrom = fdopen(fileno(d_fp), "rb");
     FILE * fto = fopen(name.c_str(),"wb");
     size_t block_len = 1024*1024;
