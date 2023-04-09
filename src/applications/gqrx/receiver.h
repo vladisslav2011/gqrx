@@ -374,7 +374,7 @@ public:
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
     bool        is_playing_iq() { return d_last_format != FILE_FORMAT_NONE; }
     bool        is_recording_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
-    status      save_file_range_ts(const uint64_t from_s, const uint64_t len_s, const std::string name);
+    status      save_file_range_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name);
 
     /* sample sniffer */
     status      start_sniffer(unsigned int samplrate, int buffsize);

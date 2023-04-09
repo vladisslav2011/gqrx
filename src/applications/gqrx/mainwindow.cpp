@@ -2571,10 +2571,10 @@ void MainWindow::seekIqFile(qint64 seek_pos)
     }
 }
 
-void MainWindow::saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_s, quint64 len_s)
+void MainWindow::saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_ms, quint64 len_ms)
 {
-    std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_s * 1000)).toStdString();
-    rx->save_file_range_ts(from_s,len_s,name);
+    std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_ms)).toStdString();
+    rx->save_file_range_ts(from_ms,len_ms,name);
 }
 
 /**

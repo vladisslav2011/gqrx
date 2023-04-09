@@ -76,7 +76,7 @@ CIqTool::CIqTool(QWidget *parent) :
     ui->bufferStats->hide();
     ui->sizeStats->hide();
     sliderMenu = new QMenu(this);
-    // MenuItem A
+    // marker A
     {
         QAction* action = new QAction("A", this);
         sliderMenu->addAction(action);
@@ -88,7 +88,7 @@ CIqTool::CIqTool(QWidget *parent) :
         setA=action;
         setA->setEnabled(false);
     }
-    // MenuItem B
+    // marker B
     {
         QAction* action = new QAction("B", this);
         sliderMenu->addAction(action);
@@ -100,11 +100,13 @@ CIqTool::CIqTool(QWidget *parent) :
         setB=action;
         setB->setEnabled(false);
     }
+    // Reset selection
     {
         QAction* action = new QAction("Reset", this);
         sliderMenu->addAction(action);
         connect(action, SIGNAL(triggered()), this, SLOT(sliderReset()));
     }
+    // Save selection
     {
         QAction* action = new QAction("Save", this);
         sliderMenu->addAction(action);
@@ -115,6 +117,30 @@ CIqTool::CIqTool(QWidget *parent) :
         action->setShortcut(seq);
         selSave=action;
         selSave->setEnabled(false);
+    }
+    // Go to marker A
+    {
+        QAction* action = new QAction("Go to A", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderGoA()));
+        QKeySequence seq(Qt::CTRL+Qt::Key_BracketLeft);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderGoA()));
+        action->setShortcut(seq);
+        goA=action;
+        goA->setEnabled(false);
+    }
+    // Go to marker B
+    {
+        QAction* action = new QAction("Go to B", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderGoB()));
+        QKeySequence seq(Qt::CTRL+Qt::Key_BracketRight);
+        auto *shortcut = new QShortcut(seq, this);
+        connect(shortcut, SIGNAL(activated()), this, SLOT(sliderGoB()));
+        action->setShortcut(seq);
+        goB=action;
+        goB->setEnabled(false);
     }
     ui->slider->setContextMenuPolicy(Qt::CustomContextMenu);
 }
@@ -463,6 +489,8 @@ void CIqTool::updateSliderStylesheet()
         setB->setText("B");
         selSave->setText("Save");
         selSave->setEnabled(false);
+        goA->setEnabled(false);
+        goB->setEnabled(false);
         return;
     }
     if((sel_A>=0.0) && (sel_B<0.0))
@@ -482,6 +510,8 @@ void CIqTool::updateSliderStylesheet()
         .arg(quint64(sel_B * double(rec_len)))
     );
     selSave->setEnabled(true);
+    goA->setEnabled(true);
+    goB->setEnabled(true);
     double selLen=sel_B-sel_A;
     if(selLen<0.00001)
         selLen=0.00001;
@@ -511,14 +541,24 @@ void CIqTool::updateSliderStylesheet()
 
 void CIqTool::sliderA()
 {
-    sel_A=double(o_fileSize * samples_per_chunk / sample_rate)/double(rec_len);
+    sel_A=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
     updateSliderStylesheet();
 }
 
 void CIqTool::sliderB()
 {
-    sel_B=double(o_fileSize * samples_per_chunk / sample_rate)/double(rec_len);
+    sel_B=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
     updateSliderStylesheet();
+}
+
+void CIqTool::sliderGoA()
+{
+    ui->slider->setValue(sel_A*ui->slider->maximum());
+}
+
+void CIqTool::sliderGoB()
+{
+    ui->slider->setValue(sel_B*ui->slider->maximum());
 }
 
 void CIqTool::sliderReset()
@@ -529,11 +569,11 @@ void CIqTool::sliderReset()
 
 void CIqTool::sliderSave()
 {
-    quint64 from_s=sel_A*double(rec_len)+time_ms/1000;
-    quint64 len_s=(sel_B-sel_A)*double(rec_len);
-    if(len_s<1.0)
-        len_s=1.0;
-    emit saveFileRange(recdir->path(), fmt, from_s, len_s);
+    quint64 from_ms=sel_A*double(rec_len)*1000.0+time_ms;
+    quint64 len_ms=(sel_B-sel_A)*double(rec_len)*1000.0;
+    if(len_ms<1.0)
+        len_ms=1.0;
+    emit saveFileRange(recdir->path(), fmt, from_ms, len_ms);
     sel_A=sel_B=-1.0;
     updateSliderStylesheet();
 }

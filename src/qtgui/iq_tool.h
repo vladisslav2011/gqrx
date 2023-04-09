@@ -94,6 +94,8 @@ private slots:
     void sliderB();
     void sliderReset();
     void sliderSave();
+    void sliderGoA();
+    void sliderGoB();
 
 private:
     void refreshDir(void);
@@ -114,19 +116,21 @@ private:
     QAction     *setA;
     QAction     *setB;
     QAction     *selSave;
+    QAction     *goA;
+    QAction     *goB;
 
     double  sel_A{-1.0};
     double  sel_B{-1.0};
     bool    is_recording;
     bool    is_playing;
     int     chunk_size;
-    int     samples_per_chunk;
+    qint64  samples_per_chunk;
     enum receiver::file_formats fmt;
     enum receiver::file_formats rec_fmt;
     quint64 time_ms;
-    int     sample_rate;       /*!< Current sample rate. */
+    qint64  sample_rate;       /*!< Current sample rate. */
     qint64  center_freq;       /*!< Center frequency. */
-    int     rec_len;           /*!< Length of a recording in seconds */
+    qint64  rec_len;           /*!< Length of a recording in seconds */
     int     o_buffersUsed;
     size_t  o_fileSize;
 };
