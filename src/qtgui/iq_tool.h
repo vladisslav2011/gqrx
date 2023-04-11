@@ -63,6 +63,7 @@ public:
 
     void saveSettings(QSettings *settings);
     void readSettings(QSettings *settings);
+    qint64 selectionLength();
 
 signals:
     void startRecording(const QString recdir, enum receiver::file_formats fmt,
@@ -79,6 +80,7 @@ public slots:
     void cancelRecording();
     void cancelPlayback();
     void updateStats(bool hasFailed, int buffersUsed, size_t fileSize);
+    void updateSaveProgress(const qint64 save_progress);
 
 private slots:
     void on_recDirEdit_textChanged(const QString &text);
@@ -102,7 +104,7 @@ private:
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);
     void switchControlsState(bool recording, bool playback);
-    void updateSliderStylesheet();
+    void updateSliderStylesheet(qint64 save_progress = -2);
 
 private:
     Ui::CIqTool *ui;
@@ -116,6 +118,7 @@ private:
     QAction     *setA;
     QAction     *setB;
     QAction     *selSave;
+    QAction     *selReset;
     QAction     *goA;
     QAction     *goB;
 
@@ -123,6 +126,7 @@ private:
     double  sel_B{-1.0};
     bool    is_recording;
     bool    is_playing;
+    bool    is_saving{false};
     int     chunk_size;
     qint64  samples_per_chunk;
     enum receiver::file_formats fmt;

@@ -105,6 +105,7 @@ CIqTool::CIqTool(QWidget *parent) :
         QAction* action = new QAction("Reset", this);
         sliderMenu->addAction(action);
         connect(action, SIGNAL(triggered()), this, SLOT(sliderReset()));
+        selReset=action;
     }
     // Save selection
     {
@@ -361,6 +362,18 @@ void CIqTool::updateStats(bool hasFailed, int buffersUsed, size_t fileSize)
     }
  }
 
+void CIqTool::updateSaveProgress(const qint64 save_progress)
+{
+    if(save_progress<0)
+    {
+        sel_A=sel_B=-1.0;
+        is_saving = false;
+        updateSliderStylesheet();
+    }else
+        updateSliderStylesheet(save_progress);
+}
+
+
 /*! \brief Catch window close events.
  *
  * This method is called when the user closes the audio options dialog
@@ -480,7 +493,7 @@ void CIqTool::on_formatCombo_currentIndexChanged(int index)
     rec_fmt = (enum receiver::file_formats)ui->formatCombo->currentData().toInt();
 }
 
-void CIqTool::updateSliderStylesheet()
+void CIqTool::updateSliderStylesheet(qint64 save_progress)
 {
     if((sel_A<0.0)&&(sel_B<0.0))
     {
@@ -491,8 +504,13 @@ void CIqTool::updateSliderStylesheet()
         selSave->setEnabled(false);
         goA->setEnabled(false);
         goB->setEnabled(false);
+        setA->setEnabled(true);
+        setB->setEnabled(true);
+        selReset->setEnabled(true);
         return;
     }
+    goA->setEnabled(true);
+    goB->setEnabled(true);
     if((sel_A>=0.0) && (sel_B<0.0))
     {
         sel_B=1.0;
@@ -509,44 +527,86 @@ void CIqTool::updateSliderStylesheet()
         .arg(quint64(sel_A * double(rec_len)))
         .arg(quint64(sel_B * double(rec_len)))
     );
-    selSave->setEnabled(true);
-    goA->setEnabled(true);
-    goB->setEnabled(true);
     double selLen=sel_B-sel_A;
     if(selLen<0.00001)
         selLen=0.00001;
     selLen+=sel_A;
     if(selLen>1.0)
         selLen=1.0;
-    ui->slider->setStyleSheet(QString(
-    "background-color: qlineargradient("
-        "spread:repeat,"
-        "x1:0,"
-        "y1:0,"
-        "x2:1,"
-        "y2:0,"
-        "stop:0 rgba(255, 255, 255, 0),"
-        "stop:%1 rgba(255, 255, 255, 0),"
-        "stop:%2 rgba(255, 0, 0, 255),"
-        "stop:%3 rgba(255, 0, 0, 255),"
-        "stop:%4 rgba(255, 255, 255, 0),"
-        "stop:1 rgba(255, 255, 255, 0)"
-    ");").arg(sel_A+0.000001)
-         .arg(sel_A+0.000002)
-         .arg(selLen-0.000002)
-         .arg(selLen-0.000001)
-        );
+    if(save_progress == -1)
+    {
+        setA->setEnabled(true);
+        setB->setEnabled(true);
+        selSave->setEnabled(true);
+        selReset->setEnabled(true);
+    }
+    if(save_progress>0)
+    {
+        double prgLen = sel_A + double(save_progress)/(double(rec_len)*1000.0);
+        if(prgLen>1.0)
+            prgLen=1.0;
+        if(prgLen<0.000007)
+            prgLen=0.000007;
+        ui->slider->setStyleSheet(QString(
+        "background-color: qlineargradient("
+            "spread:repeat,"
+            "x1:0,"
+            "y1:0,"
+            "x2:1,"
+            "y2:0,"
+            "stop:0 rgba(255, 255, 255, 0),"
+            "stop:%1 rgba(255, 255, 255, 0),"
+            "stop:%2 rgba(0, 255, 0, 255),"
+            "stop:%3 rgba(0, 255, 0, 255),"
+            "stop:%4 rgba(255, 0, 0, 255),"
+            "stop:%5 rgba(255, 0, 0, 255),"
+            "stop:%6 rgba(255, 255, 255, 0),"
+            "stop:1 rgba(255, 255, 255, 0)"
+        ");").arg(sel_A+0.000001)
+            .arg(sel_A+0.000002)
+            .arg(prgLen-0.000004)
+            .arg(prgLen-0.000003)
+            .arg(selLen-0.000002)
+            .arg(selLen-0.000001)
+            );
+    }
+    else
+    {
+        ui->slider->setStyleSheet(QString(
+        "background-color: qlineargradient("
+            "spread:repeat,"
+            "x1:0,"
+            "y1:0,"
+            "x2:1,"
+            "y2:0,"
+            "stop:0 rgba(255, 255, 255, 0),"
+            "stop:%1 rgba(255, 255, 255, 0),"
+            "stop:%2 rgba(255, 0, 0, 255),"
+            "stop:%3 rgba(255, 0, 0, 255),"
+            "stop:%4 rgba(255, 255, 255, 0),"
+            "stop:1 rgba(255, 255, 255, 0)"
+        ");").arg(sel_A+0.000001)
+            .arg(sel_A+0.000002)
+            .arg(selLen-0.000002)
+            .arg(selLen-0.000001)
+            );
+        selSave->setEnabled(true);
+    }
 }
 
 
 void CIqTool::sliderA()
 {
+    if(is_saving)
+        return;
     sel_A=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
     updateSliderStylesheet();
 }
 
 void CIqTool::sliderB()
 {
+    if(is_saving)
+        return;
     sel_B=double(o_fileSize * samples_per_chunk)/double(rec_len * sample_rate);
     updateSliderStylesheet();
 }
@@ -563,21 +623,33 @@ void CIqTool::sliderGoB()
 
 void CIqTool::sliderReset()
 {
+    if(is_saving)
+        return;
     sel_A=sel_B=-1.0;
     updateSliderStylesheet();
 }
 
 void CIqTool::sliderSave()
 {
+    if(sel_A<0.0)
+        return;
+    is_saving=true;
     quint64 from_ms=sel_A*double(rec_len)*1000.0+time_ms;
     quint64 len_ms=(sel_B-sel_A)*double(rec_len)*1000.0;
     if(len_ms<1.0)
         len_ms=1.0;
     emit saveFileRange(recdir->path(), fmt, from_ms, len_ms);
-    sel_A=sel_B=-1.0;
-    updateSliderStylesheet();
+    updateSliderStylesheet(0);
+    setA->setEnabled(false);
+    setB->setEnabled(false);
+    selSave->setEnabled(false);
+    selReset->setEnabled(false);
 }
 
+qint64 CIqTool::selectionLength()
+{
+    return (sel_B-sel_A)*double(rec_len)*1000.0;
+}
 
 
 /*! \brief Refresh list of files in current working directory. */
