@@ -407,6 +407,12 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockProbe, SIGNAL(osrChanged(int)), this, SLOT(setChanOsr(int)));
     connect(uiDockProbe, SIGNAL(filterParamChanged(float)), this, SLOT(setChanFilterParam(float)));
     connect(this,SIGNAL(requestPlotterUpdate()), this, SLOT(plotterUpdate()), Qt::QueuedConnection);
+    connect(this,SIGNAL(sigSaveProgress(const qint64)), iq_tool, SLOT(updateSaveProgress(const qint64)), Qt::QueuedConnection);
+    rx->set_iq_save_progress_cb([=](int64_t saved_ms)
+        {
+            ui->statusBar->showMessage(QString("Saving fragment ... %1 %").arg(saved_ms*100ll/iq_tool->selectionLength()));
+            emit sigSaveProgress(saved_ms);
+        });
 }
 
 MainWindow::~MainWindow()

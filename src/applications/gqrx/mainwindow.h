@@ -60,6 +60,7 @@ class MainWindow : public QMainWindow
 signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
     void requestPlotterUpdate();
+    void sigSaveProgress(const qint64);
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);

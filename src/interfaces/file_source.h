@@ -26,6 +26,7 @@
 #include <gnuradio/blocks/api.h>
 #include <gnuradio/sync_block.h>
 #include <thread>
+#include <atomic>
 #include <queue>
 #include <condition_variable>
 
@@ -50,6 +51,7 @@ public:
                      bool repeat = false, int buffers_max = 1);
 
 private:
+    typedef std::function<void(int64_t)> iq_save_progress_t;
     size_t d_itemsize;
     uint64_t d_start_offset_items;
     uint64_t d_length_items;
@@ -82,10 +84,20 @@ private:
     int          d_seek_ok;
     uint64_t     d_time_ms;
     pmt::pmt_t _id;
+    std::string  d_filename;
+    std::mutex   d_save_mutex{};
+    std::thread *d_save_thread{};
+    uint64_t     d_save_from_ms;
+    uint64_t     d_save_len_ms;
+    std::string  d_save_to;
+    iq_save_progress_t d_save_progress{};
+    uint64_t     d_save_written_ms{0};
+    std::atomic<bool> d_save_terminate{false};
 #if 0
     void do_update();
 #endif
     void reader();
+    void save_thread_fn();
 
 public:
     file_source(size_t itemsize,
@@ -114,6 +126,10 @@ public:
     uint64_t get_timestamp_ms();
     uint64_t get_items_remaining();
     bool save_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name);
+    template<typename T> void set_save_progress_cb(T save_progress)
+    {
+        d_save_progress = save_progress;
+    }
 };
 
 #endif

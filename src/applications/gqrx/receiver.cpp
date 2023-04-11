@@ -283,6 +283,7 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex), sample_rate);
 
     //set_demod(d_demod, fmt, true);
+    input_file->set_save_progress_cb(d_save_progress);
     reconnect_all(fmt, true);
     set_input_rate(sample_rate);
 
