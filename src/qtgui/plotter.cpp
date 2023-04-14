@@ -63,7 +63,7 @@ Q_LOGGING_CATEGORY(plotter, "plotter")
 
 int F2B(float f)
 {
-    int b = (f >= 1.f ? 255 : (f <= 0.f ? 0 : (int)floor(f * 256.f)));
+    int b = (f >= 1.f ? 255 : (f <= 0.f ? 0 : (int)floorf(f * 256.f)));
     return b;
 }
 
@@ -656,8 +656,8 @@ void CPlotter::zoomStepX(float step, int x)
 
     // ensure we don't go beyond the rangelimits
     bool limit_hit = false;
-    double lolim = m_CenterFreq - m_SampleFreq / 2.f;
-    double hilim = m_CenterFreq + m_SampleFreq / 2.f;
+    double lolim = double(m_CenterFreq - m_SampleFreq / 2.f);
+    double hilim = double(m_CenterFreq + m_SampleFreq / 2.f);
     if (f_min < lolim)
     {
         f_min = lolim;
@@ -692,7 +692,7 @@ void CPlotter::zoomStepX(float step, int x)
 
     float factor = (float)m_SampleFreq / (float)m_Span;
     emit newZoomLevel(factor);
-    qCDebug(plotter) << QString("Spectrum zoom: %1x").arg(factor, 0, 'f', 1);
+    qCDebug(plotter) << QString("Spectrum zoom: %1x").arg((qreal)factor, 0, 'f', 1);
 
     m_PeakHoldValid = false;
 }
@@ -967,7 +967,7 @@ void CPlotter::draw()
                 sum_of_sq += m_fftbuf[i + xmin] * m_fftbuf[i + xmin];
             }
             mean /= n;
-            float stdev= sqrt(sum_of_sq / n - mean * mean );
+            float stdev= sqrtf(sum_of_sq / n - mean * mean );
 
             int lastPeak = -1;
             for (i = 0; i < n; i++)
