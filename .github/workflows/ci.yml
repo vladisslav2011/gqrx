@@ -8,6 +8,7 @@ jobs:
     strategy:
       matrix:
         image:
+          - "ubuntu:18.04"
           - "ubuntu:20.04"
           - "ubuntu:22.04"
           - "ubuntu:24.04"
@@ -37,13 +38,13 @@ jobs:
             appstream \
             desktop-file-utils
       - name: Install Qt5
-        if: matrix.image == 'ubuntu:20.04'
+        if: matrix.image == 'ubuntu:20.04' || matrix.image == 'ubuntu:18.04'
         run: |
           apt-get install -y \
             qt5-default \
             libqt5svg5-dev
       - name: Install Qt6
-        if: matrix.image != 'ubuntu:20.04'
+        if: matrix.image != 'ubuntu:20.04' && matrix.image != 'ubuntu:18.04'
         run: |
           apt-get install -y \
             qt6-base-dev \

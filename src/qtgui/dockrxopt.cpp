@@ -268,7 +268,7 @@ void DockRxOpt::setFilterParam(int lo, int hi)
     if (filter_index == FILTER_PRESET_USER)
     {
         float width_f;
-        width_f = fabs((hi-lo)/1000.f);
+        width_f = abs((hi-lo)/1000.f);
         ui->filterCombo->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
                                      .arg((double)width_f));
     }
