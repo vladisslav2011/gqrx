@@ -22,8 +22,13 @@
  */
 #pragma once
 
-#include <gnuradio/blocks/rotator_cc.h>
+#if GNURADIO_VERSION < 0x030800
+#include <gnuradio/filter/freq_xlating_fir_filter_ccf.h>
+#else
 #include <gnuradio/filter/freq_xlating_fir_filter.h>
+#endif
+
+#include <gnuradio/blocks/rotator_cc.h>
 #include <gnuradio/hier_block2.h>
 
 class downconverter_cc;
