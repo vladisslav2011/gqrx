@@ -119,6 +119,10 @@ signals:
     void invertScrollingChanged(bool enabled);
     void autoBookmarksChanged(bool checked);
     void channelizerChanged(int value);
+    void DDCWinTypeChanged(int value);
+    void DDCBetaChanged(float value);
+    void DDCAttChanged(float value);
+    void firTapChanged(bool);
 
 public slots:
     void setLnbLo(double freq_mhz);
@@ -136,6 +140,10 @@ private slots:
     void on_invertScrollingButton_toggled(bool checked);
     void on_autoBookmarksButton_toggled(bool checked);
     void on_channelizerCombo_currentIndexChanged(int index);
+    void on_wintypeCombo_currentIndexChanged(int index);
+    void on_betaSpinBox_valueChanged(double value);
+    void on_attSpinBox_valueChanged(double value);
+    void on_firTapCheckBox_toggled(bool checked);
 
     void sliderValueChanged(int value);
 

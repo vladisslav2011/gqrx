@@ -44,7 +44,7 @@ Q_LOGGING_CATEGORY(plotter, "plotter")
 
 #define CUR_CUT_DELTA 5		//cursor capture delta in pixels
 
-#define FFT_MIN_DB     -160.f
+#define FFT_MIN_DB     -260.f
 #define FFT_MAX_DB      0.f
 
 #define FILTER_WIDTH_MIN_HZ 200

@@ -21,7 +21,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>3</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab0">
       <attribute name="title">
@@ -95,7 +95,7 @@
             <string>Adjust dB range on the pandapter</string>
            </property>
            <property name="minimum">
-            <number>-120</number>
+            <number>-260</number>
            </property>
            <property name="maximum">
             <number>0</number>
@@ -127,7 +127,7 @@
             <string>Adjust dB range on the waterfall</string>
            </property>
            <property name="minimum">
-            <number>-120</number>
+            <number>-260</number>
            </property>
            <property name="maximum">
             <number>0</number>

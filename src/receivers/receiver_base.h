@@ -153,6 +153,19 @@ public:
     std::string get_dedicated_audio_dev() { return d_audio_dev; }
     void set_audio_dev(std::string audio_dev) { d_audio_dev = audio_dev; }
 
+    void set_wintype(int win_type)
+    {
+        ddc->set_wintype(win_type);
+    }
+    void set_beta(float beta)
+    {
+        ddc->set_beta(beta);
+    }
+    void set_att(float att)
+    {
+        ddc->set_att(att);
+    }
+    void connect_fir_tap(gr::basic_block_sptr to){ddc->connect_fir_tap(to);}
 protected:
     bool         d_connected;
     int          d_port;

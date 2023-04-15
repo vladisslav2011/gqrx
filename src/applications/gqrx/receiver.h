@@ -406,6 +406,27 @@ public:
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     enum file_formats get_last_format() const { return d_last_format; }
 
+    void set_wintype(int win_type)
+    {
+        tb->lock();
+        rx[d_current]->set_wintype(win_type);
+        tb->unlock();
+    }
+    void set_beta(float beta)
+    {
+        tb->lock();
+        rx[d_current]->set_beta(beta);
+        tb->unlock();
+    }
+    void set_att(float att)
+    {
+        tb->lock();
+        rx[d_current]->set_att(att);
+        tb->unlock();
+    }
+    void connect_fir_tap(gr::basic_block_sptr to){rx[d_current]->connect_fir_tap(to);}
+    void enable_fir_tap(bool on);
+
 private:
     void        connect_all(enum file_formats fmt);
     void        connect_rx();
@@ -452,6 +473,7 @@ public:
     };
 
 private:
+    bool        d_enable_fir_tap{false};
     int         d_current;          /*!< Current selected demodulator. */
     int         d_active;           /*!< Active demodulator count. */
     bool        d_running;          /*!< Whether receiver is running or not. */

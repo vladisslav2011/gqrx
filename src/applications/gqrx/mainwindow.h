@@ -209,6 +209,10 @@ private slots:
     void setAudioMute(bool mute, bool global);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
+    void setDDCWinType(int wintype);
+    void setDDCBeta(float beta);
+    void setDDCAtt(float att);
+    void setFirTap(bool on);
     /* FFT Probe */
     void setFFTProbeInput(int i);
     void setChanDecim(int i);

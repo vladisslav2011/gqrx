@@ -2049,6 +2049,14 @@ void receiver::get_sniffer_data(float * outbuff, unsigned int &num)
     sniffer->get_samples(outbuff, num);
 }
 
+void receiver::enable_fir_tap(bool on)
+{
+    if(d_enable_fir_tap==on)
+        return;
+    d_enable_fir_tap=on;
+    reconnect_all(FILE_FORMAT_LAST, true);
+}
+
 /** Convenience function to connect all blocks. */
 void receiver::connect_all(enum file_formats fmt)
 {
@@ -2070,7 +2078,12 @@ void receiver::connect_all(enum file_formats fmt)
     }
 
     // Visualization
-    tb->connect(b, 0, iq_fft, 0);
+    connect_fir_tap(nullptr);
+    if(d_enable_fir_tap)
+        connect_fir_tap(iq_fft);
+    else{
+        tb->connect(b, 0, iq_fft, 0);
+    }
     if(d_use_chan)
     {
         tb->connect(b, 0, chan, 0);

@@ -570,6 +570,7 @@ void DockInputCtl::on_autoBookmarksButton_toggled(bool checked)
 void DockInputCtl::on_channelizerCombo_currentIndexChanged(int index)
 {
     emit channelizerChanged(ui->channelizerCombo->currentData().toInt());
+    ui->firTapCheckBox->setEnabled(!index);
 }
 
 /** Remove all widgets from the lists. */
@@ -650,4 +651,25 @@ void DockInputCtl::getGains(QMap<QString, QVariant> *gains)
         gains->insert(gain_sliders.at(idx)->property("name").toString(),
                       QVariant(gain_sliders.at(idx)->value()));
     }
+}
+void DockInputCtl::on_wintypeCombo_currentIndexChanged(int index)
+{
+    printf("------------DockInputCtl::on_wintypeCombo_currentIndexChanged(%d)\n",index);
+    emit DDCWinTypeChanged(index);
+}
+
+void DockInputCtl::on_betaSpinBox_valueChanged(double value)
+{
+    emit DDCBetaChanged(value);
+}
+
+void DockInputCtl::on_attSpinBox_valueChanged(double value)
+{
+    emit DDCAttChanged(value);
+}
+
+void DockInputCtl::on_firTapCheckBox_toggled(bool checked)
+{
+    emit firTapChanged(checked);
+    ui->channelizerCombo->setEnabled(!checked);
 }

@@ -72,7 +72,7 @@
          <x>0</x>
          <y>0</y>
          <width>301</width>
-         <height>457</height>
+         <height>482</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
@@ -244,7 +244,7 @@
              <string>Set pandapter dB range</string>
             </property>
             <property name="minimum">
-             <number>-160</number>
+             <number>-260</number>
             </property>
             <property name="maximum">
              <number>0</number>
@@ -683,7 +683,7 @@
              <string>Set waterfall dB range</string>
             </property>
             <property name="minimum">
-             <number>-160</number>
+             <number>-260</number>
             </property>
             <property name="maximum">
              <number>0</number>

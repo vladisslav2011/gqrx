@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>219</width>
-    <height>357</height>
+    <height>451</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>200</width>
-    <height>357</height>
+    <width>219</width>
+    <height>451</height>
    </size>
   </property>
   <property name="windowIcon">
@@ -273,6 +273,143 @@
         </property>
         <property name="editable">
          <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_2">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>WinType</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="wintypeCombo">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Minimum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="editable">
+         <bool>false</bool>
+        </property>
+        <item>
+         <property name="text">
+          <string>hamming</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>hann</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>blackman</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>rectangular</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>kaiser</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>blackman-harris</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>bartlett</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>flattop</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Equiripple</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_3">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>Beta</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QDoubleSpinBox" name="betaSpinBox">
+        <property name="minimum">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.100000000000000</double>
+        </property>
+        <property name="value">
+         <double>6.700000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_4">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>FFT FIR tap</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="firTapCheckBox">
+        <property name="text">
+         <string>enable</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_5">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>Att</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QDoubleSpinBox" name="attSpinBox">
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>120.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>5.000000000000000</double>
+        </property>
+        <property name="value">
+         <double>40.000000000000000</double>
         </property>
        </widget>
       </item>

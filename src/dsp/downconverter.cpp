@@ -22,7 +22,10 @@
  */
 #include <math.h>
 #include <gnuradio/filter/firdes.h>
+#include <gnuradio/filter/pm_remez.h>
 #include <gnuradio/io_signature.h>
+#include <gnuradio/blocks/null_sink.h>
+#include <chrono>
 
 #include "downconverter.h"
 
@@ -39,7 +42,8 @@ downconverter_cc::downconverter_cc(unsigned int decim, double center_freq, doubl
           gr::io_signature::make(1, 1, sizeof(gr_complex))),
       d_decim(decim),
       d_center_freq(center_freq),
-      d_samp_rate(samp_rate)
+      d_samp_rate(samp_rate),
+      d_proto_taps({1})
 {
     connect_all();
     update_proto_taps();
@@ -53,6 +57,8 @@ downconverter_cc::~downconverter_cc()
 
 void downconverter_cc::set_decim_and_samp_rate(unsigned int decim, double samp_rate)
 {
+    if((d_samp_rate==samp_rate)&&(decim==d_decim))
+        return;
     d_samp_rate = samp_rate;
     if (decim != d_decim)
     {
@@ -78,6 +84,11 @@ void downconverter_cc::connect_all()
     {
         filt = gr::filter::freq_xlating_fir_filter_ccf::make(d_decim, {1}, 0.0, d_samp_rate);
         connect(self(), 0, filt, 0);
+        if(tap_filt)
+        {
+            connect(self(), 0, tap_filt, 0);
+            connect(tap_filt,0,tap_block,0);
+        }
         connect(filt, 0, self(), 0);
     }
     else
@@ -88,19 +99,82 @@ void downconverter_cc::connect_all()
     }
 }
 
+void downconverter_cc::connect_fir_tap(gr::basic_block_sptr to)
+{
+    if(to)
+    {
+        if(!tap_filt)
+        {
+            tap_block=to;
+            disconnect_all();
+            tap_filt = gr::filter::freq_xlating_fir_filter_ccf::make(1, {1}, 0.0, 1.0);
+            connect_all();
+        }
+    }else{
+        if(tap_filt)
+        {
+            disconnect_all();
+            tap_filt.reset();
+            tap_block.reset();
+            connect_all();
+        }
+    }
+    update_proto_taps();
+    update_phase_inc();
+}
+
 void downconverter_cc::update_proto_taps()
 {
     if (d_decim > 1)
     {
+    std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
         double out_rate = d_samp_rate / d_decim;
-        filt->set_taps(gr::filter::firdes::low_pass(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2*LPF_CUTOFF));
+        if(d_wintype < 8)// 8 is equiripple filter
+        {
+            d_proto_taps = (d_att < 20.0)
+                ?gr::filter::firdes::low_pass(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, wintype(d_wintype), d_beta)
+                :gr::filter::firdes::low_pass_2(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, d_att, wintype(d_wintype), d_beta);
+            std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
+            printf("downconverter_cc: taps.size=%ld in %l us\n", d_proto_taps.size(),diff.count()*1000000.0);
+        }else{
+            double att = 60.0;
+            if(d_att >= 20.0)
+                att = d_att;
+            int ntaps=(int)(att * d_samp_rate / (22.0 * (out_rate - 2.0 * LPF_CUTOFF)));
+            // pm_remez requires ntaps >= 5
+            if(ntaps < 5)
+                ntaps = 5;
+            if(!(ntaps & 1))
+                ntaps++;
+            auto sb_dev = pow(10.0, -att * (d_beta / 5.8) / 20.0);
+            auto pb_dev = (pow(10.0, 0.5 / 20.0) - 1.0) / (pow(10.0, 0.5 / 20.0) + 1.0);
+            auto max_dev = std::max(sb_dev, pb_dev);
+            sb_dev = max_dev / sb_dev;
+            pb_dev = max_dev / pb_dev;
+            auto pb_end = 2.0 * LPF_CUTOFF / d_samp_rate;
+            auto sb_start = 2.0 * (out_rate - LPF_CUTOFF) / d_samp_rate;
+            auto remez_taps = gr::filter::pm_remez(ntaps - 1, {0.0, pb_end, sb_start, 1.0}, {std::sqrt(2.0)/2.0, std::sqrt(2.0)/2.0, 0.0, 0.0}, {pb_dev, sb_dev}, "bandpass");
+            if(d_proto_taps.size()<ntaps)
+                d_proto_taps.resize(ntaps);
+            for(int k = 0; k < ntaps; k++)
+                d_proto_taps[k] = remez_taps[k];
+            std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
+            printf("downconverter_cc: taps.size=%d sb_dev=%lf pb_dev=%lf pb_end=%lf sb_start=%lf in %lf us\n", ntaps, sb_dev, pb_dev, pb_end, sb_start,diff.count()*1000000.0);
+        }
+        filt->set_taps(d_proto_taps);
+        if(tap_filt)
+            tap_filt->set_taps(d_proto_taps);
+        d_proto_taps.resize(0);
     }
 }
 
 void downconverter_cc::update_phase_inc()
 {
     if (d_decim > 1)
+    {
         filt->set_center_freq(d_center_freq);
-    else
+        if(tap_filt)
+            tap_filt->set_center_freq(d_center_freq/d_samp_rate);
+    }else
         rot->set_phase_inc(-2.0 * M_PI * d_center_freq / d_samp_rate);
 }

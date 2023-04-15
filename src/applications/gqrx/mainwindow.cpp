@@ -232,6 +232,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(invertScrollingChanged(bool)), this, SLOT(setInvertScrolling(bool)));
     connect(uiDockInputCtl, SIGNAL(autoBookmarksChanged(bool)), this, SLOT(setAutoBookmarks(bool)));
     connect(uiDockInputCtl, SIGNAL(channelizerChanged(int)), this, SLOT(setChanelizer(int)));
+    connect(uiDockInputCtl, SIGNAL(DDCWinTypeChanged(int)), this, SLOT(setDDCWinType(int)));
+    connect(uiDockInputCtl, SIGNAL(DDCBetaChanged(float)), this, SLOT(setDDCBeta(float)));
+    connect(uiDockInputCtl, SIGNAL(DDCAttChanged(float)), this, SLOT(setDDCAtt(float)));
+    connect(uiDockInputCtl, SIGNAL(firTapChanged(bool)), this, SLOT(setFirTap(bool)));
     connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
@@ -3451,6 +3455,26 @@ void MainWindow::setPassband(int bandwidth)
 void MainWindow::setFreqLock(bool lock, bool all)
 {
     rx->set_freq_lock(lock, all);
+}
+
+void MainWindow::setDDCWinType(int wintype)
+{
+    rx->set_wintype(wintype);
+}
+
+void MainWindow::setDDCBeta(float beta)
+{
+    rx->set_beta(beta);
+}
+
+void MainWindow::setDDCAtt(float att)
+{
+    rx->set_att(att);
+}
+
+void MainWindow::setFirTap(bool on)
+{
+    rx->enable_fir_tap(on);
 }
 
 /* FFT Probe slots */
