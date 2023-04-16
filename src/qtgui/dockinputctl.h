@@ -122,6 +122,7 @@ signals:
     void DDCWinTypeChanged(int value);
     void DDCBetaChanged(float value);
     void DDCAttChanged(float value);
+    void DDCRippleChanged(float value);
     void firTapChanged(bool);
 
 public slots:
@@ -143,6 +144,7 @@ private slots:
     void on_wintypeCombo_currentIndexChanged(int index);
     void on_betaSpinBox_valueChanged(double value);
     void on_attSpinBox_valueChanged(double value);
+    void on_rippleSpinBox_valueChanged(double value);
     void on_firTapCheckBox_toggled(bool checked);
 
     void sliderValueChanged(int value);

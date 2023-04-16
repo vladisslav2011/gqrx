@@ -67,6 +67,11 @@ public:
         d_att=att;
         update_proto_taps();
     }
+    void set_ripple(float val)
+    {
+        d_ripple=val;
+        update_proto_taps();
+    }
     void connect_fir_tap(gr::basic_block_sptr to);
 
 private:
@@ -76,10 +81,11 @@ private:
     int d_wintype=0;
     float d_beta=6.7;
     float d_att=40.0;
+    float d_ripple=1.0;
     std::vector<float> d_proto_taps;
 
     void connect_all();
-    void update_proto_taps();
+    void update_proto_taps() noexcept;
     void update_phase_inc();
 
     gr::filter::freq_xlating_fir_filter_ccf::sptr filt;

@@ -424,6 +424,12 @@ public:
         rx[d_current]->set_att(att);
         tb->unlock();
     }
+    void set_ripple(float val)
+    {
+        tb->lock();
+        rx[d_current]->set_ripple(val);
+        tb->unlock();
+    }
     void connect_fir_tap(gr::basic_block_sptr to){rx[d_current]->connect_fir_tap(to);}
     void enable_fir_tap(bool on);
 

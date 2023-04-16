@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>219</width>
-    <height>451</height>
+    <height>486</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>219</width>
-    <height>451</height>
+    <height>480</height>
    </size>
   </property>
   <property name="windowIcon">
@@ -370,23 +370,6 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="chanSelectorLabel_4">
-        <property name="toolTip">
-         <string>Select active antenna connector</string>
-        </property>
-        <property name="text">
-         <string>FFT FIR tap</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QCheckBox" name="firTapCheckBox">
-        <property name="text">
-         <string>enable</string>
-        </property>
-       </widget>
-      </item>
       <item row="3" column="0">
        <widget class="QLabel" name="chanSelectorLabel_5">
         <property name="toolTip">
@@ -410,6 +393,49 @@
         </property>
         <property name="value">
          <double>40.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_6">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>Ripple</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QDoubleSpinBox" name="rippleSpinBox">
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>5.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.050000000000000</double>
+        </property>
+        <property name="value">
+         <double>1.000000000000000</double>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QLabel" name="chanSelectorLabel_4">
+        <property name="toolTip">
+         <string>Select active antenna connector</string>
+        </property>
+        <property name="text">
+         <string>FFT FIR tap</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="firTapCheckBox">
+        <property name="text">
+         <string>enable</string>
         </property>
        </widget>
       </item>

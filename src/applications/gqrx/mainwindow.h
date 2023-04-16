@@ -212,6 +212,7 @@ private slots:
     void setDDCWinType(int wintype);
     void setDDCBeta(float beta);
     void setDDCAtt(float att);
+    void setDDCRipple(float val);
     void setFirTap(bool on);
     /* FFT Probe */
     void setFFTProbeInput(int i);

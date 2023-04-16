@@ -668,6 +668,11 @@ void DockInputCtl::on_attSpinBox_valueChanged(double value)
     emit DDCAttChanged(value);
 }
 
+void DockInputCtl::on_rippleSpinBox_valueChanged(double value)
+{
+    emit DDCRippleChanged(value);
+}
+
 void DockInputCtl::on_firTapCheckBox_toggled(bool checked)
 {
     emit firTapChanged(checked);

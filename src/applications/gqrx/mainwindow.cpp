@@ -235,6 +235,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(DDCWinTypeChanged(int)), this, SLOT(setDDCWinType(int)));
     connect(uiDockInputCtl, SIGNAL(DDCBetaChanged(float)), this, SLOT(setDDCBeta(float)));
     connect(uiDockInputCtl, SIGNAL(DDCAttChanged(float)), this, SLOT(setDDCAtt(float)));
+    connect(uiDockInputCtl, SIGNAL(DDCRippleChanged(float)), this, SLOT(setDDCRipple(float)));
     connect(uiDockInputCtl, SIGNAL(firTapChanged(bool)), this, SLOT(setFirTap(bool)));
     connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
@@ -3470,6 +3471,11 @@ void MainWindow::setDDCBeta(float beta)
 void MainWindow::setDDCAtt(float att)
 {
     rx->set_att(att);
+}
+
+void MainWindow::setDDCRipple(float val)
+{
+    rx->set_ripple(val);
 }
 
 void MainWindow::setFirTap(bool on)

@@ -165,6 +165,10 @@ public:
     {
         ddc->set_att(att);
     }
+    void set_ripple(float val)
+    {
+        ddc->set_ripple(val);
+    }
     void connect_fir_tap(gr::basic_block_sptr to){ddc->connect_fir_tap(to);}
 protected:
     bool         d_connected;

@@ -123,7 +123,7 @@ void downconverter_cc::connect_fir_tap(gr::basic_block_sptr to)
     update_phase_inc();
 }
 
-void downconverter_cc::update_proto_taps()
+void downconverter_cc::update_proto_taps() noexcept
 {
     if (d_decim > 1)
     {
@@ -135,31 +135,63 @@ void downconverter_cc::update_proto_taps()
                 ?gr::filter::firdes::low_pass(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, wintype(d_wintype), d_beta)
                 :gr::filter::firdes::low_pass_2(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, d_att, wintype(d_wintype), d_beta);
             std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
-            printf("downconverter_cc: taps.size=%ld in %l us\n", d_proto_taps.size(),diff.count()*1000000.0);
+            printf("downconverter_cc: taps.size=%ld in %lf us\n", d_proto_taps.size(),diff.count()*1000000.0);
         }else{
+            d_proto_taps = (d_att < 20.0)
+                ?gr::filter::firdes::low_pass(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, wintype(6), d_beta)
+                :gr::filter::firdes::low_pass_2(1.0, d_samp_rate, LPF_CUTOFF, out_rate - 2.0 * LPF_CUTOFF, d_att, wintype(6), d_beta);
+            now = std::chrono::steady_clock::now();
+            #if 0
+            std::vector<double> coarse_taps=gr::filter::pm_remez(454, {0.0, 0.0075, 0.0175, 1.0}, {std::sqrt(2.0)/2.0, std::sqrt(2.0)/2.0, 0.0, 0.0}, {1.0, 46222.0}, "bandpass");
+            std::vector<float> & fine_taps = d_proto_taps;
+            unsigned sz=455.0*d_samp_rate/32000000.0;
+            if(!(sz&1))
+                sz|=1;
+            if(sz<5)
+                sz=5;
+            fine_taps.resize(sz);
+            unsigned cd=(sz-1)/2;
+            unsigned cs=454/2;
+            fine_taps[cd]=coarse_taps[cs];
+            for(unsigned k=1;k<=cd;k++)
+            {
+                double dp=double(k)/double(sz)*455.0;
+                unsigned ia=std::floor(dp);
+                unsigned ib=std::ceil(dp);
+                double scale=dp-double(ia);
+                fine_taps[cd-k]=fine_taps[cd+k]=(coarse_taps[ia+cs]+(coarse_taps[ib+cs]-coarse_taps[ia+cs])*scale)*std::sqrt(32000000.0/double(d_samp_rate));
+            }
+            #else
             double att = 60.0;
             if(d_att >= 20.0)
                 att = d_att;
-            int ntaps=(int)(att * d_samp_rate / (22.0 * (out_rate - 2.0 * LPF_CUTOFF)));
+            unsigned ntaps=(unsigned)(att * d_samp_rate / (22.0 * (out_rate - 2.0 * LPF_CUTOFF)));
             // pm_remez requires ntaps >= 5
             if(ntaps < 5)
                 ntaps = 5;
             if(!(ntaps & 1))
                 ntaps++;
             auto sb_dev = pow(10.0, -att * (d_beta / 5.8) / 20.0);
-            auto pb_dev = (pow(10.0, 0.5 / 20.0) - 1.0) / (pow(10.0, 0.5 / 20.0) + 1.0);
+            auto pb_dev = (pow(10.0, d_ripple / 20.0) - 1.0) / (pow(10.0, d_ripple / 20.0) + 1.0);
             auto max_dev = std::max(sb_dev, pb_dev);
             sb_dev = max_dev / sb_dev;
             pb_dev = max_dev / pb_dev;
             auto pb_end = 2.0 * LPF_CUTOFF / d_samp_rate;
             auto sb_start = 2.0 * (out_rate - LPF_CUTOFF) / d_samp_rate;
-            auto remez_taps = gr::filter::pm_remez(ntaps - 1, {0.0, pb_end, sb_start, 1.0}, {std::sqrt(2.0)/2.0, std::sqrt(2.0)/2.0, 0.0, 0.0}, {pb_dev, sb_dev}, "bandpass");
-            if(d_proto_taps.size()<ntaps)
-                d_proto_taps.resize(ntaps);
-            for(int k = 0; k < ntaps; k++)
-                d_proto_taps[k] = remez_taps[k];
-            std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
-            printf("downconverter_cc: taps.size=%d sb_dev=%lf pb_dev=%lf pb_end=%lf sb_start=%lf in %lf us\n", ntaps, sb_dev, pb_dev, pb_end, sb_start,diff.count()*1000000.0);
+            std::vector<double> remez_taps {};
+            try{
+                remez_taps = gr::filter::pm_remez(ntaps - 1, {0.0, pb_end, sb_start, 1.0}, {std::sqrt(2.0)/2.0, std::sqrt(2.0)/2.0, 0.0, 0.0}, {pb_dev, sb_dev}, "bandpass");
+                if(d_proto_taps.size() < ntaps)
+                    d_proto_taps.resize(ntaps);
+                for(unsigned k = 0; k < ntaps; k++)
+                    d_proto_taps[k] = remez_taps[k];
+                std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
+                printf("downconverter_cc: taps.size=%d sb_dev=%lf pb_dev=%lf pb_end=%lf sb_start=%lf in %lf us\n", ntaps, sb_dev, pb_dev, pb_end, sb_start,diff.count()*1000000.0);
+            }catch(...){
+                std::chrono::duration<double> diff = std::chrono::steady_clock::now() - now;
+                printf("FAILED downconverter_cc: taps.size=%d sb_dev=%lf pb_dev=%lf pb_end=%lf sb_start=%lf in %lf us\n", ntaps, sb_dev, pb_dev, pb_end, sb_start,diff.count()*1000000.0);
+            }
+            #endif
         }
         filt->set_taps(d_proto_taps);
         if(tap_filt)
