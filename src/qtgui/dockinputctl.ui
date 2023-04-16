@@ -13,7 +13,7 @@
   <property name="minimumSize">
    <size>
     <width>219</width>
-    <height>480</height>
+    <height>482</height>
    </size>
   </property>
   <property name="windowIcon">
@@ -412,7 +412,7 @@
          <double>0.000000000000000</double>
         </property>
         <property name="maximum">
-         <double>5.000000000000000</double>
+         <double>100.000000000000000</double>
         </property>
         <property name="singleStep">
          <double>0.050000000000000</double>
