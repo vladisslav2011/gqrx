@@ -1662,6 +1662,8 @@ void MainWindow::startIqRecording(const QString& recdir)
             toString("%1/gqrx_yyyyMMdd_hhmmss_%2_%3_fc.'raw'")
             .arg(recdir).arg(freq).arg(sr/dec);
 
+    ui->actionIoConfig->setDisabled(true);
+    ui->actionLoadSettings->setDisabled(true);
     // start recorder; fails if recording already in progress
     if (rx->start_iq_recording(lastRec.toStdString()))
     {
@@ -1692,6 +1694,8 @@ void MainWindow::stopIqRecording()
         ui->statusBar->showMessage(tr("Error stopping I/Q recoder"));
     else
         ui->statusBar->showMessage(tr("I/Q data recoding stopped"), 5000);
+    ui->actionIoConfig->setDisabled(false);
+    ui->actionLoadSettings->setDisabled(false);
 }
 
 void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64 center_freq)
@@ -1703,6 +1707,8 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64
     }
 
     storeSession();
+    backupFreq = ui->freqCtrl->getFrequency();
+    backupOffset = (qint64) rx->get_filter_offset();
 
     auto sri = (int)samprate;
     auto cf  = center_freq;
@@ -1734,6 +1740,9 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate, qint64
 
     // FIXME: would be nice with good/bad status
     ui->statusBar->showMessage(tr("Playing %1").arg(filename));
+    ui->actionIoConfig->setDisabled(true);
+    ui->actionLoadSettings->setDisabled(true);
+    ui->actionSaveSettings->setDisabled(true);
 
     on_actionDSP_triggered(true);
 }
@@ -1747,6 +1756,9 @@ void MainWindow::stopIqPlayback()
     }
 
     ui->statusBar->showMessage(tr("I/Q playback stopped"), 5000);
+    ui->actionIoConfig->setDisabled(false);
+    ui->actionLoadSettings->setDisabled(false);
+    ui->actionSaveSettings->setDisabled(false);
 
     // restore original input device
     auto indev = m_settings->value("input/device", "").toString();
