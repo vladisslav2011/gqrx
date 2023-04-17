@@ -10,7 +10,6 @@
      FIXED: DX cluster spots fail to expire around midnight.
      FIXED: AGC sensitivity bug introduced in version 2.15.10.
   IMPROVED: Rendering of frequency control and S-meter on some high-DPI screens.
-   REMOVED: Support for GNU Radio 3.7.
 
 
    2.15.10: Released April 13, 2023
