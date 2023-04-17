@@ -4,6 +4,8 @@ Gqrx
 [![CI](https://github.com/gqrx-sdr/gqrx/workflows/CI/badge.svg)](https://github.com/gqrx-sdr/gqrx/actions?query=workflow%3ACI+branch%3Amaster)
 [![Build](https://github.com/gqrx-sdr/gqrx/workflows/Build/badge.svg)](https://github.com/gqrx-sdr/gqrx/actions?query=workflow%3ABuild+branch%3Amaster)
 
+Warning: this branch is not stable. It may be rebased/force-pushed. Reset to 'base' branch in case of merge conflicts.
+
 Gqrx is an open source software defined radio (SDR) receiver implemented using
 [GNU Radio](https://gnuradio.org) and the [Qt GUI toolkit](https://www.qt.io/).
 Currently it works on Linux and Mac with hardware supported by gr-osmosdr,
