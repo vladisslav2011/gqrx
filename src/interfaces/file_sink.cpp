@@ -98,17 +98,15 @@ void file_sink::writer()
                 written += count;
                 p += count;
             }
-            guard.unlock();
             item.len = 0;
             d_free.push(item);
-            if (d_fp && !d_failed)
-                fflush(d_fp);
             if (old_fp)
             {
+                guard.unlock();
                 fclose(old_fp);
+                guard.lock();
                 old_fp = NULL;
             }
-            guard.lock();
             d_buffers_used--;
             d_written += written;
         }
@@ -118,6 +116,12 @@ void file_sink::writer()
         }
         else
         {
+            if (d_fp && !d_failed)
+            {
+                guard.unlock();
+                fflush(d_fp);
+                guard.lock();
+            }
             d_writer_ready.notify_one();
             d_writer_trigger.wait(guard);
         }
