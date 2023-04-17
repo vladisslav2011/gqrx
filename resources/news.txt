@@ -7,7 +7,6 @@
      FIXED: Loading of narrow FM tau setting.
      FIXED: Crash when adding or removing bookmark tags.
      FIXED: Redraw bookmarks immediately after changes.
-   REMOVED: Support for GNU Radio 3.7.
 
 
    2.15.10: Released April 13, 2023
