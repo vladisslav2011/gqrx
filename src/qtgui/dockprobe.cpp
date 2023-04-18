@@ -33,7 +33,8 @@
 DockProbe::DockProbe(QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::DockProbe),
-    m_sampleRate(20000)
+    m_sampleRate(20000),
+    m_center(0)
 {
     ui->setupUi(this);
 

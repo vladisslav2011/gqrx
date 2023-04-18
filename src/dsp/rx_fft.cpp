@@ -34,7 +34,8 @@ using namespace std::literals;
 
 fft_c_basic::fft_c_basic(unsigned int fftsize, int wintype)
     : d_fftsize(fftsize),
-      d_wintype(-1)
+      d_wintype(-1),
+      d_correction(0)
 {
 #if GNURADIO_VERSION < 0x030900
     d_fft = new gr::fft::fft_complex(d_fftsize, true);

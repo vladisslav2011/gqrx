@@ -135,8 +135,8 @@ private:
     qint64  sample_rate;       /*!< Current sample rate. */
     qint64  center_freq;       /*!< Center frequency. */
     qint64  rec_len;           /*!< Length of a recording in seconds */
-    int     o_buffersUsed;
-    size_t  o_fileSize;
+    int     o_buffersUsed{0};
+    size_t  o_fileSize{0};
 };
 
 #endif // IQ_TOOL_H
