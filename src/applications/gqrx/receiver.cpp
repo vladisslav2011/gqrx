@@ -253,9 +253,8 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
                               bool repeat)
 {
     std::string error = "";
-    size_t sample_size = sample_size_from_format(fmt);
 
-    input_file = file_source::make(sample_size, name.c_str(), 0, 0, sample_rate,
+    input_file = file_source::make(chunk_size[fmt], name.c_str(), 0, 0, sample_rate/ samples_per_chunk[fmt],
                                    repeat,buffers_max);
 
     if (d_running)
@@ -1317,7 +1316,7 @@ receiver::status receiver::connect_iq_recorder()
  */
 receiver::status receiver::start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max)
 {
-    int sink_bytes_per_sample = sample_size_from_format(fmt);
+    int sink_bytes_per_sample = chunk_size[fmt];
 
     if (d_recording_iq) {
         std::cout << __func__ << ": already recording" << std::endl;
@@ -1326,7 +1325,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = file_sink::make(sink_bytes_per_sample, filename.c_str(), d_input_rate, true, buffers_max);
+        iq_sink = file_sink::make(sink_bytes_per_sample, filename.c_str(), d_input_rate / samples_per_chunk[fmt], true, buffers_max);
     }
     catch (std::runtime_error &e)
     {
@@ -1591,34 +1590,6 @@ void receiver::reset_rds_parser(void)
     rx->reset_rds_parser();
 }
 
-int receiver::sample_size_from_format(enum file_formats fmt)
-{
-    switch(fmt)
-    {
-    case FILE_FORMAT_LAST:
-            throw std::runtime_error("receiver::sample_size_from_format: Invalid format requested");
-    case FILE_FORMAT_NONE:
-    case FILE_FORMAT_CF:
-    case FILE_FORMAT_CS32L:
-    case FILE_FORMAT_CS32LU:
-        return 8;
-    case FILE_FORMAT_CS10L:
-        return 5;
-    case FILE_FORMAT_CS12L:
-        return 3;
-    case FILE_FORMAT_CS14L:
-        return 7;
-    case FILE_FORMAT_CS16L:
-    case FILE_FORMAT_CS16LU:
-        return 4;
-    case FILE_FORMAT_CS8:
-    case FILE_FORMAT_CS8U:
-        return 2;
-    }
-    throw std::runtime_error("receiver::sample_size_from_format: Invalid format requested");
-    return 0;
-}
-
 std::string receiver::escape_filename(std::string filename)
 {
     std::stringstream ss1;
@@ -1628,3 +1599,6 @@ std::string receiver::escape_filename(std::string filename)
     ss2 << std::quoted(ss1.str(), '\'', '\\');
     return ss2.str();
 }
+
+constexpr int receiver::chunk_size[FILE_FORMAT_COUNT];
+constexpr int receiver::samples_per_chunk[FILE_FORMAT_COUNT];

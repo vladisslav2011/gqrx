@@ -269,7 +269,6 @@ public:
 
     /* utility functions */
     static std::string escape_filename(std::string filename);
-    static int sample_size_from_format(enum file_formats fmt);
 
 
 private:

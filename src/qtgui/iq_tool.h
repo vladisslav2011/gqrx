@@ -105,8 +105,6 @@ private:
 
     bool    is_recording;
     bool    is_playing;
-    float   bytes_per_sample;  /*!< Bytes per sample (fc = 4) */
-    int     rec_bytes_per_sample;  /*!< Bytes per sample for recording */
     enum receiver::file_formats fmt;
     enum receiver::file_formats rec_fmt;
     int     sample_rate;       /*!< Current sample rate. */
@@ -114,6 +112,8 @@ private:
     int     rec_len;           /*!< Length of a recording in seconds */
     int     o_buffersUsed;
     size_t  o_fileSize;
+    size_t  chunk_size;
+    size_t  samples_per_chunk;
 };
 
 #endif // IQ_TOOL_H
