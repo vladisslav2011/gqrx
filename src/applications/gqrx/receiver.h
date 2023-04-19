@@ -317,7 +317,7 @@ private:
 
     file_sink::sptr         iq_sink;     /*!< I/Q file sink. */
     //Format converters to/from different sample formats
-    std::vector<gr::block_sptr> convert_to
+    std::vector<any_to_any_base::sptr> convert_to
     {
         nullptr,
         nullptr,
@@ -329,7 +329,7 @@ private:
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make()
     };
-    std::vector<gr::block_sptr> convert_from
+    std::vector<any_to_any_base::sptr> convert_from
     {
         nullptr,
         nullptr,
