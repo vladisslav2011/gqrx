@@ -3008,6 +3008,8 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         iq_tool->setRunningState(true);
 
         audio_fft_timer->start(40);
+        if(rx->is_rds_decoder_active())
+            rds_timer->start(250);
 
         /* update menu text and button tooltip */
         ui->actionDSP->setToolTip(tr("Stop DSP processing"));
@@ -3067,6 +3069,8 @@ void MainWindow::on_plotter_setPlaying(bool state)
             }
 
             audio_fft_timer->start(40);
+            if(rx->is_rds_decoder_active())
+                rds_timer->start(250);
         }
         else
         {
