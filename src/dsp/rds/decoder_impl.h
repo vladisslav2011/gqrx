@@ -28,6 +28,11 @@ public:
 	decoder_impl(bool log, bool debug);
 
 private:
+    struct bit_locator
+    {
+        uint16_t l;
+        uint8_t w;
+    };
 	~decoder_impl();
 
 	int work(int noutput_items,
@@ -36,8 +41,9 @@ private:
 
 	void enter_no_sync();
 	void enter_sync(unsigned int);
-	unsigned int calc_syndrome(unsigned long, unsigned char);
-	void decode_group(unsigned int*);
+	static unsigned int calc_syndrome(unsigned long, unsigned char);
+	void decode_group();
+	static std::array<bit_locator,1024> build_locator();
 
 	unsigned long  bit_counter;
 	unsigned long  lastseen_offset_counter, reg;
@@ -45,7 +51,7 @@ private:
 	unsigned int   wrong_blocks_counter;
 	unsigned int   blocks_counter;
 	unsigned int   group_good_blocks_counter;
-	unsigned int   group[4];
+	unsigned int   group[5];
 	unsigned char  offset_chars[4];  // [ABCcDEx] (x=error)
 	bool           log;
 	bool           debug;
@@ -55,6 +61,7 @@ private:
 	unsigned char  lastseen_offset;
 	unsigned char  block_number;
 	enum { NO_SYNC, SYNC } d_state;
+	static const std::array<bit_locator,1024> locator;
 
 };
 
