@@ -429,6 +429,72 @@ bool vfo_s::set_dedicated_audio_sink(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_gmu(const c_def::v_union & v)
+{
+    d_rds_gmu = v;
+    return true;
+}
+
+bool vfo_s::set_rds_gomega(const c_def::v_union & v)
+{
+    d_rds_gomega = v;
+    return true;
+}
+
+bool vfo_s::set_rds_fxff_tw(const c_def::v_union & v)
+{
+    d_rds_fxff_tw = v;
+    return true;
+}
+
+bool vfo_s::set_rds_fxff_bw(const c_def::v_union & v)
+{
+    d_rds_fxff_bw = v;
+    return true;
+}
+
+bool vfo_s::set_rds_omega_lim(const c_def::v_union & v)
+{
+    d_rds_omega_lim = v;
+    return true;
+}
+
+bool vfo_s::set_rds_dll_bw(const c_def::v_union & v)
+{
+    d_rds_dll_bw = v;
+    return true;
+}
+
+bool vfo_s::set_rds_cl_bw(const c_def::v_union & v)
+{
+    d_rds_cl_bw = v;
+    return true;
+}
+
+bool vfo_s::set_rds_cl_lim(const c_def::v_union & v)
+{
+    d_rds_cl_lim = v;
+    return true;
+}
+
+bool vfo_s::set_rds_integrate_pi(const c_def::v_union & v)
+{
+    d_rds_integrate_pi = int64_t(v);
+    return true;
+}
+
+bool vfo_s::set_rds_integrate_ps(const c_def::v_union & v)
+{
+    d_rds_integrate_ps = int64_t(v);
+    return true;
+}
+
+bool vfo_s::set_rds_integrate_ps_dist(const c_def::v_union & v)
+{
+    d_rds_integrate_ps_dist = int64_t(v);
+    return true;
+}
+
 bool vfo_s::set_fft_center(const c_def::v_union & v)
 {
     d_fft_center = v;
@@ -514,7 +580,19 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_cw_offset(v);set_cw_offset(v);
     from.get_wfm_deemph(v);set_wfm_deemph(v);
     from.get_wfm_raw(v);set_wfm_raw(v);
+
     from.get_rds_on(v);set_rds_on(v);
+    from.get_rds_gmu(v); set_rds_gmu(v);
+    from.get_rds_gomega(v); set_rds_gomega(v);
+    from.get_rds_fxff_tw(v); set_rds_fxff_tw(v);
+    from.get_rds_fxff_bw(v); set_rds_fxff_bw(v);
+    from.get_rds_omega_lim(v); set_rds_omega_lim(v);
+    from.get_rds_dll_bw(v); set_rds_dll_bw(v);
+    from.get_rds_cl_bw(v); set_rds_cl_bw(v);
+    from.get_rds_cl_lim(v); set_rds_cl_lim(v);
+    from.get_rds_integrate_pi(v); set_rds_integrate_pi(v);
+    from.get_rds_integrate_ps(v); set_rds_integrate_ps(v);
+    from.get_rds_integrate_ps_dist(v); set_rds_integrate_ps_dist(v);
 
     from.get_fft_center(v);set_fft_center(v);
     from.get_fft_zoom(v);set_fft_zoom(v);
@@ -547,6 +625,9 @@ bool vfo_s::get_rds_flagstring(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_rt(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_clock(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_af(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_errors(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_cl_freq(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_phase_snr(c_def::v_union &) const {return false;}
 
 int vfo_s::conf_initializer()
 {
@@ -690,6 +771,31 @@ int vfo_s::conf_initializer()
     getters[C_RDS_RADIOTEXT]=&vfo_s::get_rds_rt;
     getters[C_RDS_CLOCKTIME]=&vfo_s::get_rds_clock;
     getters[C_RDS_ALTFREQ]=&vfo_s::get_rds_af;
+    getters[C_RDS_BIT_ERRORS]=&vfo_s::get_rds_errors;
+    getters[C_RDS_CL_FREQ]=&vfo_s::get_rds_cl_freq;
+    getters[C_RDS_PHASE_SNR]=&vfo_s::get_rds_phase_snr;
+    getters[C_RDS_GMU]=&vfo_s::get_rds_gmu;
+    setters[C_RDS_GMU]=&vfo_s::set_rds_gmu;
+    getters[C_RDS_GOMEGA]=&vfo_s::get_rds_gomega;
+    setters[C_RDS_GOMEGA]=&vfo_s::set_rds_gomega;
+    getters[C_RDS_FXFF_BW]=&vfo_s::get_rds_fxff_bw;
+    setters[C_RDS_FXFF_BW]=&vfo_s::set_rds_fxff_bw;
+    getters[C_RDS_FXFF_TW]=&vfo_s::get_rds_fxff_tw;
+    setters[C_RDS_FXFF_TW]=&vfo_s::set_rds_fxff_tw;
+    getters[C_RDS_OMEGA_LIM]=&vfo_s::get_rds_omega_lim;
+    setters[C_RDS_OMEGA_LIM]=&vfo_s::set_rds_omega_lim;
+    getters[C_RDS_DLL_BW]=&vfo_s::get_rds_dll_bw;
+    setters[C_RDS_DLL_BW]=&vfo_s::set_rds_dll_bw;
+    getters[C_RDS_CL_BW]=&vfo_s::get_rds_cl_bw;
+    setters[C_RDS_CL_BW]=&vfo_s::set_rds_cl_bw;
+    getters[C_RDS_CL_LIM]=&vfo_s::get_rds_cl_lim;
+    setters[C_RDS_CL_LIM]=&vfo_s::set_rds_cl_lim;
+    getters[C_RDS_INTEGR_PI]=&vfo_s::get_rds_integrate_pi;
+    setters[C_RDS_INTEGR_PI]=&vfo_s::set_rds_integrate_pi;
+    getters[C_RDS_INTEGR_PS]=&vfo_s::get_rds_integrate_ps;
+    setters[C_RDS_INTEGR_PS]=&vfo_s::set_rds_integrate_ps;
+    getters[C_RDS_INTEGR_PS_DIST]=&vfo_s::get_rds_integrate_ps_dist;
+    setters[C_RDS_INTEGR_PS_DIST]=&vfo_s::set_rds_integrate_ps_dist;
     /* GUI */
     getters[C_AUDIO_FFT_CENTER]=&vfo_s::get_fft_center;
     setters[C_AUDIO_FFT_CENTER]=&vfo_s::set_fft_center;

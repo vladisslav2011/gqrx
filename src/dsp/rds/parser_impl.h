@@ -34,9 +34,17 @@ public:
     {
         d_index = index;
     }
+    void set_RT_keep(bool keep)
+    {
+        RT_keep = keep;
+    }
     std::string & get_last(int index)
     {
         return d_cache[index];
+    }
+    int get_n_errors()
+    {
+        return d_bit_errors;
     }
 
 private:
@@ -66,7 +74,7 @@ private:
 	void decode_type14(unsigned int* group, bool B);
 	void decode_type15(unsigned int* group, bool B);
 
-	unsigned int   program_identification;
+	unsigned int   program_identification{0xffffffff};
 	unsigned char  program_type;
 	unsigned char  pi_country_identification;
 	unsigned char  pi_area_coverage;
@@ -85,8 +93,13 @@ private:
 	bool           debug;
 	unsigned char  pty_locale;
 	gr::thread::mutex d_mutex;
-    int d_index;
+    int d_index{0};
+    int d_bit_errors{0};
+    int d_best_errors{128};
+    std::string d_best_pi{""};
     std::array<std::string,MSG_IDS_COUNT> d_cache;
+    char offset_chars[4];
+    bool RT_keep{0};// Do not clear the RT buffer on A/B change. Makes it possible to accumulate the RT.
 };
 
 } /* namespace rds */

@@ -22,6 +22,7 @@ public slots:
     void setDisabled();
 
 private:
+    void bitErrorsObserver(c_id, const c_def::v_union & v);
 
 signals:
     void rdsDecoderToggled(bool);
