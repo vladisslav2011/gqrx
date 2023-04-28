@@ -66,6 +66,9 @@ void parser_impl::reset() {
 	artificial_head                = false;
 	compressed                     = false;
 	dynamic_pty                    = false;
+	d_best_errors                  = 128;
+	d_bit_errors                   = 0;
+	d_best_pi                      = "";
 }
 
 /* type 0 = PI
@@ -92,10 +95,10 @@ void parser_impl::send_message(long msgtype, std::string msgtext) {
             =std::string((msgtext.at(0)=='1')?"TP ":"")
             +std::string((msgtext.at(1)=='1')?"TA ":"")
             +std::string((msgtext.at(2)=='1')?"Music ":"Speech ")
-            +std::string((msgtext.at(3)=='1')?"Mono ":"Stereo ")
+            +std::string((msgtext.at(3)=='1')?"Stereo ":"Mono ")
             +std::string((msgtext.at(4)=='1')?"AH ":"")
             +std::string((msgtext.at(5)=='1')?"CMP ":"")
-            +std::string((msgtext.at(6)=='1')?"stPTY ":"")
+            +std::string((msgtext.at(6)=='1')?"":"stPTY ")
             ;
         changed_value(C_RDS_FLAGS, d_index, msgtext);
         break;
@@ -130,8 +133,11 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 	bool decoder_control_bit      = (group[1] >> 2) & 0x01; // "DI"
 	unsigned char segment_address =  group[1] & 0x03;       // "DI segment"
 
-	program_service_name[segment_address * 2]     = (group[3] >> 8) & 0xff;
-	program_service_name[segment_address * 2 + 1] =  group[3]       & 0xff;
+    if(offset_chars[3] != 'x')
+    {
+        program_service_name[segment_address * 2]     = (group[3] >> 8) & 0xff;
+        program_service_name[segment_address * 2 + 1] =  group[3]       & 0xff;
+    }
 
 	/* see page 41, table 9 of the standard */
 	switch (segment_address) {
@@ -159,36 +165,37 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 	flagstring[6] = dynamic_pty            ? '1' : '0';
 	static std::string af_string;
 
-	if(!B) { // type 0A
-		af_code_1 = int(group[2] >> 8) & 0xff;
-		af_code_2 = int(group[2])      & 0xff;
-		af_1 = decode_af(af_code_1);
-		af_2 = decode_af(af_code_2);
-
-		std::stringstream af_stringstream;
-		af_stringstream << std::fixed << std::setprecision(2);
-
-		if(af_1) {
-			if(af_1 > 80e3) {
-				af_stringstream << (af_1/1e3) << "MHz";
-			} else if((af_1<2e3)&&(af_1>100)) {
-				af_stringstream << int(af_1) << "kHz";
-			}
-		}
-		if(af_1 && af_2) {
-			af_stringstream << ", ";
-		}
-		if(af_2) {
-			if(af_2 > 80e3) {
-				af_stringstream << (af_2/1e3) << "MHz";
-			} else if((af_2<2e3)&&(af_2>100)) {
-				af_stringstream << int(af_2) << "kHz";
-			}
-		}
-		if(af_1 || af_2) {
-			af_string = af_stringstream.str();
-		}
-	}
+    if(offset_chars[2] != 'x')
+    	if(!B) { // type 0A
+            af_code_1 = int(group[2] >> 8) & 0xff;
+            af_code_2 = int(group[2])      & 0xff;
+            af_1 = decode_af(af_code_1);
+            af_2 = decode_af(af_code_2);
+    
+            std::stringstream af_stringstream;
+            af_stringstream << std::fixed << std::setprecision(2);
+    
+            if(af_1) {
+                if(af_1 > 80e3) {
+                    af_stringstream << (af_1/1e3) << "MHz";
+                } else if((af_1<2e3)&&(af_1>100)) {
+                    af_stringstream << int(af_1) << "kHz";
+                }
+            }
+            if(af_1 && af_2) {
+                af_stringstream << ", ";
+            }
+            if(af_2) {
+                if(af_2 > 80e3) {
+                    af_stringstream << (af_2/1e3) << "MHz";
+                } else if((af_2<2e3)&&(af_2>100)) {
+                    af_stringstream << int(af_2) << "kHz";
+                }
+            }
+            if(af_1 || af_2) {
+                af_string = af_stringstream.str();
+            }
+        }
 
 	lout << "==>" << std::string(program_service_name, 8)
 		<< "<== -" << (traffic_program ? "TP" : "  ")
@@ -197,9 +204,11 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 		<< '-' << (mono_stereo ? "MONO" : "STEREO")
 		<< " - AF:" << af_string << std::endl;
 
-	send_message(PS, std::string(program_service_name, 8));
-	send_message(FLAGSTRING, flagstring);
-	send_message(AF, af_string);
+    if(offset_chars[3] != 'x')
+        send_message(PS, std::string(program_service_name, 8));
+    send_message(FLAGSTRING, flagstring);
+    if(offset_chars[2] != 'x')
+        send_message(AF, af_string);
 }
 
 double parser_impl::decode_af(unsigned int af_code) {
@@ -240,7 +249,9 @@ double parser_impl::decode_af(unsigned int af_code) {
 void parser_impl::decode_type1(unsigned int *group, bool B){
 	int ecc    = 0;
 	int paging = 0;
-	char country_code           = (group[0] >> 12) & 0x0f;
+    if(offset_chars[0] == 'x')
+        return;
+    char country_code           = (group[0] >> 12) & 0x0f;
 	char radio_paging_codes     =  group[1]        & 0x1f;
 	int variant_code            = (group[2] >> 12) & 0x7;
 	unsigned int slow_labelling =  group[2]        & 0xfff;
@@ -251,64 +262,75 @@ void parser_impl::decode_type1(unsigned int *group, bool B){
 	if(radio_paging_codes) {
 		lout << "paging codes: " << int(radio_paging_codes) << " ";
 	}
-	if(day || hour || minute) {
-		lout << "program item: " << day << ", " << hour << ", " << minute << " ";
-	}
+    if(offset_chars[3] != 'x')
+        if(day || hour || minute) {
+            lout << "program item: " << day << ", " << hour << ", " << minute << " ";
+        }
 
-	if(!B){
-		switch(variant_code){
-			case 0: // paging + ecc
-				paging = (slow_labelling >> 8) & 0x0f;
-				ecc    =  slow_labelling       & 0xff;
-				if(paging) {
-					lout << "paging: " << paging << " ";
-				}
-				if((ecc > 223) && (ecc < 229)) {
-					lout << "extended country code: "
-						<< pi_country_codes[country_code-1][ecc-224]
-						<< std::endl;
-				} else {
-					lout << "invalid extended country code: " << ecc << std::endl;
-				}
-				break;
-			case 1: // TMC identification
-				lout << "TMC identification code received" << std::endl;
-				break;
-			case 2: // Paging identification
-				lout << "Paging identification code received" << std::endl;
-				break;
-			case 3: // language codes
-				if(slow_labelling < 44) {
-					lout << "language: " << language_codes[slow_labelling]
-						<< std::endl;
-				} else {
-					lout << "language: invalid language code " << slow_labelling
-						<< std::endl;
-				}
-				break;
-			default:
-				break;
-		}
-	}
+    if(offset_chars[2] != 'x')
+        if(!B){
+            switch(variant_code){
+                case 0: // paging + ecc
+                    paging = (slow_labelling >> 8) & 0x0f;
+                    ecc    =  slow_labelling       & 0xff;
+                    if(paging) {
+                        lout << "paging: " << paging << " ";
+                    }
+                    if((ecc > 223) && (ecc < 229)) {
+                        lout << "extended country code: "
+                            << pi_country_codes[country_code-1][ecc-224]
+                            << std::endl;
+                    } else {
+                        lout << "invalid extended country code: " << ecc << std::endl;
+                    }
+                    break;
+                case 1: // TMC identification
+                    lout << "TMC identification code received" << std::endl;
+                    break;
+                case 2: // Paging identification
+                    lout << "Paging identification code received" << std::endl;
+                    break;
+                case 3: // language codes
+                    if(slow_labelling < 44) {
+                        lout << "language: " << language_codes[slow_labelling]
+                            << std::endl;
+                    } else {
+                        lout << "language: invalid language code " << slow_labelling
+                            << std::endl;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
 }
 
 void parser_impl::decode_type2(unsigned int *group, bool B){
 	unsigned char text_segment_address_code = group[1] & 0x0f;
 
 	// when the A/B flag is toggled, flush your current radiotext
-	if(radiotext_AB_flag != ((group[1] >> 4) & 0x01)) {
+	if(!RT_keep && radiotext_AB_flag != ((group[1] >> 4) & 0x01)) {
 		std::memset(radiotext, ' ', sizeof(radiotext));
 	}
 	radiotext_AB_flag = (group[1] >> 4) & 0x01;
 
 	if(!B) {
-		radiotext[text_segment_address_code *4     ] = (group[2] >> 8) & 0xff;
-		radiotext[text_segment_address_code * 4 + 1] =  group[2]       & 0xff;
-		radiotext[text_segment_address_code * 4 + 2] = (group[3] >> 8) & 0xff;
-		radiotext[text_segment_address_code * 4 + 3] =  group[3]       & 0xff;
+        if(offset_chars[2] != 'x')
+        {
+            radiotext[text_segment_address_code *4     ] = (group[2] >> 8) & 0xff;
+            radiotext[text_segment_address_code * 4 + 1] =  group[2]       & 0xff;
+        }
+        if(offset_chars[3] != 'x')
+        {
+            radiotext[text_segment_address_code * 4 + 2] = (group[3] >> 8) & 0xff;
+            radiotext[text_segment_address_code * 4 + 3] =  group[3]       & 0xff;
+        }
 	} else {
-		radiotext[text_segment_address_code * 2    ] = (group[3] >> 8) & 0xff;
-		radiotext[text_segment_address_code * 2 + 1] =  group[3]       & 0xff;
+        if(offset_chars[3] != 'x')
+        {
+            radiotext[text_segment_address_code * 2    ] = (group[3] >> 8) & 0xff;
+            radiotext[text_segment_address_code * 2 + 1] =  group[3]       & 0xff;
+        }
 	}
 	lout << "Radio Text " << (radiotext_AB_flag ? 'B' : 'A')
 		<< ": " << std::string(radiotext, sizeof(radiotext))
@@ -331,30 +353,33 @@ void parser_impl::decode_type3(unsigned int *group, bool B){
 		<< " " << (group_type ? 'B' : 'A');
 	if((application_group == 8) && (group_type == false)) { // 8A
 		int variant_code = (message >> 14) & 0x3;
-		if(variant_code == 0) {
-			int ltn  = (message >> 6) & 0x3f; // location table number
-			bool afi = (message >> 5) & 0x1;  // alternative freq. indicator
-			bool M   = (message >> 4) & 0x1;  // mode of transmission
-			bool I   = (message >> 3) & 0x1;  // international
-			bool N   = (message >> 2) & 0x1;  // national
-			bool R   = (message >> 1) & 0x1;  // regional
-			bool U   =  message       & 0x1;  // urban
-			lout << "location table: " << ltn << " - "
-				<< (afi ? "AFI-ON" : "AFI-OFF") << " - "
-				<< (M   ? "enhanced mode" : "basic mode") << " - "
-				<< (I   ? "international " : "")
-				<< (N   ? "national " : "")
-				<< (R   ? "regional " : "")
-				<< (U   ? "urban" : "")
-				<< " aid: " << aid << std::endl;
-
-		} else if(variant_code==1) {
-			int G   = (message >> 12) & 0x3;  // gap
-			int sid = (message >>  6) & 0x3f; // service identifier
-			int gap_no[4] = {3, 5, 8, 11};
-			lout << "gap: " << gap_no[G] << " groups, SID: "
-				<< sid << " ";
-		}
+        if(offset_chars[2] != 'x')
+        {
+            if(variant_code == 0) {
+                int ltn  = (message >> 6) & 0x3f; // location table number
+                bool afi = (message >> 5) & 0x1;  // alternative freq. indicator
+                bool M   = (message >> 4) & 0x1;  // mode of transmission
+                bool I   = (message >> 3) & 0x1;  // international
+                bool N   = (message >> 2) & 0x1;  // national
+                bool R   = (message >> 1) & 0x1;  // regional
+                bool U   =  message       & 0x1;  // urban
+                lout << "location table: " << ltn << " - "
+                    << (afi ? "AFI-ON" : "AFI-OFF") << " - "
+                    << (M   ? "enhanced mode" : "basic mode") << " - "
+                    << (I   ? "international " : "")
+                    << (N   ? "national " : "")
+                    << (R   ? "regional " : "")
+                    << (U   ? "urban" : "")
+                    << " aid: " << aid << std::endl;
+    
+            } else if(variant_code==1) {
+                int G   = (message >> 12) & 0x3;  // gap
+                int sid = (message >>  6) & 0x3f; // service identifier
+                int gap_no[4] = {3, 5, 8, 11};
+                lout << "gap: " << gap_no[G] << " groups, SID: "
+                    << sid << " ";
+            }
+        }
 	}
 	lout << "message: " << message << " - aid: " << aid << std::endl;;
 }
@@ -365,7 +390,9 @@ void parser_impl::decode_type4(unsigned int *group, bool B){
 		return;
 	}
 
-	unsigned int hours   = ((group[2] & 0x1) << 4) | ((group[3] >> 12) & 0x0f);
+    if((offset_chars[2] == 'x')||(offset_chars[3] == 'x'))
+        return;
+    unsigned int hours   = ((group[2] & 0x1) << 4) | ((group[3] >> 12) & 0x0f);
 	unsigned int minutes =  (group[3] >> 6) & 0x3f;
 	double local_time_offset = .5 * (group[3] & 0x1f);
 
@@ -418,7 +445,9 @@ void parser_impl::decode_type8(unsigned int *group, bool B){
 		dout << "type 8B not implemented yet" << std::endl;
 		return;
 	}
-	bool T = (group[1] >> 4) & 0x1; // 0 = user message, 1 = tuning info
+    if(offset_chars[2] == 'x')
+        return;
+    bool T = (group[1] >> 4) & 0x1; // 0 = user message, 1 = tuning info
 	bool F = (group[1] >> 3) & 0x1; // 0 = multi-group, 1 = single-group
 	bool D = (group[2] > 15) & 0x1; // 1 = diversion recommended
 	static unsigned long int free_format[4];
@@ -539,45 +568,66 @@ void parser_impl::decode_type14(unsigned int *group, bool B){
 			case 1: // PS(ON)
 			case 2: // PS(ON)
 			case 3: // PS(ON)
-				ps_on[variant_code * 2    ] = (information >> 8) & 0xff;
-				ps_on[variant_code * 2 + 1] =  information       & 0xff;
-				lout << "PS(ON): ==>" << std::string(ps_on, 8) << "<==";
+                if(offset_chars[2] != 'x')
+                {
+    				ps_on[variant_code * 2    ] = (information >> 8) & 0xff;
+                    ps_on[variant_code * 2 + 1] =  information       & 0xff;
+                    lout << "PS(ON): ==>" << std::string(ps_on, 8) << "<==";
+                }
 			break;
 			case 4: // AF
-				af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
-				af_2 = 100.0 * ((information & 0xff) + 875);
-				lout << "AF:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz " << (af_2/1000) << "MHz";
+               if(offset_chars[2] != 'x')
+                {
+    				af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
+                    af_2 = 100.0 * ((information & 0xff) + 875);
+                    lout << "AF:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz " << (af_2/1000) << "MHz";
+                }
 			break;
 			case 5: // mapped frequencies
 			case 6: // mapped frequencies
 			case 7: // mapped frequencies
 			case 8: // mapped frequencies
-				af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
-				af_2 = 100.0 * ((information & 0xff) + 875);
-				lout << "TN:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz - ON:" << (af_2/1000) << "MHz";
+               if(offset_chars[2] != 'x')
+                {
+    				af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
+                    af_2 = 100.0 * ((information & 0xff) + 875);
+                    lout << "TN:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz - ON:" << (af_2/1000) << "MHz";
+                }
 			break;
 			case 9: // mapped frequencies (AM)
-				af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
-				af_2 = 9.0 * ((information & 0xff) - 16) + 531;
-				lout << "TN:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz - ON:" << int(af_2) << "kHz";
+               if(offset_chars[2] != 'x')
+                {
+                    af_1 = 100.0 * (((information >> 8) & 0xff) + 875);
+                    af_2 = 9.0 * ((information & 0xff) - 16) + 531;
+                    lout << "TN:" << std::fixed << std::setprecision(2) << (af_1/1000) << "MHz - ON:" << int(af_2) << "kHz";
+                }
 			break;
 			case 10: // unallocated
 			break;
 			case 11: // unallocated
 			break;
 			case 12: // linkage information
-				lout << "Linkage information: " << std::hex << std::setw(4) << information << std::dec;
+               if(offset_chars[2] != 'x')
+                {
+                    lout << "Linkage information: " << std::hex << std::setw(4) << information << std::dec;
+                }
 			break;
 			case 13: // PTY(ON), TA(ON)
-				ta_on = information & 0x01;
-				pty_on = (information >> 11) & 0x1f;
-				lout << "PTY(ON):" << pty_table[int(pty_on)][pty_locale];
-				if(ta_on) {
-					lout << " - TA";
-				}
+               if(offset_chars[2] != 'x')
+                {
+                    ta_on = information & 0x01;
+                    pty_on = (information >> 11) & 0x1f;
+                    lout << "PTY(ON):" << pty_table[int(pty_on)][pty_locale];
+                    if(ta_on) {
+                        lout << " - TA";
+                    }
+                }
 			break;
 			case 14: // PIN(ON)
-				lout << "PIN(ON):" << std::hex << std::setw(4) << information << std::dec;
+               if(offset_chars[2] != 'x')
+                {
+    				lout << "PIN(ON):" << std::hex << std::setw(4) << information << std::dec;
+                }
 			break;
 			case 15: // Reserved for broadcasters use
 			break;
@@ -602,109 +652,146 @@ void parser_impl::decode_type15(unsigned int *group, bool B){
 }
 
 void parser_impl::parse(pmt::pmt_t pdu) {
-	if(!pmt::is_pair(pdu)) {
-		dout << "wrong input message (not a PDU)" << std::endl;
-		return;
-	}
+    if(!pmt::is_pair(pdu)) {
+        dout << "wrong input message (not a PDU)" << std::endl;
+        return;
+    }
 
-	//pmt::pmt_t meta = pmt::car(pdu);  // meta is currently not in use
-	pmt::pmt_t vec = pmt::cdr(pdu);
+    //pmt::pmt_t meta = pmt::car(pdu);  // meta is currently not in use
+    pmt::pmt_t vec = pmt::cdr(pdu);
 
-	if(!pmt::is_blob(vec)) {
-		dout << "input PDU message has wrong type (not u8)" << std::endl;
-		return;
-	}
-	if(pmt::blob_length(vec) != 12) {  // 8 data + 4 offset chars (ABCD)
-		dout << "input PDU message has wrong size ("
-			<< pmt::blob_length(vec) << ")" << std::endl;
-		return;
-	}
+    if(!pmt::is_blob(vec)) {
+        dout << "input PDU message has wrong type (not u8)" << std::endl;
+        return;
+    }
+    if(pmt::blob_length(vec) != 13) {  // 8 data + 4 offset chars(ABCD) + n_errors
+        dout << "input PDU message has wrong size ("
+            << pmt::blob_length(vec) << ")" << std::endl;
+        return;
+    }
+    if(send_extra)
+    send_extra();
 
-	unsigned char *bytes = (unsigned char *)pmt::blob_data(vec);
-	unsigned int group[4];
-	group[0] = bytes[1] | (((unsigned int)(bytes[0])) << 8U);
-	group[1] = bytes[3] | (((unsigned int)(bytes[2])) << 8U);
-	group[2] = bytes[5] | (((unsigned int)(bytes[4])) << 8U);
-	group[3] = bytes[7] | (((unsigned int)(bytes[6])) << 8U);
+    unsigned char *bytes = (unsigned char *)pmt::blob_data(vec);
+    unsigned int group[4];
+    group[0] = bytes[1] | (((unsigned int)(bytes[0])) << 8U);
+    group[1] = bytes[3] | (((unsigned int)(bytes[2])) << 8U);
+    group[2] = bytes[5] | (((unsigned int)(bytes[4])) << 8U);
+    group[3] = bytes[7] | (((unsigned int)(bytes[6])) << 8U);
 
-	// TODO: verify offset chars are one of: "ABCD", "ABcD", "EEEE" (in US)
+	offset_chars[0] = bytes[8];
+	offset_chars[1] = bytes[9];
+	offset_chars[2] = bytes[10];
+	offset_chars[3] = bytes[11];
+	if(offset_chars[0]!='?')
+        d_bit_errors = bytes[12];
+    if(bytes[12] >= 127)
+        return;
 
-	unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
-	bool ab = (group[1] >> 11 ) & 0x1;
+    unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
+    bool ab = (group[1] >> 11 ) & 0x1;
 
-	lout << std::setfill('0') << std::setw(2) << group_type << (ab ? 'B' : 'A') << " ";
-	lout << "(" << rds_group_acronyms[group_type] << ")";
+    lout << std::setfill('0') << std::setw(2) << group_type << (ab ? 'B' : 'A') << " ";
+    lout << "(" << rds_group_acronyms[group_type] << ")";
+    {
+        gr::thread::scoped_lock lock(d_mutex);
 
-	program_identification = group[0];     // "PI"
-	program_type = (group[1] >> 5) & 0x1f; // "PTY"
-	int pi_country_identification = (program_identification >> 12) & 0xf;
-	int pi_area_coverage = (program_identification >> 8) & 0xf;
-	unsigned char pi_program_reference_number = program_identification & 0xff;
-	std::stringstream pistring;
-	pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
-	send_message(PI, pistring.str());
-	send_message(PTY, pty_table[program_type][pty_locale]);
+        bool good_block0=false;
+        if(offset_chars[0] == 'A')
+            good_block0 = true;
+        if(offset_chars[0] == 'F')
+        {
+            d_bit_errors = 0;
+            good_block0 = true;
+        }
+        if(good_block0)
+            program_identification = group[0];     // "PI"
+        if(offset_chars[1] != 'x')
+            program_type = (group[1] >> 5) & 0x1f; // "PTY"
+        int pi_country_identification = (program_identification >> 12) & 0xf;
+        int pi_area_coverage = (program_identification >> 8) & 0xf;
+        unsigned char pi_program_reference_number = program_identification & 0xff;
+        std::stringstream pistring;
+        if(program_identification<=0xffff)
+            pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
+        if(good_block0)
+            if((d_best_errors >= d_bit_errors)||(d_best_pi != pistring.str()))
+            {
+                d_best_errors = d_bit_errors;
+                d_best_pi = pistring.str();
+            }
+        if(d_best_errors < 128)
+            pistring<<std::dec<<std::setw(0)<<" ("<<d_best_pi<<"/"<<d_best_errors<<")";
+        if(offset_chars[0] == '?')
+            pistring << " " << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << group[0]
+                     << "?["<< std::dec << std::setw(0)<<group[1]<<"]" ;
+        if(offset_chars[0] != 'x')
+            send_message(PI, pistring.str());
+        changed_value(C_RDS_BIT_ERRORS, d_index, d_bit_errors);
+        if(offset_chars[1] != 'x')
+            send_message(PTY, pty_table[program_type][pty_locale]);
 
-	lout << " - PI:" << pistring.str() << " - " << "PTY:" << pty_table[program_type][pty_locale];
-	lout << " (country:" << pi_country_codes[pi_country_identification - 1][0];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][1];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][2];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][3];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][4];
-	lout << ", area:" << coverage_area_codes[pi_area_coverage];
-	lout << ", program:" << int(pi_program_reference_number) << ")" << std::endl;
+        lout << " - PI:" << pistring.str() << " - " << "PTY:" << pty_table[program_type][pty_locale];
+        lout << " (country:" << pi_country_codes[pi_country_identification - 1][0];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][1];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][2];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][3];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][4];
+        lout << ", area:" << coverage_area_codes[pi_area_coverage];
+        lout << ", program:" << int(pi_program_reference_number) << ")" << std::endl;
 
-	switch (group_type) {
-		case 0:
-			decode_type0(group, ab);
-			break;
-		case 1:
-			decode_type1(group, ab);
-			break;
-		case 2:
-			decode_type2(group, ab);
-			break;
-		case 3:
-			decode_type3(group, ab);
-			break;
-		case 4:
-			decode_type4(group, ab);
-			break;
-		case 5:
-			decode_type5(group, ab);
-			break;
-		case 6:
-			decode_type6(group, ab);
-			break;
-		case 7:
-			decode_type7(group, ab);
-			break;
-		case 8:
-			decode_type8(group, ab);
-			break;
-		case 9:
-			decode_type9(group, ab);
-			break;
-		case 10:
-			decode_type10(group, ab);
-			break;
-		case 11:
-			decode_type11(group, ab);
-			break;
-		case 12:
-			decode_type12(group, ab);
-			break;
-		case 13:
-			decode_type13(group, ab);
-			break;
-		case 14:
-			decode_type14(group, ab);
-			break;
-		case 15:
-			decode_type15(group, ab);
-			break;
-	}
-
+        if(offset_chars[1] != 'x')
+            switch (group_type) {
+                case 0:
+                    decode_type0(group, ab);
+                    break;
+                case 1:
+                    decode_type1(group, ab);
+                    break;
+                case 2:
+                    decode_type2(group, ab);
+                    break;
+                case 3:
+                    decode_type3(group, ab);
+                    break;
+                case 4:
+                    decode_type4(group, ab);
+                    break;
+                case 5:
+                    decode_type5(group, ab);
+                    break;
+                case 6:
+                    decode_type6(group, ab);
+                    break;
+                case 7:
+                    decode_type7(group, ab);
+                    break;
+                case 8:
+                    decode_type8(group, ab);
+                    break;
+                case 9:
+                    decode_type9(group, ab);
+                    break;
+                case 10:
+                    decode_type10(group, ab);
+                    break;
+                case 11:
+                    decode_type11(group, ab);
+                    break;
+                case 12:
+                    decode_type12(group, ab);
+                    break;
+                case 13:
+                    decode_type13(group, ab);
+                    break;
+                case 14:
+                    decode_type14(group, ab);
+                    break;
+                case 15:
+                    decode_type15(group, ab);
+                    break;
+            }
+    }
 	#define HEX(a) std::hex << std::setfill('0') << std::setw(4) << long(a) << std::dec
 	for(int i = 0; i < 4; i++) {
 		dout << "  " << HEX(group[i]);
@@ -723,4 +810,7 @@ void parser_impl::clear()
     changed_value(C_RDS_RADIOTEXT, d_index, "");
     changed_value(C_RDS_CLOCKTIME, d_index, "");
     changed_value(C_RDS_ALTFREQ, d_index, "");
+    changed_value(C_RDS_BIT_ERRORS, d_index, 0);
+    changed_value(C_RDS_CL_FREQ, d_index, 0.);
+    program_identification=0xffffffff;
 }

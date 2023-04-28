@@ -19,6 +19,7 @@
 
 #include "dsp/rds/api.h"
 #include <gnuradio/block.h>
+#include <functional>
 
 namespace gr {
 namespace rds {
@@ -40,14 +41,17 @@ public:
         RT,
         CLOCK,
         AF,
-        MSG_IDS_COUNT
+        MSG_IDS_COUNT,
     };
 	static sptr make(bool log, bool debug, unsigned char pty_locale);
 
 	virtual void reset() = 0;
     virtual void clear() = 0;
     virtual void set_index(int index) = 0;
+    virtual void set_RT_keep(bool keep) = 0;
     virtual std::string & get_last(int index) = 0;
+    virtual int get_n_errors() = 0;
+    std::function< void() > send_extra;
 };
 
 } // namespace rds

@@ -218,7 +218,23 @@ enum c_id
     C_RDS_CLOCKTIME,
     C_RDS_ALTFREQ,
     C_RDS_FLAGS,
-    
+    C_RDS_BIT_ERRORS,
+    C_RDS_CL_FREQ,
+    C_RDS_CR_OMEGA,
+    C_RDS_GOMEGA,
+    C_RDS_CR_MU,
+    C_RDS_GMU,
+    C_RDS_FXFF_BW,
+    C_RDS_FXFF_TW,
+    C_RDS_OMEGA_LIM,
+    C_RDS_DLL_BW,
+    C_RDS_CL_BW,
+    C_RDS_PHASE_SNR,
+    C_RDS_CL_LIM,
+    C_RDS_INTEGR_PS_DIST,
+    C_RDS_INTEGR_PI,
+    C_RDS_INTEGR_PS,
+
     C_COUNT
 };
 
