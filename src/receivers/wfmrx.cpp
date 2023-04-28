@@ -45,7 +45,7 @@ wfmrx::wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sp
 
     /* create rds blocks but dont connect them */
     rds = make_rx_rds((double)WFM_PREF_QUAD_RATE);
-    rds_decoder = gr::rds::decoder::make(0, 0);
+    rds_decoder = gr::rds::decoder::make();
     rds_parser = gr::rds::parser::make(0, 0, 0);
 
     connect_default();
@@ -190,6 +190,7 @@ void wfmrx::set_index(int index)
 {
     receiver_base_cf::set_index(index);
     rds_parser->set_index(index);
+    rds->set_index(index);
 }
 
 void wfmrx::start_rds_decoder()
@@ -198,7 +199,12 @@ void wfmrx::start_rds_decoder()
     connect(demod_fm, 0, rds, 0);
     connect(rds, 0, rds_decoder, 0);
     msg_connect(rds_decoder, "out", rds_parser, "in");
+    rds_parser->send_extra=[=]()
+    {
+        rds->trig();
+    };
     unlock();
+    rds_decoder->reset();
     rds_parser->reset();
 }
 
@@ -208,8 +214,9 @@ void wfmrx::stop_rds_decoder()
     disconnect(demod_fm, 0, rds, 0);
     disconnect(rds, 0, rds_decoder, 0);
     msg_disconnect(rds_decoder, "out", rds_parser, "in");
-    rds_parser->clear();
+    rds_parser->send_extra=nullptr;
     unlock();
+    rds_parser->clear();
 }
 
 bool wfmrx::set_wfm_raw(const c_def::v_union & v)
@@ -276,3 +283,100 @@ bool wfmrx::get_rds_af(c_def::v_union &to) const
     to=rds_parser->get_last(gr::rds::parser::AF);
     return true;
 }
+
+bool wfmrx::get_rds_errors(c_def::v_union &to) const
+{
+    to=rds_parser->get_n_errors();
+    return true;
+}
+
+bool wfmrx::get_rds_cl_freq(c_def::v_union &to) const
+{
+    to=0.;
+    return true;
+}
+
+bool wfmrx::get_rds_phase_snr(c_def::v_union &to) const
+{
+    to=rds->phase_snr();
+    return true;
+}
+
+bool wfmrx::set_rds_gmu(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_gmu(v);
+    rds->set_gain_mu(powf(10.f, v));
+    return true;
+}
+
+bool wfmrx::set_rds_gomega(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_gomega(v);
+    rds->set_gain_omega(powf(10.f, v));
+    return true;
+}
+
+bool wfmrx::set_rds_fxff_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_fxff_bw(v);
+    rds->set_fxff_bw(d_rds_fxff_bw);
+    return true;
+}
+
+bool wfmrx::set_rds_fxff_tw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_fxff_tw(v);
+    rds->set_fxff_tw(d_rds_fxff_tw);
+    return true;
+}
+
+bool wfmrx::set_rds_omega_lim(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_omega_lim(v);
+    rds->set_omega_lim(d_rds_omega_lim);
+    return true;
+}
+
+bool wfmrx::set_rds_dll_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_dll_bw(v);
+    rds->set_dll_bw(d_rds_dll_bw);
+    return true;
+}
+
+bool wfmrx::set_rds_cl_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_cl_bw(v);
+    rds->set_cl_bw(d_rds_cl_bw);
+    return true;
+}
+
+bool wfmrx::set_rds_cl_lim(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_cl_lim(v);
+    rds->set_cl_lim(d_rds_cl_lim);
+    return true;
+}
+
+bool wfmrx::set_rds_integrate_pi(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_pi(v);
+    rds_decoder->set_integrate_pi(d_rds_integrate_pi);
+    return true;
+}
+
+bool wfmrx::set_rds_integrate_ps(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_ps(v);
+    rds_decoder->set_integrate_ps(d_rds_integrate_ps);
+    rds_parser->set_RT_keep(v);
+    return true;
+}
+
+bool wfmrx::set_rds_integrate_ps_dist(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_ps_dist(v);
+    rds_decoder->set_integrate_ps_dist(d_rds_integrate_ps_dist);
+    return true;
+}
+
