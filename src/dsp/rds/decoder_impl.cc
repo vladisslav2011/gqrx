@@ -231,7 +231,7 @@ int decoder_impl::work (int noutput_items,
             errors[2]+=locator[s^offset_word[1]].w;
             errors[3]+=locator[s^offset_word[0]].w;
             errors[4]+=locator[s^offset_word[3]].w;
-            #if 1
+            #if 0
             s=calc_syndrome(group[4]>>10,16)^(group[4]&0x3ff);
             locators[4]=locator[s^offset_word[0]].l;
             errors[0]+=locator[s^offset_word[0]].w;
@@ -242,10 +242,17 @@ int decoder_impl::work (int noutput_items,
             if(((group[0]>>10)^locators[0]) != ((group[4]>>10)^locators[4]))
                 continue;
             #endif
-            if(std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])
+            if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
                 continue;
-            if(errors[0] > 15)
+            if((errors[0] > 4)&&(d_state!=SYNC))
                 continue;
+            else
+                d_state = SYNC;
+            if((errors[0] > 15)&&(d_state==SYNC))
+            {
+                d_state=NO_SYNC;
+                continue;
+            }
             int bit_errors=
                 __builtin_popcount(locators[0])+__builtin_popcount(locators[1])+__builtin_popcount(locators[2])+__builtin_popcount(locators[3]);
 //            if(bit_errors>5)
