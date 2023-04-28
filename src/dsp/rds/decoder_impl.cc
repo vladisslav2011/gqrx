@@ -42,7 +42,7 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
         for(j=0;j<10;j++)
             tmp[p^(1<<j)]={e,2};
     }
-    if(0)
+    if(1)
     for(k=0;k<10;k++)
     {
         uint32_t p=calc_syndrome(b,16)^(1<<k);
@@ -56,9 +56,9 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
             uint32_t p=calc_syndrome(b,16)^calc_syndrome(b^e,16);
             tmp[p]={e,2};
         }
-    if(1)
-    for(j=3;j<6;j++)
-//    for(j=3;j<4;j++)
+    if(0)
+//    for(j=3;j<6;j++)
+    for(j=3;j<4;j++)
         for(k=0;k<17-j;k++)
         {
             uint16_t e=(((1<<j)-1)<<k)&((1<<16)-1);
@@ -184,6 +184,7 @@ int decoder_impl::work (int noutput_items,
         group[3]=((group[3]<<1)|(group[4]>>25))&((1<<26)-1);
         group[4]=((group[4]<<1)|in[i])&((1<<26)-1);
         uint16_t locators[5]={0,0,0,0,0};
+        uint16_t errors[5]={0,0,0,0,0};
         ++i;
         if(bit_counter<26*5)
             ++bit_counter;
@@ -193,66 +194,58 @@ int decoder_impl::work (int noutput_items,
             uint16_t w;
             s=calc_syndrome(group[0]>>10,16)^(group[0]&0x3ff);
             locators[0]=locator[s^offset_word[0]].l;
-            w=locator[s^offset_word[0]].w;
-            if(   (0xffff==locators[0])
-                ||(w > locator[s^offset_word[1]].w)
-                ||(w > locator[s^offset_word[2]].w)
-                ||(w > locator[s^offset_word[3]].w)
-                ||(w > locator[s^offset_word[4]].w)
-            )
-                continue;
+            errors[0]+=locator[s^offset_word[0]].w;
+            errors[1]+=locator[s^offset_word[3]].w;
+            errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
+            errors[3]+=locator[s^offset_word[1]].w;
+            errors[4]+=locator[s^offset_word[0]].w;
+
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
-            w=locator[s^offset_word[1]].w;
-            if(   (0xffff==locators[1])
-                ||(w > locator[s^offset_word[0]].w)
-                ||(w > locator[s^offset_word[2]].w)
-                ||(w > locator[s^offset_word[3]].w)
-                ||(w > locator[s^offset_word[4]].w)
-            )
-                continue;
+            errors[0]+=locator[s^offset_word[1]].w;
+            errors[1]+=locator[s^offset_word[0]].w;
+            errors[2]+=locator[s^offset_word[3]].w;
+            errors[3]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
+            errors[4]+=locator[s^offset_word[1]].w;
+
             s=calc_syndrome(group[2]>>10,16)^(group[2]&0x3ff);
             locators[2]=locator[s^offset_word[2]].l;
             w=locator[s^offset_word[2]].w;
             offset_chars[2]='C';
-            if(   (0xffff==locators[2])
-                ||(w > locator[s^offset_word[0]].w)
-                ||(w > locator[s^offset_word[1]].w)
-                ||(w > locator[s^offset_word[3]].w)
-            )
+            if(w > locator[s^offset_word[4]].w)
             {
-                if(w > locator[s^offset_word[4]].w)
-                {
-                    s=calc_syndrome(group[2]>>10,16)^(group[2]&0x3ff);
-                    locators[2]=locator[s^offset_word[4]].l;
-                    offset_chars[2]='c';
-                }else
-                    continue;
+                offset_chars[2]='c';
+                w=locator[s^offset_word[4]].w;
+                locators[2]=locator[s^offset_word[4]].l;
             }
+            errors[0]+=w;
+            errors[1]+=locator[s^offset_word[1]].w;
+            errors[2]+=locator[s^offset_word[0]].w;
+            errors[3]+=locator[s^offset_word[3]].w;
+            errors[4]+=w;
+
             s=calc_syndrome(group[3]>>10,16)^(group[3]&0x3ff);
             locators[3]=locator[s^offset_word[3]].l;
-            w=locator[s^offset_word[3]].w;
-            if(   (0xffff==locators[3])
-                ||(w > locator[s^offset_word[0]].w)
-                ||(w > locator[s^offset_word[1]].w)
-                ||(w > locator[s^offset_word[2]].w)
-                ||(w > locator[s^offset_word[4]].w)
-            )
-                continue;
+            errors[0]+=locator[s^offset_word[3]].w;
+            errors[1]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
+            errors[2]+=locator[s^offset_word[1]].w;
+            errors[3]+=locator[s^offset_word[0]].w;
+            errors[4]+=locator[s^offset_word[3]].w;
             #if 1
             s=calc_syndrome(group[4]>>10,16)^(group[4]&0x3ff);
             locators[4]=locator[s^offset_word[0]].l;
-            w=locator[s^offset_word[0]].w;
-            if(   (0xffff==locators[4])
-                ||(w > locator[s^offset_word[1]].w)
-                ||(w > locator[s^offset_word[2]].w)
-                ||(w > locator[s^offset_word[3]].w)
-                ||(w > locator[s^offset_word[4]].w)
-            )
-                continue;
+            errors[0]+=locator[s^offset_word[0]].w;
+            errors[1]+=locator[s^offset_word[3]].w;
+            errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
+            errors[3]+=locator[s^offset_word[1]].w;
+            errors[4]+=locator[s^offset_word[0]].w;
             if(((group[0]>>10)^locators[0]) != ((group[4]>>10)^locators[4]))
                 continue;
             #endif
+            if(std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])
+                continue;
+            if(errors[0] > 15)
+                continue;
             int bit_errors=
                 __builtin_popcount(locators[0])+__builtin_popcount(locators[1])+__builtin_popcount(locators[2])+__builtin_popcount(locators[3]);
 //            if(bit_errors>5)
