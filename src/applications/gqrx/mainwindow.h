@@ -219,6 +219,7 @@ private slots:
     void stopIqRecording();
     void startIqPlayback(const QString& filename, float samprate,
                          qint64 center_freq, file_formats fmt,
+                         qint64 time_ms,
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);

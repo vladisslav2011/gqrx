@@ -29,6 +29,7 @@
 #include <QString>
 #include <QStringList>
 #include <QScrollBar>
+#include <QDateTime>
 
 #include <math.h>
 
@@ -51,6 +52,7 @@ CIqTool::CIqTool(QWidget *parent) :
     sample_rate = 192000;
     rec_len = 0;
     center_freq = 1e8;
+    time_ms = 0;
 
     recdir = new QDir(QDir::homePath(), "*.raw");
     recdir->setNameFilters(recdir->nameFilters() << "*.sigmf-data");
@@ -173,7 +175,7 @@ void CIqTool::on_playButton_clicked(bool checked)
 
             emit startPlayback(recdir->absoluteFilePath(current_file),
                                (float)sample_rate, center_freq, fmt,
-                               ui->buffersSpinBox->value(),
+                               time_ms, ui->buffersSpinBox->value(),
                                ui->repeat->checkState() == Qt::Checked);
         }
     }
@@ -469,7 +471,9 @@ void CIqTool::parseFileName(const QString &filename)
     if (list.size() < 5)
         return;
 
-    // gqrx_yymmdd_hhmmss_freq_samprate_fc.raw
+    // gqrx_yyyyMMdd_hhmmss_freq_samprate_fc.raw
+    QDateTime ts = QDateTime::fromString(list.at(1) + list.at(2), "yyyyMMddhhmmss");
+    time_ms = ts.toMSecsSinceEpoch();
     sr = list.at(4).toLongLong(&sr_ok);
     center = list.at(3).toLongLong(&center_ok);
 
