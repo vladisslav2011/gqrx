@@ -26,7 +26,6 @@
 #include <QTextStream>
 #include <QString>
 #include <QSet>
-#include <QTimer>
 #include <algorithm>
 #include "dxc_spots.h"
 #include <stdio.h>
@@ -57,8 +56,7 @@ void DXCSpots::add(DXCSpotInfo &info)
         m_DXCSpotList.removeAt(m_DXCSpotList.indexOf(info));
     m_DXCSpotList.append(info);
     std::stable_sort(m_DXCSpotList.begin(),m_DXCSpotList.end());
-    emit( dxcSpotsUpdated() );
-    QTimer::singleShot(m_DXCSpotTimeout, this, SLOT(checkSpotTimeout()));
+    emit( dxcSpotsChanged() );
 }
 
 void DXCSpots::checkSpotTimeout()
@@ -73,7 +71,7 @@ void DXCSpots::checkSpotTimeout()
         }
     }
     std::stable_sort(m_DXCSpotList.begin(),m_DXCSpotList.end());
-    emit( dxcSpotsUpdated() );
+    emit( dxcSpotsChanged() );
 }
 
 QList<DXCSpotInfo> DXCSpots::getDXCSpotsInRange(qint64 low, qint64 high)

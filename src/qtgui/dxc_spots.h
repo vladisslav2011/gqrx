@@ -71,6 +71,7 @@ public:
 
     void add(DXCSpotInfo& info);
     void setSpotTimeout(int i) { m_DXCSpotTimeout = std::chrono::seconds(i * 60); }
+    void checkSpotTimeout();
     DXCSpotInfo& getDXCSpot(int i) { return m_DXCSpotList[i]; }
     QList<DXCSpotInfo> getDXCSpotsInRange(qint64 low, qint64 high);
 
@@ -80,11 +81,8 @@ private:
     std::chrono::seconds m_DXCSpotTimeout;
     static DXCSpots* m_pThis;
 
-private slots:
-    void checkSpotTimeout(void);
-
 signals:
-    void dxcSpotsUpdated(void);
+    void dxcSpotsChanged(void);
 };
 
 #endif // DXC_SPOTS_H
