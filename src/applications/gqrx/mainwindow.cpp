@@ -350,8 +350,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     // I/Q playback
     connect(iq_tool, SIGNAL(startRecording(QString, enum receiver::file_formats, int)), this, SLOT(startIqRecording(QString, enum receiver::file_formats, int)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)),
-                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, int, bool)));
+    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)),
+                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
 
@@ -858,7 +858,7 @@ void MainWindow::storeSession()
             else
                 m_settings->remove("amsync_dcr");
 
-            int_val = qRound(rx->get_amsync_pll_bw() * 1.0e6);
+            int_val = qRound(rx->get_amsync_pll_bw() * 1.0e6f);
             if (int_val != 1000)
                 m_settings->setValue("amsync_pllbw", int_val);
             else
@@ -1307,7 +1307,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     auto delta_freq = d_hw_freq;
     QList<BookmarkInfo> bml;
     auto max_offset = rx->get_input_rate() / 2;
-    bool update_offset = rx->is_playing_iq();
+    bool update_offset = rx->is_playing_iq() | rx->is_recording_iq();
 
     rx->set_rf_freq(hw_freq);
     d_hw_freq = d_ignore_limits ? hw_freq : (qint64)rx->get_rf_freq();
@@ -2138,6 +2138,7 @@ void MainWindow::meterTimeout()
 void MainWindow::iqFftTimeout()
 {
     const unsigned int fftsize = rx->iq_fft_size();
+    qint64 fft_approx_timestamp;
 
     if (fftsize == 0)
     {
@@ -2169,20 +2170,23 @@ void MainWindow::iqFftTimeout()
     d_last_fft_ms = now_ms;
 
     rx->get_iq_fft_data(d_iqFftData.data());
+    fft_approx_timestamp = rx->is_playing_iq() ? rx->get_filesource_timestamp_ms() : QDateTime::currentMSecsSinceEpoch();
 
-    ui->plotter->setNewFftData(d_iqFftData.data(), fftsize);
+    ui->plotter->setNewFftData(d_iqFftData.data(), fftsize, fft_approx_timestamp);
 }
 
 /** Audio FFT plot timeout. */
 void MainWindow::audioFftTimeout()
 {
     unsigned int fftsize;
+    qint64 fft_approx_timestamp;
 
+    fft_approx_timestamp = rx->is_playing_iq() ? rx->get_filesource_timestamp_ms() : QDateTime::currentMSecsSinceEpoch();
     if(uiDockProbe->isVisible())
     {
         rx->get_probe_fft_data(d_probeFftData.data(), fftsize);
         if (fftsize > 0)
-            uiDockProbe->setNewFftData(d_probeFftData.data(), fftsize);
+            uiDockProbe->setNewFftData(d_probeFftData.data(), fftsize, fft_approx_timestamp);
     }
 
     fftsize = rx->audio_fft_size();
@@ -2198,7 +2202,7 @@ void MainWindow::audioFftTimeout()
 
     rx->get_audio_fft_data(d_audioFftData.data());
 
-    uiDockAudio->setNewFftData(d_audioFftData.data(), fftsize);
+    uiDockAudio->setNewFftData(d_audioFftData.data(), fftsize, fft_approx_timestamp);
 }
 
 /** RDS message display timeout. */
@@ -2451,6 +2455,7 @@ void MainWindow::stopIqRecording()
 void MainWindow::startIqPlayback(const QString& filename, float samprate,
                                  qint64 center_freq,
                                  enum receiver::file_formats fmt,
+                                 qint64 time_ms,
                                  int buffers_max, bool repeat)
 {
     if (ui->actionDSP->isChecked())
@@ -2472,7 +2477,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
 
     rx->set_input_device(devstr.toStdString());
     updateHWFrequencyRange(false);
-    rx->set_input_file(filename.toStdString(), samprate, fmt, buffers_max, repeat);
+    rx->set_input_file(filename.toStdString(), samprate, fmt, time_ms, buffers_max, repeat);
 
     // sample rate
     auto actual_rate = rx->set_input_rate((double)samprate);

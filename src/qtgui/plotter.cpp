@@ -168,6 +168,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent)
     tlast_plot_drawn_ms = 0;
     tlast_wf_drawn_ms = 0;
     wf_valid_since_ms = 0;
+    tnow_wf_ms = 0;
     msec_per_wfline = 0;
     tlast_peaks_ms = 0;
     wf_epoch = 0;
@@ -369,21 +370,18 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
         }
         if (m_TooltipsEnabled)
         {
-            const quint64 line_ms = msecFromY(py);
             QString timeStr;
-            if (line_ms >= wf_valid_since_ms)
-            {
-                QDateTime tt;
-                tt.setMSecsSinceEpoch(msecFromY(py));
-                timeStr = tt.toString("yyyy.MM.dd hh:mm:ss.zzz");
-            }
-            else{
-                timeStr = "[time not valid]";
-            }
+            QDateTime tt;
+            qint64 ts;
+            qint64 freq;
+            tsFreqFromWfXY(pt.x(), pt.y(), ts, freq);
+            tt.setMSecsSinceEpoch(ts);
+
+            timeStr = tt.toString("yyyy.MM.dd hh:mm:ss.zzz");
 
             showToolTip(event, QString("%1\n%2 kHz")
                                        .arg(timeStr)
-                                       .arg(freqFromX(px)/1.e3, 0, 'f', 3));
+                                       .arg(freq/1.e3, 0, 'f', 3));
         }
     }
     // process mouse moves while in cursor capture modes
@@ -1604,6 +1602,10 @@ void CPlotter::draw(bool newData)
 
             // move current data down one line(must do before attaching a QPainter object)
             m_WaterfallPixmap.scroll(0, 1, m_WaterfallPixmap.rect());
+            m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
+            int h = m_OverlayPixmap.height();
+            while(h < m_wfLineStats.size())
+                m_wfLineStats.removeLast();
 
             QPainter painter1(&m_WaterfallPixmap);
 
@@ -1969,6 +1971,7 @@ void CPlotter::setRunningState(bool running)
         m_histMaxIIR = std::numeric_limits<float>::min();
 
     }
+    tnow_wf_ms = QDateTime::currentMSecsSinceEpoch();
 
     m_Running = running;
 }
@@ -1981,10 +1984,13 @@ void CPlotter::setRunningState(bool running)
  * When FFT data is set using this method, the same data will be used for both the
  * pandapter and the waterfall.
  */
-void CPlotter::setNewFftData(const float *fftData, int size)
+void CPlotter::setNewFftData(const float *fftData, int size, qint64 ts)
 {
     // Make sure zeros don't get through to log calcs
     const float fmin = 1e-20;
+    tnow_wf_ms = ts;
+    if(tnow_wf_ms < tlast_wf_ms)
+        tlast_wf_ms = tnow_wf_ms;
 
     if (size != m_fftDataSize)
     {
@@ -2501,21 +2507,33 @@ qint64 CPlotter::freqFromX(int x)
     return f;
 }
 
-/** Calculate time offset of a given line on the waterfall */
-quint64 CPlotter::msecFromY(int y)
+// Convert from screen coordinate to timestamp and frequency
+void CPlotter::tsFreqFromWfXY(int x, int y, qint64 &ts, qint64 &freq)
 {
     int h = m_OverlayPixmap.height();
 
     // ensure we are in the waterfall region
     if (y < h)
-        return 0;
+    {
+        ts=0;
+        freq=0;
+        return;
+    }
 
+    if(m_wfLineStats.size()==0)
+    {
+        ts=0;
+        freq=0;
+        return;
+    }
     qreal dy = (qreal)y - (qreal)h;
 
-    if (msec_per_wfline > 0)
-        return tlast_wf_drawn_ms - dy * msec_per_wfline;
-    else
-        return tlast_wf_drawn_ms - dy * getWfTimeRes();
+    double ratio = (double)x / (double)width();
+    if(dy>=m_wfLineStats.size())
+        dy=m_wfLineStats.size() - 1;
+    const wfLineStats &line = m_wfLineStats[dy];
+    freq = (line.center - line.span / 2) + ratio * line.span;
+    ts = line.ts;
 }
 
 // Round frequency to click resolution value

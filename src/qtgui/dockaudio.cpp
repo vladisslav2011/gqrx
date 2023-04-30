@@ -109,9 +109,9 @@ void DockAudio::setFftRange(quint64 minf, quint64 maxf)
     }
 }
 
-void DockAudio::setNewFftData(float *fftData, int size)
+void DockAudio::setNewFftData(float *fftData, int size, qint64 ts)
 {
-    ui->audioSpectrum->setNewFftData(fftData, size);
+    ui->audioSpectrum->setNewFftData(fftData, size, ts);
 }
 
 void DockAudio::setInvertScrolling(bool enabled)

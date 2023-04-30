@@ -89,9 +89,9 @@ void DockProbe::updateCenter()
     ui->spectrum->setSpanFreq(m_sampleRate/m_decim);
 }
 
-void DockProbe::setNewFftData(float *fftData, int size)
+void DockProbe::setNewFftData(float *fftData, int size, qint64 ts)
 {
-    ui->spectrum->setNewFftData(fftData, size);
+    ui->spectrum->setNewFftData(fftData, size, ts);
 }
 
 void DockProbe::setInvertScrolling(bool enabled)

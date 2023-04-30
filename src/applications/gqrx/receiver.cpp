@@ -120,7 +120,7 @@ receiver::receiver(const std::string input_device,
                                                    std::placeholders::_2,
                                                    std::placeholders::_3));
 
-    input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,1);
+    input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,0,1);
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex),192000.0);
 
     to_s32lc = any_to_any<gr_complex,std::complex<int32_t>>::make();
@@ -278,14 +278,14 @@ void receiver::set_input_device(const std::string device)
  * @param fmt
  */
 void receiver::set_input_file(const std::string name, const int sample_rate,
-                              const enum file_formats fmt, int buffers_max,
-                              bool repeat)
+                              const enum file_formats fmt, uint64_t time_ms,
+                              int buffers_max, bool repeat)
 {
     std::string error = "";
     size_t sample_size = sample_size_from_format(fmt);
 
     input_file = file_source::make(sample_size, name.c_str(), 0, 0, sample_rate,
-                                   repeat,buffers_max);
+                                   time_ms, repeat, buffers_max);
 
     if (d_running)
     {
@@ -2018,8 +2018,6 @@ receiver::status receiver::seek_iq_file(long pos)
 {
     receiver::status status = STATUS_OK;
 
-    tb->lock();
-
     if (input_file->seek(pos, SEEK_SET))
     {
         status = STATUS_OK;
@@ -2028,8 +2026,6 @@ receiver::status receiver::seek_iq_file(long pos)
     {
         status = STATUS_ERROR;
     }
-
-    tb->unlock();
 
     return status;
 }
@@ -2364,6 +2360,11 @@ int receiver::sample_size_from_format(enum file_formats fmt)
     }
     throw std::runtime_error("receiver::sample_size_from_format: Invalid format requested");
     return 0;
+}
+
+uint64_t receiver::get_filesource_timestamp_ms()
+{
+    return input_file->get_timestamp_ms();
 }
 
 std::string receiver::escape_filename(std::string filename)

@@ -136,8 +136,8 @@ public:
     void        set_input_device(const std::string device);
     void        set_output_device(const std::string device);
     void        set_input_file(const std::string name, const int sample_rate,
-                               const enum file_formats fmt, int buffers_max,
-                               bool repeat);
+                               const enum file_formats fmt, uint64_t time_ms,
+                               int buffers_max, bool repeat);
 
     std::vector<std::string> get_antennas(void) const;
     void        set_antenna(const std::string &antenna);
@@ -310,7 +310,8 @@ public:
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
-    bool        is_playing_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
+    bool        is_playing_iq() { return d_last_format != FILE_FORMAT_NONE; }
+    bool        is_recording_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
 
     /* sample sniffer */
     status      start_sniffer(unsigned int samplrate, int buffsize);
@@ -334,6 +335,7 @@ public:
     {
         d_audio_rec_event_handler = handler;
     }
+    uint64_t get_filesource_timestamp_ms();
 
 private:
     void        connect_all(enum file_formats fmt);

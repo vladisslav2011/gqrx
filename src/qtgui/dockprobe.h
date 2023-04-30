@@ -40,7 +40,7 @@ public:
     explicit DockProbe(QWidget *parent = 0);
     ~DockProbe();
 
-    void setNewFftData(float *fftData, int size);
+    void setNewFftData(float *fftData, int size, qint64 ts);
     void setInvertScrolling(bool enabled);
     void setFftColor(QColor color);
     void setFftFill(bool enabled);

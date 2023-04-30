@@ -50,6 +50,7 @@ public:
     void setDXCSpotsEnabled(bool enabled) { m_DXCSpotsEnabled = enabled; }
 
     void setNewFftData(const float *fftData, int size);
+    void setNewFftData(const float *fftData, int size, qint64 ts);
 
     void setCenterFreq(quint64 f);
     void setFreqUnits(qint32 unit) { m_FreqUnits = unit; }
@@ -225,6 +226,18 @@ private:
         MARKER_A,
         MARKER_B
     };
+    struct wfLineStats
+    {
+        qint64 ts{0};     // timestamp ms
+        qint64 center{0}; // FFT center
+        qint64 span{0};   // FFT span
+        wfLineStats(qint64 n_ts,qint64 n_center,qint64 n_span)
+        {
+            ts=n_ts;
+            center=n_center;
+            span=n_span;
+        }
+    };
 
     void        drawOverlay();
     void        drawVfo(QPainter &painter, const int demodFreqX,
@@ -233,9 +246,9 @@ private:
     void        makeFrequencyStrs();
     int         xFromFreq(qint64 freq);
     qint64      freqFromX(int x);
+    void        tsFreqFromWfXY(int x, int y, qint64 &ts, qint64 &freq);
     void        zoomStepX(float factor, int x);
     static qint64      roundFreq(qint64 freq, int resolution);
-    quint64     msecFromY(int y);
     void        clampDemodParameters();
     static bool        isPointCloseTo(int x, int xr, int delta)
     {
@@ -267,6 +280,7 @@ private:
     float       m_fftMinHoldBuf[MAX_SCREENSIZE]{};
     float       m_peakSmoothBuf[MAX_SCREENSIZE]{}; // used in peak detection
     float      *m_wfData{};
+    QList<wfLineStats> m_wfLineStats;
     int         m_fftDataSize{};
 
     qreal       m_XAxisYCenter{};
@@ -368,6 +382,7 @@ private:
     quint64     wf_count;           // waterfall lines drawn since last rate change
     quint64     wf_avg_count;       // number of frames averaged into wf buf
     quint64     tlast_peaks_ms;     // last time peaks were updated
+    quint64     tnow_wf_ms;        // time when new waterfall data has arrived
     quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
 };
