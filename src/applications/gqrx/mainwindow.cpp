@@ -1661,7 +1661,7 @@ void MainWindow::startIqRecording(const QString& recdir, const QString& format)
                 QJsonObject {
                     {"core:sample_start", 0},
                     {"core:frequency", freq},
-                    {"core:datetime", currentDate.toString(Qt::ISODateWithMs)},
+                    {"core:datetime", currentDate.toString("yyyy-MM-ddTHH:mm:ss.zzzZ")},
                 },
             }}, {"annotations", QJsonArray {}},
         }}.toJson();

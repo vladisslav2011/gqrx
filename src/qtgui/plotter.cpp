@@ -1002,7 +1002,7 @@ void CPlotter::resizeEvent(QResizeEvent* )
     if (!size().isValid())
         return;
 
-    m_DPR = devicePixelRatioF();
+    m_DPR = devicePixelRatio();
     QSize s = QSize(size().width(), size().height());
     if (m_Size != s)
     {
