@@ -120,7 +120,7 @@ receiver::receiver(const std::string input_device,
                                                    std::placeholders::_2,
                                                    std::placeholders::_3));
 
-    input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,1);
+    input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,0,1);
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex),192000.0);
 
     iq_swap = make_iq_swap_cc(false);
@@ -264,13 +264,13 @@ void receiver::set_input_device(const std::string device)
  * @param fmt
  */
 void receiver::set_input_file(const std::string name, const int sample_rate,
-                              const file_formats fmt, int buffers_max,
-                              bool repeat)
+                              const file_formats fmt, uint64_t time_ms,
+                              int buffers_max, bool repeat)
 {
     std::string error = "";
 
     input_file = file_source::make(any_to_any_base::fmt[fmt].size, name.c_str(), 0, 0, sample_rate / any_to_any_base::fmt[fmt].nsamples,
-                                   repeat, buffers_max);
+                                   time_ms, repeat, buffers_max);
 
     if (d_running)
     {
@@ -1888,8 +1888,6 @@ receiver::status receiver::seek_iq_file(long pos)
 {
     receiver::status status = STATUS_OK;
 
-    tb->lock();
-
     if (input_file->seek(pos, SEEK_SET))
     {
         status = STATUS_OK;
@@ -1898,8 +1896,6 @@ receiver::status receiver::seek_iq_file(long pos)
     {
         status = STATUS_ERROR;
     }
-
-    tb->unlock();
 
     return status;
 }
@@ -2212,6 +2208,11 @@ bool receiver::is_rds_decoder_active(void) const
 void receiver::reset_rds_parser(void)
 {
     rx[d_current]->reset_rds_parser();
+}
+
+uint64_t receiver::get_filesource_timestamp_ms()
+{
+    return input_file->get_timestamp_ms();
 }
 
 std::string receiver::escape_filename(std::string filename)

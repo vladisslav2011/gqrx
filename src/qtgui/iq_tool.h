@@ -69,7 +69,7 @@ signals:
     void stopRecording();
     void startPlayback(const QString filename, float samprate,
                        qint64 center_freq, file_formats fmt,
-                       int buffers_max, bool repeat);
+                       qint64 time_ms, int buffers_max, bool repeat);
     void stopPlayback();
     void seek(qint64 seek_pos);
 
@@ -109,6 +109,7 @@ private:
     qint64  samples_per_chunk;
     file_formats fmt;
     file_formats rec_fmt;
+    quint64 time_ms;
     qint64  sample_rate;       /*!< Current sample rate. */
     qint64  center_freq;       /*!< Center frequency. */
     qint64  rec_len;           /*!< Length of a recording in seconds */
