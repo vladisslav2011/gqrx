@@ -130,6 +130,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     // create DXC Objects
     dxc_options = new DXCOptions(this);
+    dxc_timer = new QTimer(this);
+    dxc_timer->start(1000);
 
     /* create dock widgets */
     uiDockRxOpt = new DockRxOpt();
@@ -285,7 +287,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(&Bookmarks::Get(), SIGNAL(BookmarksChanged()), ui->plotter, SLOT(updateOverlay()));
 
     //DXC Spots
-    connect(&DXCSpots::Get(), SIGNAL(dxcSpotsUpdated()), this, SLOT(updateClusterSpots()));
+    connect(&DXCSpots::Get(), SIGNAL(dxcSpotsChanged()),this , SLOT(addClusterSpot()));
+    connect(dxc_timer, SIGNAL(timeout()), this, SLOT(checkDXCSpotTimeout()));
 
     // I/Q playback
     connect(iq_tool, SIGNAL(startRecording(QString, QString)), this, SLOT(startIqRecording(QString, QString)));
@@ -377,6 +380,9 @@ MainWindow::~MainWindow()
 
     audio_fft_timer->stop();
     delete audio_fft_timer;
+
+    dxc_timer->stop();
+    delete dxc_timer;
 
     if (m_settings)
     {
@@ -2451,7 +2457,7 @@ void MainWindow::on_actionAddBookmark_triggered()
     }
 }
 
-void MainWindow::updateClusterSpots()
+void MainWindow::addClusterSpot()
 {
     ui->plotter->updateOverlay();
 }
@@ -2465,3 +2471,9 @@ void MainWindow::rxOffsetZeroShortcut()
 {
     uiDockRxOpt->setFilterOffset(0);
 }
+
+void MainWindow::checkDXCSpotTimeout()
+{
+    DXCSpots::Get().checkSpotTimeout();
+}
+

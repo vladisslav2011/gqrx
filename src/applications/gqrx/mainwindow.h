@@ -110,6 +110,7 @@ private:
     QTimer   *iq_fft_timer;
     QTimer   *audio_fft_timer;
     QTimer   *rds_timer;
+    QTimer   *dxc_timer;
 
     receiver *rx;
 
@@ -210,7 +211,7 @@ private slots:
     void onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth);
 
     /* DXC Spots */
-    void updateClusterSpots();
+    void addClusterSpot();
 
     /* menu and toolbar actions */
     void on_actionDSP_triggered(bool checked);
@@ -242,6 +243,7 @@ private slots:
     void iqFftTimeout();
     void audioFftTimeout();
     void rdsTimeout();
+    void checkDXCSpotTimeout();
 };
 
 #endif // MAINWINDOW_H
