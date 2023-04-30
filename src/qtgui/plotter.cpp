@@ -1129,7 +1129,7 @@ void CPlotter::draw()
             // move current data down one line(must do before attaching a QPainter object)
             m_WaterfallPixmap.scroll(0, 1, 0, 0, w, h);
             QPainter painter(&m_WaterfallPixmap);
-            m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
+            m_wfLineStats.prepend({tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span});
             while(h < m_wfLineStats.size())
                 m_wfLineStats.removeLast();
 
@@ -1328,12 +1328,14 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
                                 m_wfData, m_fftbuf2,
                                 &xmin, &xmax);
 
-        while(line>m_wfLineStats.size())
-            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+        const double ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
+        int linesToAdd = line - m_wfLineStats.size();
+        for(int k=0;k<linesToAdd;k++)
+            m_wfLineStats.append({qint64(ts-(linesToAdd-k)*ms_per_line), m_CenterFreq + m_FftCenter, m_Span});
         if(line == m_wfLineStats.size())
-            m_wfLineStats.append(wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span));
+            m_wfLineStats.append({ts, m_CenterFreq + m_FftCenter, m_Span});
         else
-            m_wfLineStats[line]=wfLineStats(ts, m_CenterFreq + m_FftCenter, m_Span);
+            m_wfLineStats[line]={ts, m_CenterFreq + m_FftCenter, m_Span};
         uint8_t *p = m_WaterfallLine.scanLine(0);
 
         // draw new line of fft data at top of waterfall bitmap
@@ -1412,8 +1414,9 @@ void CPlotter::scrollWaterfall(int dy)
     if(dy==0)
         return;
     std::unique_lock<std::mutex> lock(m_wf_mutex);
-    int w = m_WaterfallPixmap.width();
-    int h = m_WaterfallPixmap.height();
+    const int w = m_WaterfallPixmap.width();
+    const int h = m_WaterfallPixmap.height();
+    const double ms_per_line = (msec_per_wfline > 0) ? msec_per_wfline : (1000.0 / double(fft_rate));
     if (std::abs(dy)>=h)
         return;
     m_WaterfallPixmap.scroll(0, dy, 0, 0, w, h);
@@ -1422,16 +1425,19 @@ void CPlotter::scrollWaterfall(int dy)
     {
         for (int k = 0; k < dy; k++)
         {
-            m_wfLineStats.prepend(wfLineStats(tnow_wf_ms, m_CenterFreq + m_FftCenter, m_Span));
+            m_wfLineStats.prepend({qint64(tnow_wf_ms + k * ms_per_line), m_CenterFreq + m_FftCenter, m_Span});
         }
     }else{
-        if(m_wfLineStats.size()<-dy)
-            for (int k = 0; k < -dy; k++)
+        const int nWFLines = m_wfLineStats.size();
+        int k = 0;
+        if(nWFLines < -dy)
+        {
+            for (; k < -dy; k++)
             {
                 if(!m_wfLineStats.isEmpty())
                     m_wfLineStats.removeFirst();
             }
-        else
+        }else
             m_wfLineStats.clear();
     }
 }

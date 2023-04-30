@@ -213,12 +213,6 @@ private:
         qint64 ts{0};     // timestamp ms
         qint64 center{0}; // FFT center
         qint64 span{0};   // FFT span
-        wfLineStats(qint64 n_ts,qint64 n_center,qint64 n_span)
-        {
-            ts=n_ts;
-            center=n_center;
-            span=n_span;
-        }
     };
 
     void        drawOverlay();
@@ -340,10 +334,10 @@ private:
     qint64      m_CapturedTs;
 
     // Waterfall averaging
-    quint64     tlast_wf_ms;        // last time waterfall has been updated
-    quint64     tnow_wf_ms;        // time when new waterfall data has arrived
-    quint64     msec_per_wfline;    // milliseconds between waterfall updates
-    quint64     wf_span;            // waterfall span in milliseconds (0 = auto)
+    qint64      tlast_wf_ms;        // last time waterfall has been updated
+    qint64      tnow_wf_ms;        // time when new waterfall data has arrived
+    qint64      msec_per_wfline;    // milliseconds between waterfall updates
+    qint64      wf_span;            // waterfall span in milliseconds (0 = auto)
     int         fft_rate;           // expected FFT rate (needed when WF span is auto)
     std::mutex  m_wf_mutex;         // waterfall update mutex
     std::vector<qint32> m_pTranslateTbl;

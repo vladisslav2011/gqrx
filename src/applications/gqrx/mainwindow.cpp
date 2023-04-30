@@ -3186,7 +3186,7 @@ void MainWindow::on_actionIqTool_triggered()
     iq_tool->show();
 }
 
-/* CPlotter::NewDemodFreq() is emitted */
+/* CPlotter::seekIQ() is emitted */
 void MainWindow::on_plotter_seekIQ(qint64 ts)
 {
     struct receiver::iq_tool_stats iq_stats;
