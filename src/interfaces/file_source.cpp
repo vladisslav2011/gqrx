@@ -72,12 +72,12 @@ void file_source::reader()
             }
             if(d_seek)
             {
+                d_buffering = true;
+                p=d_rp=d_wp=d_buf.data();
                 guard.unlock();
                 d_seek_ok = (GR_FSEEK((FILE*)d_fp, d_seek_point * d_itemsize, SEEK_SET) == 0);
                 guard.lock();
                 d_seek = false;
-                d_buffering = true;
-                p=d_rp=d_wp=d_buf.data();
                 d_items_remaining = d_length_items + d_start_offset_items - d_seek_point;
                 d_eof = false;
                 continue;
@@ -156,17 +156,19 @@ file_source::sptr file_source::make(size_t itemsize,
                                     const char* filename,
                                     uint64_t start_offset_items,
                                     uint64_t length_items, int sample_rate,
+                                    uint64_t time_ms,
                                     bool repeat, int buffers_max)
 {
     return gnuradio::get_initial_sptr(new file_source(
         itemsize, filename, start_offset_items, length_items,
-        sample_rate, repeat, buffers_max));
+        sample_rate, time_ms, repeat, buffers_max));
 }
 
 file_source::file_source(size_t itemsize,
                                    const char* filename,
                                    uint64_t start_offset_items,
                                    uint64_t length_items, int sample_rate,
+                                   uint64_t time_ms,
                                    bool repeat, int buffers_max)
     : sync_block(
           "file_source", gr::io_signature::make(0, 0, 0), gr::io_signature::make(1, 1, itemsize)),
@@ -186,12 +188,14 @@ file_source::file_source(size_t itemsize,
 
     std::stringstream str;
     str << name() << unique_id();
+    d_time_ms = time_ms;
     _id = pmt::string_to_symbol(str.str());
     d_eof = false;
     d_closing = false;
     d_failed = false;
     d_seek = false;
     d_buffering = false;
+    d_sample_rate = sample_rate;
     if(buffers_max <= 0)
         buffers_max = 1;
     d_buffer_size = buffers_max * std::max(8192, sample_rate) * itemsize;
@@ -409,7 +413,7 @@ int file_source::work(int noutput_items,
             if(to_copy > d_items_remaining)
                 to_copy = d_items_remaining;
             guard.unlock();
-            if (d_file_begin && d_add_begin_tag != pmt::PMT_NIL)
+            if (d_file_begin && (d_add_begin_tag != pmt::PMT_NIL))
             {
                 add_item_tag(0,
                             nitems_written(0) + noutput_items - size,
@@ -480,3 +484,10 @@ int file_source::get_buffer_usage()
     return (d_wp >= d_rp ? d_wp - d_rp :
            d_wp + d_buffer_size - d_rp) * 100llu / d_buffer_size;
 }
+
+uint64_t file_source::get_timestamp_ms()
+{
+    std::unique_lock<std::mutex> guard(d_mutex);
+    return d_time_ms + (d_length_items - d_items_remaining) * 1000 / d_sample_rate;
+}
+
