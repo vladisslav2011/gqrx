@@ -24,6 +24,8 @@
 #define RX_FILTER_H
 
 #include <gnuradio/hier_block2.h>
+#include <gnuradio/filter/fir_filter.h>
+#include <gnuradio/sync_decimator.h>
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/filter/fir_filter_ccc.h>
@@ -76,7 +78,7 @@ rx_filter_sptr make_rx_filter(double sample_rate,
  *
  * \note In order to have proper LSB/USB, we must exchange low and high and reverse their sign
  */
-class rx_filter : public gr::hier_block2
+class rx_filter : public gr::sync_decimator
 {
 
 public:
@@ -86,9 +88,14 @@ public:
     void set_param(double low, double high, double trans_width);
     void set_cw_offset(double offset);
 
+    int work(int noutput_items,
+        gr_vector_const_void_star& input_items,
+        gr_vector_void_star& output_items) override;
 private:
     std::vector<gr_complex> d_taps;
-    gr::filter::fir_filter_ccc::sptr  d_bpf;
+    gr::filter::kernel::fir_filter_ccc d_fir;
+
+    static const int d_max_taps{16384};
 
     double d_sample_rate;
     double d_low;
