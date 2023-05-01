@@ -23,6 +23,7 @@
 #include <cmath>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/filter/firdes.h>
+#include <volk/volk.h>
 #include <iostream>
 #include <QDebug>
 #include "dsp/rx_filter.h"
@@ -43,9 +44,15 @@ rx_filter_sptr make_rx_filter(double sample_rate, double low, double high, doubl
 }
 
 rx_filter::rx_filter(double sample_rate, double low, double high, double trans_width)
-    : gr::hier_block2 ("rx_filter",
-                      gr::io_signature::make (MIN_IN, MAX_IN, sizeof (gr_complex)),
-                      gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (gr_complex))),
+    :sync_decimator("rx_filter",
+                     gr::io_signature::make(1, 1, sizeof(gr_complex)),
+                     gr::io_signature::make(1, 1, sizeof(gr_complex)),
+                     1),
+      d_fir(
+#if GNURADIO_VERSION < 0x030900
+        1,
+#endif
+        std::vector<gr_complex>({gr_complex(1.0)})),
       d_sample_rate(sample_rate),
       d_low(low),
       d_high(high),
@@ -61,11 +68,12 @@ rx_filter::rx_filter(double sample_rate, double low, double high, double trans_w
     d_taps = gr::filter::firdes::complex_band_pass(1.0, d_sample_rate, d_low, d_high, d_trans_width);
 
     /* create band pass filter */
-    d_bpf = gr::filter::fir_filter_ccc::make(1, d_taps);
+    d_fir.set_taps(d_taps);
 
-    /* connect filter */
-    connect(self(), 0, d_bpf, 0);
-    connect(d_bpf, 0, self(), 0);
+    set_history(d_max_taps);
+
+    const int alignment_multiple = volk_get_alignment() / sizeof(float);
+    set_alignment(std::max(1, alignment_multiple));
 }
 
 rx_filter::~rx_filter ()
@@ -93,10 +101,17 @@ void rx_filter::set_param(double low, double high, double trans_width)
     qDebug() << "Generating taps for new filter   LO:" << d_low
              << "  HI:" << d_high << "  TW:" << d_trans_width
              << "  Taps:" << d_taps.size();
+    if(d_taps.size()>d_max_taps)
+        throw std::runtime_error("Failed to configure rx_filter low="+std::to_string(d_low)+
+            " high="+std::to_string(d_high)+" tw="+std::to_string(d_trans_width)+" with "
+            +std::to_string(d_taps.size())+" taps > max taps="+std::to_string(d_max_taps));
 
-    d_bpf->set_taps(d_taps);
+    {
+        gr::thread::scoped_lock l(d_setlock);
+        d_fir.set_taps(d_taps);
+    }
+
 }
-
 
 void rx_filter::set_cw_offset(double offset)
 {
@@ -107,6 +122,23 @@ void rx_filter::set_cw_offset(double offset)
     }
 }
 
+int rx_filter::work(int noutput_items,
+    gr_vector_const_void_star& input_items,
+    gr_vector_void_star& output_items)
+{
+    gr::thread::scoped_lock l(this->d_setlock);
+
+    const gr_complex* in = (const gr_complex*)input_items[0];
+    gr_complex* out = (gr_complex*)output_items[0];
+
+    if (this->decimation() == 1) {
+        d_fir.filterN(out, &in[d_max_taps - d_taps.size()], noutput_items);
+    } else {
+        d_fir.filterNdec(out, &in[d_max_taps - d_taps.size()], noutput_items, this->decimation());
+    }
+
+    return noutput_items;
+}
 
 /** Frequency translating filter **/
 
