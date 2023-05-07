@@ -1898,9 +1898,7 @@ void MainWindow::setIqFftRate(int fps)
             ui->plotter->setRunningState(true);
     }
 
-    // Limit to 250 fps
-    if (interval > 3 && iq_fft_timer->isActive())
-        iq_fft_timer->setInterval(interval);
+    iq_fft_timer->setInterval(interval);
 
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
 

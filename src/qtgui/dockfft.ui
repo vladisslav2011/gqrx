@@ -648,6 +648,16 @@
               </property>
               <item>
                <property name="text">
+                <string>1000 fps</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>500 fps</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
                 <string>250 fps</string>
                </property>
               </item>
