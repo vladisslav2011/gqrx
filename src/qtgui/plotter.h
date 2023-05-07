@@ -2,6 +2,7 @@
 #ifndef PLOTTER_H
 #define PLOTTER_H
 
+#include <chrono>
 #include <QtGui>
 #include <QFont>
 #include <QFrame>
@@ -378,6 +379,10 @@ private:
     float  old_SampleFreq{-1.0};
     bool   blockedUpdates{false};
 
+    double ms_paint{0.0};
+    double ms_draw{0.0};
+    double ms_overlay{0.0};
+    static constexpr double ms_iir=0.1;
 };
 
 #endif // PLOTTER_H
