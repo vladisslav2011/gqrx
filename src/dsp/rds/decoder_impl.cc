@@ -56,9 +56,9 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
             uint32_t p=calc_syndrome(b,16)^calc_syndrome(b^e,16);
             tmp[p]={e,2};
         }
-    if(0)
-//    for(j=3;j<6;j++)
-    for(j=3;j<4;j++)
+    if(1)
+    for(j=3;j<6;j++)
+//    for(j=3;j<4;j++)
         for(k=0;k<17-j;k++)
         {
             uint16_t e=(((1<<j)-1)<<k)&((1<<16)-1);
@@ -199,6 +199,11 @@ int decoder_impl::work (int noutput_items,
             errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
             errors[3]+=locator[s^offset_word[1]].w;
             errors[4]+=locator[s^offset_word[0]].w;
+            s=calc_syndrome(group[4]>>10,16)^(group[4]&0x3ff);
+            locators[4]=locator[s^offset_word[0]].l;
+            errors[4]=locator[s^offset_word[0]].w;
+            if((errors[0]<2)&&(errors[4]<2)&&(((group[0]>>10)^locators[0]) == ((group[4]>>10)^locators[4])))
+                printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
 
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
@@ -244,7 +249,7 @@ int decoder_impl::work (int noutput_items,
             #endif
             if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
                 continue;
-            if((errors[0] > 4)&&(d_state!=SYNC))
+            if((errors[0] > 5)&&(d_state!=SYNC))
                 continue;
             else
                 d_state = SYNC;
@@ -263,7 +268,7 @@ int decoder_impl::work (int noutput_items,
             group[3]=(group[3]>>10)^locators[3];
             decode_group();
             printf("Sync %c %04x Corrected: %d\n",offset_chars[2],group[0],bit_errors);
-            bit_counter=27;
+            bit_counter=26;
         }
     }
     return noutput_items;

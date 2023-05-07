@@ -35,6 +35,66 @@
 #include <gnuradio/digital/timing_error_detector_type.h>
 #endif
 
+
+class iir_corr : public gr::sync_block
+{
+protected:
+    iir_corr(int period, double alfa):
+        gr::sync_block ("iir_corr",
+        gr::io_signature::make(1, 1, sizeof(gr_complex)),
+        gr::io_signature::make(1, 1, sizeof(gr_complex))),
+        d_alfa(alfa),
+        d_ialfa(1.0-alfa),
+        d_period(period),
+        d_p(0),
+        d_b(d_period)
+    {
+        for(int k=0;k<d_period;k++)
+            d_b[k]=0.0;
+    }
+
+public:
+#if GNURADIO_VERSION < 0x030900
+typedef boost::shared_ptr<iir_corr> sptr;
+#else
+typedef std::shared_ptr<iir_corr> sptr;
+#endif
+    ~iir_corr()
+    {
+    }
+
+    int work(int noutput_items,
+             gr_vector_const_void_star &input_items,
+             gr_vector_void_star &output_items) override
+    {
+        const gr_complex *in = (const gr_complex *) input_items[0];
+        gr_complex *out = (gr_complex *) output_items[0];
+        for(int k=0;k<noutput_items;k++)
+        {
+            out[k]=d_b[d_p]=d_b[d_p]*d_ialfa+in[k]*d_alfa;
+            d_p++;
+            if(d_p>=d_period)
+                d_p=0;
+        }
+        return noutput_items;
+    }
+
+    static sptr make(int period, double alfa)
+    {
+        return gnuradio::get_initial_sptr(new iir_corr(period,alfa));
+    }
+
+private:
+    gr_complex      d_alfa;
+    gr_complex      d_ialfa;
+    int             d_period;
+    int d_p;
+    std::vector<gr_complex> d_b;
+};
+
+
+
+
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 1; /* Minimum number of output streams. */
@@ -74,8 +134,10 @@ rx_rds::rx_rds(double sample_rate)
 
     int n_taps = 151;
     d_rrcf = gr::filter::firdes::root_raised_cosine(1, 19000, 2375, 1, n_taps);
+    d_rrcf = gr::filter::firdes::low_pass(1, 19000, 2500, 100, gr::filter::firdes::WIN_BLACKMAN_HARRIS);
 
     gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
+    auto corr=iir_corr::make(19000/1187.5*104,0.01);
 
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
@@ -105,7 +167,12 @@ rx_rds::rx_rds(double sample_rate)
     connect(self(), 0, d_fxff, 0);
     connect(d_fxff, 0, d_rsmp, 0);
     connect(d_rsmp, 0, d_bpf, 0);
+    #if 0
+    connect(d_bpf, 0, corr, 0);
+    connect(corr, 0, d_agc, 0);
+    #else
     connect(d_bpf, 0, d_agc, 0);
+    #endif
     connect(d_agc, 0, d_sync, 0);
     connect(d_sync, 0, d_mpsk, 0);
 
