@@ -123,7 +123,7 @@ rx_rds::rx_rds(double sample_rate)
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
 
     int interpolation = 19;
-    int decimation = 24;
+    int decimation = 24*4;
 #if GNURADIO_VERSION < 0x030900
     double rate = (double) interpolation / (double) decimation;
     d_rsmp_tap = gr::filter::firdes::low_pass(interpolation, interpolation, rate * 0.45, rate * 0.1);
@@ -132,19 +132,18 @@ rx_rds::rx_rds(double sample_rate)
     d_rsmp = gr::filter::rational_resampler_ccf::make(interpolation, decimation);
 #endif
 
-    int n_taps = 151;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, 19000, 2375, 1, n_taps);
-    d_rrcf = gr::filter::firdes::low_pass(1, 19000, 2500, 100, gr::filter::firdes::WIN_BLACKMAN_HARRIS);
+    int n_taps = 151*3;
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*interpolation)/decimation/10, 2375, 1, n_taps);
 
     gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
-    auto corr=iir_corr::make(19000/1187.5*104,0.01);
+    auto corr=iir_corr::make((d_sample_rate*interpolation)/decimation/11875*104,0.01);
 
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = gr::analog::agc_cc::make(2e-3, 0.585 * 1.25, 53 * 1.25);
 
-    d_sync = gr::digital::clock_recovery_mm_cc::make(8, 0.25 * 0.175 * 0.175, 0.5, 0.175, 0.005);
+    d_sync = gr::digital::clock_recovery_mm_cc::make((d_sample_rate*interpolation)/decimation/23750, 0.25 * 0.175 * 0.175, 0.5, 0.175, 0.005);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
@@ -159,7 +158,7 @@ rx_rds::rx_rds(double sample_rate)
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING, 16, 0.01, 1, 1, 0.1, 1, p_c);
 #endif
 
-    d_mpsk = gr::digital::constellation_receiver_cb::make(p_c, 2*M_PI/100.0, -0.002, 0.002);
+    d_mpsk = gr::digital::constellation_receiver_cb::make(p_c, 2*M_PI/200.0, -0.002, 0.002);
 
     d_ddbb = gr::digital::diff_decoder_bb::make(2);
 

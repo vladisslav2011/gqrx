@@ -204,7 +204,11 @@ int decoder_impl::work (int noutput_items,
             locators[4]=locator[s^offset_word[0]].l;
             errors[4]=locator[s^offset_word[0]].w;
             if((errors[0]<2)&&(errors[4]<2)&&(((group[0]>>10)^locators[0]) == ((group[4]>>10)^locators[4])))
+            {
                 printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
+                if(errors[0] == 0)
+                    d_state = SYNC;
+            }
 
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
