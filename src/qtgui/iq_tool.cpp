@@ -537,7 +537,8 @@ void CIqTool::updateSliderStylesheet(qint64 save_progress)
     {
         setA->setEnabled(true);
         setB->setEnabled(true);
-        selSave->setEnabled(true);
+        if(sel_A * double(rec_len) >= 1.0)
+            selSave->setEnabled(true);
         selReset->setEnabled(true);
     }
     if(save_progress>0)
@@ -590,7 +591,8 @@ void CIqTool::updateSliderStylesheet(qint64 save_progress)
             .arg(selLen-0.000002)
             .arg(selLen-0.000001)
             );
-        selSave->setEnabled(true);
+        if(sel_A * double(rec_len) >= 1.0)
+            selSave->setEnabled(true);
     }
 }
 

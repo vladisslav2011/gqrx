@@ -518,6 +518,8 @@ uint64_t file_source::get_items_remaining()
 
 bool file_source::save_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name)
 {
+    if(from_ms < 1000llu)
+        return false;
     if(d_save_thread)
     {
         uint64_t written = d_save_written_ms;
