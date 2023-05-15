@@ -28,7 +28,9 @@
 #include <limits.h>
 #include <volk/volk.h>
 #include <array>
-#include <x86intrin.h>
+#ifdef __BMI2__
+    #include <x86intrin.h>
+#endif
 
 namespace dispatcher
 {
