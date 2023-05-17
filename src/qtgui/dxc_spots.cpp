@@ -31,20 +31,14 @@
 #include <stdio.h>
 #include <wchar.h>
 
-DXCSpots* DXCSpots::m_pThis = 0;
-
 DXCSpots::DXCSpots()
 {
 }
 
-void DXCSpots::create()
-{
-    m_pThis = new DXCSpots;
-}
-
 DXCSpots& DXCSpots::Get()
 {
-    return *m_pThis;
+    static DXCSpots intern;
+    return intern;
 }
 
 void DXCSpots::add(DXCSpotInfo &info)
