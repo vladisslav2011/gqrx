@@ -113,7 +113,6 @@ class Bookmarks : public QObject
     Q_OBJECT
 public:
     // This is a Singleton Class now because you can not send qt-signals from static functions.
-    static void create();
     static Bookmarks& Get();
 
     void add(BookmarkInfo& info);
@@ -141,7 +140,6 @@ private:
     QList<BookmarkInfo>  m_BookmarkList;
     QList<TagInfo::sptr> m_TagList;
     QString              m_bookmarksFile;
-    static Bookmarks*    m_pThis;
 
 signals:
     void BookmarksChanged(void);

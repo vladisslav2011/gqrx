@@ -66,7 +66,6 @@ class DXCSpots : public QObject
     Q_OBJECT
 public:
     // This is a Singleton Class now because you can not send qt-signals from static functions.
-    static void create();
     static DXCSpots& Get();
 
     void add(DXCSpotInfo& info);
@@ -78,7 +77,6 @@ private:
     DXCSpots(); // Singleton Constructor is private.
     QList<DXCSpotInfo> m_DXCSpotList;
     std::chrono::seconds m_DXCSpotTimeout;
-    static DXCSpots* m_pThis;
 
 private slots:
     void checkSpotTimeout(void);

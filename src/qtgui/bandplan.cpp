@@ -31,21 +31,15 @@
 #include <iostream>
 #include "bandplan.h"
 
-BandPlan* BandPlan::m_pThis = 0;
-
 BandPlan::BandPlan()
 {
 
 }
 
-void BandPlan::create()
-{
-    m_pThis = new BandPlan;
-}
-
 BandPlan& BandPlan::Get()
 {
-    return *m_pThis;
+    static BandPlan intern;
+    return intern;
 }
 
 void BandPlan::setConfigDir(const QString& cfg_dir)

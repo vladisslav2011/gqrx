@@ -78,9 +78,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
     ui->setupUi(this);
-    BandPlan::create();
-    Bookmarks::create();
-    DXCSpots::create();
 
     /* Initialise default configuration directory */
     QByteArray xdg_dir = qgetenv("XDG_CONFIG_HOME");
