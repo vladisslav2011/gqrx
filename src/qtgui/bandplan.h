@@ -58,7 +58,6 @@ class BandPlan : public QObject
     Q_OBJECT
 public:
     // This is a Singleton Class now because you can not send qt-signals from static functions.
-    static void create();
     static BandPlan& Get();
     bool load();
     int size() { return m_BandInfoList.size(); }
@@ -72,7 +71,6 @@ private:
     BandPlan(); // Singleton Constructor is private.
     QList<BandInfo>  m_BandInfoList;
     QString          m_bandPlanFile;
-    static BandPlan* m_pThis;
 
 signals:
     void BandPlanChanged(void);
