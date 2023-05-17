@@ -33,7 +33,6 @@
 
 const QColor TagInfo::DefaultColor(Qt::lightGray);
 const QString TagInfo::strUntagged("Untagged");
-Bookmarks* Bookmarks::m_pThis = 0;
 
 Bookmarks::Bookmarks()
 {
@@ -41,14 +40,10 @@ Bookmarks::Bookmarks()
      m_TagList.append(tag);
 }
 
-void Bookmarks::create()
-{
-    m_pThis = new Bookmarks;
-}
-
 Bookmarks& Bookmarks::Get()
 {
-    return *m_pThis;
+    static Bookmarks intern;
+    return intern;
 }
 
 void Bookmarks::setConfigDir(const QString& cfg_dir)
