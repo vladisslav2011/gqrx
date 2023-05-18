@@ -870,8 +870,7 @@ void MainWindow::storeSession()
             else
                 m_settings->setValue("fm_maxdev", int_val);
 
-            // save as usec
-            int_val = (int)(1.0e6 * rx->get_fm_deemph());
+            int_val = (int)(rx->get_fm_deemph());
             if (int_val == 75)
                 m_settings->remove("fm_deemph");
             else
@@ -1091,7 +1090,7 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
 
         dbl_val = m_settings->value("fm_deemph", 75).toDouble(&conv_ok);
         if (conv_ok && dbl_val >= 0.0)
-            rx->set_fm_deemph(1.0e-6 * dbl_val); // was stored as usec
+            rx->set_fm_deemph(dbl_val);
 
         dbl_val = m_settings->value("fmpll_damping_factor", 0.7).toDouble(&conv_ok);
         if (conv_ok && dbl_val > 0.0)

@@ -207,7 +207,7 @@ QVariant BookmarksTableModel::dataFromBookmark(BookmarkInfo &info, int index)
     case COL_FM_MAXDEV:
             return info.get_fm_maxdev();
     case COL_FM_DEEMPH:
-            return info.get_fm_deemph() * 1e6;
+            return info.get_fm_deemph();
     case COL_AM_DCR:
             return info.get_am_dcr();
     case COL_AMSYNC_DCR:
@@ -399,7 +399,7 @@ bool BookmarksTableModel::setData(const QModelIndex &index, const QVariant &valu
             break;
         case COL_FM_DEEMPH:
             {
-                info.set_fm_deemph(value.toFloat() * 1e-6);
+                info.set_fm_deemph(value.toFloat());
                 emit dataChanged(index, index);
             }
             break;
