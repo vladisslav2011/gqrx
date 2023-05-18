@@ -139,8 +139,8 @@ public:
     /* AM-Sync/NFM PLL shared parameters */
     inline float get_pll_bw() const { return d_pll_bw; }
     /* Noise blanker */
-    bool get_nb_on(int nbid);
-    float get_nb_threshold(int nbid);
+    bool get_nb_on(int nbid) const;
+    float get_nb_threshold(int nbid) const;
     /* Audio recorder */
     inline const std::string& get_audio_rec_dir() const { return d_rec_dir; }
     inline bool get_audio_rec_sql_triggered() const { return d_rec_sql_triggered; }
