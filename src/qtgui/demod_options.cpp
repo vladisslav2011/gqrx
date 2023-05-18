@@ -27,7 +27,7 @@
 
 /* convert between deemphasis time constant and combo-index */
 const double tau_tbl[] = {
-    0.0, 25.0e-6, 50.0e-6, 75.0e-6, 100.0e-6, 250.0e-6, 530.0e-6, 1.0e-3
+    0.0, 25.0, 50.0, 75.0, 100.0, 250.0, 530.0, 1000.0
 };
 const int tau_tbl_maxidx = 7;
 
