@@ -177,7 +177,7 @@ QVariant BookmarksTableModel::dataFromBookmark(BookmarkInfo &info, int index)
     case COL_LOCKED:
             return info.get_freq_lock();
     case COL_MODULATION:
-            return info.modulation;
+            return Modulations::GetStringForModulationIndex(info.get_demod());
     case COL_FILTER_LOW:
             return info.get_filter_low();
     case COL_FILTER_HIGH:
