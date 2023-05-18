@@ -289,7 +289,7 @@ void nbrx::set_fm_maxdev(float maxdev_hz)
 void nbrx::set_fm_deemph(double tau)
 {
     receiver_base_cf::set_fm_deemph(tau);
-    demod_fm->set_tau(tau);
+    demod_fm->set_tau(tau * 1.0e-6);
 }
 
 void nbrx::set_fmpll_damping_factor(double df)
