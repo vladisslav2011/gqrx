@@ -33,8 +33,6 @@
 #include <QVector>
 #include <QStringList>
 #include <QColor>
-#include <memory>
-#include <type_traits>
 #include "receivers/vfo.h"
 
 struct TagInfo
