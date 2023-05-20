@@ -118,15 +118,16 @@ class BookmarkInfo:public vfo_s
 class CommaSeparated
 {
 public:
-    CommaSeparated(bool useCaptions=true, QChar quote='\"', QChar fieldDelimiter=';', QChar lineDelimiter='\n');
+    CommaSeparated(QChar quote='\"', QChar fieldDelimiter=';', QChar lineDelimiter='\n');
     ~CommaSeparated();
     bool open(const QString filename, bool write);
     void close();
     QStringList & getRowRef(){return m_Row;}
     bool write(QStringList & row);
     bool read();
+    bool read(QStringList & row);
+    bool read(const QStringList & captions, QMap<QString,QString> & row);
 private:
-    bool m_UseCaptions;
     QChar m_Quote;
     QChar m_FieldDelimiter;
     QChar m_LineDelimiter;
