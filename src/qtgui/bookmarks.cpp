@@ -30,8 +30,8 @@
 const QColor TagInfo::DefaultColor(Qt::lightGray);
 const QString TagInfo::strUntagged("Untagged");
 
-CommaSeparated::CommaSeparated(bool useCaptions, QChar quote, QChar fieldDelimiter, QChar lineDelimiter):
-        m_UseCaptions(useCaptions), m_Quote(quote), m_FieldDelimiter(fieldDelimiter), m_LineDelimiter(lineDelimiter)
+CommaSeparated::CommaSeparated(QChar quote, QChar fieldDelimiter, QChar lineDelimiter):
+        m_Quote(quote), m_FieldDelimiter(fieldDelimiter), m_LineDelimiter(lineDelimiter)
 {
 }
 
@@ -87,14 +87,14 @@ bool CommaSeparated::write(QStringList & row)
     return m_FD.error()==QFileDevice::NoError;
 }
 
-bool CommaSeparated::read()
+bool CommaSeparated::read(QStringList & row)
 {
     int ps=0;
     int pc=0;
     bool in_quotes=false;
     bool found_quote=false;
     QString buf{""};
-    m_Row.clear();
+    row.clear();
     while(true)
     {
         buf+=QString::fromUtf8(m_FD.readLine());
@@ -102,7 +102,7 @@ bool CommaSeparated::read()
             return false;
         if((buf.length()==1)&&(buf[0]==m_LineDelimiter))
             {
-                m_Row.append("");
+                row.append("");
                 return true;
             }
         while(true)
@@ -132,9 +132,9 @@ bool CommaSeparated::read()
                 {
                     if(buf[ps]==m_Quote)
                     {
-                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                        row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
                     }else{
-                        m_Row.append(buf.mid(ps,pc-ps));
+                        row.append(buf.mid(ps,pc-ps));
                     }
                     return true;
                 }
@@ -142,9 +142,9 @@ bool CommaSeparated::read()
                 {
                     if(buf[ps]==m_Quote)
                     {
-                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                        row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
                     }else{
-                        m_Row.append(buf.mid(ps,pc-ps));
+                        row.append(buf.mid(ps,pc-ps));
                     }
                     ps=pc+1;
                 }
@@ -152,9 +152,9 @@ bool CommaSeparated::read()
                 {
                     if(buf[ps]==m_Quote)
                     {
-                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                        row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
                     }else{
-                        m_Row.append(buf.mid(ps,pc-ps));
+                        row.append(buf.mid(ps,pc-ps));
                     }
                     return true;
                 }
@@ -164,6 +164,24 @@ bool CommaSeparated::read()
             pc++;
         }
     }
+}
+
+bool CommaSeparated::read(const QStringList & captions, QMap<QString,QString> & row)
+{
+    if(!read(m_Row))
+        return false;
+    row.clear();
+    const auto rowCount=m_Row.length();
+    const auto captCount=captions.length();
+    for(int k=0;k<captCount;k++)
+        if(k<rowCount)
+            row[captions[k]]=m_Row[k];
+    return true;
+}
+
+bool CommaSeparated::read()
+{
+    return read(m_Row);
 }
 
 Bookmarks::Bookmarks()
