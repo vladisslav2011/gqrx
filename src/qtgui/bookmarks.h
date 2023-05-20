@@ -123,7 +123,7 @@ public:
     bool open(const QString filename, bool write);
     void close();
     QStringList & getRowRef(){return m_Row;}
-    bool write(QStringList & row);
+    bool write(const QStringList & row);
     bool read();
     bool read(QStringList & row);
     bool read(const QStringList & captions, QMap<QString,QString> & row);
@@ -255,7 +255,9 @@ private:
 
     QList<BookmarkInfo>  m_BookmarkList;
     QList<TagInfo::sptr> m_TagList;
+    QString              m_bookmarksFileOld;
     QString              m_bookmarksFile;
+    QString              m_tagsFile;
     QVector<Def>         m_idx_struct;
     QVector<Def*>        m_col_struct;
     QMap<QString,Def*>   m_name_struct;
