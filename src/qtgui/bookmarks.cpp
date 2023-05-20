@@ -61,19 +61,18 @@ void CommaSeparated::close()
     m_FD.close();
 }
 
-bool CommaSeparated::write(QStringList & row)
+bool CommaSeparated::write(const QStringList & row)
 {
     QString tmp{""};
     for(auto it=row.begin();it!=row.end();++it)
     {
         bool needsQuoting=false;
-        QString field;
+        QString field=*it;
         if(it->contains(m_Quote))
         {
             needsQuoting=true;
-            field=it->replace(m_Quote,QString(m_Quote)+m_Quote);
-        }else
-            field=*it;
+            field=field.replace(m_Quote,QString(m_Quote)+m_Quote);
+        }
         if(it->contains(m_FieldDelimiter)||it->contains(m_LineDelimiter))
             needsQuoting=true;
         if(tmp.length()>0)
@@ -268,8 +267,9 @@ Bookmarks& Bookmarks::Get()
 
 void Bookmarks::setConfigDir(const QString& cfg_dir)
 {
-    m_bookmarksFile = cfg_dir + "/bookmarks.csv";
-    std::cout << "BookmarksFile is " << m_bookmarksFile.toStdString() << std::endl;
+    m_bookmarksFileOld = cfg_dir + "/bookmarks.csv";
+    m_bookmarksFile = cfg_dir + "/bookmarks2.csv";
+    m_tagsFile = cfg_dir + "/tags2.csv";
 }
 
 void Bookmarks::add(BookmarkInfo &info)
@@ -293,8 +293,83 @@ void Bookmarks::remove(const BookmarkInfo &info)
 
 bool Bookmarks::load()
 {
-    QFile file(m_bookmarksFile);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+    CommaSeparated csv;
+    if(csv.open(m_tagsFile, false))
+    {
+        m_TagList.clear();
+        // always create the "Untagged" entry.
+        findOrAddTag(TagInfo::strUntagged);
+
+        QStringList firstRow;
+        if(csv.read(firstRow))
+        {
+            int nameIdx=-1;
+            int colorIdx=-1;
+            for(int k=0;k<firstRow.count();k++)
+            {
+                if(firstRow[k]=="name")
+                    nameIdx=k;
+                if(firstRow[k]=="color")
+                    colorIdx=k;
+            }
+            if((nameIdx>=0) && (colorIdx>=0))
+                while (1)
+                {
+                    QStringList & row=csv.getRowRef();
+                    if(!csv.read())
+                        break;
+                    if(row.count()<1)
+                        break;
+                    TagInfo::sptr info = findOrAddTag(row[nameIdx]);
+                    info->color = QColor(row[colorIdx].trimmed());
+                }
+        }
+        csv.close();
+        std::sort(m_TagList.begin(),m_TagList.end());
+        if(csv.open(m_bookmarksFile, false))
+        {
+            m_BookmarkList.clear();
+            QStringList firstRow;
+            if(csv.read(firstRow))
+            {
+                QVector<Def*> kv;
+                kv.resize(firstRow.count());
+                for(int k=0;k<firstRow.count();k++)
+                {
+                    if(m_name_struct.contains(firstRow[k]))
+                        kv[k]=m_name_struct[firstRow[k]];
+                }
+                while (1)
+                {
+                    QStringList & row = csv.getRowRef();
+                    if(!csv.read())
+                        break;
+                    if(row.count()<1)
+                        break;
+                    if(row.count()==firstRow.count())
+                    {
+                        BookmarkInfo info;
+                        int i = 0;
+                        for(i=0;i<row.count();i++)
+                            if(kv[i])
+                                kv[i]->fromString(info,row[i]);
+                            else
+                                std::cout << "Bookmarks: Ignoring Column \""<< firstRow[i].toStdString() <<"\" #"<<i<<" = " << row[i].toStdString() << std::endl;
+                        m_BookmarkList.append(info);
+                    }else{
+                        std::cout << "Bookmarks: Ignoring Line:" << std::endl;
+                        std::cout << "  " << row.join(";").toStdString() << std::endl;
+                    }
+                }
+            }
+            csv.close();
+            std::stable_sort(m_BookmarkList.begin(),m_BookmarkList.end());
+
+            emit BookmarksChanged();
+            return true;
+        }
+    }
+    if(csv.open(m_bookmarksFileOld, false))
     {
         m_BookmarkList.clear();
         m_TagList.clear();
@@ -303,45 +378,54 @@ bool Bookmarks::load()
         findOrAddTag(TagInfo::strUntagged);
 
         // Read Tags, until first empty line.
-        while (!file.atEnd())
+        while (1)
         {
-            QString line = QString::fromUtf8(file.readLine().trimmed());
-
-            if(line.isEmpty())
+            QStringList & row = csv.getRowRef();
+            if(!csv.read())
                 break;
 
-            if(line.startsWith("#"))
+            if(row.count()<1)
+                break;
+            if((row.count()==1) && (row[0]==""))
+                break;
+
+            if(row[0].startsWith("#"))
                 continue;
 
-            QStringList strings = line.split(";");
-            if(strings.count() == 2)
+            if(row.count() == 2)
             {
-                TagInfo::sptr info = findOrAddTag(strings[0]);
-                info->color = QColor(strings[1].trimmed());
+                TagInfo::sptr info = findOrAddTag(row[0]);
+                info->color = QColor(row[1].trimmed());
             }
             else
             {
                 std::cout << "Bookmarks: Ignoring Line:" << std::endl;
-                std::cout << "  " << line.toStdString() << std::endl;
+                std::cout << "  " << row.join(";").toStdString() << std::endl;
             }
         }
         std::sort(m_TagList.begin(),m_TagList.end());
 
         // Read Bookmarks, after first empty line.
-        while (!file.atEnd())
+        while (1)
         {
-            QString line = QString::fromUtf8(file.readLine().trimmed());
-            if(line.isEmpty() || line.startsWith("#"))
-                continue;
+            QStringList & row = csv.getRowRef();
+            if(!csv.read())
+                break;
 
-            QStringList strings = line.split(";");
-            if(strings.count() == 5)
+            if(row.count()<1)
+                break;
+            if((row.count()==1) && (row[0]==""))
+                break;
+
+            if(row[0].startsWith("#"))
+                continue;
+            if(row.count() == 5)
             {
                 BookmarkInfo info;
-                m_idx_struct[0].fromString(info, strings[0].trimmed());
-                m_idx_struct[1].fromString(info, strings[1].trimmed());
-                m_idx_struct[4].fromString(info, strings[2].trimmed());
-                int bandwidth  = strings[3].toInt();
+                m_idx_struct[0].fromString(info, row[0].trimmed());
+                m_idx_struct[1].fromString(info, row[1].trimmed());
+                m_idx_struct[4].fromString(info, row[2].trimmed());
+                int bandwidth  = row[3].toInt();
                 switch(info.get_demod())
                 {
                 case Modulations::MODE_LSB:
@@ -355,29 +439,29 @@ bool Bookmarks::load()
                 default:
                     info.set_filter(-bandwidth / 2, bandwidth / 2, bandwidth * 0.2);
                 }
-                m_idx_struct[2].fromString(info, strings[4].trimmed());
+                m_idx_struct[2].fromString( info, row[4].trimmed());
 
                 m_BookmarkList.append(info);
             }
-            else if (strings.count() > 5)
+            else if (row.count() > 5)
             {
                 BookmarkInfo info;
                 int i = 0;
-                for(i=0;i<strings.count();i++)
+                for(i=0;i<row.count();i++)
                     if(i<m_idx_struct.length())
-                        m_idx_struct[i].fromString(info, strings[i].trimmed());
+                        m_idx_struct[i].fromString(info, row[i].trimmed());
                     else
-                        std::cout << "Bookmarks: Ignoring Column "<<i<<" = " << strings[i].trimmed().toStdString() << std::endl;
+                        std::cout << "Bookmarks: Ignoring Column "<<i<<" = " << row[i].trimmed().toStdString() << std::endl;
 
                 m_BookmarkList.append(info);
             }
             else
             {
                 std::cout << "Bookmarks: Ignoring Line:" << std::endl;
-                std::cout << "  " << line.toStdString() << std::endl;
+                std::cout << "  " << row.join(";").toStdString() << std::endl;
             }
         }
-        file.close();
+        csv.close();
         std::stable_sort(m_BookmarkList.begin(),m_BookmarkList.end());
 
         emit BookmarksChanged();
@@ -386,18 +470,13 @@ bool Bookmarks::load()
     return false;
 }
 
-//FIXME: Commas in names
 bool Bookmarks::save()
 {
-    QFile file(m_bookmarksFile);
-    if(file.open(QFile::WriteOnly | QFile::Truncate | QIODevice::Text))
+    CommaSeparated csv;
+    if(csv.open(m_tagsFile, true))
     {
         QString tmp;
-        QTextStream stream(&file);
-
-        stream << QString("# Tag name").leftJustified(20) + "; " +
-                  QString(" color") << '\n';
-
+        csv.write(QStringList({"Tag name","color"}));
         QMap<QString, TagInfo::sptr> usedTags;
         for (int iBookmark = 0; iBookmark < m_BookmarkList.size(); iBookmark++)
         {
@@ -411,35 +490,30 @@ bool Bookmarks::save()
         for (QMap<QString, TagInfo::sptr>::iterator i = usedTags.begin(); i != usedTags.end(); i++)
         {
             TagInfo::sptr info = *i;
-            stream << info->name.leftJustified(20) + "; " + info->color.name() << '\n';
+            csv.write(QStringList({info->name,info->color.name()}));
         }
+        csv.close();
+    }
+    if(csv.open(m_bookmarksFile, true))
+    {
+        QString tmp;
 
-        stream << '\n';
-
-        tmp = "# ";
+        QStringList lst;
         for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
-            if(it == m_idx_struct.begin())
-                tmp += it->name;
-            else
-                tmp += ";" + it->name;
+            lst.append(it->name);
 
-        stream << tmp  << '\n';
-
+        csv.write(lst);
         for (int i = 0; i < m_BookmarkList.size(); i++)
         {
             BookmarkInfo& info = m_BookmarkList[i];
-            tmp = "";
+            lst.clear();
             for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
-                if(it == m_idx_struct.begin())
-                    tmp += it->toString(info);
-                else
-                    tmp += ";" + it->toString(info);
-
-            stream << tmp  << '\n';
+                lst.append(it->toString(info));
+            csv.write(lst);
         }
 
+        csv.close();
         emit BookmarksChanged();
-        file.close();
         return true;
     }
     return false;
