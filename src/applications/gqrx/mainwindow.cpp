@@ -3701,7 +3701,6 @@ void MainWindow::on_actionAddBookmark_triggered()
         BookmarkInfo info;
         info.restore_settings(*rx->get_current_vfo().get());
         info.frequency = freq;
-        info.modulation = uiDockRxOpt->currentDemodAsString();
         info.name=name;
         info.tags.clear();
         if (tags.empty())
