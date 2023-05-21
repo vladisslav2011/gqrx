@@ -21,9 +21,6 @@
  * Boston, MA 02110-1301, USA.
  */
 #include <Qt>
-#include <QFile>
-#include <QStringList>
-#include <QTextStream>
 #include <QString>
 #include <QSet>
 #include <algorithm>
@@ -34,10 +31,216 @@
 const QColor TagInfo::DefaultColor(Qt::lightGray);
 const QString TagInfo::strUntagged("Untagged");
 
+CommaSeparated::CommaSeparated(bool useCaptions, QChar quote, QChar fieldDelimiter, QChar lineDelimiter):
+        m_UseCaptions(useCaptions), m_Quote(quote), m_FieldDelimiter(fieldDelimiter), m_LineDelimiter(lineDelimiter)
+{
+}
+
+CommaSeparated::~CommaSeparated()
+{
+    m_TS.flush();
+}
+
+bool CommaSeparated::open(const QString filename, bool write)
+{
+    m_FD.setFileName(filename);
+    if(write)
+    {
+        if(m_FD.open(QFile::WriteOnly | QFile::Truncate | QIODevice::Text))
+        {
+            m_TS.setDevice(&m_FD);
+            return true;
+        }
+        return false;
+    }else
+        return m_FD.open(QIODevice::ReadOnly | QIODevice::Text);
+}
+
+void CommaSeparated::close()
+{
+    m_TS.flush();
+    m_FD.close();
+}
+
+bool CommaSeparated::write(QStringList & row)
+{
+    QString tmp{""};
+    for(auto it=row.begin();it!=row.end();++it)
+    {
+        bool needsQuoting=false;
+        QString field;
+        if(it->contains(m_Quote))
+        {
+            needsQuoting=true;
+            field=it->replace(m_Quote,QString(m_Quote)+m_Quote);
+        }else
+            field=*it;
+        if(it->contains(m_FieldDelimiter)||it->contains(m_LineDelimiter))
+            needsQuoting=true;
+        if(tmp.length()>0)
+            tmp+=m_FieldDelimiter;
+        if(needsQuoting)
+            tmp+=m_Quote+field+m_Quote;
+        else
+            tmp+=field;
+    }
+    m_TS<<tmp<<m_LineDelimiter;
+    return m_FD.error()==QFileDevice::NoError;
+}
+
+bool CommaSeparated::read()
+{
+    int ps=0;
+    int pc=0;
+    bool in_quotes=false;
+    bool found_quote=false;
+    QString buf{""};
+    m_Row.clear();
+    while(true)
+    {
+        buf+=QString::fromUtf8(m_FD.readLine());
+        if(buf.length()==0)
+            return false;
+        if((buf.length()==1)&&(buf[0]==m_LineDelimiter))
+            {
+                m_Row.append("");
+                return true;
+            }
+        while(true)
+        {
+            if(in_quotes)
+            {
+                if(pc>=buf.length())
+                {
+                    pc++;
+                    in_quotes=false;
+                }else{
+                    if(found_quote)
+                    {
+                        if(buf[pc]!=m_Quote)
+                            in_quotes=false;
+                        found_quote=false;
+                    }else
+                        if(buf[pc]==m_Quote)
+                            found_quote=true;
+                    if(buf[pc]==m_LineDelimiter)
+                        break;
+                }
+            }
+            if(!in_quotes)
+            {
+                if(pc>=buf.length())
+                {
+                    if(buf[ps]==m_Quote)
+                    {
+                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                    }else{
+                        m_Row.append(buf.mid(ps,pc-ps));
+                    }
+                    return true;
+                }
+                if(buf[pc]==m_FieldDelimiter)
+                {
+                    if(buf[ps]==m_Quote)
+                    {
+                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                    }else{
+                        m_Row.append(buf.mid(ps,pc-ps));
+                    }
+                    ps=pc+1;
+                }
+                if(buf[pc]==m_LineDelimiter)
+                {
+                    if(buf[ps]==m_Quote)
+                    {
+                        m_Row.append(buf.mid(ps+1,pc-ps-2).replace(QString(m_Quote)+m_Quote,QString(m_Quote)));
+                    }else{
+                        m_Row.append(buf.mid(ps,pc-ps));
+                    }
+                    return true;
+                }
+                if(buf[pc]==m_Quote)
+                    in_quotes=true;
+            }
+            pc++;
+        }
+    }
+}
+
 Bookmarks::Bookmarks()
 {
      TagInfo::sptr tag = TagInfo::make(TagInfo::strUntagged);
      m_TagList.append(tag);
+     m_idx_struct.append({T:V_INT,     name:"Frequency",col:BookmarksTableModel::COL_FREQUENCY,ref:-1,
+        genSetter(&BookmarkInfo::set_frequency), genGetter(&BookmarkInfo::get_frequency), genCmp(&BookmarkInfo::get_frequency)});
+     m_idx_struct.append({T:V_STRING,  name:"Name",col:BookmarksTableModel::COL_NAME,ref:-1,
+        genSetter(&BookmarkInfo::set_name), genGetter(&BookmarkInfo::get_name), genCmp(&BookmarkInfo::get_name)});
+     m_idx_struct.append({T:V_STRING,  name:"Tags",col:BookmarksTableModel::COL_TAGS,ref:-1,
+        genSetter(&BookmarkInfo::set_tags), genGetter(&BookmarkInfo::get_tags), genCmp(&BookmarkInfo::get_tags)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"Autostart",col:BookmarksTableModel::COL_LOCKED,ref:-1,
+        genSetter(&BookmarkInfo::set_freq_lock), genGetter(&BookmarkInfo::get_freq_lock), genCmp(&BookmarkInfo::get_freq_lock)});
+     m_idx_struct.append({T:V_INT,     name:"Modulation",col:BookmarksTableModel::COL_MODULATION,ref:-1,
+        genSetter(&BookmarkInfo::set_demod), genGetter(&BookmarkInfo::get_demod), genCmp(&BookmarkInfo::get_demod)});
+     m_idx_struct.append({T:V_INT,     name:"Filter Low",col:BookmarksTableModel::COL_FILTER_LOW,ref:-1,
+        genSetter(&BookmarkInfo::set_filter_low), genGetter(&BookmarkInfo::get_filter_low), genCmp(&BookmarkInfo::get_filter_low)});
+     m_idx_struct.append({T:V_INT,     name:"Filter High",col:BookmarksTableModel::COL_FILTER_HIGH,ref:-1,
+        genSetter(&BookmarkInfo::set_filter_high), genGetter(&BookmarkInfo::get_filter_high), genCmp(&BookmarkInfo::get_filter_high)});
+     m_idx_struct.append({T:V_INT,     name:"Filter TW",col:BookmarksTableModel::COL_FILTER_TW,ref:-1,
+        genSetter(&BookmarkInfo::set_filter_tw), genGetter(&BookmarkInfo::get_filter_tw), genCmp(&BookmarkInfo::get_filter_tw)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"AGC On",col:BookmarksTableModel::COL_AGC_ON,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_on), genGetter(&BookmarkInfo::get_agc_on), genCmp(&BookmarkInfo::get_agc_on)});
+     m_idx_struct.append({T:V_INT,     name:"AGC target level",col:BookmarksTableModel::COL_AGC_TARGET,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_target_level), genGetter(&BookmarkInfo::get_agc_target_level), genCmp(&BookmarkInfo::get_agc_target_level)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"AGC manual gain",col:BookmarksTableModel::COL_AGC_MANUAL,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_manual_gain), genGetter(&BookmarkInfo::get_agc_manual_gain), genCmp(&BookmarkInfo::get_agc_manual_gain)});
+     m_idx_struct.append({T:V_INT,     name:"AGC max gain",col:BookmarksTableModel::COL_AGC_MAX,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_max_gain), genGetter(&BookmarkInfo::get_agc_max_gain), genCmp(&BookmarkInfo::get_agc_max_gain)});
+     m_idx_struct.append({T:V_INT,     name:"AGC attack",col:BookmarksTableModel::COL_AGC_ATTACK,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_attack), genGetter(&BookmarkInfo::get_agc_attack), genCmp(&BookmarkInfo::get_agc_attack)});
+     m_idx_struct.append({T:V_INT,     name:"AGC decay",col:BookmarksTableModel::COL_AGC_DECAY,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_decay), genGetter(&BookmarkInfo::get_agc_decay), genCmp(&BookmarkInfo::get_agc_decay)});
+     m_idx_struct.append({T:V_INT,     name:"AGC hang",col:BookmarksTableModel::COL_AGC_HANG,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_hang), genGetter(&BookmarkInfo::get_agc_hang), genCmp(&BookmarkInfo::get_agc_hang)});
+     m_idx_struct.append({T:V_INT,     name:"Panning",col:BookmarksTableModel::COL_AGC_PANNING,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_panning), genGetter(&BookmarkInfo::get_agc_panning), genCmp(&BookmarkInfo::get_agc_panning)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"Auto panning",col:BookmarksTableModel::COL_AGC_PANNING_AUTO,ref:-1,
+        genSetter(&BookmarkInfo::set_agc_panning_auto), genGetter(&BookmarkInfo::get_agc_panning_auto), genCmp(&BookmarkInfo::get_agc_panning_auto)});
+     m_idx_struct.append({T:V_INT,     name:"CW offset",col:BookmarksTableModel::COL_CW_OFFSET,ref:-1,
+        genSetter(&BookmarkInfo::set_cw_offset), genGetter(&BookmarkInfo::get_cw_offset), genCmp(&BookmarkInfo::get_cw_offset)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"FM max deviation",col:BookmarksTableModel::COL_FM_MAXDEV,ref:-1,
+        genSetter(&BookmarkInfo::set_fm_maxdev), genGetter(&BookmarkInfo::get_fm_maxdev), genCmp(&BookmarkInfo::get_fm_maxdev)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"FM deemphasis",col:BookmarksTableModel::COL_FM_DEEMPH,ref:-1,
+        genSetter(&BookmarkInfo::set_fm_deemph), genGetter(&BookmarkInfo::get_fm_deemph), genCmp(&BookmarkInfo::get_fm_deemph)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"AM DCR",col:BookmarksTableModel::COL_AM_DCR,ref:-1,
+        genSetter(&BookmarkInfo::set_am_dcr), genGetter(&BookmarkInfo::get_am_dcr), genCmp(&BookmarkInfo::get_am_dcr)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"AM SYNC DCR",col:BookmarksTableModel::COL_AMSYNC_DCR,ref:-1,
+        genSetter(&BookmarkInfo::set_amsync_dcr), genGetter(&BookmarkInfo::get_amsync_dcr), genCmp(&BookmarkInfo::get_amsync_dcr)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"PLL BW",col:BookmarksTableModel::COL_PLL_BW,ref:-1,
+        genSetter(&BookmarkInfo::set_pll_bw), genGetter(&BookmarkInfo::get_pll_bw), genCmp(&BookmarkInfo::get_pll_bw)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"NB1 ON",col:BookmarksTableModel::COL_NB1_ON,ref:-1,
+        genSetterN(&BookmarkInfo::set_nb_on, 1), genGetterN(&BookmarkInfo::get_nb_on, 1), genCmpN(&BookmarkInfo::get_nb_on, 1)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"NB1 threshold",col:BookmarksTableModel::COL_NB1_THRESHOLD,ref:-1,
+        genSetterN(&BookmarkInfo::set_nb_threshold, 1), genGetterN(&BookmarkInfo::get_nb_threshold, 1), genCmpN(&BookmarkInfo::get_nb_threshold, 1)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"NB2 ON",col:BookmarksTableModel::COL_NB2_ON,ref:-1,
+        genSetterN(&BookmarkInfo::set_nb_on, 2), genGetterN(&BookmarkInfo::get_nb_on, 2), genCmpN(&BookmarkInfo::get_nb_on, 2)});
+     m_idx_struct.append({T:V_DOUBLE,  name:"NB2 threshold",col:BookmarksTableModel::COL_NB2_THRESHOLD,ref:-1,
+        genSetterN(&BookmarkInfo::set_nb_threshold, 2), genGetterN(&BookmarkInfo::get_nb_threshold, 2), genCmpN(&BookmarkInfo::get_nb_threshold, 2)});
+     m_idx_struct.append({T:V_STRING,  name:"REC DIR",col:BookmarksTableModel::COL_REC_DIR,ref:-1,
+        genSetterCS(&BookmarkInfo::set_audio_rec_dir), genGetterCS(&BookmarkInfo::get_audio_rec_dir), genCmp(&BookmarkInfo::get_audio_rec_dir)});
+     m_idx_struct.append({T:V_BOOLEAN, name:"REC SQL trig",col:BookmarksTableModel::COL_REC_SQL_TRIGGERED,ref:-1,
+        genSetter(&BookmarkInfo::set_audio_rec_sql_triggered), genGetter(&BookmarkInfo::get_audio_rec_sql_triggered), genCmp(&BookmarkInfo::get_audio_rec_sql_triggered)});
+     m_idx_struct.append({T:V_INT,     name:"REC Min time",col:BookmarksTableModel::COL_REC_MIN_TIME,ref:-1,
+        genSetter(&BookmarkInfo::set_audio_rec_min_time), genGetter(&BookmarkInfo::get_audio_rec_min_time), genCmp(&BookmarkInfo::get_audio_rec_min_time)});
+     m_idx_struct.append({T:V_INT,     name:"REC Max gap",col:BookmarksTableModel::COL_REC_MAX_GAP,ref:-1,
+        genSetter(&BookmarkInfo::set_audio_rec_max_gap), genGetter(&BookmarkInfo::get_audio_rec_max_gap), genCmp(&BookmarkInfo::get_audio_rec_max_gap)});
+
+     m_col_struct.resize(m_idx_struct.length());
+     for(int k=0;k<m_idx_struct.length();k++)
+     {
+            if(m_idx_struct[k].ref>=0)
+                m_col_struct[m_idx_struct[k].ref]=&m_idx_struct[k];
+            m_name_struct[m_idx_struct[k].name]=&m_idx_struct[k];
+     }
 }
 
 Bookmarks& Bookmarks::Get()
@@ -118,10 +321,9 @@ bool Bookmarks::load()
             if(strings.count() == 5)
             {
                 BookmarkInfo info;
-                info.frequency  = strings[0].toLongLong();
-                info.name       = strings[1].trimmed();
-                info.modulation = strings[2].trimmed();
-                info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
+                m_idx_struct[0].fromString(info, strings[0].trimmed());
+                m_idx_struct[1].fromString(info, strings[1].trimmed());
+                m_idx_struct[4].fromString(info, strings[2].trimmed());
                 int bandwidth  = strings[3].toInt();
                 switch(info.get_demod())
                 {
@@ -136,58 +338,19 @@ bool Bookmarks::load()
                 default:
                     info.set_filter(-bandwidth / 2, bandwidth / 2, bandwidth * 0.2);
                 }
-                // Multiple Tags may be separated by comma.
-                QString strTags = strings[4];
-                QStringList TagList = strTags.split(",");
-                for(int iTag=0; iTag<TagList.size(); ++iTag)
-                {
-                  info.tags.append(findOrAddTag(TagList[iTag].trimmed()));
-                }
+                m_idx_struct[2].fromString(info, strings[4].trimmed());
 
                 m_BookmarkList.append(info);
             }
-            else if (strings.count() == BookmarksTableModel::COLUMN_COUNT)
+            else if (strings.count() > 5)
             {
                 BookmarkInfo info;
                 int i = 0;
-                info.frequency  = strings[i++].toLongLong();
-                info.name       = strings[i++].trimmed();
-                // Multiple Tags may be separated by comma.
-                QString strTags = strings[i++];
-                QStringList TagList = strTags.split(",");
-
-                for (int iTag = 0; iTag < TagList.size(); ++iTag)
-                  info.tags.append(findOrAddTag(TagList[iTag].trimmed()));
-
-                info.set_freq_lock(strings[i++].trimmed() == "true");
-                info.modulation = strings[i++].trimmed();
-                info.set_demod(Modulations::GetEnumForModulationString(info.modulation));
-                info.set_filter_low(strings[i++].toInt());
-                info.set_filter_high(strings[i++].toInt());
-                info.set_filter_tw(strings[i++].toInt());
-                info.set_agc_on(strings[i++].trimmed() == "true");
-                info.set_agc_target_level(strings[i++].toInt());
-                info.set_agc_manual_gain(strings[i++].toFloat());
-                info.set_agc_max_gain(strings[i++].toInt());
-                info.set_agc_attack(strings[i++].toInt());
-                info.set_agc_decay(strings[i++].toInt());
-                info.set_agc_hang(strings[i++].toInt());
-                info.set_agc_panning(strings[i++].toInt());
-                info.set_agc_panning_auto(strings[i++].trimmed() == "true");
-                info.set_cw_offset(strings[i++].toInt());
-                info.set_fm_maxdev(strings[i++].toFloat());
-                info.set_fm_deemph(1.0e-6 * strings[i++].toDouble());
-                info.set_am_dcr(strings[i++].trimmed() == "true");
-                info.set_amsync_dcr(strings[i++].trimmed() == "true");
-                info.set_pll_bw(strings[i++].toFloat());
-                info.set_nb_on(1, strings[i++].trimmed() == "true");
-                info.set_nb_threshold(1, strings[i++].toFloat());
-                info.set_nb_on(2, strings[i++].trimmed() == "true");
-                info.set_nb_threshold(2, strings[i++].toFloat());
-                info.set_audio_rec_dir(strings[i++].trimmed().toStdString());
-                info.set_audio_rec_sql_triggered(strings[i++].trimmed() == "true");
-                info.set_audio_rec_min_time(strings[i++].toInt());
-                info.set_audio_rec_max_gap(strings[i++].toInt());
+                for(i=0;i<strings.count();i++)
+                    if(i<m_idx_struct.length())
+                        m_idx_struct[i].fromString(info, strings[i].trimmed());
+                    else
+                        std::cout << "Bookmarks: Ignoring Column "<<i<<" = " << strings[i].trimmed().toStdString() << std::endl;
 
                 m_BookmarkList.append(info);
             }
@@ -212,6 +375,7 @@ bool Bookmarks::save()
     QFile file(m_bookmarksFile);
     if(file.open(QFile::WriteOnly | QFile::Truncate | QIODevice::Text))
     {
+        QString tmp;
         QTextStream stream(&file);
 
         stream << QString("# Tag name").leftJustified(20) + "; " +
@@ -235,81 +399,26 @@ bool Bookmarks::save()
 
         stream << '\n';
 
-        stream << QString("# Frequency").leftJustified(12) + "; " +
-                  QString("Name").leftJustified(25) + "; " +
-                  QString("Tags").leftJustified(25) + "; " +
-                  QString("Autostart").rightJustified(10) + "; " +
-                  QString("Modulation").leftJustified(20) + "; " +
-                  QString("Filter Low").rightJustified(16) + "; " +
-                  QString("Filter High").rightJustified(16) + "; " +
-                  QString("Filter TW").rightJustified(16) + "; " +
-                  QString("AGC On").rightJustified(10) + "; " +
-                  QString("AGC target level").rightJustified(16) + "; " +
-                  QString("AGC manual gain").rightJustified(16) + "; " +
-                  QString("AGC max gain").rightJustified(16) + "; " +
-                  QString("AGC attack").rightJustified(16) + "; " +
-                  QString("AGC decay").rightJustified(16) + "; " +
-                  QString("AGC hang").rightJustified(16) + "; " +
-                  QString("Panning").rightJustified(16) + "; " +
-                  QString("Auto panning").rightJustified(16) + "; " +
-                  QString("CW offset").rightJustified(16) + "; " +
-                  QString("FM max deviation").rightJustified(16) + "; " +
-                  QString("FM deemphasis").rightJustified(16) + "; " +
-                  QString("AM DCR").rightJustified(16) + "; " +
-                  QString("AM SYNC DCR").rightJustified(16) + "; " +
-                  QString("PLL BW").rightJustified(16) + "; " +
-                  QString("NB1 ON").rightJustified(16) + "; " +
-                  QString("NB1 threshold").rightJustified(16) + "; " +
-                  QString("NB2 ON").rightJustified(16) + "; " +
-                  QString("NB2 threshold").rightJustified(16) + "; " +
-                  QString("REC DIR").rightJustified(16) + "; " +
-                  QString("REC SQL trig").rightJustified(16) + "; " +
-                  QString("REC Min time").rightJustified(16) + "; " +
-                  QString("REC Max gap").rightJustified(16)
-               << '\n';
+        tmp = "# ";
+        for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
+            if(it == m_idx_struct.begin())
+                tmp += it->name;
+            else
+                tmp += ";" + it->name;
+
+        stream << tmp  << '\n';
+
         for (int i = 0; i < m_BookmarkList.size(); i++)
         {
             BookmarkInfo& info = m_BookmarkList[i];
-            QString line =
-                QString::number(info.frequency).rightJustified(12) + "; " +
-                info.name.leftJustified(25) + "; ";
-            for (int iTag = 0; iTag < info.tags.size(); ++iTag)
-            {
-                TagInfo::sptr tag = info.tags[iTag];
-                if (iTag!=0)
-                    line.append(",");
-                line.append(tag->name);
-            }
-            line.append(
-                "; " + QVariant(info.get_freq_lock()).toString().rightJustified(16) +
-                "; " + info.modulation.leftJustified(20)+
-                "; " + QString::number(info.get_filter_low()).rightJustified(16) +
-                "; " + QString::number(info.get_filter_high()).rightJustified(16) +
-                "; " + QString::number(info.get_filter_tw()).rightJustified(16) +
-                "; " + QVariant(info.get_agc_on()).toString().rightJustified(16) +
-                "; " + QString::number(info.get_agc_target_level()).rightJustified(16) +
-                "; " + QString::number((qreal)info.get_agc_manual_gain()).rightJustified(16) +
-                "; " + QString::number(info.get_agc_max_gain()).rightJustified(16) +
-                "; " + QString::number(info.get_agc_attack()).rightJustified(16) +
-                "; " + QString::number(info.get_agc_decay()).rightJustified(16) +
-                "; " + QString::number(info.get_agc_hang()).rightJustified(16) +
-                "; " + QString::number(info.get_agc_panning()).rightJustified(16) +
-                "; " + QVariant(info.get_agc_panning_auto()).toString().rightJustified(16) +
-                "; " + QString::number(info.get_cw_offset()).rightJustified(16) +
-                "; " + QString::number((qreal)info.get_fm_maxdev()).rightJustified(16) +
-                "; " + QString::number(1.0e6 * info.get_fm_deemph()).rightJustified(16) +
-                "; " + QVariant(info.get_am_dcr()).toString().rightJustified(16) +
-                "; " + QVariant(info.get_amsync_dcr()).toString().rightJustified(16) +
-                "; " + QString::number((qreal)info.get_pll_bw()).rightJustified(16) +
-                "; " + QVariant(info.get_nb_on(1)).toString().rightJustified(16) +
-                "; " + QString::number((qreal)info.get_nb_threshold(1)).rightJustified(16) +
-                "; " + QVariant(info.get_nb_on(2)).toString().rightJustified(16) +
-                "; " + QString::number((qreal)info.get_nb_threshold(2)).rightJustified(16) +
-                "; " + QString::fromStdString(info.get_audio_rec_dir()).rightJustified(16) +
-                "; " + QVariant(info.get_audio_rec_sql_triggered()).toString().rightJustified(16) +
-                "; " + QString::number(info.get_audio_rec_min_time()).rightJustified(16) +
-                "; " + QString::number(info.get_audio_rec_max_gap()).rightJustified(16));
-            stream << line << '\n';
+            tmp = "";
+            for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
+                if(it == m_idx_struct.begin())
+                    tmp += it->toString(info);
+                else
+                    tmp += ";" + it->toString(info);
+
+            stream << tmp  << '\n';
         }
 
         emit BookmarksChanged();
@@ -450,4 +559,25 @@ bool BookmarkInfo::IsActive() const
         }
     }
     return bActive;
+}
+
+QString BookmarkInfo::get_tags() const
+{
+    QString line{""};
+    for (int iTag = 0; iTag < tags.size(); ++iTag)
+        {
+            TagInfo::sptr tag = tags[iTag];
+            if (iTag!=0)
+                line.append(",");
+            line.append(tag->name);
+        }
+    return line;
+}
+
+void BookmarkInfo::set_tags(QString newTags)
+{
+    QStringList TagList = newTags.split(",");
+    tags.clear();
+    for(int iTag=0; iTag<TagList.size(); ++iTag)
+        tags.append(Bookmarks::Get().findOrAddTag(TagList[iTag].trimmed()));
 }

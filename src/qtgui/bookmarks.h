@@ -25,12 +25,16 @@
 
 #include <QtGlobal>
 #include <QObject>
+#include <QFile>
+#include <QTextStream>
 #include <QString>
 #include <QMap>
 #include <QList>
+#include <QVector>
 #include <QStringList>
 #include <QColor>
 #include <memory>
+#include <type_traits>
 #include "receivers/vfo.h"
 
 struct TagInfo
@@ -92,6 +96,12 @@ class BookmarkInfo:public vfo_s
     {
         return frequency == other.frequency;
     }
+    qint64 get_frequency() const {return frequency;}
+    void set_frequency(qint64 newFrequency){frequency=newFrequency;}
+    QString get_name() const {return name;}
+    void set_name(QString newName){name=newName;}
+    QString get_tags() const ;
+    void set_tags(QString newTags);
 /*
     void setTags(QString tagString);
     QString getTagString();
@@ -104,14 +114,51 @@ class BookmarkInfo:public vfo_s
 
     qint64  frequency;
     QString name;
-    QString modulation;
     QList<TagInfo::sptr> tags;
+};
+
+class CommaSeparated
+{
+public:
+    CommaSeparated(bool useCaptions=true, QChar quote='\"', QChar fieldDelimiter=';', QChar lineDelimiter='\n');
+    ~CommaSeparated();
+    bool open(const QString filename, bool write);
+    void close();
+    QStringList & getRowRef(){return m_Row;}
+    bool write(QStringList & row);
+    bool read();
+private:
+    bool m_UseCaptions;
+    QChar m_Quote;
+    QChar m_FieldDelimiter;
+    QChar m_LineDelimiter;
+    QFile m_FD;
+    QTextStream m_TS;
+    QStringList m_Row;
 };
 
 class Bookmarks : public QObject
 {
     Q_OBJECT
 public:
+    enum value_type
+    {
+        V_INT=0,
+        V_DOUBLE,
+        V_STRING,
+        V_BOOLEAN
+    };
+
+    struct Def{
+        value_type T;
+        QString name;
+        int /*BookmarksTableModel::EColumns*/ col;
+        int ref;//TODO: replace with c_id
+        std::function< bool (BookmarkInfo &, const QString &)> fromString;
+        std::function< QString (BookmarkInfo &)> toString;
+        std::function< int (const BookmarkInfo &, const BookmarkInfo &)> cmp;
+    };
+
     // This is a Singleton Class now because you can not send qt-signals from static functions.
     static Bookmarks& Get();
 
@@ -135,11 +182,84 @@ public:
 
     void setConfigDir(const QString&);
 
+    const Def & def(const int i)
+    {
+        return m_idx_struct[i];
+    }
+    const Def & def(const QString & k)
+    {
+        return *m_name_struct[k];
+    }
+
 private:
     Bookmarks(); // Singleton Constructor is private.
+    bool fromString(bool & to, const QString & from){to=(from=="true"); return true;}
+    bool fromString(int & to, const QString & from){bool ok{false}; to=from.toInt(&ok); return ok;}
+    bool fromString(Modulations::idx & to, const QString & from){to=Modulations::GetEnumForModulationString(from); return true;}
+    bool fromString(long int & to, const QString & from){bool ok{false}; to=from.toLong(&ok); return ok;}
+    bool fromString(long long int & to, const QString & from){bool ok{false}; to=from.toLongLong(&ok); return ok;}
+    bool fromString(float & to, const QString & from){bool ok{false}; to=from.toFloat(&ok); return ok;}
+    bool fromString(double & to, const QString & from){bool ok{false}; to=from.toDouble(&ok); return ok;}
+    bool fromString(std::string & to, const QString & from){to=from.toStdString(); return true;}
+    bool fromString(QString & to, const QString & from){to=from; return true;}
+    QString toString(const bool & from){return QString(from?"true":"false");}
+    QString toString(const int & from){return QString::number(from);}
+    QString toString(const Modulations::idx & from){return Modulations::GetStringForModulationIndex(from);}
+    QString toString(const long int & from){return QString::number(from);}
+    QString toString(const long long int & from){return QString::number(from);}
+    QString toString(const float & from){return QString::number((qreal)from);}
+    QString toString(const double & from){return QString::number(from);}
+    QString toString(const std::string & from){return QString::fromStdString(from);}
+    QString toString(const QString & from){return from;}
+    template< class A, typename B> std::function< bool (A & to, const QString & from)> genSetter(void (A::* psetter)(B))
+    {
+        return [=] (A & to, const QString & from) -> bool { B tmp; bool ok = fromString(tmp, from); if(ok) (to.*psetter)(tmp); return ok;};
+    }
+    template< class A, typename B> std::function< QString (A & from)> genGetter(B (A::* pgetter)() const)
+    {
+        return [=] (A & from) -> QString { return toString((from.*pgetter)());};
+    }
+    template< class A, typename B> std::function< int (const A &, const A &)> genCmp(B (A::* pgetter)() const)
+    {
+        return [=] (const A & a, const A & b) -> int
+            {
+                B va = (a.*pgetter)();
+                B vb = (b.*pgetter)();
+                return (va==vb)?0:((va>vb)?1:-1);
+            };
+    }
+    template< class A, typename B> std::function< bool (A & to, const QString & from)> genSetterN(void (A::* psetter)(int, B), int n)
+    {
+        return [=] (A & to, const QString & from) -> bool { B tmp; bool ok = fromString(tmp, from); if(ok) (to.*psetter)(n, tmp); return ok;};
+    }
+    template< class A, typename B> std::function< QString (A & from)> genGetterN(B (A::* pgetter)(int) const, int n)
+    {
+        return [=] (A & from) -> QString { return toString((from.*pgetter)(n));};
+    }
+    template< class A, typename B> std::function< int (const A &, const A &)> genCmpN(B (A::* pgetter)(int) const, int n)
+    {
+        return [=] (const A & a, const A & b) -> int
+            {
+                B va = (a.*pgetter)(n);
+                B vb = (b.*pgetter)(n);
+                return (va==vb)?0:((va>vb)?1:-1);
+            };
+    }
+    template< class A> std::function< bool (A & to, const QString & from)> genSetterCS(void (A::* psetter)(const std::string &))
+    {
+        return [=] (A & to, const QString & from) -> bool { std::string tmp; bool ok = fromString(tmp, from); if(ok) (to.*psetter)(tmp); return ok;};
+    }
+    template< class A> std::function< QString (A & from)> genGetterCS(const std::string & (A::* pgetter)() const)
+    {
+        return [=] (A & from) -> QString { return toString((from.*pgetter)());};
+    }
+
     QList<BookmarkInfo>  m_BookmarkList;
     QList<TagInfo::sptr> m_TagList;
     QString              m_bookmarksFile;
+    QVector<Def>         m_idx_struct;
+    QVector<Def*>        m_col_struct;
+    QMap<QString,Def*>   m_name_struct;
 
 signals:
     void BookmarksChanged(void);
