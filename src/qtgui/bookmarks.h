@@ -151,8 +151,6 @@ public:
     struct Def{
         value_type T;
         QString name;
-        int /*BookmarksTableModel::EColumns*/ col;
-        int ref;//TODO: replace with c_id
         std::function< bool (BookmarkInfo &, const QString &)> fromString;
         std::function< QString (BookmarkInfo &)> toString;
         std::function< int (const BookmarkInfo &, const BookmarkInfo &)> cmp;
@@ -265,7 +263,6 @@ private:
     QString              m_bookmarksFile;
     QString              m_tagsFile;
     QVector<Def>         m_idx_struct;
-    QVector<Def*>        m_col_struct;
     QMap<QString,Def*>   m_name_struct;
 
 signals:
