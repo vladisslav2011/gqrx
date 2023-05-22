@@ -29,8 +29,8 @@
    <iconset resource="../../resources/icons.qrc">
     <normaloff>:/icons/icons/signal.svg</normaloff>:/icons/icons/signal.svg</iconset>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QLabel" name="recDirLabel">
@@ -73,7 +73,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="1" column="0">
     <widget class="QListWidget" name="listWidget">
      <property name="alternatingRowColors">
       <bool>true</bool>
@@ -83,7 +83,7 @@
      </property>
     </widget>
    </item>
-   <item>
+   <item row="2" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QPushButton" name="recButton">
@@ -206,7 +206,7 @@
      </item>
     </layout>
    </item>
-   <item>
+   <item row="3" column="0">
     <widget class="QSlider" name="slider">
      <property name="toolTip">
       <string>Seek forward and backward in I/Q file</string>
@@ -225,7 +225,7 @@
      </property>
     </widget>
    </item>
-   <item>
+   <item row="4" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QLabel" name="bufferStats">
