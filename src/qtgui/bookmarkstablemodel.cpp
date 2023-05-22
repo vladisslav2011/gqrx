@@ -41,7 +41,7 @@ int BookmarksTableModel::rowCount ( const QModelIndex & /*parent*/ ) const
 }
 int BookmarksTableModel::columnCount ( const QModelIndex & /*parent*/ ) const
 {
-    return COLUMN_COUNT;
+    return Bookmarks::Get().columnCount();
 }
 
 QVariant BookmarksTableModel::headerData ( int section, Qt::Orientation orientation, int role ) const

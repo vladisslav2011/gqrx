@@ -185,9 +185,15 @@ public:
     {
         return m_idx_struct[i];
     }
+
     const Def & def(const QString & k)
     {
         return *m_name_struct[k];
+    }
+
+    int columnCount() const
+    {
+        return m_idx_struct.count();
     }
 
 private:
