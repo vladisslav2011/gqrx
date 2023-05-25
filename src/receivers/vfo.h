@@ -71,13 +71,15 @@ public:
         d_agc_mute(false),
         d_cw_offset(700),
         d_fm_maxdev(2500),
-        d_fm_deemph(7.5e-5),
+        d_fm_deemph(75),
         d_fmpll_damping_factor(0.7),
+        d_fmpll_bw(0.027),
+        d_fmpll_subtone_filter(false),
         d_subtone_filter(false),
         d_am_dcr(true),
         d_amsync_dcr(true),
         d_pll_bw(0.01),
-        d_wfm_deemph(5.e-5),
+        d_wfm_deemph(50.0),
         d_rec_dir(""),
         d_rec_sql_triggered(false),
         d_rec_min_time(0),
@@ -129,21 +131,21 @@ public:
     inline bool  get_agc_panning_auto() const { return d_agc_panning_auto; }
     inline bool  get_agc_mute() const { return d_agc_mute; }
     /* CW parameters */
-    inline int   get_cw_offset() const { return d_cw_offset; }
+    bool         get_cw_offset(c_def::v_union & v) const { v=d_cw_offset; return true; }
     /* FM parameters */
-    inline float get_fm_maxdev() const { return d_fm_maxdev; }
-    inline double get_fm_deemph() const { return d_fm_deemph; }
-    inline float get_fmpll_damping_factor() const { return d_fmpll_damping_factor; }
-    inline bool get_subtone_filter() { return d_subtone_filter; }
+    bool         get_fm_maxdev(c_def::v_union & v) const { v=d_fm_maxdev; return true; }
+    bool         get_fm_deemph(c_def::v_union & v) const { v=d_fm_deemph; return true; }
+    bool         get_subtone_filter(c_def::v_union & v) const { v=d_subtone_filter;  return true; }
     /* AM parameters */
-    inline bool get_am_dcr() const { return d_am_dcr; }
-
+    bool         get_am_dcr(c_def::v_union & v) const { v=d_am_dcr; return true; }
     /* AM-Sync parameters */
-    inline bool  get_amsync_dcr() const { return d_amsync_dcr; }
-    /* AM-Sync/NFM PLL shared parameters */
-    inline float get_pll_bw() const { return d_pll_bw; }
+    bool         get_amsync_dcr(c_def::v_union & v) const { v=d_amsync_dcr; return true; }
+    bool         get_amsync_pll_bw(c_def::v_union & v) const { v=d_pll_bw; return true; }
+    /* NFM PLL parameters */
+    bool         get_pll_bw(c_def::v_union & v) const { v=d_fmpll_bw; return true; }
+    bool         get_fmpll_damping_factor(c_def::v_union & v) const { v=d_fmpll_damping_factor; return true; }
     /* WFM parameters */
-    inline float get_wfm_deemph() const { return d_wfm_deemph; }
+    bool         get_wfm_deemph(c_def::v_union & v) const { v=d_wfm_deemph; return true; }
     /* Noise blanker */
     bool get_nb_on(int nbid) const;
     float get_nb_threshold(int nbid) const;
@@ -184,19 +186,21 @@ public:
     virtual void  set_agc_panning_auto(bool mode);
     virtual void  set_agc_mute(bool agc_mute);
     /* CW parameters */
-    virtual void set_cw_offset(int offset);
+    virtual bool set_cw_offset(const c_def::v_union &);
     /* FM parameters */
-    virtual void  set_fm_maxdev(float maxdev_hz);
-    virtual void  set_fm_deemph(double tau);
-    virtual void  set_fmpll_damping_factor(float df);
-    virtual void  set_subtone_filter(bool state);
+    virtual bool  set_fm_maxdev(const c_def::v_union &);
+    virtual bool  set_fm_deemph(const c_def::v_union &);
+    virtual bool  set_subtone_filter(const c_def::v_union &);
+    /* FM PLL parameters */
+    virtual bool  set_fmpll_damping_factor(const c_def::v_union &);
+    virtual bool  set_pll_bw(const c_def::v_union &);
     /* AM parameters */
-    virtual void set_am_dcr(bool enabled);
+    virtual bool  set_am_dcr(const c_def::v_union &);
     /* AM-Sync parameters */
-    virtual void  set_amsync_dcr(bool enabled);
-    virtual void  set_pll_bw(float pll_bw);
+    virtual bool  set_amsync_dcr(const c_def::v_union &);
+    virtual bool  set_amsync_pll_bw(const c_def::v_union &);
     /* WFM parameters */
-    virtual void  set_wfm_deemph(float tau);
+    virtual bool  set_wfm_deemph(const c_def::v_union &);
     /* Noise blanker */
     virtual void set_nb_on(int nbid, bool on);
     virtual void set_nb_threshold(int nbid, float threshold);
@@ -266,6 +270,8 @@ protected:
     float            d_fm_maxdev;
     double           d_fm_deemph;
     float            d_fmpll_damping_factor;
+    float            d_fmpll_bw;
+    bool             d_fmpll_subtone_filter;
     bool             d_subtone_filter;
     bool             d_am_dcr;
     bool             d_amsync_dcr;
@@ -285,7 +291,6 @@ protected:
     bool             d_udp_stereo;
 
     bool             d_rds_on;
-
     int              d_testval;
 
 } vfo;
