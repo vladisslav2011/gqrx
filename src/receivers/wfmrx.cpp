@@ -166,12 +166,14 @@ void wfmrx::set_demod(Modulations::idx demod)
 
 }
 
-void wfmrx::set_wfm_deemph(float tau)
+bool wfmrx::set_wfm_deemph(const c_def::v_union & v)
 {
-    receiver_base_cf::set_wfm_deemph(tau);
+    receiver_base_cf::set_wfm_deemph(v);
+    const float tau = 1e-6f * d_wfm_deemph;
     mono->set_tau((double)tau);
     stereo->set_tau((double)tau);
     stereo_oirt->set_tau((double)tau);
+    return true;
 }
 
 void wfmrx::set_index(int index)

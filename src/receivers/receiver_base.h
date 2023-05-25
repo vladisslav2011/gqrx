@@ -127,9 +127,6 @@ public:
     void  set_agc_mute(bool agc_mute) override;
     virtual float get_agc_gain();
 
-    /* CW parameters */
-    void set_cw_offset(int offset) override;
-
     virtual int  start_audio_recording();
     virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);
