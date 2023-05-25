@@ -30,10 +30,6 @@ DockInputCtl::DockInputCtl(QWidget * parent) :
 {
     ui->setupUi(this);
 
-    // Grid layout with gain controls (device dependent)
-    gainLayout = new QGridLayout();
-    gainLayout->setObjectName(QString::fromUtf8("gainLayout"));
-    ui->verticalLayout->insertLayout(2, gainLayout);
     ui->channelizerCombo->addItem("OFF", 0);
     ui->channelizerCombo->addItem("singlethreaded", 1);
     ui->channelizerCombo->addItem("2 threads", 2);
@@ -44,7 +40,6 @@ DockInputCtl::DockInputCtl(QWidget * parent) :
 DockInputCtl::~DockInputCtl()
 {
     delete ui;
-    delete gainLayout;
 }
 
 void DockInputCtl::readSettings(QSettings * settings)
@@ -436,9 +431,9 @@ void DockInputCtl::setGainStages(gain_list_t &gain_list)
         if (abs(stop - start) > 10 * step)
             slider->setPageStep(10 * step);
 
-        gainLayout->addWidget(label, i, 0, Qt::AlignLeft);
-        gainLayout->addWidget(slider, i, 1);        // setting alignment would force minimum size
-        gainLayout->addWidget(value, i, 2, Qt::AlignLeft);
+        ui->gainLayout->addWidget(label, i, 0, Qt::AlignLeft);
+        ui->gainLayout->addWidget(slider, i, 1);        // setting alignment would force minimum size
+        ui->gainLayout->addWidget(value, i, 2, Qt::AlignLeft);
 
         gain_labels.push_back(label);
         gain_sliders.push_back(slider);
@@ -581,7 +576,7 @@ void DockInputCtl::clearWidgets()
     while (!gain_sliders.isEmpty())
     {
         widget = gain_sliders.takeFirst();
-        gainLayout->removeWidget(widget);
+        ui->gainLayout->removeWidget(widget);
         delete widget;
     }
 
@@ -589,7 +584,7 @@ void DockInputCtl::clearWidgets()
     while (!gain_labels.isEmpty())
     {
         widget = gain_labels.takeFirst();
-        gainLayout->removeWidget(widget);
+        ui->gainLayout->removeWidget(widget);
         delete widget;
     }
 
@@ -597,7 +592,7 @@ void DockInputCtl::clearWidgets()
     while (!value_labels.isEmpty())
     {
         widget = value_labels.takeFirst();
-        gainLayout->removeWidget(widget);
+        ui->gainLayout->removeWidget(widget);
         delete widget;
     }
 }

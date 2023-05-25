@@ -151,7 +151,6 @@ private:
     QList<QLabel *>   value_labels; /*!< A list containing labels showing the current gain value. */
 
     Ui::DockInputCtl *ui;           /*!< User interface. */
-    QGridLayout      *gainLayout;   /*!< Grid layout containing gain controls and labels. */
 };
 
 #endif // DOCKINPUTCTL_H
