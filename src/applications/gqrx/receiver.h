@@ -83,7 +83,7 @@ public:
     /** Flag used to indicate success or failure of an operation */
     enum status {
         STATUS_OK    = 0, /*!< Operation was successful. */
-        STATUS_ERROR = 1  /*!< There was an error. */
+        STATUS_ERROR = -1  /*!< There was an error. */
     };
 
     /** Supported receiver types. */
@@ -309,6 +309,7 @@ public:
     status      set_mute(bool mute);
     bool        get_mute();
     /* Demod */
+    rx_chain    get_rxc(Modulations::idx demod) const;
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
