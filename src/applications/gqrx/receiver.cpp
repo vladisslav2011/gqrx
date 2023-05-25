@@ -918,20 +918,6 @@ bool receiver::get_freq_lock()
     return rx[d_current]->get_freq_lock();
 }
 
-
-/* CW offset can serve as a "BFO" if the GUI needs it */
-receiver::status receiver::set_cw_offset(double offset_hz)
-{
-    rx[d_current]->set_cw_offset(offset_hz);
-
-    return STATUS_OK;
-}
-
-double receiver::get_cw_offset(void) const
-{
-    return rx[d_current]->get_cw_offset();
-}
-
 receiver::status receiver::set_filter(int low, int high, filter_shape shape)
 {
     if ((low >= high) || (std::abs(high-low) < RX_FILTER_MIN_WIDTH))
@@ -1528,94 +1514,6 @@ receiver::status receiver::reconnect_all(file_formats fmt, bool force)
     return ret;
 }
 
-
-/**
- * @brief Set maximum deviation of the FM demodulator.
- * @param maxdev_hz The new maximum deviation in Hz.
- */
-receiver::status receiver::set_fm_maxdev(float maxdev_hz)
-{
-    rx[d_current]->set_fm_maxdev(maxdev_hz);
-
-    return STATUS_OK;
-}
-
-float receiver::get_fm_maxdev()
-{
-    return rx[d_current]->get_fm_maxdev();
-}
-
-receiver::status receiver::set_fm_deemph(double tau)
-{
-    rx[d_current]->set_fm_deemph(tau);
-
-    return STATUS_OK;
-}
-
-double receiver::get_fm_deemph()
-{
-    return rx[d_current]->get_fm_deemph();
-}
-
-receiver::status receiver::set_fmpll_damping_factor(float df)
-{
-    rx[d_current]->set_fmpll_damping_factor(df);
-
-    return STATUS_OK;
-}
-
-float receiver::get_fmpll_damping_factor()
-{
-    return rx[d_current]->get_fmpll_damping_factor();
-}
-
-receiver::status receiver::set_fm_subtone_filter(bool state)
-{
-    rx[d_current]->set_subtone_filter(state);
-
-    return STATUS_OK;
-}
-
-bool receiver::get_fm_subtone_filter()
-{
-    return rx[d_current]->get_subtone_filter();
-}
-
-receiver::status receiver::set_am_dcr(bool enabled)
-{
-    rx[d_current]->set_am_dcr(enabled);
-
-    return STATUS_OK;
-}
-
-bool receiver::get_am_dcr()
-{
-    return rx[d_current]->get_am_dcr();
-}
-
-receiver::status receiver::set_amsync_dcr(bool enabled)
-{
-    rx[d_current]->set_amsync_dcr(enabled);
-
-    return STATUS_OK;
-}
-
-bool receiver::get_amsync_dcr()
-{
-    return rx[d_current]->get_amsync_dcr();
-}
-
-receiver::status receiver::set_pll_bw(float pll_bw)
-{
-    rx[d_current]->set_pll_bw(pll_bw);
-
-    return STATUS_OK;
-}
-
-float receiver::get_pll_bw()
-{
-    return rx[d_current]->get_pll_bw();
-}
 
 receiver::status receiver::set_audio_rec_dir(const std::string dir)
 {

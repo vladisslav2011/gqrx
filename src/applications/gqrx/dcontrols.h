@@ -35,6 +35,24 @@ enum c_id
     C_INVALID=-1,
     C_TEST=0,
     
+    C_NFM_MAXDEV,
+    C_NFMPLL_MAXDEV,
+    C_NFM_DEEMPH,
+    C_NFM_SUBTONE_FILTER,
+    C_NFMPLL_DAMPING_FACTOR,
+    C_NFMPLL_PLLBW,
+    C_NFMPLL_SUBTONE_FILTER,
+    C_AMSYNC_PLLBW,
+    C_AMSYNC_DCR,
+    C_AM_DCR,
+    C_CW_OFFSET,
+    C_DEMOD_OFF_DUMMY,
+    C_RAWIQ_DUMMY,
+    C_SSB_DUMMY,
+    C_WFM_DEEMPH,
+    C_WFM_STEREO_DEEMPH,
+    C_WFM_OIRT_DEEMPH,
+    C_RDS_ON,
     /* type 0 = PI
      * type 1 = PS
      * type 2 = PTY
@@ -43,7 +61,6 @@ enum c_id
      * type 5 = ClockTime
      * type 6 = Alternative Frequencies
      */
-    C_RDS_ON,
     C_RDS_PS,
     C_RDS_PTY,
     C_RDS_PI,
@@ -96,6 +113,7 @@ enum gui_window
 {
     W_BASE=0,
     W_CHILD, //"Options" extra window
+    W_DEMOD_OPT,
     
     W_COUNT
 };

@@ -59,7 +59,7 @@ public:
 
     void set_filter(int low, int high, int tw) override;
     void set_offset(int offset) override;
-    void set_cw_offset(int offset) override;
+    bool set_cw_offset(const c_def::v_union &) override;
 
     void set_audio_rate(int audio_rate) override;
 
@@ -71,17 +71,18 @@ public:
     void set_demod(Modulations::idx new_demod) override;
 
     /* FM parameters */
-    void set_fm_maxdev(float maxdev_hz) override;
-    void set_fm_deemph(double tau) override;
-    void set_fmpll_damping_factor(float df) override;
-    void  set_subtone_filter(bool state) override;
+    bool set_fm_maxdev(const c_def::v_union &) override;
+    bool set_fm_deemph(const c_def::v_union &) override;
+    bool set_fmpll_damping_factor(const c_def::v_union &) override;
+    bool set_subtone_filter(const c_def::v_union &) override;
 
     /* AM parameters */
-    void set_am_dcr(bool enabled) override;
+    bool set_am_dcr(const c_def::v_union &) override;
 
     /* AM-Sync parameters */
-    void set_amsync_dcr(bool enabled) override;
-    void set_pll_bw(float pll_bw) override;
+    bool set_amsync_dcr(const c_def::v_union &) override;
+    bool set_amsync_pll_bw(const c_def::v_union &) override;
+    bool set_pll_bw(const c_def::v_union &) override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
