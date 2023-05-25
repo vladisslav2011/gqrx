@@ -1374,21 +1374,12 @@ bool receiver::get_mute()
     return d_mute;
 }
 
-
-receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
+receiver::rx_chain receiver::get_rxc(Modulations::idx demod) const
 {
-    status ret = STATUS_OK;
-    rx_chain rxc = RX_CHAIN_NONE;
-    if (old_idx == -1)
-    {
-        background_rx();
-        disconnect_rx();
-    }
-
     switch (demod)
     {
     case Modulations::MODE_OFF:
-        rxc = RX_CHAIN_NONE;
+        return RX_CHAIN_NONE;
         break;
 
     case Modulations::MODE_RAW:
@@ -1400,28 +1391,40 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
     case Modulations::MODE_USB:
     case Modulations::MODE_CWL:
     case Modulations::MODE_CWU:
-        rxc = RX_CHAIN_NBRX;
+        return RX_CHAIN_NBRX;
         break;
 
     case Modulations::MODE_WFM_MONO:
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
-        rxc = RX_CHAIN_WFMRX;
+        return RX_CHAIN_WFMRX;
         break;
 
     default:
-        ret = STATUS_ERROR;
+        return receiver::rx_chain(STATUS_ERROR);
         break;
     }
-    if (ret != STATUS_ERROR)
+}
+
+receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
+{
+    status ret = STATUS_OK;
+    rx_chain rxc = get_rxc(demod);
+    if (rxc != receiver::rx_chain(STATUS_ERROR))
     {
         receiver_base_cf_sptr old_rx = rx[(old_idx == -1) ? d_current : old_idx];
+        rx_chain old_rxc=get_rxc(get_demod());
         // RX demod chain
+        if (old_idx == -1)
+        {
+            background_rx();
+            disconnect_rx();
+        }
         switch (rxc)
         {
         case RX_CHAIN_NBRX:
         case RX_CHAIN_NONE:
-            if (rx[d_current]->name() != "NBRX")
+            if (old_rxc != rxc)
             {
                 rx[d_current].reset();
                 if(d_use_chan)
@@ -1437,7 +1440,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             break;
 
         case RX_CHAIN_WFMRX:
-            if (rx[d_current]->name() != "WFMRX")
+            if (old_rxc != rxc)
             {
                 rx[d_current].reset();
                 if(d_use_chan)
@@ -1463,12 +1466,9 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             rx[d_current]->restore_settings(*old_rx.get());
             rx[d_current]->set_offset(old_rx->get_offset());
             // Recorders
-            if (old_rx.get() != rx[d_current].get())
-            {
-                if (old_idx == -1)
-                    if (old_rx->get_audio_recording())
-                        rx[d_current]->continue_audio_recording(old_rx);
-            }
+            if (old_idx == -1)
+                if (old_rx->get_audio_recording())
+                    rx[d_current]->continue_audio_recording(old_rx);
             if (demod == Modulations::MODE_OFF)
             {
                 if (rx[d_current]->get_audio_recording())
@@ -1481,17 +1481,28 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
         tb->disconnect(iq_src, 0, rx[d_current], 0);
         // End temporary workaronud
-    }
-    connect_rx();
-    foreground_rx();
+        connect_rx();
+        foreground_rx();
+    }else
+        return STATUS_ERROR;
     return ret;
 }
 
 receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
 {
     status ret = STATUS_OK;
-    if (rx[d_current]->get_demod() == demod)
-        return ret;
+    if(old_idx == -1)
+    {
+        if (rx[d_current]->get_demod() == demod)
+            return ret;
+        if(get_rxc(rx[d_current]->get_demod()) == get_rxc(demod))
+        {
+            rx[d_current]->lock();
+            rx[d_current]->set_demod(demod);
+            rx[d_current]->unlock();
+            return ret;
+        }
+    }
     if (d_running)
     {
         tb->stop();
