@@ -228,8 +228,6 @@ public:
     void        set_freq_lock(bool on, bool all = false);
     bool        get_freq_lock();
 
-    status      set_cw_offset(double offset_hz);
-    double      get_cw_offset(void) const;
     status      set_filter(int low, int high, filter_shape shape);
     status      get_filter(int &low, int &high, filter_shape &shape);
     status      set_freq_corr(double ppm);
@@ -302,27 +300,6 @@ public:
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
-
-    /* FM parameters */
-    status      set_fm_maxdev(float maxdev_hz);
-    float       get_fm_maxdev();
-    status      set_fm_deemph(double tau);
-    double      get_fm_deemph();
-    status      set_fmpll_damping_factor(double df);
-    double      get_fmpll_damping_factor();
-    status      set_fm_subtone_filter(bool state);
-    bool        get_fm_subtone_filter();
-
-
-    /* AM parameters */
-    status      set_am_dcr(bool enabled);
-    bool        get_am_dcr();
-
-    /* AM-Sync parameters */
-    status      set_amsync_dcr(bool enabled);
-    bool        get_amsync_dcr();
-    status      set_pll_bw(float pll_bw);
-    float       get_pll_bw();
 
     /* Audio parameters */
     status      set_audio_rec_dir(const std::string dir);

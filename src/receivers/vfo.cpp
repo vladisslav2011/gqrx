@@ -130,49 +130,64 @@ void vfo_s::set_agc_mute(bool agc_mute)
     d_agc_mute = agc_mute;
 }
 
-void vfo_s::set_cw_offset(int offset)
+bool vfo_s::set_cw_offset(const c_def::v_union & v)
 {
-    d_cw_offset = offset;
+    d_cw_offset = v;
+    return true;
 }
 
-void vfo_s::set_fm_maxdev(float maxdev_hz)
+bool vfo_s::set_fm_maxdev(const c_def::v_union & v)
 {
-    d_fm_maxdev = maxdev_hz;
+    d_fm_maxdev = v;
+    return true;
 }
 
-void vfo_s::set_fm_deemph(double tau)
+bool vfo_s::set_fm_deemph(const c_def::v_union & v)
 {
-    d_fm_deemph = tau;
+    d_fm_deemph = v;
+    return true;
 }
 
-void vfo_s::set_fmpll_damping_factor(double df)
+bool vfo_s::set_fmpll_damping_factor(const c_def::v_union & v)
 {
-    d_fmpll_damping_factor = df;
+    d_fmpll_damping_factor = v;
+    return true;
 }
 
-void vfo::set_subtone_filter(bool state)
+bool vfo::set_subtone_filter(const c_def::v_union & v)
 {
-    d_subtone_filter = state;
+    d_subtone_filter = v;
+    return true;
 }
 
-void vfo_s::set_am_dcr(bool enabled)
+bool vfo_s::set_am_dcr(const c_def::v_union & v)
 {
-    d_am_dcr = enabled;
+    d_am_dcr = v;
+    return true;
 }
 
-void vfo_s::set_amsync_dcr(bool enabled)
+bool vfo_s::set_amsync_dcr(const c_def::v_union & v)
 {
-    d_amsync_dcr = enabled;
+    d_amsync_dcr = v;
+    return true;
 }
 
-void vfo_s::set_pll_bw(float pll_bw)
+bool vfo_s::set_amsync_pll_bw(const c_def::v_union & v)
 {
-    d_pll_bw = pll_bw;
+    d_pll_bw = v;
+    return true;
 }
 
-void vfo_s::set_wfm_deemph(double tau)
+bool vfo_s::set_pll_bw(const c_def::v_union & v)
 {
-    d_wfm_deemph = tau;
+    d_fmpll_bw = v;
+    return true;
+}
+
+bool vfo_s::set_wfm_deemph(const c_def::v_union & v)
+{
+    d_wfm_deemph = v;
+    return true;
 }
 
 void vfo_s::set_nb_on(int nbid, bool on)
@@ -257,18 +272,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_agc_panning(from.get_agc_panning());
     set_agc_panning_auto(from.get_agc_panning_auto());
 
-    set_cw_offset(from.get_cw_offset());
     set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
-
-    set_fm_maxdev(from.get_fm_maxdev());
-    set_fm_deemph(from.get_fm_deemph());
-    set_fmpll_damping_factor(from.get_fmpll_damping_factor());
-    set_subtone_filter(from.get_subtone_filter());
-
-    set_am_dcr(from.get_am_dcr());
-    set_amsync_dcr(from.get_amsync_dcr());
-    set_pll_bw(from.get_pll_bw());
-    set_wfm_deemph(from.get_wfm_deemph());
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
     {
@@ -285,7 +289,18 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_host(from.get_udp_host());
     set_udp_port(from.get_udp_port());
     set_udp_stereo(from.get_udp_stereo());
+
     c_def::v_union v(0);
+    from.get_fm_maxdev(v);set_fm_maxdev(v);
+    from.get_fm_deemph(v);set_fm_deemph(v);
+    from.get_fmpll_damping_factor(v);set_fmpll_damping_factor(v);
+    from.get_subtone_filter(v);set_subtone_filter(v);
+    from.get_pll_bw(v);set_pll_bw(v);
+    from.get_amsync_pll_bw(v);set_amsync_pll_bw(v);
+    from.get_amsync_dcr(v);set_amsync_dcr(v);
+    from.get_am_dcr(v);set_am_dcr(v);
+    from.get_cw_offset(v);set_cw_offset(v);
+    from.get_wfm_deemph(v);set_wfm_deemph(v);
     from.get_rds_on(v);set_rds_on(v);
     from.get_test(v);set_test(v);
 }
@@ -320,6 +335,41 @@ int vfo_s::conf_initializer()
 {
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
+
+    // NFM parameters
+    setters[C_NFM_MAXDEV]=&vfo_s::set_fm_maxdev;
+    getters[C_NFM_MAXDEV]=&vfo_s::get_fm_maxdev;
+    setters[C_NFM_DEEMPH]=&vfo_s::set_fm_deemph;
+    getters[C_NFM_DEEMPH]=&vfo_s::get_fm_deemph;
+    setters[C_NFM_SUBTONE_FILTER]=&vfo_s::set_subtone_filter;
+    getters[C_NFM_SUBTONE_FILTER]=&vfo_s::get_subtone_filter;
+    // NFM PLL parameters
+    setters[C_NFMPLL_MAXDEV]=&vfo_s::set_fm_maxdev;
+    getters[C_NFMPLL_MAXDEV]=&vfo_s::get_fm_maxdev;
+    setters[C_NFMPLL_SUBTONE_FILTER]=&vfo_s::set_subtone_filter;
+    getters[C_NFMPLL_SUBTONE_FILTER]=&vfo_s::get_subtone_filter;
+    setters[C_NFMPLL_DAMPING_FACTOR]=&vfo_s::set_fmpll_damping_factor;
+    getters[C_NFMPLL_DAMPING_FACTOR]=&vfo_s::get_fmpll_damping_factor;
+    setters[C_NFMPLL_PLLBW]=&vfo_s::set_pll_bw;
+    getters[C_NFMPLL_PLLBW]=&vfo_s::get_pll_bw;
+    // AM SYNC parameters
+    setters[C_AMSYNC_DCR]=&vfo_s::set_amsync_dcr;
+    getters[C_AMSYNC_DCR]=&vfo_s::get_amsync_dcr;
+    setters[C_AMSYNC_PLLBW]=&vfo_s::set_amsync_pll_bw;
+    getters[C_AMSYNC_PLLBW]=&vfo_s::get_amsync_pll_bw;
+    // AM parameters
+    setters[C_AM_DCR]=&vfo_s::set_am_dcr;
+    getters[C_AM_DCR]=&vfo_s::get_am_dcr;
+    // CW parameters
+    setters[C_CW_OFFSET]=&vfo_s::set_cw_offset;
+    getters[C_CW_OFFSET]=&vfo_s::get_cw_offset;
+    // WFM parameters
+    setters[C_WFM_DEEMPH]=&vfo_s::set_wfm_deemph;
+    getters[C_WFM_DEEMPH]=&vfo_s::get_wfm_deemph;
+    setters[C_WFM_STEREO_DEEMPH]=&vfo_s::set_wfm_deemph;
+    getters[C_WFM_STEREO_DEEMPH]=&vfo_s::get_wfm_deemph;
+    setters[C_WFM_OIRT_DEEMPH]=&vfo_s::set_wfm_deemph;
+    getters[C_WFM_OIRT_DEEMPH]=&vfo_s::get_wfm_deemph;
 
     getters[C_RDS_ON]=&vfo_s::get_rds_on;
     setters[C_RDS_ON]=&vfo_s::set_rds_on;

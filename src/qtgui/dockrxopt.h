@@ -76,18 +76,7 @@ public:
     Modulations::idx  currentDemod() const;
     QString currentDemodAsString();
 
-    float currentMaxdev() const;
-    double currentEmph() const;
-    double currentDampingFactor() const;
-    bool currentSubtoneFilter() const;
     double currentSquelchLevel() const;
-
-    bool currentAmDcr() const;
-    bool currentAmsyncDcr() const;
-    float currentPllBw() const;
-
-    int     getCwOffset() const;
-    void    setCwOffset(int offset);
 
     double  getSqlLevel(void) const;
 
@@ -108,13 +97,6 @@ public:
     bool    getAgcPanningAuto();
     void    setAgcPanningAuto(bool panningAuto);
 
-    void    setAmDcr(bool on);
-    void    setAmSyncDcr(bool on);
-    void    setPllBw(float bw);
-    void    setFmMaxdev(float max_hz);
-    void    setFmEmph(double tau);
-    void    setFmPLLDampingFactor(double df);
-    void    setFmSubtoneFilter(bool state);
     void    setNoiseBlanker(int nbid, bool on, float threshold);
 
     void    setFreqLock(bool lock);
@@ -128,7 +110,6 @@ public slots:
 
 private:
     void updateHwFreq();
-    void updateDemodOptPage(Modulations::idx demod);
     unsigned int filterIdxFromLoHi(int lo, int hi) const;
 
     void modeOffShortcut();
@@ -157,27 +138,6 @@ signals:
 
     /** Signal emitted when new demodulator is selected. */
     void demodSelected(Modulations::idx demod);
-
-    /** Signal emitted when new FM deviation is selected. */
-    void fmMaxdevSelected(float max_dev);
-
-    /** Signal emitted when new FM de-emphasis constant is selected. */
-    void fmEmphSelected(double tau);
-
-    /** Signal emitted when new FM PLL damping factor is selected. */
-    void fmpllDampingFactorSelected(double df);
-
-    /** Signal emitted when FM subtone filter is switched on/off. */
-    void fmSubtoneFilterSelected(bool);
-
-    /** Signal emitted when AM DCR status is toggled. */
-    void amDcrToggled(bool enabled);
-
-    /** Signal emitted when AM-Sync DCR status is toggled. */
-    void amSyncDcrToggled(bool enabled);
-
-    /** Signal emitted when new AM-Sync PLL BW is selected. */
-    void pllBwSelected(float pll_bw);
 
     /** Signal emitted when baseband gain has changed. Gain is in dB. */
     //void bbGainChanged(float gain);
@@ -225,8 +185,6 @@ signals:
     /** Signal emitted when freq lock mode changed. */
     void freqLock(bool lock, bool all);
 
-    void cwOffsetChanged(int offset);
-
 private slots:
     void on_freqSpinBox_valueChanged(double freq);
     void on_filterFreq_newFrequency(qint64 freq);
@@ -253,16 +211,6 @@ private slots:
 
     // Signals coming from noise blanker pop-up
     void nbOpt_thresholdChanged(int nbid, double value);
-
-    // Signals coming from demod options pop-up
-    void demodOpt_fmMaxdevSelected(float max_dev);
-    void demodOpt_fmEmphSelected(double tau);
-    void demodOpt_fmpllDampingFactor(double df);
-    void demodOpt_fmSubtoneFilter(bool state);
-    void demodOpt_amDcrToggled(bool enabled);
-    void demodOpt_cwOffsetChanged(int offset);
-    void demodOpt_amSyncDcrToggled(bool enabled);
-    void demodOpt_pllBwSelected(float pll_bw);
 
     // Signals coming from AGC options popup
     void agcOpt_maxGainChanged(int value);

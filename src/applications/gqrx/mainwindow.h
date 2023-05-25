@@ -201,14 +201,6 @@ private slots:
     void selectDemod(const QString& demod);
     void selectDemod(Modulations::idx index);
     void updateDemodGUIRanges();
-    void setFmMaxdev(float max_dev);
-    void setFmEmph(double tau);
-    void setFmpllDampingFactor(double df);
-    void setFmSubtoneFilter(bool state);
-    void setAmDcr(bool enabled);
-    void setCwOffset(int offset);
-    void setAmSyncDcr(bool enabled);
-    void setPllBw(float pll_bw);
     void setAgcOn(bool agc_on);
     void setAgcHang(int hang);
     void setAgcTargetLevel(int targetLevel);

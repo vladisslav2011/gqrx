@@ -174,11 +174,6 @@ void receiver_base_cf::set_port(int port)
     //unlock();
 }
 
-void receiver_base_cf::set_cw_offset(int offset)
-{
-    vfo_s::set_cw_offset(offset);
-}
-
 void receiver_base_cf::set_audio_rec_dir(const std::string& dir)
 {
     vfo_s::set_audio_rec_dir(dir);

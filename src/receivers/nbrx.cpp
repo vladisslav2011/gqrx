@@ -40,8 +40,8 @@ nbrx::nbrx(float quad_rate, float audio_rate)
     filter = make_rx_filter(NB_PREF_QUAD_RATE, -5000.0, 5000.0, 1000.0);
     demod_raw = gr::blocks::complex_to_float::make(1);
     demod_ssb = gr::blocks::complex_to_real::make(1);
-    demod_fm = make_rx_demod_fm(NB_PREF_QUAD_RATE, 5000.0, 75.0e-6);
-    demod_fmpll = make_rx_demod_fmpll(NB_PREF_QUAD_RATE, 5000.0, 0.1);
+    demod_fm = make_rx_demod_fm(NB_PREF_QUAD_RATE, 2500.0, 75.0e-6);
+    demod_fmpll = make_rx_demod_fmpll(NB_PREF_QUAD_RATE, 2500.0, 0.1);
     demod_am = make_rx_demod_am(NB_PREF_QUAD_RATE, true);
     demod_amsync = make_rx_demod_amsync(NB_PREF_QUAD_RATE, true, 0.001);
 
@@ -157,25 +157,26 @@ void nbrx::set_filter(int low, int high, int tw)
         filter->set_param(double(low), double(high), double(tw));
 }
 
-void nbrx::set_cw_offset(int offset)
+bool nbrx::set_cw_offset(const c_def::v_union & v)
 {
-    if(offset==get_cw_offset())
-        return;
-    vfo_s::set_cw_offset(offset);
+    if(d_cw_offset==int(v))
+        return true;
+    vfo_s::set_cw_offset(v);
     switch (get_demod())
     {
     case Modulations::MODE_CWL:
-        ddc->set_center_freq(get_offset() + get_cw_offset());
-        filter->set_cw_offset(-get_cw_offset());
+        ddc->set_center_freq(get_offset() + d_cw_offset);
+        filter->set_cw_offset(-d_cw_offset);
         break;
     case Modulations::MODE_CWU:
-        ddc->set_center_freq(get_offset() - get_cw_offset());
-        filter->set_cw_offset(get_cw_offset());
+        ddc->set_center_freq(get_offset() - d_cw_offset);
+        filter->set_cw_offset(d_cw_offset);
         break;
     default:
         ddc->set_center_freq(get_offset());
         filter->set_cw_offset(0);
     }
+    return true;
 }
 
 void nbrx::set_offset(int offset)
@@ -186,10 +187,10 @@ void nbrx::set_offset(int offset)
     switch (get_demod())
     {
     case Modulations::MODE_CWL:
-        ddc->set_center_freq(offset + get_cw_offset());
+        ddc->set_center_freq(offset + d_cw_offset);
         break;
     case Modulations::MODE_CWU:
-        ddc->set_center_freq(offset - get_cw_offset());
+        ddc->set_center_freq(offset - d_cw_offset);
         break;
     default:
         ddc->set_center_freq(offset);
@@ -340,12 +341,12 @@ void nbrx::set_demod(Modulations::idx new_demod)
     switch (get_demod())
     {
     case Modulations::MODE_CWL:
-        ddc->set_center_freq(get_offset() + get_cw_offset());
-        filter->set_cw_offset(-get_cw_offset());
+        ddc->set_center_freq(get_offset() + d_cw_offset);
+        filter->set_cw_offset(-d_cw_offset);
         break;
     case Modulations::MODE_CWU:
-        ddc->set_center_freq(get_offset() - get_cw_offset());
-        filter->set_cw_offset(get_cw_offset());
+        ddc->set_center_freq(get_offset() - d_cw_offset);
+        filter->set_cw_offset(d_cw_offset);
         break;
     default:
         ddc->set_center_freq(get_offset());
@@ -353,62 +354,84 @@ void nbrx::set_demod(Modulations::idx new_demod)
     }
 }
 
-void nbrx::set_fm_maxdev(float maxdev_hz)
+bool nbrx::set_fm_maxdev(const c_def::v_union & v)
 {
-    receiver_base_cf::set_fm_maxdev(maxdev_hz);
-    demod_fm->set_max_dev(maxdev_hz);
-    demod_fmpll->set_max_dev(maxdev_hz);
+    if(d_fm_maxdev == double(v))
+        return true;
+    receiver_base_cf::set_fm_maxdev(v);
+    demod_fm->set_max_dev(d_fm_maxdev);
+    demod_fmpll->set_max_dev(d_fm_maxdev);
+    return true;
 }
 
-void nbrx::set_fm_deemph(double tau)
+bool nbrx::set_fm_deemph(const c_def::v_union & v)
 {
-    receiver_base_cf::set_fm_deemph(tau);
-    demod_fm->set_tau(tau * 1.0e-6);
+    if(d_fm_deemph == double(v))
+        return true;
+    receiver_base_cf::set_fm_deemph(v);
+    demod_fm->set_tau(d_fm_deemph * 1.0e-6);
+    return true;
 }
 
-void nbrx::set_fmpll_damping_factor(double df)
+bool nbrx::set_fmpll_damping_factor(const c_def::v_union & v)
 {
-    receiver_base_cf::set_fmpll_damping_factor(df);
-    demod_fmpll->set_damping_factor(df);
+    if(d_fmpll_damping_factor == float(v))
+        return true;
+    receiver_base_cf::set_fmpll_damping_factor(v);
+    demod_fmpll->set_damping_factor(v);
+    return true;
 }
 
-void nbrx::set_subtone_filter(bool state)
+bool nbrx::set_subtone_filter(const c_def::v_union & v)
 {
-    if(get_subtone_filter() != state)
-    {
-        receiver_base_cf::set_subtone_filter(state);
-        if(get_demod() != Modulations::MODE_OFF)
-            lock();
-        demod_fmpll->set_subtone_filter(state);
-        demod_fm->set_subtone_filter(state);
-        if(get_demod() != Modulations::MODE_OFF)
-            unlock();
-    }
-}
-
-void nbrx::set_am_dcr(bool enabled)
-{
-    receiver_base_cf::set_am_dcr(enabled);
+    if(d_subtone_filter == bool(v))
+        return true;
+    receiver_base_cf::set_subtone_filter(v);
     if(get_demod() != Modulations::MODE_OFF)
         lock();
-    demod_am->set_dcr(enabled);
+    demod_fmpll->set_subtone_filter(v);
+    demod_fm->set_subtone_filter(v);
     if(get_demod() != Modulations::MODE_OFF)
         unlock();
+    return true;
 }
 
-void nbrx::set_amsync_dcr(bool enabled)
+bool nbrx::set_am_dcr(const c_def::v_union & v)
 {
-    receiver_base_cf::set_amsync_dcr(enabled);
+    if(d_am_dcr == bool(v))
+        return true;
+    vfo_s::set_am_dcr(v);
     if(get_demod() != Modulations::MODE_OFF)
         lock();
-    demod_amsync->set_dcr(enabled);
+    demod_am->set_dcr(d_am_dcr);
     if(get_demod() != Modulations::MODE_OFF)
         unlock();
+    return true;
 }
 
-void nbrx::set_pll_bw(float pll_bw)
+bool nbrx::set_amsync_dcr(const c_def::v_union & v)
 {
-    receiver_base_cf::set_pll_bw(pll_bw);
-    demod_amsync->set_pll_bw(pll_bw);
-    demod_fmpll->set_pll_bw(pll_bw);
+    if(d_amsync_dcr == bool(v))
+        return true;
+    vfo_s::set_amsync_dcr(v);
+    if(get_demod() != Modulations::MODE_OFF)
+        lock();
+    demod_amsync->set_dcr(d_amsync_dcr);
+    if(get_demod() != Modulations::MODE_OFF)
+        unlock();
+    return true;
+}
+
+bool nbrx::set_amsync_pll_bw(const c_def::v_union & v)
+{
+    vfo_s::set_amsync_pll_bw(v);
+    demod_amsync->set_pll_bw(v);
+    return true;
+}
+
+bool nbrx::set_pll_bw(const c_def::v_union & v)
+{
+    vfo_s::set_pll_bw(v);
+    demod_fmpll->set_pll_bw(v);
+    return true;
 }

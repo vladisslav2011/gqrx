@@ -25,6 +25,7 @@
 
 #include <QDialog>
 #include <QCloseEvent>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class CDemodOptions;
@@ -34,7 +35,7 @@ namespace Ui {
 /*! \brief Widget for adjusting demodulator options.
  *
  */
-class CDemodOptions : public QDialog
+class CDemodOptions : public QDialog, public dcontrols_ui_stacked
 {
     Q_OBJECT
 
@@ -55,71 +56,6 @@ public:
     ~CDemodOptions();
 
     void closeEvent(QCloseEvent *event);
-
-    void setCurrentPage(int index);
-    int  currentPage() const;
-
-    void setCwOffset(int offset);
-    int  getCwOffset(void) const;
-
-    void setMaxDev(float max_dev);
-    float getMaxDev(void) const;
-
-    void setEmph(double tau);
-    double getEmph(void) const;
-
-    void setDampinFactor(double df);
-    double getDampingFactor(void) const;
-
-    void setSubtoneFilter(bool state);
-    bool getSubtoneFilter(void) const;
-
-    void setPllBw(float pll_bw);
-    float getPllBw(void) const;
-
-    void setDcr(bool enabled);
-    bool getDcr(void) const;
-
-    void setSyncDcr(bool enabled);
-    bool getSyncDcr(void) const;
-
-signals:
-    /*! \brief Signal emitted when new FM deviation is selected. */
-    void fmMaxdevSelected(float max_dev);
-
-    /*! \brief Signal emitted when new FM de-emphasis constant is selected. */
-    void fmEmphSelected(double tau);
-
-    /*! \brief Signal emitted when new FMPLL damping factor is selected. */
-    void fmpllDampingFactorSelected(double df);
-
-    /*! \brief Signal emitted when new subtone filter state is selected. */
-    void fmSubtoneFilterSelected(bool state);
-
-    /*! \brief Signal emitted when AM DCR is toggled. */
-    void amDcrToggled(bool enabled);
-
-    /*! \brief CW offset changed. */
-    void cwOffsetChanged(int offset);
-
-    /*! \brief Signal emitted when AM-Sync DCR is toggled. */
-    void amSyncDcrToggled(bool enabled);
-
-    /*! \brief Signal emitted when new PLL BW is selected. */
-    void pllBwSelected(float pll_bw);
-
-private slots:
-    void on_maxdevSelector_activated(int index);
-    void on_emphSelector_activated(int index);
-    void on_dcrCheckBox_clicked(bool checked);
-    void on_cwOffsetSpin_valueChanged(int value);
-    void on_syncdcrCheckBox_clicked(bool checked);
-    void on_pllBwSelector_activated(int index);
-    void on_pllBwSpinBox_valueChanged(double value);
-    void on_maxdevSpinBox_valueChanged(double value);
-    void on_dampingfactorSpinBox_valueChanged(double value);
-    void on_subtonefilterfmCheckBox_toggled(bool checked);
-    void on_subtonefilterfmpllCheckBox_toggled(bool checked);
 
 private:
     Ui::CDemodOptions *ui;

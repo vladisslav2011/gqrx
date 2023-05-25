@@ -70,7 +70,7 @@ public:
     void set_demod(Modulations::idx demod) override;
     void set_index(int index) override;
 
-    void set_wfm_deemph(double tau) override;
+    bool set_wfm_deemph(const c_def::v_union & v) override;
 
     bool set_rds_on(const c_def::v_union &) override;
     bool get_rds_pi(c_def::v_union &) const override;

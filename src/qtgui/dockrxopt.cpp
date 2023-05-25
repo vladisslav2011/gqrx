@@ -75,16 +75,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 
     // demodulator options dialog
     demodOpt = new CDemodOptions(this);
-    demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
-    connect(demodOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(demodOpt_fmMaxdevSelected(float)));
-    connect(demodOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(demodOpt_fmEmphSelected(double)));
-    connect(demodOpt, SIGNAL(fmpllDampingFactorSelected(double)), this, SLOT(demodOpt_fmpllDampingFactor(double)));
-    connect(demodOpt, SIGNAL(fmSubtoneFilterSelected(bool)), this, SLOT(demodOpt_fmSubtoneFilter(bool)));
 
-    connect(demodOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(demodOpt_amDcrToggled(bool)));
-    connect(demodOpt, SIGNAL(cwOffsetChanged(int)), this, SLOT(demodOpt_cwOffsetChanged(int)));
-    connect(demodOpt, SIGNAL(amSyncDcrToggled(bool)), this, SLOT(demodOpt_amSyncDcrToggled(bool)));
-    connect(demodOpt, SIGNAL(pllBwSelected(float)), this, SLOT(demodOpt_pllBwSelected(float)));
 
     // AGC options dialog
     agcOpt = new CAgcOptions(this);
@@ -146,6 +137,8 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
         ui->nb3Button->setDisabled(true);
     #endif
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    ui_windows[W_DEMOD_OPT]=demodOpt;
+    demodOpt->setCurrentIndex(0);
 }
 
 DockRxOpt::~DockRxOpt()
@@ -287,7 +280,7 @@ void DockRxOpt::setCurrentDemod(Modulations::idx demod)
     if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
     {
         ui->modeSelector->setCurrentIndex(demod);
-        updateDemodOptPage(demod);
+        demodOpt->setCurrentIndex(demod);
     }
 }
 
@@ -303,26 +296,6 @@ Modulations::idx DockRxOpt::currentDemod() const
 QString DockRxOpt::currentDemodAsString()
 {
     return QString(Modulations::modes[currentDemod()].name);
-}
-
-float DockRxOpt::currentMaxdev() const
-{
-    return demodOpt->getMaxDev();
-}
-
-double DockRxOpt::currentEmph() const
-{
-    return demodOpt->getEmph();
-}
-
-double DockRxOpt::currentDampingFactor() const
-{
-    return demodOpt->getDampingFactor();
-}
-
-bool DockRxOpt::currentSubtoneFilter() const
-{
-    return demodOpt->getSubtoneFilter();
 }
 
 /**
@@ -346,31 +319,6 @@ double DockRxOpt::getSqlLevel(void) const
 double DockRxOpt::currentSquelchLevel() const
 {
     return ui->sqlSpinBox->value();
-}
-
-bool DockRxOpt::currentAmDcr() const
-{
-    return demodOpt->getDcr();
-}
-
-bool DockRxOpt::currentAmsyncDcr() const
-{
-    return demodOpt->getSyncDcr();
-}
-
-float DockRxOpt::currentPllBw() const
-{
-    return demodOpt->getPllBw();
-}
-
-int DockRxOpt::getCwOffset() const
-{
-    return demodOpt->getCwOffset();
-}
-
-void DockRxOpt::setCwOffset(int offset)
-{
-    demodOpt->setCwOffset(offset);
 }
 
 /** Get agc settings */
@@ -471,41 +419,6 @@ void DockRxOpt::setAgcPresetFromParams(int decay)
         ui->agcPresetCombo->setCurrentIndex(3);
 }
 
-void DockRxOpt::setAmDcr(bool on)
-{
-    demodOpt->setDcr(on);
-}
-
-void DockRxOpt::setAmSyncDcr(bool on)
-{
-    demodOpt->setSyncDcr(on);
-}
-
-void DockRxOpt::setPllBw(float bw)
-{
-    demodOpt->setPllBw(bw);
-}
-
-void DockRxOpt::setFmMaxdev(float max_hz)
-{
-    demodOpt->setMaxDev(max_hz);
-}
-
-void DockRxOpt::setFmEmph(double tau)
-{
-    demodOpt->setEmph(tau);
-}
-
-void DockRxOpt::setFmPLLDampingFactor(double df)
-{
-    demodOpt->setDampinFactor(df);
-}
-
-void DockRxOpt::setFmSubtoneFilter(bool state)
-{
-    demodOpt->setSubtoneFilter(state);
-}
-
 void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
 {
     if (nbid == 1)
@@ -599,25 +512,8 @@ void DockRxOpt::on_filterCombo_activated(int index)
  */
 void DockRxOpt::on_modeSelector_activated(int index)
 {
-    updateDemodOptPage(Modulations::idx(index));
+    demodOpt->setCurrentIndex(index);
     emit demodSelected(Modulations::idx(index));
-}
-
-void DockRxOpt::updateDemodOptPage(Modulations::idx demod)
-{
-    // update demodulator option widget
-    if (demod == Modulations::MODE_NFM)
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_FM_OPT);
-    else if (demod == Modulations::MODE_NFMPLL)
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_FMPLL_OPT);
-    else if (demod == Modulations::MODE_AM)
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_AM_OPT);
-    else if (demod == Modulations::MODE_CWL || demod == Modulations::MODE_CWU)
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_CW_OPT);
-    else if (demod == Modulations::MODE_AM_SYNC)
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_AMSYNC_OPT);
-    else
-        demodOpt->setCurrentPage(CDemodOptions::PAGE_NO_OPT);
 }
 
 /** Show demodulator options. */
@@ -768,74 +664,6 @@ void DockRxOpt::agcOpt_panningAutoChanged(bool value)
 void DockRxOpt::on_sqlSpinBox_valueChanged(double value)
 {
     emit sqlLevelChanged(value);
-}
-
-/**
- * @brief FM deviation changed by user.
- * @param max_dev The new deviation in Hz.
- */
-void DockRxOpt::demodOpt_fmMaxdevSelected(float max_dev)
-{
-    emit fmMaxdevSelected(max_dev);
-}
-
-/**
- * @brief FM de-emphasis changed by user.
- * @param tau The new time constant in uS.
- */
-void DockRxOpt::demodOpt_fmEmphSelected(double tau)
-{
-    emit fmEmphSelected(tau);
-}
-
-/**
- * @brief FM PLL damping factor changed by user.
- * @param tau The new damping factor.
- */
-void DockRxOpt::demodOpt_fmpllDampingFactor(double df)
-{
-    emit fmpllDampingFactorSelected(df);
-}
-
-/**
- * @brief FM subtone filter state changed by user.
- * @param state The new subtone filter state.
- */
-void DockRxOpt::demodOpt_fmSubtoneFilter(bool state)
-{
-    emit fmSubtoneFilterSelected(state);
-}
-
-/**
- * @brief AM DC removal toggled by user.
- * @param enabled Whether DCR is enabled or not.
- */
-void DockRxOpt::demodOpt_amDcrToggled(bool enabled)
-{
-    emit amDcrToggled(enabled);
-}
-
-void DockRxOpt::demodOpt_cwOffsetChanged(int offset)
-{
-    emit cwOffsetChanged(offset);
-}
-
-/**
- * @brief AM-Sync DC removal toggled by user.
- * @param enabled Whether DCR is enabled or not.
- */
-void DockRxOpt::demodOpt_amSyncDcrToggled(bool enabled)
-{
-    emit amSyncDcrToggled(enabled);
-}
-
-/**
- * @brief AM-Sync/NFM PLL BW changed by user.
- * @param pll_bw The new PLL BW.
- */
-void DockRxOpt::demodOpt_pllBwSelected(float pll_bw)
-{
-    emit pllBwSelected(pll_bw);
 }
 
 /** Noise blanker 1 button has been toggled. */

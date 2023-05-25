@@ -294,14 +294,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
     connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), remote, SLOT(setMode(Modulations::idx)));
-    connect(uiDockRxOpt, SIGNAL(fmMaxdevSelected(float)), this, SLOT(setFmMaxdev(float)));
-    connect(uiDockRxOpt, SIGNAL(fmEmphSelected(double)), this, SLOT(setFmEmph(double)));
-    connect(uiDockRxOpt, SIGNAL(fmpllDampingFactorSelected(double)), this, SLOT(setFmpllDampingFactor(double)));
-    connect(uiDockRxOpt, SIGNAL(fmSubtoneFilterSelected(bool)), this, SLOT(setFmSubtoneFilter(bool)));
-    connect(uiDockRxOpt, SIGNAL(amDcrToggled(bool)), this, SLOT(setAmDcr(bool)));
-    connect(uiDockRxOpt, SIGNAL(cwOffsetChanged(int)), this, SLOT(setCwOffset(int)));
-    connect(uiDockRxOpt, SIGNAL(amSyncDcrToggled(bool)), this, SLOT(setAmSyncDcr(bool)));
-    connect(uiDockRxOpt, SIGNAL(pllBwSelected(float)), this, SLOT(setPllBw(float)));
     connect(uiDockRxOpt, SIGNAL(agcToggled(bool)), this, SLOT(setAgcOn(bool)));
     connect(uiDockRxOpt, SIGNAL(agcTargetLevelChanged(int)), this, SLOT(setAgcTargetLevel(int)));
     connect(uiDockRxOpt, SIGNAL(agcMaxGainChanged(int)), this, SLOT(setAgcMaxGain(int)));
@@ -1045,52 +1037,6 @@ void MainWindow::storeSession()
 
             m_settings->setValue("demod", Modulations::GetStringForModulationIndex(rx->get_demod()));
 
-            if (!rx->get_am_dcr())
-                m_settings->setValue("am_dcr", false);
-            else
-                m_settings->remove("am_dcr");
-
-            if (!rx->get_amsync_dcr())
-                m_settings->setValue("amsync_dcr", false);
-            else
-                m_settings->remove("amsync_dcr");
-
-            int_val = qRound(rx->get_pll_bw() * 1.0e6);
-            if (int_val != 1000)
-                m_settings->setValue("pll_bw", int_val);
-            else
-                m_settings->remove("pll_bw");
-
-            int cwofs = rx->get_cw_offset();
-            if (cwofs == 700)
-                m_settings->remove("cwoffset");
-            else
-                m_settings->setValue("cwoffset", cwofs);
-
-            // currently we do not need the decimal
-            int_val = (int)rx->get_fm_maxdev();
-            if (int_val == 2500)
-                m_settings->remove("fm_maxdev");
-            else
-                m_settings->setValue("fm_maxdev", int_val);
-
-            int_val = (int)(rx->get_fm_deemph());
-            if (int_val == 75)
-                m_settings->remove("fm_deemph");
-            else
-                m_settings->setValue("fm_deemph", int_val);
-
-            double double_val = rx->get_fmpll_damping_factor();
-            if (double_val == 0.7)
-                m_settings->remove("fmpll_damping_factor");
-            else
-                m_settings->setValue("fmpll_damping_factor", double_val);
-
-            if (!rx->get_fm_subtone_filter())
-                m_settings->remove("subtone_filter");
-            else
-                m_settings->setValue("subtone_filter", true);
-
             qint64 offs = rx->get_filter_offset();
                 m_settings->setValue("offset", offs);
 
@@ -1319,35 +1265,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
             }
         }
         rx->set_demod(Modulations::idx(int_val));
-
-        rx->set_am_dcr(m_settings->value("am_dcr", true).toBool());
-
-        rx->set_amsync_dcr(m_settings->value("amsync_dcr", true).toBool());
-
-        int_val = m_settings->value("pll_bw", 1000).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_pll_bw(int_val / 1.0e6);
-
-        int_val = m_settings->value("cwoffset", 700).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_cw_offset(int_val);
-
-        int_val = m_settings->value("fm_maxdev", 2500).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_fm_maxdev(int_val);
-
-        dbl_val = m_settings->value("fm_deemph", 75).toDouble(&conv_ok);
-        if (conv_ok && dbl_val >= 0.0)
-            rx->set_fm_deemph(dbl_val);
-
-        dbl_val = m_settings->value("fmpll_damping_factor", 0.7).toDouble(&conv_ok);
-        if (conv_ok && dbl_val > 0.0)
-            rx->set_fmpll_damping_factor(dbl_val);
-
-        if (m_settings->value("subtone_filter", false).toBool())
-            rx->set_fm_subtone_filter(true);
-        else
-            rx->set_fm_subtone_filter(false);
 
         dbl_val = m_settings->value("sql_level", 1.0).toDouble(&conv_ok);
         if (conv_ok && dbl_val < 1.0)
@@ -2005,23 +1922,12 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             rx->set_demod(mode_idx);
             break;
         case Modulations::MODE_AM:
-            rx->set_am_dcr(uiDockRxOpt->currentAmsyncDcr());
-            break;
         case Modulations::MODE_AM_SYNC:
-            rx->set_amsync_dcr(uiDockRxOpt->currentAmsyncDcr());
-            rx->set_pll_bw(uiDockRxOpt->currentPllBw());
-            break;
         case Modulations::MODE_USB:
         case Modulations::MODE_LSB:
         case Modulations::MODE_CWL:
         case Modulations::MODE_CWU:
-            break;
-
         case Modulations::MODE_NFM:
-            rx->set_fm_maxdev(uiDockRxOpt->currentMaxdev());
-            rx->set_fm_deemph(uiDockRxOpt->currentEmph());
-            break;
-
         case Modulations::MODE_NFMPLL:
         case Modulations::MODE_WFM_MONO:
         case Modulations::MODE_WFM_STEREO:
@@ -2160,89 +2066,6 @@ void MainWindow::updateDemodGUIRanges()
     
 }
 
-
-/**
- * @brief New FM deviation selected.
- * @param max_dev The enw FM deviation.
- */
-void MainWindow::setFmMaxdev(float max_dev)
-{
-    qDebug() << "FM MAX_DEV: " << max_dev;
-
-    /* receiver will check range */
-    rx->set_fm_maxdev(max_dev);
-}
-
-/**
- * @brief New FM de-emphasis time consant selected.
- * @param tau The new time constant
- */
-void MainWindow::setFmEmph(double tau)
-{
-    qDebug() << "FM TAU: " << tau;
-
-    /* receiver will check range */
-    rx->set_fm_deemph(tau);
-}
-
-/**
- * @brief New FMPLL damping factor selected.
- * @param df The new damping factor
- */
-void MainWindow::setFmpllDampingFactor(double df)
-{
-    qDebug() << "Damping factor: " << df;
-
-    /* receiver will check range */
-    rx->set_fmpll_damping_factor(df);
-}
-
-/**
- * @brief New FM subtone filter state selected.
- * @param state The new subtone filter state
- */
-void MainWindow::setFmSubtoneFilter(bool state)
-{
-    qDebug() << "Subtone filter is " << (state?"enabled":"disabled");
-
-    /* receiver will check range */
-    rx->set_fm_subtone_filter(state);
-}
-
-/**
- * @brief AM DCR status changed (slot).
- * @param enabled Whether DCR is enabled or not.
- */
-void MainWindow::setAmDcr(bool enabled)
-{
-    rx->set_am_dcr(enabled);
-}
-
-void MainWindow::setCwOffset(int offset)
-{
-    rx->set_cw_offset(offset);
-}
-
-/**
- * @brief AM-Sync DCR status changed (slot).
- * @param enabled Whether DCR is enabled or not.
- */
-void MainWindow::setAmSyncDcr(bool enabled)
-{
-    rx->set_amsync_dcr(enabled);
-}
-
-/**
- * @brief New AM-Sync/NFM PLL PLL BW selected.
- * @param pll_bw The new PLL BW.
- */
-void MainWindow::setPllBw(float pll_bw)
-{
-    qDebug() << "AM-Sync/NFM PLL PLL BW: " << pll_bw;
-
-    /* receiver will check range */
-    rx->set_pll_bw(pll_bw);
-}
 
 /**
  * @brief Audio gain changed.
@@ -4029,15 +3852,6 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setAgcPanningAuto(rx->get_agc_panning_auto());
     if (!rx->get_agc_on())
         uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.0);
-
-    uiDockRxOpt->setAmDcr(rx->get_am_dcr());
-    uiDockRxOpt->setAmSyncDcr(rx->get_amsync_dcr());
-    uiDockRxOpt->setPllBw(rx->get_pll_bw());
-    uiDockRxOpt->setFmMaxdev(rx->get_fm_maxdev());
-    uiDockRxOpt->setFmEmph(rx->get_fm_deemph());
-    uiDockRxOpt->setFmPLLDampingFactor(rx->get_fmpll_damping_factor());
-    uiDockRxOpt->setFmSubtoneFilter(rx->get_fm_subtone_filter());
-    uiDockRxOpt->setCwOffset(rx->get_cw_offset());
 
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
