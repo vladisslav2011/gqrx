@@ -209,15 +209,25 @@ void nbrx::set_nb_on(int nbid, bool on)
         audio_rnnoise->set_enabled(on);
 }
 
-void nbrx::set_nb_threshold(int nbid, float threshold)
+bool nbrx::set_nb1_threshold(const c_def::v_union & v)
 {
-    receiver_base_cf::set_nb_threshold(nbid, threshold);
-    if (nbid == 1)
-        nb->set_threshold1(threshold);
-    else if (nbid == 2)
-        nb->set_threshold2(threshold);
-    else if (nbid == 3)
-        audio_rnnoise->set_gain(powf(10.0, threshold));
+    receiver_base_cf::set_nb1_threshold(v);
+    nb->set_threshold1(v);
+    return true;
+}
+
+bool nbrx::set_nb2_threshold(const c_def::v_union & v)
+{
+    receiver_base_cf::set_nb2_threshold(v);
+    nb->set_threshold2(v);
+    return true;
+}
+
+bool nbrx::set_nb3_gain(const c_def::v_union & v)
+{
+    receiver_base_cf::set_nb3_gain(v);
+    audio_rnnoise->set_gain(powf(10.0, v));
+    return true;
 }
 
 void nbrx::set_demod(Modulations::idx new_demod)

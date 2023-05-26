@@ -89,7 +89,6 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 
     // Noise blanker options
     nbOpt = new CNbOptions(this);
-    connect(nbOpt, SIGNAL(thresholdChanged(int,double)), this, SLOT(nbOpt_thresholdChanged(int,double)));
 
     /* mode setting shortcuts */
     QShortcut *mode_off_shortcut = new QShortcut(QKeySequence(Qt::Key_Exclam), this);
@@ -138,6 +137,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     #endif
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
     ui_windows[W_DEMOD_OPT]=demodOpt;
+    ui_windows[W_NB_OPT]=nbOpt;
     demodOpt->setCurrentIndex(0);
 }
 
@@ -419,7 +419,7 @@ void DockRxOpt::setAgcPresetFromParams(int decay)
         ui->agcPresetCombo->setCurrentIndex(3);
 }
 
-void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
+void DockRxOpt::setNoiseBlanker(int nbid, bool on)
 {
     if (nbid == 1)
         ui->nb1Button->setChecked(on);
@@ -427,7 +427,6 @@ void DockRxOpt::setNoiseBlanker(int nbid, bool on, float threshold)
         ui->nb2Button->setChecked(on);
     else if (nbid == 3)
         ui->nb3Button->setChecked(on);
-    nbOpt->setNbThreshold(nbid, threshold);
 }
 
 void DockRxOpt::setFreqLock(bool lock)
@@ -669,19 +668,19 @@ void DockRxOpt::on_sqlSpinBox_valueChanged(double value)
 /** Noise blanker 1 button has been toggled. */
 void DockRxOpt::on_nb1Button_toggled(bool checked)
 {
-    emit noiseBlankerChanged(1, checked, (float) nbOpt->nbThreshold(1));
+    emit noiseBlankerChanged(1, checked);
 }
 
 /** Noise blanker 2 button has been toggled. */
 void DockRxOpt::on_nb2Button_toggled(bool checked)
 {
-    emit noiseBlankerChanged(2, checked, (float) nbOpt->nbThreshold(2));
+    emit noiseBlankerChanged(2, checked);
 }
 
 /** Noise blanker 3 button has been toggled. */
 void DockRxOpt::on_nb3Button_toggled(bool checked)
 {
-    emit noiseBlankerChanged(3, checked, (float) nbOpt->nbThreshold(3));
+    emit noiseBlankerChanged(3, checked);
 }
 
 void DockRxOpt::on_freqLockButton_clicked()
@@ -704,17 +703,6 @@ void DockRxOpt::menuFreqUnlockAll()
 {
     emit freqLock(false, true);
     ui->freqLockButton->setChecked(false);
-}
-
-/** Noise blanker threshold has been changed. */
-void DockRxOpt::nbOpt_thresholdChanged(int nbid, double value)
-{
-    if (nbid == 1)
-        emit noiseBlankerChanged(nbid, ui->nb1Button->isChecked(), (float) value);
-    else if (nbid == 2)
-        emit noiseBlankerChanged(nbid, ui->nb2Button->isChecked(), (float) value);
-    else if (nbid == 3)
-        emit noiseBlankerChanged(nbid, ui->nb3Button->isChecked(), (float) value);
 }
 
 void DockRxOpt::on_nbOptButton_clicked()

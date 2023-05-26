@@ -230,12 +230,10 @@ Bookmarks::Bookmarks()
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //22 PLL BW
      m_idx_struct.append({V_BOOLEAN, "NB1 ON",//23
         genSetterN(&BookmarkInfo::set_nb_on, 1), genGetterN(&BookmarkInfo::get_nb_on, 1), genCmpN(&BookmarkInfo::get_nb_on, 1)});
-     m_idx_struct.append({V_DOUBLE,  "NB1 Threshold",//24
-        genSetterN(&BookmarkInfo::set_nb_threshold, 1), genGetterN(&BookmarkInfo::get_nb_threshold, 1), genCmpN(&BookmarkInfo::get_nb_threshold, 1)});
+     m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //24 NB1 Threshold
      m_idx_struct.append({V_BOOLEAN, "NB2 ON",//25
         genSetterN(&BookmarkInfo::set_nb_on, 2), genGetterN(&BookmarkInfo::get_nb_on, 2), genCmpN(&BookmarkInfo::get_nb_on, 2)});
-     m_idx_struct.append({V_DOUBLE,  "NB2 Threshold",//26
-        genSetterN(&BookmarkInfo::set_nb_threshold, 2), genGetterN(&BookmarkInfo::get_nb_threshold, 2), genCmpN(&BookmarkInfo::get_nb_threshold, 2)});
+     m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //26 NB2 Threshold
      m_idx_struct.append({V_STRING,  "REC DIR",//27
         genSetterCS(&BookmarkInfo::set_audio_rec_dir), genGetterCS(&BookmarkInfo::get_audio_rec_dir), genCmp(&BookmarkInfo::get_audio_rec_dir)});
      m_idx_struct.append({V_BOOLEAN, "REC SQL Trig",//28

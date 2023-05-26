@@ -28,9 +28,7 @@ CNbOptions::CNbOptions(QWidget *parent) :
     ui(new Ui::CNbOptions)
 {
     ui->setupUi(this);
-    #ifndef ENABLE_RNNOISE
-        ui->nb3Threshold->setDisabled(true);
-    #endif
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 CNbOptions::~CNbOptions()
@@ -48,40 +46,4 @@ void CNbOptions::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
-}
-
-double CNbOptions::nbThreshold(int nbid)
-{
-    if (nbid == 1)
-        return ui->nb1Threshold->value();
-    else if (nbid == 2)
-        return ui->nb2Threshold->value();
-    else if (nbid == 3)
-        return ui->nb3Threshold->value();
-    else
-        return 0;
-}
-void CNbOptions::setNbThreshold(int nbid, double threshold)
-{
-    if (nbid == 1)
-        ui->nb1Threshold->setValue(threshold);
-    else if (nbid == 2)
-        ui->nb2Threshold->setValue(threshold);
-    else if (nbid == 3)
-        ui->nb3Threshold->setValue(threshold);
-}
-
-void CNbOptions::on_nb1Threshold_valueChanged(double val)
-{
-    emit thresholdChanged(1, val);
-}
-
-void CNbOptions::on_nb2Threshold_valueChanged(double val)
-{
-    emit thresholdChanged(2, val);
-}
-
-void CNbOptions::on_nb3Threshold_valueChanged(double val)
-{
-    emit thresholdChanged(3, val);
 }

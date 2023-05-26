@@ -34,6 +34,10 @@ enum c_id
 {
     C_TEST=0,
     
+    C_NB1_THR,
+    C_NB2_THR,
+    C_NB3_GAIN,
+
     C_NFM_MAXDEV,
     C_NFMPLL_MAXDEV,
     C_NFM_DEEMPH,
@@ -113,6 +117,7 @@ enum gui_window
     W_BASE=0,
     W_CHILD, //"Options" extra window
     W_DEMOD_OPT,
+    W_NB_OPT,
     
     W_COUNT
 };
