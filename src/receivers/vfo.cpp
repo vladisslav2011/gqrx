@@ -203,17 +203,22 @@ bool vfo_s::get_nb_on(int nbid) const
     return false;
 }
 
-void vfo_s::set_nb_threshold(int nbid, float threshold)
+bool vfo_s::set_nb1_threshold(const c_def::v_union & v)
 {
-    if (nbid - 1 < RECEIVER_NB_COUNT)
-        d_nb_threshold[nbid - 1] = threshold;
+    d_nb_threshold[0] = v;
+    return true;
 }
 
-float vfo_s::get_nb_threshold(int nbid) const
+bool vfo_s::set_nb2_threshold(const c_def::v_union & v)
 {
-    if (nbid - 1 < RECEIVER_NB_COUNT)
-        return d_nb_threshold[nbid - 1];
-    return 0.0;
+    d_nb_threshold[1] = v;
+    return true;
+}
+
+bool vfo_s::set_nb3_gain(const c_def::v_union & v)
+{
+    d_nb_threshold[2] = v;
+    return true;
 }
 
 void vfo_s::set_audio_rec_dir(const std::string& dir)
@@ -275,10 +280,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
-    {
         set_nb_on(k + 1, from.get_nb_on(k + 1));
-        set_nb_threshold(k + 1, from.get_nb_threshold(k + 1));
-    }
     if (force || (from.get_audio_rec_dir() != ""))
         set_audio_rec_dir(from.get_audio_rec_dir());
     if (force || (from.get_audio_rec_min_time() > 0))
@@ -291,6 +293,10 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_stereo(from.get_udp_stereo());
 
     c_def::v_union v(0);
+    from.get_nb1_threshold(v);set_nb1_threshold(v);
+    from.get_nb2_threshold(v);set_nb2_threshold(v);
+    from.get_nb3_gain(v);set_nb3_gain(v);
+
     from.get_fm_maxdev(v);set_fm_maxdev(v);
     from.get_fm_deemph(v);set_fm_deemph(v);
     from.get_fmpll_damping_factor(v);set_fmpll_damping_factor(v);
@@ -336,6 +342,13 @@ int vfo_s::conf_initializer()
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
 
+    // NB parameters
+    setters[C_NB1_THR]=&vfo_s::set_nb1_threshold;
+    getters[C_NB1_THR]=&vfo_s::get_nb1_threshold;
+    setters[C_NB2_THR]=&vfo_s::set_nb2_threshold;
+    getters[C_NB2_THR]=&vfo_s::get_nb2_threshold;
+    setters[C_NB3_GAIN]=&vfo_s::set_nb3_gain;
+    getters[C_NB3_GAIN]=&vfo_s::get_nb3_gain;
     // NFM parameters
     setters[C_NFM_MAXDEV]=&vfo_s::set_fm_maxdev;
     getters[C_NFM_MAXDEV]=&vfo_s::get_fm_maxdev;

@@ -97,7 +97,7 @@ public:
     bool    getAgcPanningAuto();
     void    setAgcPanningAuto(bool panningAuto);
 
-    void    setNoiseBlanker(int nbid, bool on, float threshold);
+    void    setNoiseBlanker(int nbid, bool on);
 
     void    setFreqLock(bool lock);
     bool    getFreqLock();
@@ -180,7 +180,7 @@ signals:
     void agcPanningAuto(bool panningAuto);
 
     /** Signal emitted when noise blanker status has changed. */
-    void noiseBlankerChanged(int nbid, bool on, float threshold);
+    void noiseBlankerChanged(int nbid, bool on);
 
     /** Signal emitted when freq lock mode changed. */
     void freqLock(bool lock, bool all);
@@ -208,9 +208,6 @@ private slots:
     void on_freqLockButton_customContextMenuRequested(const QPoint& pos);
     void menuFreqLockAll();
     void menuFreqUnlockAll();
-
-    // Signals coming from noise blanker pop-up
-    void nbOpt_thresholdChanged(int nbid, double value);
 
     // Signals coming from AGC options popup
     void agcOpt_maxGainChanged(int value);

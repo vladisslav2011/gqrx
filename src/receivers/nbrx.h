@@ -66,7 +66,10 @@ public:
     /* Noise blanker */
     bool has_nb() override { return true; }
     void set_nb_on(int nbid, bool on) override;
-    void set_nb_threshold(int nbid, float threshold) override;
+    bool set_nb1_threshold(const c_def::v_union &) override;
+    bool set_nb2_threshold(const c_def::v_union &) override;
+    bool set_nb3_gain(const c_def::v_union &) override;
+
 
     void set_demod(Modulations::idx new_demod) override;
 

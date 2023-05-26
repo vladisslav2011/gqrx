@@ -148,7 +148,9 @@ public:
     bool         get_wfm_deemph(c_def::v_union & v) const { v=d_wfm_deemph; return true; }
     /* Noise blanker */
     bool get_nb_on(int nbid) const;
-    float get_nb_threshold(int nbid) const;
+    bool         get_nb1_threshold(c_def::v_union & v) const { v=d_nb_threshold[0]; return true; }
+    bool         get_nb2_threshold(c_def::v_union & v) const { v=d_nb_threshold[1]; return true; }
+    bool         get_nb3_gain(c_def::v_union & v) const { v=d_nb_threshold[2]; return true; }
     /* Audio recorder */
     inline const std::string& get_audio_rec_dir() const { return d_rec_dir; }
     inline bool get_audio_rec_sql_triggered() const { return d_rec_sql_triggered; }
@@ -203,7 +205,10 @@ public:
     virtual bool  set_wfm_deemph(const c_def::v_union &);
     /* Noise blanker */
     virtual void set_nb_on(int nbid, bool on);
-    virtual void set_nb_threshold(int nbid, float threshold);
+    virtual bool set_nb1_threshold(const c_def::v_union &);
+    virtual bool set_nb2_threshold(const c_def::v_union &);
+    virtual bool set_nb3_gain(const c_def::v_union &);
+
     /* Audio recorder */
     virtual void set_audio_rec_dir(const std::string& dir);
     virtual void set_audio_rec_sql_triggered(bool enabled);
