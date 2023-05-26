@@ -1127,18 +1127,6 @@ bool receiver::get_nb_on(int nbid)
     return rx[d_current]->get_nb_on(nbid);
 }
 
-receiver::status receiver::set_nb_threshold(int nbid, float threshold)
-{
-    rx[d_current]->set_nb_threshold(nbid, threshold);
-
-    return STATUS_OK; // FIXME
-}
-
-float receiver::get_nb_threshold(int nbid)
-{
-    return rx[d_current]->get_nb_threshold(nbid);
-}
-
 /**
  * @brief Set squelch level.
  * @param level_db The new level in dBFS.
