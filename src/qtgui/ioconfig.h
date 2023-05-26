@@ -28,6 +28,7 @@
 #include <QString>
 #include <vector>
 #include "audio_device_list.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 
 namespace Ui {
@@ -35,7 +36,7 @@ namespace Ui {
 }
 
 /** @brief Input/output device configurator. */
-class CIoConfig : public QDialog
+class CIoConfig : public QDialog, public dcontrols_ui
 {
     Q_OBJECT
 
