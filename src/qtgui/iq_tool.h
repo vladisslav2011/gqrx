@@ -33,6 +33,7 @@
 #include <QTimer>
 #include <QMenu>
 #include "dsp/format_converter.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 
 namespace Ui {
@@ -48,7 +49,7 @@ struct iqt_cplx
 
 
 /*! \brief User interface for I/Q recording and playback. */
-class CIqTool : public QDialog
+class CIqTool : public QDialog, public dcontrols_ui
 {
     Q_OBJECT
 

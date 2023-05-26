@@ -31,6 +31,7 @@
 #include "qtgui/nb_options.h"
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class DockRxOpt;
@@ -48,7 +49,7 @@ namespace Ui {
  * This class also provides the signal/slot API necessary to connect
  * the encapsulated widgets to the rest of the application.
  */
-class DockRxOpt : public QDockWidget
+class DockRxOpt : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 

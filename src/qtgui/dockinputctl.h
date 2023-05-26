@@ -35,6 +35,7 @@
 #include <QMap>
 #include <QString>
 #include <QVariant>
+#include "applications/gqrx/dcontrols_ui.h"
 
 
 /*! \brief Structure describing a gain parameter with its range. */
@@ -59,7 +60,7 @@ namespace Ui {
     class DockInputCtl;
 }
 
-class DockInputCtl : public QDockWidget
+class DockInputCtl : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 

@@ -145,6 +145,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     #ifndef ENABLE_RNNOISE
         ui->nb3Button->setDisabled(true);
     #endif
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 DockRxOpt::~DockRxOpt()
