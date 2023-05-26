@@ -48,12 +48,13 @@
 #include "applications/gqrx/recentconfig.h"
 #include "applications/gqrx/remote_control.h"
 #include "applications/gqrx/receiver.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class MainWindow;  /*! The main window UI */
 }
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public dcontrols_ui
 {
     Q_OBJECT
 
@@ -61,6 +62,7 @@ signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
     void requestPlotterUpdate();
     void sigSaveProgress(const qint64);
+    void observer_signal(const c_id, const c_def::v_union);
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -73,11 +75,20 @@ public:
 
     bool configOk; /*!< Main app uses this flag to know whether we should abort or continue. */
 
+    void add_control(const c_id id) override;
+    //user action
+    void changed_gui(const c_id id, const c_def::v_union & value, bool trigger_observers = true) override;
+    //state update
+    void set_gui(const c_id id, const c_def::v_union & value, bool trigger_observers = false) override;
+    //current state
+    void get_gui(const c_id id, c_def::v_union & value) const override;
 public slots:
     void setNewFrequency(qint64 rx_freq);
 
 private:
     Ui::MainWindow *ui;
+
+    std::vector<dcontrols_ui *> docks;
 
     QPointer<QSettings> m_settings;  /*!< Application wide settings. */
     QString             m_cfg_dir;   /*!< Default config dir, e.g. XDG_CONFIG_HOME. */
@@ -165,6 +176,8 @@ private:
     void plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
 
 private slots:
+    void observer_slot(const c_id id, const c_def::v_union value);
+
     /* RecentConfig */
     void loadConfigSlot(const QString &cfgfile);
 

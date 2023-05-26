@@ -62,6 +62,7 @@
 #include "interfaces/file_source.h"
 #include "receivers/receiver_base.h"
 #include "interfaces/audio_sink.h"
+#include "applications/gqrx/dcontrols.h"
 
 /**
  * @defgroup DSP Digital signal processing library based on GNU Radio
@@ -75,7 +76,7 @@
  * Front-ends should only control the receiver through the interface provided
  * by this class.
  */
-class receiver
+class receiver: public conf_dispatchers<receiver>
 {
 
 public:
@@ -163,7 +164,7 @@ public:
     receiver(const std::string input_device="",
              const std::string audio_device="",
              unsigned int decimation=1);
-    ~receiver();
+    virtual ~receiver();
 
     void        start();
     void        stop();
@@ -396,6 +397,11 @@ public:
     uint64_t get_filesource_timestamp_ms();
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     file_formats get_last_format() const { return d_last_format; }
+
+    //arbitrary option setters/getters
+    bool set_value(c_id optid, const c_def::v_union & value) override;
+    bool get_value(c_id optid, c_def::v_union & value) const override;
+    static int conf_initializer();
 
 private:
     void        connect_all(file_formats fmt);

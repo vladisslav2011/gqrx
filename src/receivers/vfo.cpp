@@ -285,4 +285,31 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_host(from.get_udp_host());
     set_udp_port(from.get_udp_port());
     set_udp_stereo(from.get_udp_stereo());
+    c_def::v_union v(0);
+    from.get_test(v);set_test(v);
 }
+
+bool vfo_s::set_test(const c_def::v_union & v)
+{
+    if(d_testval==int(v))
+        return true;
+    printf("--------------------- vfo_s::set_test %d %d\n",d_index,(int)v);
+    d_testval=v;
+    return true;
+}
+
+bool vfo_s::get_test(c_def::v_union & v) const
+{
+    printf("--------------------- vfo_s::get_test\n");
+    v=d_testval;
+    return true;
+}
+
+int vfo_s::conf_initializer()
+{
+    setters[C_TEST]=&vfo_s::set_test;
+    getters[C_TEST]=&vfo_s::get_test;
+    return 0;
+}
+
+template<> int conf_dispatchers<vfo_s>::conf_dispatchers_init_dummy(vfo_s::conf_initializer());

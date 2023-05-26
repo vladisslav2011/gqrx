@@ -35,6 +35,7 @@ DockInputCtl::DockInputCtl(QWidget * parent) :
     ui->channelizerCombo->addItem("2 threads", 2);
     ui->channelizerCombo->addItem("4 threads", 4);
     ui->channelizerCombo->addItem("8 threads", 8);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 DockInputCtl::~DockInputCtl()

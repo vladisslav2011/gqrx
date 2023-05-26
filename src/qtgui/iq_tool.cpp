@@ -144,6 +144,7 @@ CIqTool::CIqTool(QWidget *parent) :
         setExtractDir=action;
     }
     ui->slider->setContextMenuPolicy(Qt::CustomContextMenu);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 CIqTool::~CIqTool()

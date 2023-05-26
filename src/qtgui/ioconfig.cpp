@@ -93,6 +93,7 @@ CIoConfig::CIoConfig(QSettings * settings,
         ui->outSrCombo->setCurrentIndex(0);
     else
         ui->outSrCombo->setCurrentIndex(found);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 CIoConfig::~CIoConfig()

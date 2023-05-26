@@ -251,8 +251,78 @@ Bookmarks::Bookmarks()
      m_idx_struct.append({V_INT,     "REC Max Gap",
         genSetter(&BookmarkInfo::set_audio_rec_max_gap), genGetter(&BookmarkInfo::get_audio_rec_max_gap), genCmp(&BookmarkInfo::get_audio_rec_max_gap)});
 
-     for(int k=0;k<m_idx_struct.length();k++)
-            m_name_struct[m_idx_struct[k].name]=&m_idx_struct[k];
+    int maxIdx=-1;
+    const auto & defs = c_def::all();
+    for(int k=0;k<C_COUNT;k++)
+        maxIdx = std::max(defs[k].bookmarks_column(), maxIdx);
+    if(maxIdx >= m_idx_struct.length())
+        m_idx_struct.insert(m_idx_struct.end(), maxIdx - m_idx_struct.length() + 1, {V_INT,"",nullptr,nullptr,nullptr});
+
+    for(int k=0;k<C_COUNT;k++)
+    {
+        const int bcol=defs[k].bookmarks_column();
+        if(bcol>0)
+        {
+            if(m_idx_struct[bcol].fromString)
+            {
+                std::cerr<<"Conflicting bookmark definitions:\nlocal["<<
+                    bcol<<"]:"<<m_idx_struct[bcol].name.toStdString()<<" and c_def["<<
+                    k<<"]: "<<defs[k].name()<<" "<<defs[k].bookmarks_key()<<
+                    "\nRemove local or set bookmarks_column to "<<m_idx_struct.count()<<" to fix this error\n";
+                exit(1);
+            }
+            m_idx_struct[bcol].name=QString::fromStdString(defs[k].bookmarks_key());
+            m_idx_struct[bcol].fromString=[=](BookmarkInfo & to, const QString & from) -> bool {
+                //lookup preset
+                auto it = defs[k].kpresets().find(from.toStdString());
+                if(it != defs[k].kpresets().end())
+                    return to.set_value(c_id(k),defs[k].presets()[it->second].value);
+                //no preset
+                c_def::v_union tmp(defs[k].v_type(),from.toStdString());
+                //TODO: validate tmp
+                defs[k].clip(tmp);
+                return to.set_value(c_id(k), tmp);
+            };
+            m_idx_struct[bcol].toString=[=](BookmarkInfo & from) -> QString {
+                c_def::v_union tmp;
+                from.get_value(c_id(k), tmp);
+                //lookup preset
+                auto it = defs[k].ipresets().find(tmp);
+                if(it != defs[k].ipresets().end())
+                    return QString::fromStdString(defs[k].presets()[it->second].key);
+                //no preset
+                switch(defs[k].v_type())
+                {
+                case V_BOOLEAN:
+                    return bool(tmp)?"true":"false";
+                case V_INT:
+                    return QString::number(qint64(tmp));
+                case V_DOUBLE:
+                    return QString::number(double(tmp),'f',defs[k].frac_digits());
+                case V_STRING:
+                    return QString::fromStdString(tmp);
+                }
+                return QString::fromStdString(tmp.to_string());
+            };
+            m_idx_struct[bcol].cmp=[=](const BookmarkInfo & a, const BookmarkInfo & b) -> int {
+                c_def::v_union v_a, v_b;
+                a.get_value(c_id(k), v_a);
+                b.get_value(c_id(k), v_b);
+                return (v_a>v_b)?1:((v_a<v_b)?-1:0);
+            };
+        }
+    }
+
+    for(int k=0;k<m_idx_struct.length();k++)
+    {
+        if(!m_idx_struct[k].fromString)
+        {
+            std::cerr<<"Malformed bookmark definition["<<k<<"]: "<<
+            m_idx_struct[k].name.toStdString()<<"\nMissing index?\n";
+            exit(1);
+        }
+        m_name_struct[m_idx_struct[k].name]=&m_idx_struct[k];
+    }
 }
 
 Bookmarks& Bookmarks::Get()
