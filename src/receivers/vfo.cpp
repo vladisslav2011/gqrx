@@ -286,6 +286,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_port(from.get_udp_port());
     set_udp_stereo(from.get_udp_stereo());
     c_def::v_union v(0);
+    from.get_rds_on(v);set_rds_on(v);
     from.get_test(v);set_test(v);
 }
 
@@ -305,10 +306,30 @@ bool vfo_s::get_test(c_def::v_union & v) const
     return true;
 }
 
+bool vfo_s::set_rds_on(const c_def::v_union & v) {d_rds_on=v; return true;}
+bool vfo_s::get_rds_on(c_def::v_union & v) const {v=d_rds_on; return true;}
+bool vfo_s::get_rds_pi(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_ps(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_pty(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_flagstring(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_rt(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_clock(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_af(c_def::v_union &) const {return false;}
+
 int vfo_s::conf_initializer()
 {
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
+
+    getters[C_RDS_ON]=&vfo_s::get_rds_on;
+    setters[C_RDS_ON]=&vfo_s::set_rds_on;
+    getters[C_RDS_PI]=&vfo_s::get_rds_pi;
+    getters[C_RDS_PS]=&vfo_s::get_rds_ps;
+    getters[C_RDS_PTY]=&vfo_s::get_rds_pty;
+    getters[C_RDS_FLAGS]=&vfo_s::get_rds_flagstring;
+    getters[C_RDS_RADIOTEXT]=&vfo_s::get_rds_rt;
+    getters[C_RDS_CLOCKTIME]=&vfo_s::get_rds_clock;
+    getters[C_RDS_ALTFREQ]=&vfo_s::get_rds_af;
     return 0;
 }
 

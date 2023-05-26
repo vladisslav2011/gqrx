@@ -132,7 +132,6 @@ private:
     QTimer   *meter_timer;
     QTimer   *iq_fft_timer;
     QTimer   *audio_fft_timer;
-    QTimer   *rds_timer;
     QTimer   *dxc_timer;
 
     receiver *rx;
@@ -178,6 +177,8 @@ private:
     void waterfall_background_func();
     static void plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
     void plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
+    void rdsPIObserver(const c_id id, const c_def::v_union &value);
+    void rdsOnObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
     void observer_slot(const c_id id, const c_def::v_union value);
@@ -301,9 +302,6 @@ private slots:
     /* AudioDock */
     void dockAudioVisibilityChanged(bool visible);
 
-    /* RDS */
-    void setRdsDecoder(bool checked);
-
     /* Bookmarks */
     void onBookmarkActivated(BookmarkInfo & bm);
     void onBookmarkActivatedAddDemod(BookmarkInfo & bm);
@@ -333,6 +331,8 @@ private slots:
     void on_actionRemoveDemodulator_triggered();
     void rxSpinBox_valueChanged(int i);
 
+    /* RDS mode, used by remote interface */
+    void setRDSmode(bool);
 
     /* window close signals */
     void afsk1200win_closed();
@@ -343,7 +343,6 @@ private slots:
     void meterTimeout();
     void iqFftTimeout();
     void audioFftTimeout();
-    void rdsTimeout();
     void checkDXCSpotTimeout();
 };
 

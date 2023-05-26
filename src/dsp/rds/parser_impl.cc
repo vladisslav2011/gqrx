@@ -42,7 +42,6 @@ parser_impl::parser_impl(bool log, bool debug, unsigned char pty_locale)
 {
 	message_port_register_in(pmt::mp("in"));
 	set_msg_handler(pmt::mp("in"), std::bind(&parser_impl::parse, this, std::placeholders::_1));
-	message_port_register_out(pmt::mp("out"));
 	reset();
 }
 
@@ -77,9 +76,43 @@ void parser_impl::reset() {
  * type 5 = ClockTime
  * type 6 = Alternative Frequencies */
 void parser_impl::send_message(long msgtype, std::string msgtext) {
-	pmt::pmt_t msg  = pmt::mp(msgtext);
-	pmt::pmt_t type = pmt::from_long(msgtype);
-	message_port_pub(pmt::mp("out"), pmt::make_tuple(type, msg));
+    switch (msgtype)
+    {
+    case PI:
+        changed_value(C_RDS_PI, d_index, msgtext);
+        break;
+    case PS:
+        changed_value(C_RDS_PS, d_index, msgtext);
+        break;
+    case PTY:
+        changed_value(C_RDS_PTY, d_index, msgtext);
+        break;
+    case FLAGSTRING:
+        msgtext
+            =std::string((msgtext.at(0)=='1')?"TP ":"")
+            +std::string((msgtext.at(1)=='1')?"TA ":"")
+            +std::string((msgtext.at(2)=='1')?"Music ":"Speech ")
+            +std::string((msgtext.at(3)=='1')?"Mono ":"Stereo ")
+            +std::string((msgtext.at(4)=='1')?"AH ":"")
+            +std::string((msgtext.at(5)=='1')?"CMP ":"")
+            +std::string((msgtext.at(6)=='1')?"stPTY ":"")
+            ;
+        changed_value(C_RDS_FLAGS, d_index, msgtext);
+        break;
+    case RT:
+        changed_value(C_RDS_RADIOTEXT, d_index, msgtext);
+        break;
+    case CLOCK:
+        changed_value(C_RDS_CLOCKTIME, d_index, msgtext);
+        break;
+    case AF:
+        changed_value(C_RDS_ALTFREQ, d_index, msgtext);
+        break;
+    default:
+        // nothing to do
+        return;
+    }
+    d_cache[msgtype] = msgtext;
 }
 
 /* BASIC TUNING: see page 21 of the standard */
@@ -164,9 +197,9 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 		<< '-' << (mono_stereo ? "MONO" : "STEREO")
 		<< " - AF:" << af_string << std::endl;
 
-	send_message(1, std::string(program_service_name, 8));
-	send_message(3, flagstring);
-	send_message(6, af_string);
+	send_message(PS, std::string(program_service_name, 8));
+	send_message(FLAGSTRING, flagstring);
+	send_message(AF, af_string);
 }
 
 double parser_impl::decode_af(unsigned int af_code) {
@@ -280,7 +313,7 @@ void parser_impl::decode_type2(unsigned int *group, bool B){
 	lout << "Radio Text " << (radiotext_AB_flag ? 'B' : 'A')
 		<< ": " << std::string(radiotext, sizeof(radiotext))
 		<< std::endl;
-	send_message(4,std::string(radiotext, sizeof(radiotext)));
+	send_message(RT,std::string(radiotext, sizeof(radiotext)));
 }
 
 void parser_impl::decode_type3(unsigned int *group, bool B){
@@ -359,7 +392,7 @@ void parser_impl::decode_type4(unsigned int *group, bool B){
 
 	lout << "Clocktime: " << time.str() << std::endl;
 
-	send_message(5,time.str());
+	send_message(CLOCK,time.str());
 }
 
 void parser_impl::decode_type5(unsigned int *group, bool B){
@@ -609,8 +642,8 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 	unsigned char pi_program_reference_number = program_identification & 0xff;
 	std::stringstream pistring;
 	pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
-	send_message(0, pistring.str());
-	send_message(2, pty_table[program_type][pty_locale]);
+	send_message(PI, pistring.str());
+	send_message(PTY, pty_table[program_type][pty_locale]);
 
 	lout << " - PI:" << pistring.str() << " - " << "PTY:" << pty_table[program_type][pty_locale];
 	lout << " (country:" << pi_country_codes[pi_country_identification - 1][0];
@@ -677,4 +710,17 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 		dout << "  " << HEX(group[i]);
 	}
 	dout << std::endl;
+}
+
+void parser_impl::clear()
+{
+    for(auto it = d_cache.begin(); it != d_cache.end(); it++)
+        *it = "";
+    changed_value(C_RDS_PI, d_index, "");
+    changed_value(C_RDS_PS, d_index, "");
+    changed_value(C_RDS_PTY, d_index, "");
+    changed_value(C_RDS_FLAGS, d_index, "");
+    changed_value(C_RDS_RADIOTEXT, d_index, "");
+    changed_value(C_RDS_CLOCKTIME, d_index, "");
+    changed_value(C_RDS_ALTFREQ, d_index, "");
 }
