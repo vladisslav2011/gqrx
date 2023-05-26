@@ -34,6 +34,23 @@ enum c_id
 {
     C_TEST=0,
     
+    /* type 0 = PI
+     * type 1 = PS
+     * type 2 = PTY
+     * type 3 = flagstring: TP, TA, MuSp, MoSt, AH, CMP, stPTY
+     * type 4 = RadioText
+     * type 5 = ClockTime
+     * type 6 = Alternative Frequencies
+     */
+    C_RDS_ON,
+    C_RDS_PS,
+    C_RDS_PTY,
+    C_RDS_PI,
+    C_RDS_RADIOTEXT,
+    C_RDS_CLOCKTIME,
+    C_RDS_ALTFREQ,
+    C_RDS_FLAGS,
+    
     C_COUNT
 };
 

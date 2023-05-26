@@ -47,8 +47,6 @@ wfmrx::wfmrx(float quad_rate, float audio_rate)
     rds = make_rx_rds(WFM_PREF_QUAD_RATE);
     rds_decoder = gr::rds::decoder::make(0, 0);
     rds_parser = gr::rds::parser::make(0, 0, 0);
-    rds_store = make_rx_rds_store();
-    rds_enabled = false;
 
     connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, filter, 0);
@@ -176,18 +174,20 @@ void wfmrx::set_wfm_deemph(double tau)
     stereo_oirt->set_tau(tau);
 }
 
-void wfmrx::get_rds_data(std::string &outbuff, int &num)
+void wfmrx::set_index(int index)
 {
-    rds_store->get_message(outbuff, num);
+    receiver_base_cf::set_index(index);
+    rds_parser->set_index(index);
 }
 
 void wfmrx::start_rds_decoder()
 {
+    lock();
     connect(demod_fm, 0, rds, 0);
     connect(rds, 0, rds_decoder, 0);
     msg_connect(rds_decoder, "out", rds_parser, "in");
-    msg_connect(rds_parser, "out", rds_store, "store");
-    rds_enabled=true;
+    unlock();
+    rds_parser->reset();
 }
 
 void wfmrx::stop_rds_decoder()
@@ -196,17 +196,60 @@ void wfmrx::stop_rds_decoder()
     disconnect(demod_fm, 0, rds, 0);
     disconnect(rds, 0, rds_decoder, 0);
     msg_disconnect(rds_decoder, "out", rds_parser, "in");
-    msg_disconnect(rds_parser, "out", rds_store, "store");
+    rds_parser->clear();
     unlock();
-    rds_enabled=false;
 }
 
-void wfmrx::reset_rds_parser()
+bool wfmrx::set_rds_on(const c_def::v_union & v)
 {
-    rds_parser->reset();
+    if(d_rds_on == bool(v))
+        return true;
+    receiver_base_cf::set_rds_on(v);
+    if(d_rds_on)
+        start_rds_decoder();
+    else
+        stop_rds_decoder();
+    return true;
 }
 
-bool wfmrx::is_rds_decoder_active()
+bool wfmrx::get_rds_pi(c_def::v_union &to) const
 {
-    return rds_enabled;
+    to=rds_parser->get_last(gr::rds::parser::PI);
+    return true;
+}
+
+bool wfmrx::get_rds_ps(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::PS);
+    return true;
+}
+
+bool wfmrx::get_rds_pty(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::PTY);
+    return true;
+}
+
+bool wfmrx::get_rds_flagstring(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::FLAGSTRING);
+    return true;
+}
+
+bool wfmrx::get_rds_rt(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::RT);
+    return true;
+}
+
+bool wfmrx::get_rds_clock(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::CLOCK);
+    return true;
+}
+
+bool wfmrx::get_rds_af(c_def::v_union &to) const
+{
+    to=rds_parser->get_last(gr::rds::parser::AF);
+    return true;
 }

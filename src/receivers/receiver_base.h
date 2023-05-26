@@ -129,11 +129,6 @@ public:
     /* CW parameters */
     void set_cw_offset(int offset) override;
 
-    virtual void get_rds_data(std::string &outbuff, int &num);
-    virtual void start_rds_decoder();
-    virtual void stop_rds_decoder();
-    virtual void reset_rds_parser();
-    virtual bool is_rds_decoder_active();
     virtual int  start_audio_recording();
     virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);

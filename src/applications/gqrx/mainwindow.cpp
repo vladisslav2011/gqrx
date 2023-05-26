@@ -262,6 +262,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
         if(*it)
             (*it)->finalize();
 
+    set_observer(C_RDS_ON, &MainWindow::rdsOnObserver);
+    set_observer(C_RDS_PI, &MainWindow::rdsPIObserver);
+
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
     rxSpinBox->setMaximum(255);
@@ -363,7 +366,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockFft, SIGNAL(fftFillToggled(bool)), this, SLOT(setFftFill(bool)));
     connect(uiDockFft, SIGNAL(fftPeakHoldToggled(bool)), this, SLOT(setFftPeakHold(bool)));
     connect(uiDockFft, SIGNAL(peakDetectionToggled(bool)), this, SLOT(setPeakDetection(bool)));
-    connect(uiDockRDS, SIGNAL(rdsDecoderToggled(bool)), this, SLOT(setRdsDecoder(bool)));
 
     // Bookmarks
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(BookmarkInfo &)), this, SLOT(onBookmarkActivated(BookmarkInfo &)));
@@ -386,7 +388,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(iq_tool, SIGNAL(saveFileRange(const QString &, file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, file_formats, quint64,quint64)));
 
     // remote control
-    connect(remote, SIGNAL(newRDSmode(bool)), uiDockRDS, SLOT(setRDSmode(bool)));
+    connect(remote, SIGNAL(newRDSmode(bool)), this, SLOT(setRDSmode(bool)));
     connect(remote, SIGNAL(newFilterOffset(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(remote, SIGNAL(newFilterOffset(qint64)), uiDockRxOpt, SLOT(setFilterOffset(qint64)));
     connect(remote, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
@@ -404,10 +406,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
     connect(remote, SIGNAL(gainChanged(QString, double)), uiDockInputCtl, SLOT(setGain(QString,double)));
     connect(remote, SIGNAL(dspChanged(bool)), this, SLOT(on_actionDSP_triggered(bool)));
-    connect(uiDockRDS, SIGNAL(rdsPI(QString)), remote, SLOT(rdsPI(QString)));
 
-    rds_timer = new QTimer(this);
-    connect(rds_timer, SIGNAL(timeout()), this, SLOT(rdsTimeout()));
     connect(this, SIGNAL(sigAudioRecEvent(QString, bool)), this, SLOT(audioRecEvent(QString, bool)), Qt::QueuedConnection);
 
     // enable frequency tooltips on FFT plot
@@ -507,6 +506,7 @@ MainWindow::~MainWindow()
 
     delete m_recent_config;
 
+    delete rx;
     delete iq_tool;
     delete dxc_options;
     delete ui;
@@ -517,7 +517,6 @@ MainWindow::~MainWindow()
     delete uiDockInputCtl;
     delete uiDockProbe;
     delete uiDockRDS;
-    delete rx;
     delete remote;
     delete [] d_fftData;
     delete [] d_realFftData;
@@ -1640,8 +1639,6 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     uiDockBookmarks->setNewFrequency(rx_freq);
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
-    if (rx->is_rds_decoder_active())
-        rx->reset_rds_parser();
     if (delta_freq)
     {
         std::set<int> del_list;
@@ -1946,7 +1943,6 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     int     filter_preset = uiDockRxOpt->currentFilter();
     int     flo=0, fhi=0;
     Modulations::filter_shape filter_shape;
-    bool    rds_enabled;
 
     // validate mode_idx
     if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_COUNT)
@@ -1972,22 +1968,27 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             filter_preset = FILTER_PRESET_USER;
         }
         Modulations::UpdateFilterRange(mode_idx, flo, fhi);
-    }
-    if (filter_preset != FILTER_PRESET_USER)
-    {
+    }else
         Modulations::GetFilterPreset(mode_idx, filter_preset, flo, fhi);
-    }
 
     if (mode_idx != rx->get_demod())
     {
-        rds_enabled = rx->is_rds_decoder_active();
-        if (rds_enabled)
-            setRdsDecoder(false);
-        uiDockRDS->setDisabled();
-
         if ((mode_idx >Modulations::MODE_OFF) && (mode_idx <Modulations::MODE_COUNT))
             rx->set_demod(mode_idx);
 
+        switch (mode_idx) {
+        case Modulations::MODE_WFM_MONO:
+        case Modulations::MODE_WFM_STEREO:
+        case Modulations::MODE_WFM_STEREO_OIRT:
+            /* Broadcast FM */
+            uiDockRDS->setEnabled();
+            break;
+
+        default:
+            uiDockRDS->setDisabled();
+            rx->set_value(C_RDS_ON, false);
+            set_gui(C_RDS_ON, false);
+       }
         switch (mode_idx) {
 
         case Modulations::MODE_OFF:
@@ -2022,15 +2023,9 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             break;
 
         case Modulations::MODE_NFMPLL:
-            break;
-
         case Modulations::MODE_WFM_MONO:
         case Modulations::MODE_WFM_STEREO:
         case Modulations::MODE_WFM_STEREO_OIRT:
-            /* Broadcast FM */
-            uiDockRDS->setEnabled();
-            if (rds_enabled)
-                setRdsDecoder(true);
             break;
 
         default:
@@ -2483,17 +2478,9 @@ void MainWindow::audioFftTimeout()
     uiDockAudio->setNewFftData(d_realFftData, fftsize);
 }
 
-/** RDS message display timeout. */
-void MainWindow::rdsTimeout()
+void MainWindow::rdsPIObserver(const c_id id, const c_def::v_union &value)
 {
-    std::string buffer;
-    int num;
-
-    rx->get_rds_data(buffer, num);
-    while(num!=-1) {
-        uiDockRDS->updateRDS(QString::fromStdString(buffer), num);
-        rx->get_rds_data(buffer, num);
-    }
+    remote->rdsPI(QString::fromStdString(value));
 }
 
 /**
@@ -3241,8 +3228,6 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         iq_tool->setRunningState(true);
 
         audio_fft_timer->start(40);
-        if(rx->is_rds_decoder_active())
-            rds_timer->start(250);
 
         /* update menu text and button tooltip */
         ui->actionDSP->setToolTip(tr("Stop DSP processing"));
@@ -3259,7 +3244,6 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         meter_timer->stop();
         iq_fft_timer->stop();
         audio_fft_timer->stop();
-        rds_timer->stop();
 
         /* stop receiver */
         rx->stop();
@@ -3302,8 +3286,6 @@ void MainWindow::on_plotter_setPlaying(bool state)
             }
 
             audio_fft_timer->start(40);
-            if(rx->is_rds_decoder_active())
-                rds_timer->start(250);
         }
         else
         {
@@ -3316,7 +3298,6 @@ void MainWindow::on_plotter_setPlaying(bool state)
             meter_timer->stop();
             iq_fft_timer->stop();
             audio_fft_timer->stop();
-            rds_timer->stop();
 
             /* stop receiver */
             rx->stop();
@@ -3636,6 +3617,12 @@ void MainWindow::on_actionAFSK1200_triggered()
 }
 
 
+void MainWindow::setRDSmode(bool mode)
+{
+    set_gui(C_RDS_ON,mode);
+    rx->set_value(C_RDS_ON,mode);
+}
+
 /**
  * Destroy AFSK1200 decoder window got closed.
  *
@@ -3672,24 +3659,9 @@ void MainWindow::decoderTimeout()
         dec_afsk1200->process_samples(&buffer[0], num);
 }
 
-void MainWindow::setRdsDecoder(bool checked)
+void MainWindow::rdsOnObserver(const c_id id, const c_def::v_union &value)
 {
-    if (checked)
-    {
-        qDebug() << "Starting RDS decoder.";
-        uiDockRDS->showEnabled();
-        rx->start_rds_decoder();
-        rx->reset_rds_parser();
-        rds_timer->start(250);
-    }
-    else
-    {
-        qDebug() << "Stopping RDS decoder.";
-        uiDockRDS->showDisabled();
-        rx->stop_rds_decoder();
-        rds_timer->stop();
-    }
-    remote->setRDSstatus(checked);
+    remote->setRDSstatus(value);
 }
 
 /* AudioDock */
@@ -4038,9 +4010,6 @@ void MainWindow::loadRxToGUI()
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
 
-    if (rx->is_rds_decoder_active())
-        rx->reset_rds_parser();
-
     rx->get_filter(low, high, fs);
     updateDemodGUIRanges();
     uiDockRxOpt->setFreqLock(rx->get_freq_lock());
@@ -4107,11 +4076,9 @@ void MainWindow::loadRxToGUI()
     case Modulations::MODE_WFM_STEREO:
     case Modulations::MODE_WFM_STEREO_OIRT:
         uiDockRDS->setEnabled();
-        setRdsDecoder(rx->is_rds_decoder_active());
         break;
     default:
         uiDockRDS->setDisabled();
-        setRdsDecoder(false);
     }
 }
 

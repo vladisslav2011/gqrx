@@ -68,16 +68,24 @@ public:
     bool has_nb() override { return false; }
 
     void set_demod(Modulations::idx demod) override;
+    void set_index(int index) override;
 
     void set_wfm_deemph(double tau) override;
-    void get_rds_data(std::string &outbuff, int &num) override;
-    void start_rds_decoder() override;
-    void stop_rds_decoder() override;
-    void reset_rds_parser() override;
-    bool is_rds_decoder_active() override;
+
+    bool set_rds_on(const c_def::v_union &) override;
+    bool get_rds_pi(c_def::v_union &) const override;
+    bool get_rds_ps(c_def::v_union &) const override;
+    bool get_rds_pty(c_def::v_union &) const override;
+    bool get_rds_flagstring(c_def::v_union &to) const override;
+    bool get_rds_rt(c_def::v_union &) const override;
+    bool get_rds_clock(c_def::v_union &) const override;
+    bool get_rds_af(c_def::v_union &) const override;
 
 private:
+    void start_rds_decoder();
+    void stop_rds_decoder();
     bool   d_running;          /*!< Whether receiver is running or not. */
+    using vfo_s::d_rds_on;
 
     rx_filter_sptr            filter;    /*!< Non-translating bandpass filter.*/
 
@@ -87,10 +95,8 @@ private:
     stereo_demod_sptr         mono;      /*!< FM stereo demodulator OFF. */
 
     rx_rds_sptr               rds;       /*!< RDS decoder */
-    rx_rds_store_sptr         rds_store; /*!< RDS decoded messages */
     gr::rds::decoder::sptr    rds_decoder;
     gr::rds::parser::sptr     rds_parser;
-    bool                      rds_enabled;
 };
 
 #endif // WFMRX_H

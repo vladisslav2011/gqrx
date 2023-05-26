@@ -18,22 +18,13 @@ public:
     ~DockRDS();
 
 public slots:
-    void updateRDS(QString text, int type);
-    void showEnabled();
-    void showDisabled();
     void setEnabled();
     void setDisabled();
-    void setRDSmode(bool cmd);
 
 private:
-    void ClearTextFields();
 
 signals:
     void rdsDecoderToggled(bool);
-    void rdsPI(QString text);
-
-private slots:
-    void on_rdsCheckbox_clicked(bool checked);
 
 private:
     Ui::DockRDS *ui;        /*! The Qt designer UI file. */
