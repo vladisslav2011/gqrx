@@ -26,13 +26,14 @@
 #include <QColor>
 #include <QDockWidget>
 #include <QSettings>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class DockProbe;
 }
 
 
-class DockProbe : public QDockWidget
+class DockProbe : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 

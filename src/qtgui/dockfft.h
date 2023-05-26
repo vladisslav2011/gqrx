@@ -25,13 +25,14 @@
 
 #include <QDockWidget>
 #include <QSettings>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class DockFft;
 }
 
 /*! \brief Dock widget with FFT settings. */
-class DockFft : public QDockWidget
+class DockFft : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 

@@ -32,6 +32,7 @@ DockRDS::DockRDS(QWidget *parent) :
     ui->setupUi(this);
 
     ui->scrollArea->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContentsOnFirstShow);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 DockRDS::~DockRDS()

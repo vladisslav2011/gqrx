@@ -140,14 +140,6 @@ class Bookmarks : public QObject
 {
     Q_OBJECT
 public:
-    enum value_type
-    {
-        V_INT=0,
-        V_DOUBLE,
-        V_STRING,
-        V_BOOLEAN
-    };
-
     struct Def{
         value_type T;
         QString name;

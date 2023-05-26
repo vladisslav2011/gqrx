@@ -14,6 +14,10 @@ add_source_files(SRCS_LIST
 	gqrx/recentconfig.cpp
 	gqrx/recentconfig.h
 	gqrx/file_resources.cpp
+	gqrx/dcontrols.h
+	gqrx/dcontrols.cpp
+	gqrx/dcontrols_ui.h
+	gqrx/dcontrols_ui.cpp
 )
 
 #######################################################################################################################

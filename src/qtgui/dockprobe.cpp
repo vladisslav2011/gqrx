@@ -55,6 +55,7 @@ DockProbe::DockProbe(QWidget *parent) :
     ui->spectrum->setHdivDelta(40);
     ui->spectrum->setFreqDigits(1);
 
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 
 DockProbe::~DockProbe()

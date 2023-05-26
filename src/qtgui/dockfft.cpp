@@ -80,6 +80,7 @@ DockFft::DockFft(QWidget *parent) :
     ui->threadsComboBox->addItem(tr("Auto"),"Auto");
     for (unsigned k = 1; k <= std::thread::hardware_concurrency(); k++)
         ui->threadsComboBox->addItem(QString::number(k), QString::number(k));
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
 }
 DockFft::~DockFft()
 {
