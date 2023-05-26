@@ -290,29 +290,6 @@ float receiver_base_cf::get_agc_gain()
     return agc->get_current_gain();
 }
 
-void receiver_base_cf::get_rds_data(std::string &outbuff, int &num)
-{
-        (void) outbuff;
-        (void) num;
-}
-
-void receiver_base_cf::start_rds_decoder()
-{
-}
-
-void receiver_base_cf::stop_rds_decoder()
-{
-}
-
-void receiver_base_cf::reset_rds_parser()
-{
-}
-
-bool receiver_base_cf::is_rds_decoder_active()
-{
-    return false;
-}
-
 /* UDP streaming */
 bool receiver_base_cf::set_udp_host(const std::string &host)
 {

@@ -40,112 +40,12 @@ DockRDS::~DockRDS()
     delete ui;
 }
 
-void DockRDS::updateRDS(QString text, int type)
-{
-    std::string     str, out;
-
-    /* type 0 = PI
-     * type 1 = PS
-     * type 2 = PTY
-     * type 3 = flagstring: TP, TA, MuSp, MoSt, AH, CMP, stPTY
-     * type 4 = RadioText
-     * type 5 = ClockTime
-     * type 6 = Alternative Frequencies
-     */
-    switch (type)
-    {
-    case 0:
-        emit rdsPI(text);
-        ui->program_information->setText(text);
-        break;
-    case 1:
-        emit stationChanged(text);
-        ui->station_name->setText(text);
-        break;
-    case 2:
-        ui->program_type->setText(text);
-        break;
-    case 3:
-        str = text.toStdString();
-        out = "";
-        if (str.at(0) == '1') out.append("TP ");
-        if (str.at(1) == '1') out.append("TA ");
-        if (str.at(2) == '0') out.append("Speech ");
-        if (str.at(2) == '1') out.append("Music ");
-        if (str.at(3) == '1') out.append("Stereo ");
-        if (str.at(3) == '0') out.append("Mono ");
-        if (str.at(4) == '1') out.append("AH ");
-        if (str.at(5) == '1') out.append("CMP ");
-        if (str.at(6) == '0') out.append("stPTY ");
-        ui->flags->setText(QString::fromStdString(out));
-        break;
-    case 4:
-        emit radiotextChanged(text);
-        ui->radiotext->setText(text);
-        break;
-    case 5:
-        ui->clocktime->setText(text);
-        break;
-    case 6:
-        ui->alt_freq->setText(text);
-        break;
-    default:
-        // nothing to do
-        break;
-    }
-}
-
-void DockRDS::ClearTextFields()
-{
-    ui->program_information->setText("");
-    ui->station_name->setText("");
-    ui->program_type->setText("");
-    ui->flags->setText("");
-    ui->radiotext->setText("");
-    ui->clocktime->setText("");
-    ui->alt_freq->setText("");
-
-    emit radiotextChanged("");
-    emit stationChanged("");
-    emit rdsPI("");
-}
-
-void DockRDS::showEnabled()
-{
-    ClearTextFields();
-    ui->rdsCheckbox->setChecked(true);
-}
-
-void DockRDS::showDisabled()
-{
-    ClearTextFields();
-    ui->rdsCheckbox->setChecked(false);
-}
-
 void DockRDS::setDisabled()
 {
-    ui->rdsCheckbox->setDisabled(true);
-    ui->rdsCheckbox->blockSignals(true);
-    ui->rdsCheckbox->setChecked(false);
-    ui->rdsCheckbox->blockSignals(false);
+    getWidget(C_RDS_ON)->setDisabled(true);
 }
 
 void DockRDS::setEnabled()
 {
-    ui->rdsCheckbox->setDisabled(false);
-}
-
-/** Enable/disable RDS decoder */
-void DockRDS::on_rdsCheckbox_clicked(bool checked)
-{
-    emit rdsDecoderToggled(checked);
-}
-
-/* used by remote control */
-void DockRDS::setRDSmode(bool cmd)
-{
-    if (!ui->rdsCheckbox->isEnabled())
-        return;
-
-    ui->rdsCheckbox->setChecked(cmd);
+    getWidget(C_RDS_ON)->setDisabled(false);
 }

@@ -31,9 +31,23 @@ public:
 #else
 	typedef std::shared_ptr<parser> sptr;
 #endif
+    enum msg_ids
+    {
+        PI=0,
+        PS,
+        PTY,
+        FLAGSTRING,
+        RT,
+        CLOCK,
+        AF,
+        MSG_IDS_COUNT
+    };
 	static sptr make(bool log, bool debug, unsigned char pty_locale);
 
 	virtual void reset() = 0;
+    virtual void clear() = 0;
+    virtual void set_index(int index) = 0;
+    virtual std::string & get_last(int index) = 0;
 };
 
 } // namespace rds

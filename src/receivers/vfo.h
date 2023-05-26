@@ -85,6 +85,7 @@ public:
         d_udp_host("127.0.0.1"),
         d_udp_port(7355),
         d_udp_stereo(false),
+        d_rds_on(false),
         d_testval(0)
     {
         for (int k = 0; k < RECEIVER_NB_COUNT; k++)
@@ -216,6 +217,16 @@ public:
     virtual bool set_test(const c_def::v_union &);
     virtual bool get_test(c_def::v_union &) const;
 
+    virtual bool set_rds_on(const c_def::v_union &);
+    virtual bool get_rds_on(c_def::v_union &) const;
+    virtual bool get_rds_pi(c_def::v_union &) const;
+    virtual bool get_rds_ps(c_def::v_union &) const;
+    virtual bool get_rds_pty(c_def::v_union &) const;
+    virtual bool get_rds_flagstring(c_def::v_union &to) const;
+    virtual bool get_rds_rt(c_def::v_union &) const;
+    virtual bool get_rds_clock(c_def::v_union &) const;
+    virtual bool get_rds_af(c_def::v_union &) const;
+
 public:
     struct comp
     {
@@ -272,6 +283,8 @@ protected:
     std::string      d_udp_host;
     int              d_udp_port;
     bool             d_udp_stereo;
+
+    bool             d_rds_on;
 
     int              d_testval;
 

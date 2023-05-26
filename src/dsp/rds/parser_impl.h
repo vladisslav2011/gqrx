@@ -18,17 +18,29 @@
 #define INCLUDED_RDS_PARSER_IMPL_H
 
 #include "dsp/rds/parser.h"
+#include "applications/gqrx/dcontrols.h"
 #include <gnuradio/thread/thread.h>
 
 namespace gr {
 namespace rds {
 
-class parser_impl : public parser
+class parser_impl : public parser, public conf_notifier
 {
 public:
 	parser_impl(bool log, bool debug, unsigned char pty_locale);
 
+    void clear();
+    void set_index(int index)
+    {
+        d_index = index;
+    }
+    std::string & get_last(int index)
+    {
+        return d_cache[index];
+    }
+
 private:
+
 	~parser_impl();
 
 	void reset();
@@ -73,6 +85,8 @@ private:
 	bool           debug;
 	unsigned char  pty_locale;
 	gr::thread::mutex d_mutex;
+    int d_index;
+    std::array<std::string,MSG_IDS_COUNT> d_cache;
 };
 
 } /* namespace rds */
