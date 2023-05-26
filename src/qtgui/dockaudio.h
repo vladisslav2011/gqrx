@@ -28,6 +28,7 @@
 #include <QSettings>
 #include <QMenu>
 #include "audio_options.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class DockAudio;
@@ -43,7 +44,7 @@ namespace Ui {
  * This class also provides the signal/slot API necessary to connect
  * the encapsulated widgets to the rest of the application.
  */
-class DockAudio : public QDockWidget
+class DockAudio : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 

@@ -2590,3 +2590,26 @@ void receiver::fft_reader::task::thread_func()
         lock.lock();
     }
 }
+
+bool receiver::set_value(c_id optid, const c_def::v_union & value)
+{
+    if(setters[optid])
+        return (this->*setters[optid])(value);
+    return rx[d_current]->set_value(optid, value);
+}
+
+bool receiver::get_value(c_id optid, c_def::v_union & value) const
+{
+    if(getters[optid])
+        return (this->*getters[optid])(value);
+    return rx[d_current]->get_value(optid, value);
+}
+
+int receiver::conf_initializer()
+{
+    //setters[C_TEST]=&receiver::set_test;
+    //getters[C_TEST]=&receiver::get_test;
+    return 0;
+}
+
+template<> int conf_dispatchers<receiver>::conf_dispatchers_init_dummy(receiver::conf_initializer());

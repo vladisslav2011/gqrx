@@ -29,10 +29,11 @@
 
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
+#include "applications/gqrx/dcontrols.h"
 
 
 class vfo_s;
-typedef class vfo_s
+typedef class vfo_s: public conf_dispatchers<vfo_s>
 {
 public:
 #if GNURADIO_VERSION < 0x030900
@@ -83,7 +84,8 @@ public:
         d_rec_max_gap(0),
         d_udp_host("127.0.0.1"),
         d_udp_port(7355),
-        d_udp_stereo(false)
+        d_udp_stereo(false),
+        d_testval(0)
     {
         for (int k = 0; k < RECEIVER_NB_COUNT; k++)
         {
@@ -210,6 +212,10 @@ public:
 
     virtual void restore_settings(vfo_s& from, bool force = true);
 
+    static int conf_initializer();
+    virtual bool set_test(const c_def::v_union &);
+    virtual bool get_test(c_def::v_union &) const;
+
 public:
     struct comp
     {
@@ -266,6 +272,8 @@ protected:
     std::string      d_udp_host;
     int              d_udp_port;
     bool             d_udp_stereo;
+
+    int              d_testval;
 
 } vfo;
 

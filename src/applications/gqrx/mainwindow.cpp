@@ -64,6 +64,9 @@ using namespace std::chrono_literals;
 #include "qtgui/bookmarkstaglist.h"
 #include "qtgui/bandplan.h"
 
+Q_DECLARE_METATYPE(c_id)
+Q_DECLARE_METATYPE(c_def::v_union)
+
 MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) :
     QMainWindow(parent),
     configOk(true),
@@ -77,6 +80,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     dec_afsk1200(nullptr),
     waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
+    qRegisterMetaType<c_id>();
+    qRegisterMetaType<c_def::v_union>();
+
     ui->setupUi(this);
 
     /* Initialise default configuration directory */
@@ -211,6 +217,53 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addAction(ui->mainToolBar->toggleViewAction());
     ui->menu_View->addSeparator();
     ui->menu_View->addAction(ui->actionFullScreen);
+    
+    docks.resize(D_COUNT);
+    docks[D_INPUTCTL]=uiDockInputCtl;
+    docks[D_RXOPT]=uiDockRxOpt;
+    docks[D_AUDIO]=uiDockAudio;
+    docks[D_FFT]=uiDockFft;
+    docks[D_RDS]=uiDockRDS;
+    docks[D_IQTOOL]=iq_tool;
+    docks[D_PROBE]=uiDockProbe;
+    /*
+    uiDockBookmarks,//D_BOOKMARKS
+    */
+    try{
+        for(int k=0;k<C_COUNT;k++)
+        {
+            auto defs=c_def::all();
+            if(k != defs[k].idx())
+            {
+                std::cerr<<"c_def: invalid position: expected idx="<<k<<" actual idx="<<defs[k].idx()<<" name="<<defs[k].name()<<
+                    " title="<<defs[k].title()<<"\n";
+                exit(1);
+            }
+            docks[defs[k].dock()]->add_control(c_id(k));
+            if(defs[k].event())
+            {
+                if(defs[k].scope()==S_VFO)
+                    rx->register_observer(c_id(k),[=](const int vfo, const c_def::v_union & value)
+                    {
+                        if(rx->get_current()==vfo)
+                            emit observer_signal(c_id(k),value);
+                    });
+                else
+                    rx->register_observer(c_id(k),[=](const int vfo, const c_def::v_union & value)
+                    {
+                        emit observer_signal(c_id(k),value);
+                    });
+            }
+        }
+    } catch (std::runtime_error & e)
+    {
+        std::cerr<<"Caught runtime error during GUI initialization: "<<e.what()<<"\n";
+        exit(1);
+    }
+    //add spacers
+    for(auto it=docks.begin();it!=docks.end();++it)
+        if(*it)
+            (*it)->finalize();
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -370,6 +423,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     m_recent_config = new RecentConfig(m_cfg_dir, ui->menu_RecentConfig);
     connect(m_recent_config, SIGNAL(loadConfig(const QString &)), this, SLOT(loadConfigSlot(const QString &)));
+    connect(this,SIGNAL(observer_signal(const c_id, const c_def::v_union)), this, SLOT(observer_slot(const c_id, const c_def::v_union)), Qt::QueuedConnection);
 
     // restore last session
     if (!loadConfig(cfgfile, true, true))
@@ -477,6 +531,82 @@ MainWindow::~MainWindow()
     delete [] d_iirFftData;
     delete qsvg_dummy;
     delete rxSpinBox;
+}
+
+void MainWindow::add_control(const c_id id)
+{
+}
+
+void MainWindow::observer_slot(const c_id id, const c_def::v_union value)
+{
+    set_gui(id, value, true);
+}
+
+//user action
+void MainWindow::changed_gui(const c_id id, const c_def::v_union & value, bool trigger_observers)
+{
+    if(observers[id] && trigger_observers)
+        observers[id](id, value);
+    if(c_def::all()[id].scope()!=S_GUI)
+        rx->set_value(id, value);
+}
+
+//state update
+void MainWindow::set_gui(const c_id id, const c_def::v_union & value, bool trigger_observers)
+{
+    docks[c_def::all()[id].dock()]->set_gui(id, value, trigger_observers);
+    if(observers[id] && trigger_observers)
+        observers[id](id, value);
+}
+
+//current state
+void MainWindow::get_gui(const c_id id, c_def::v_union & value) const
+{
+    docks[c_def::all()[id].dock()]->get_gui(id, value);
+}
+
+static void loadSetting(QPointer<QSettings> m_settings, const c_def & def, c_def::v_union & v)
+{
+    const auto vkey = QString::fromStdString(def.config_key());
+    bool conv_ok = false;
+    if(def.presets().size()>0)
+    {
+        //may be stored as preset key
+        QString qdef("");
+        {
+            auto it=def.ipresets().find(def.def());
+            if(it!=def.ipresets().end())
+                qdef=QString::fromStdString(def.presets()[it->second].key);
+        }
+        std::string ss = m_settings->value(vkey,qdef).toString().toStdString();
+        auto it=def.kpresets().find(ss);
+        if(it!=def.kpresets().end())
+        {
+            v=def.presets()[it->second].value;
+            return;
+        }
+    }
+    switch(def.v_type())
+    {
+    case V_INT:
+        v=m_settings->value(vkey,qlonglong(def.def())).toLongLong(&conv_ok);
+        if(!conv_ok)
+            v=def.def();
+    break;
+    case V_DOUBLE:
+        v=m_settings->value(vkey,double(def.def())).toDouble(&conv_ok);
+        if(!conv_ok)
+            v=def.def();
+    break;
+    case V_STRING:
+        v=m_settings->value(vkey,QString::fromStdString(def.def())).toString().toStdString();
+    break;
+    case V_BOOLEAN:
+        v=m_settings->value(vkey,bool(def.def())).toBool();
+    break;
+    }
+    if(def.clip(v))
+        std::cerr<<"Clipped "<<def.name()<<" "<<v.to_string()<<"\n";
 }
 
 /**
@@ -719,6 +849,24 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         ui->freqCtrl->setFrequency(int64_val  + (qint64)(rx->get_filter_offset()));
         setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
     }
+    auto defs=c_def::all();
+    for(int j=0;j<C_COUNT;j++)
+    {
+        const auto & def=defs[j];
+        if(!(def.writable()&&def.readable()))
+            continue;
+        if((def.scope()!=S_VFO)&&(def.config_key()!=""))
+        {
+            c_def::v_union v(0);
+            const c_id id=c_id(j);
+            m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+            loadSetting(m_settings, def,v);
+            m_settings->endGroup();
+            if(def.scope()==S_RX)
+                rx->set_value(id,v);
+            set_gui(id, v, true);
+        }
+    }
     readRXSettings(ver, actual_rate);
     if (ver < 4)
     {
@@ -813,6 +961,54 @@ bool MainWindow::saveConfig(const QString& cfgfile)
     }
 }
 
+static void storeSetting(QPointer<QSettings> m_settings, const c_def & def, const c_def::v_union & v)
+{
+    const auto vkey = QString::fromStdString(def.config_key());
+    if(def.presets().size()>0)
+    {
+        //try to store by preset key
+        auto it=def.ipresets().find(v);
+        if(it!=def.ipresets().end())
+        {
+            if(def.def()==v)
+                m_settings->remove(vkey);
+            else
+                m_settings->setValue(vkey,QString::fromStdString(def.presets()[it->second].key));
+            return;
+        }
+    }
+    switch(def.v_type())
+    {
+    case V_INT:
+        if(int64_t(def.def())!=int64_t(v))
+            m_settings->setValue(vkey,qlonglong(v));
+        else
+            m_settings->remove(vkey);
+    break;
+    case V_DOUBLE:
+        {
+            QString sv=QString::number(double(v),'f',def.frac_digits());
+            if(QString::number(double(def.def()),'f',def.frac_digits()) != sv)
+                m_settings->setValue(vkey,sv);
+            else
+                m_settings->remove(vkey);
+        }
+    break;
+    case V_STRING:
+        if(std::string(def.def())!=std::string(v))
+            m_settings->setValue(vkey,QString::fromStdString(v));
+        else
+            m_settings->remove(vkey);
+    break;
+    case V_BOOLEAN:
+        if(bool(def.def())!=bool(v))
+            m_settings->setValue(vkey,bool(v));
+        else
+            m_settings->remove(vkey);
+    break;
+    }
+}
+
 /**
  * Store session-related parameters (frequency, gain,...)
  *
@@ -823,7 +1019,7 @@ void MainWindow::storeSession()
 {
     if (m_settings)
     {
-        m_settings->setValue("fft/fft_center", ui->plotter->getFftCenterFreq());
+        auto defs=c_def::all();
         int rx_count = rx->get_rx_count();
         m_settings->setValue("configversion", (rx_count <= 1) ? 3 : 4);
         for (int i = 0; true; i++)
@@ -837,6 +1033,7 @@ void MainWindow::storeSession()
         }
         m_settings->remove("audio");
         m_settings->remove("receiver");
+        m_settings->setValue("fft/fft_center", ui->plotter->getFftCenterFreq());
         if (rx_count <= 1)
             m_settings->setValue("input/frequency", qint64(rx->get_rf_freq() + d_lnb_lo + rx->get_filter_offset()));
         else
@@ -1045,6 +1242,26 @@ void MainWindow::storeSession()
                 m_settings->remove("udp_port");
 
             m_settings->endGroup();
+
+            for(int j = 0; j < C_COUNT; j++)
+            {
+                const auto & def=defs[j];
+                if(!(def.writable()&&def.readable()))
+                    continue;
+                if((def.scope()==S_VFO)&&(def.config_key()!=""))
+                {
+                    c_def::v_union v(0);
+                    const c_id id = c_id(j);
+                    rx->get_value(id, v);
+                    if(rx_count <= 1)
+                        m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+                    else
+                        m_settings->beginGroup(QString("rx%1").arg(i));
+                    storeSetting(m_settings, def, v);
+                    m_settings->endGroup();
+                }
+            }
+
             if (rx_count <= 1)
                 break;
         }
@@ -1053,6 +1270,30 @@ void MainWindow::storeSession()
             m_settings->setValue("gui/current_rx", old_current);
         else
             m_settings->remove("gui/current_rx");
+        for(int j = 0; j < C_COUNT; j++)
+        {
+            const auto & def = defs[j];
+            if(!(def.writable()&&def.readable()))
+                continue;
+            if((def.scope()==S_RX)&&(def.config_key()!=""))
+            {
+                c_def::v_union v(0);
+                const c_id id = c_id(j);
+                rx->get_value(id, v);
+                m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+                storeSetting(m_settings, def, v);
+                m_settings->endGroup();
+            }
+            if((def.scope()==S_GUI)&&(def.config_key()!=""))
+            {
+                c_def::v_union v(0);
+                const c_id id = c_id(j);
+                get_gui(id, v);
+                m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+                storeSetting(m_settings, def, v);
+                m_settings->endGroup();
+            }
+        }
     }
 }
 
@@ -1219,6 +1460,25 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
         rx->set_udp_stereo(udp_stereo);
 
         m_settings->endGroup();
+        auto defs=c_def::all();
+        for(int j=0;j<C_COUNT;j++)
+        {
+            const auto & def=defs[j];
+            if(!(def.writable()&&def.readable()))
+                continue;
+            if((def.scope()==S_VFO)&&(def.config_key()!=""))
+            {
+                c_def::v_union v(0);
+                const c_id id=c_id(j);
+                if(ver < 4)
+                    m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+                else
+                    m_settings->beginGroup(grp);
+                loadSetting(m_settings, def,v);
+                m_settings->endGroup();
+                rx->set_value(id,v);
+            }
+        }
         ui->plotter->addVfo(rx->get_current_vfo());
         i++;
         if (ver < 4)
@@ -1902,6 +2162,22 @@ void MainWindow::updateDemodGUIRanges()
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
     uiDockRxOpt->setCurrentDemod(mode_idx);
+    //Update demod-specific GUI widgets to keep shared options in sync
+    auto defs=c_def::all();
+    for(int j=0;j<C_COUNT;j++)
+    {
+        const auto & def=defs[j];
+        if(!def.readable())
+            continue;
+        if((def.scope()==S_VFO)&&(def.demodgroup()==Modulations::modes[mode_idx].group))
+        {
+            const c_id id=c_id(j);
+            c_def::v_union v(c_def::all()[id].def());
+            rx->get_value(id,v);
+            set_gui(id, v, true);
+        }
+    }
+    
 }
 
 
@@ -3832,6 +4108,20 @@ void MainWindow::loadRxToGUI()
     uiDockAudio->setRecMinTime(rx->get_audio_rec_min_time());
     uiDockAudio->setRecMaxGap(rx->get_audio_rec_max_gap());
     uiDockAudio->setAudioMute(rx->get_agc_mute());
+    auto defs=c_def::all();
+    for(int j=0;j<C_COUNT;j++)
+    {
+        const auto & def=defs[j];
+        if(!def.readable())
+            continue;
+        if(def.scope()==S_VFO)
+        {
+            const c_id id=c_id(j);
+            c_def::v_union v(c_def::all()[id].def());
+            rx->get_value(id,v);
+            set_gui(id,v,true);
+        }
+    }
 
     //FIXME Prevent playing incomplete audio or remove audio player
     if (rx->is_recording_audio())

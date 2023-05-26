@@ -2,13 +2,14 @@
 #define DOCKRDS_H
 #include <QDockWidget>
 #include <QSettings>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class DockRDS;
 }
 
 
-class DockRDS : public QDockWidget
+class DockRDS : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 
