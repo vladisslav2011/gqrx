@@ -1486,7 +1486,9 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
             return ret;
         if(get_rxc(rx[d_current]->get_demod()) == get_rxc(demod))
         {
+            rx[d_current]->lock();
             rx[d_current]->set_demod(demod);
+            rx[d_current]->unlock();
             return ret;
         }
     }
