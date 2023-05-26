@@ -215,7 +215,7 @@ private slots:
     void setAgcMaxGain(int gain);
     void setAgcPanning(int panning);
     void setAgcPanningAuto(bool panningAuto);
-    void setNoiseBlanker(int nbid, bool on, float threshold);
+    void setNoiseBlanker(int nbid, bool on);
     void setSqlLevel(double level_db);
     double setSqlLevelAuto(bool global);
     void resetSqlLevelGlobal();
