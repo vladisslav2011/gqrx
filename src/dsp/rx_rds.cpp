@@ -49,11 +49,6 @@ rx_rds_sptr make_rx_rds(double sample_rate)
     return gnuradio::get_initial_sptr(new rx_rds(sample_rate));
 }
 
-rx_rds_store_sptr make_rx_rds_store()
-{
-    return gnuradio::get_initial_sptr(new rx_rds_store());
-}
-
 rx_rds::rx_rds(double sample_rate)
     : gr::hier_block2 ("rx_rds",
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (float)),
@@ -127,38 +122,4 @@ rx_rds::rx_rds(double sample_rate)
 rx_rds::~rx_rds ()
 {
 
-}
-
-rx_rds_store::rx_rds_store() : gr::block ("rx_rds_store",
-                                gr::io_signature::make (0, 0, 0),
-                                gr::io_signature::make (0, 0, 0))
-{
-        message_port_register_in(pmt::mp("store"));
-        set_msg_handler(pmt::mp("store"), std::bind(&rx_rds_store::store, this, std::placeholders::_1));
-}
-
-rx_rds_store::~rx_rds_store ()
-{
-
-}
-
-void rx_rds_store::store(pmt::pmt_t msg)
-{
-    std::lock_guard<std::mutex> lock(d_mutex);
-    d_messages.push(msg);
-
-}
-
-void rx_rds_store::get_message(std::string &out, int &type)
-{
-    std::lock_guard<std::mutex> lock(d_mutex);
-
-    if (d_messages.size()>0) {
-        pmt::pmt_t msg=d_messages.front();
-        type=pmt::to_long(pmt::tuple_ref(msg,0));
-        out=pmt::symbol_to_string(pmt::tuple_ref(msg,1));
-        d_messages.pop();
-    } else {
-        type=-1;
-    }
 }
