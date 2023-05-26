@@ -305,7 +305,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(agcHangChanged(int)), this, SLOT(setAgcHang(int)));
     connect(uiDockRxOpt, SIGNAL(agcPanningChanged(int)), this, SLOT(setAgcPanning(int)));
     connect(uiDockRxOpt, SIGNAL(agcPanningAuto(bool)), this, SLOT(setAgcPanningAuto(bool)));
-    connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool,float)), this, SLOT(setNoiseBlanker(int,bool,float)));
+    connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool)), this, SLOT(setNoiseBlanker(int,bool)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked(bool)), this, SLOT(setSqlLevelAuto(bool)));
     connect(uiDockRxOpt, SIGNAL(sqlResetAllClicked()), this, SLOT(resetSqlLevelGlobal()));
@@ -1120,7 +1120,6 @@ void MainWindow::storeSession()
                     m_settings->setValue(QString("nb%1on").arg(j), true);
                 else
                     m_settings->remove(QString("nb%1on").arg(j));
-                m_settings->setValue(QString("nb%1thr").arg(j), rx->get_nb_threshold(j));
             }
             //filter
             int     flo, fhi;
@@ -1324,9 +1323,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
         for (int j = 1; j < RECEIVER_NB_COUNT + 1; j++)
         {
             rx->set_nb_on(j, m_settings->value(QString("nb%1on").arg(j), false).toBool());
-            float thr = m_settings->value(QString("nb%1thr").arg(j), 2.0).toFloat(&conv_ok);
-            if (conv_ok)
-                rx->set_nb_threshold(j, thr);
         }
 
         bool flo_ok = false;
@@ -2157,15 +2153,12 @@ void MainWindow::setAgcPanningAuto(bool panningAuto)
  * @brief Noise blanker configuration changed.
  * @param nb1 Noise blanker 1 ON/OFF.
  * @param nb2 Noise blanker 2 ON/OFF.
- * @param threshold Noise blanker threshold.
  */
-void MainWindow::setNoiseBlanker(int nbid, bool on, float threshold)
+void MainWindow::setNoiseBlanker(int nbid, bool on)
 {
-    qDebug() << "Noise blanker NB:" << nbid << " ON:" << on << "THLD:"
-             << threshold;
+    qDebug() << "Noise blanker NB:" << nbid << " ON:" << on ;
 
     rx->set_nb_on(nbid, on);
-    rx->set_nb_threshold(nbid, threshold);
 }
 
 /**
@@ -3884,7 +3877,7 @@ void MainWindow::loadRxToGUI()
         uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.f);
 
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
-        uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k), rx->get_nb_threshold(k));
+        uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k));
 
     uiDockAudio->setRecDir(QString(rx->get_audio_rec_dir().data()));
     uiDockAudio->setSquelchTriggered(rx->get_audio_rec_sql_triggered());

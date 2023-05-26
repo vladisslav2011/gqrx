@@ -274,8 +274,6 @@ public:
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
     bool        get_nb_on(int nbid);
-    status      set_nb_threshold(int nbid, float threshold);
-    float       get_nb_threshold(int nbid);
 
     /* Squelch parameter */
     status      set_sql_level(double level_db);

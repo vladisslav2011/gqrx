@@ -25,12 +25,13 @@
 
 #include <QDialog>
 #include <QCloseEvent>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
 class CNbOptions;
 }
 
-class CNbOptions : public QDialog
+class CNbOptions : public QDialog, public dcontrols_ui
 {
     Q_OBJECT
 
@@ -39,17 +40,6 @@ public:
     ~CNbOptions();
 
     void closeEvent(QCloseEvent *event);
-
-    double nbThreshold(int nbid);
-    void setNbThreshold(int nbid, double threshold);
-
-signals:
-    void thresholdChanged(int nb, double val);
-
-private slots:
-    void on_nb1Threshold_valueChanged(double val);
-    void on_nb2Threshold_valueChanged(double val);
-    void on_nb3Threshold_valueChanged(double val);
 
 private:
     Ui::CNbOptions *ui;
