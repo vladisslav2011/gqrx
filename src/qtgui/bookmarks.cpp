@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <iostream>
 #include "bookmarks.h"
+#include <clocale>
 #include "qtgui/bookmarkstablemodel.h"
 
 const QColor TagInfo::DefaultColor(Qt::lightGray);
@@ -291,6 +292,8 @@ bool Bookmarks::load()
     CommaSeparated csv;
     if(csv.open(m_tagsFile, false))
     {
+        std::string prev_loc = std::setlocale(LC_ALL, nullptr);
+        std::setlocale(LC_ALL, "C");
         m_TagList.clear();
         // always create the "Untagged" entry.
         findOrAddTag(TagInfo::strUntagged);
@@ -361,6 +364,7 @@ bool Bookmarks::load()
             std::stable_sort(m_BookmarkList.begin(),m_BookmarkList.end());
 
             emit BookmarksChanged();
+            std::setlocale(LC_ALL, prev_loc.c_str());
             return true;
         }
     }
@@ -470,6 +474,8 @@ bool Bookmarks::save()
     CommaSeparated csv;
     if(csv.open(m_tagsFile, true))
     {
+        std::string prev_loc = std::setlocale(LC_ALL, nullptr);
+        std::setlocale(LC_ALL, "C");
         QString tmp;
         csv.write(QStringList({"Tag name","color"}));
         QMap<QString, TagInfo::sptr> usedTags;
@@ -488,28 +494,30 @@ bool Bookmarks::save()
             csv.write(QStringList({info->name,info->color.name()}));
         }
         csv.close();
-    }
-    if(csv.open(m_bookmarksFile, true))
-    {
-        QString tmp;
-
-        QStringList lst;
-        for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
-            lst.append(it->name);
-
-        csv.write(lst);
-        for (int i = 0; i < m_BookmarkList.size(); i++)
+        if(csv.open(m_bookmarksFile, true))
         {
-            BookmarkInfo& info = m_BookmarkList[i];
-            lst.clear();
-            for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
-                lst.append(it->toString(info));
-            csv.write(lst);
-        }
+            QString tmp;
 
-        csv.close();
-        emit BookmarksChanged();
-        return true;
+            QStringList lst;
+            for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
+                lst.append(it->name);
+
+            csv.write(lst);
+            for (int i = 0; i < m_BookmarkList.size(); i++)
+            {
+                BookmarkInfo& info = m_BookmarkList[i];
+                lst.clear();
+                for(auto it = m_idx_struct.begin(); it != m_idx_struct.end(); ++it)
+                    lst.append(it->toString(info));
+                csv.write(lst);
+            }
+
+            csv.close();
+            emit BookmarksChanged();
+            std::setlocale(LC_ALL, prev_loc.c_str());
+            return true;
+        }
+        std::setlocale(LC_ALL, prev_loc.c_str());
     }
     return false;
 }
