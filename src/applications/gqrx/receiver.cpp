@@ -1404,6 +1404,9 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         // RX demod chain
         if (old_idx == -1)
         {
+            if (old_rxc != rxc)
+                if (old_rxc == RX_CHAIN_WFMRX)
+                    set_value(C_RDS_ON, false);
             background_rx();
             disconnect_rx();
         }
@@ -2260,53 +2263,6 @@ void receiver::foreground_rx()
     }
     d_mute = !d_mute;
     set_mute(!d_mute);
-}
-
-void receiver::get_rds_data(std::string &outbuff, int &num)
-{
-    rx[d_current]->get_rds_data(outbuff, num);
-}
-
-void receiver::start_rds_decoder(void)
-{
-    if (is_rds_decoder_active())
-        return;
-    if (d_running)
-    {
-        stop();
-        rx[d_current]->start_rds_decoder();
-        start();
-    }
-    else
-    {
-        rx[d_current]->start_rds_decoder();
-    }
-}
-
-void receiver::stop_rds_decoder(void)
-{
-    if (!is_rds_decoder_active())
-        return;
-    if (d_running)
-    {
-        stop();
-        rx[d_current]->stop_rds_decoder();
-        start();
-    }
-    else
-    {
-        rx[d_current]->stop_rds_decoder();
-    }
-}
-
-bool receiver::is_rds_decoder_active(void) const
-{
-    return rx[d_current]->is_rds_decoder_active();
-}
-
-void receiver::reset_rds_parser(void)
-{
-    rx[d_current]->reset_rds_parser();
 }
 
 uint64_t receiver::get_filesource_timestamp_ms()
