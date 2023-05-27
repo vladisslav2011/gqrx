@@ -58,8 +58,6 @@ public:
     void setInvertScrolling(bool enabled);
     int  fftRate() const { return 10; }
 
-    void setAudioGain(int gain);
-    int  audioGain();
     void setGainEnabled(bool state);
 
     void setAudioRecButtonState(bool checked);
@@ -144,7 +142,6 @@ signals:
     void copyRecSettingsToAllVFOs();
 
 private slots:
-    void on_audioGainSlider_valueChanged(int value);
     void on_audioStreamButton_clicked(bool checked);
     void on_audioRecButton_clicked(bool checked);
     void on_audioPlayButton_clicked(bool checked);

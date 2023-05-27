@@ -82,20 +82,6 @@ public:
 
     bool    getAgcOn();
     void    setAgcOn(bool on);
-    int     getAgcTargetLevel();
-    void    setAgcTargetLevel(int level);
-    int     getAgcMaxGain();
-    void    setAgcMaxGain(int gain);
-    int     getAgcAttack();
-    void    setAgcAttack(int attack);
-    int     getAgcDecay();
-    void    setAgcDecay(int decay);
-    int     getAgcHang();
-    void    setAgcHang(int hang);
-    int     getAgcPanning();
-    void    setAgcPanning(int panning);
-    bool    getAgcPanningAuto();
-    void    setAgcPanningAuto(bool panningAuto);
 
     void    setNoiseBlanker(int nbid, bool on);
 
@@ -128,6 +114,8 @@ private:
     void filterNormalShortcut();
     void filterWideShortcut();
     void setAgcPresetFromParams(int decay);
+    void agcDecayObserver(const c_id id, const c_def::v_union & v);
+    void agcOnObserver(const c_id id, const c_def::v_union & v);
 
 signals:
     /** Signal emitted when receiver frequency has changed */
@@ -154,30 +142,6 @@ signals:
 
     /** Signal emitted when squelch reset all popup menu item is clicked. */
     void sqlResetAllClicked();
-
-    /** Signal emitted when AGC is togglen ON/OFF. */
-    void agcToggled(bool agc_on);
-
-    /** Signal emitted when AGC target level has changed. Level in dB. */
-    void agcTargetLevelChanged(int value);
-
-    /** Signal emitted when AGC maximum gain has changed. Gain is in dB.*/
-    void agcMaxGainChanged(int gain);
-
-    /** Signal emitted when AGC attack has changed. Decay is in millisec.*/
-    void agcAttackChanged(int attack);
-
-    /** Signal emitted when AGC decay has changed. Decay is in millisec.*/
-    void agcDecayChanged(int decay);
-
-    /** Signal emitted when AGC hang is changed. Hang is in millisec.*/
-    void agcHangChanged(int hang);
-
-    /** Signal emitted when AGC panning is changed. Panning is relative position -100...100 */
-    void agcPanningChanged(int panning);
-
-    /** Signal emitted when AGC panning auto mode is changed. */
-    void agcPanningAuto(bool panningAuto);
 
     /** Signal emitted when noise blanker status has changed. */
     void noiseBlankerChanged(int nbid, bool on);
@@ -208,15 +172,6 @@ private slots:
     void on_freqLockButton_customContextMenuRequested(const QPoint& pos);
     void menuFreqLockAll();
     void menuFreqUnlockAll();
-
-    // Signals coming from AGC options popup
-    void agcOpt_maxGainChanged(int value);
-    void agcOpt_targetLevelChanged(int value);
-    void agcOpt_attackChanged(int value);
-    void agcOpt_decayChanged(int value);
-    void agcOpt_hangChanged(int value);
-    void agcOpt_panningChanged(int value);
-    void agcOpt_panningAutoChanged(bool value);
 
 private:
     Ui::DockRxOpt *ui;        /** The Qt designer UI file. */

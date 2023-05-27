@@ -120,15 +120,22 @@ public:
     inline double get_sql_level() const { return d_level_db; }
     inline double get_sql_alpha() const { return d_alpha; }
     /* AGC */
-    inline bool  get_agc_on() const { return d_agc_on; }
-    inline int   get_agc_target_level() const { return d_agc_target_level; }
-    inline float get_agc_manual_gain() const { return d_agc_manual_gain; }
-    inline int   get_agc_max_gain() const { return d_agc_max_gain; }
-    inline int   get_agc_attack() const { return d_agc_attack_ms; }
-    inline int   get_agc_decay() const { return d_agc_decay_ms; }
-    inline int   get_agc_hang() const { return d_agc_hang_ms; }
-    inline int   get_agc_panning() const { return d_agc_panning; }
-    inline bool  get_agc_panning_auto() const { return d_agc_panning_auto; }
+    bool         get_agc_on(c_def::v_union & v) const { v=d_agc_on; return true; }
+    bool         get_agc_target_level(c_def::v_union & v) const { v=d_agc_target_level; return true; }
+    bool         get_agc_target_level_label(c_def::v_union & v) const;
+    bool         get_agc_manual_gain(c_def::v_union & v) const { v=d_agc_manual_gain; return true; }
+    bool         get_agc_manual_gain_label(c_def::v_union & v) const;
+    bool         get_agc_max_gain(c_def::v_union & v) const { v=d_agc_max_gain; return true; }
+    bool         get_agc_max_gain_label(c_def::v_union & v) const;
+    bool         get_agc_attack(c_def::v_union & v) const { v=d_agc_attack_ms; return true; }
+    bool         get_agc_attack_label(c_def::v_union & v) const;
+    bool         get_agc_decay(c_def::v_union & v) const { v=d_agc_decay_ms; return true; }
+    bool         get_agc_decay_label(c_def::v_union & v) const;
+    bool         get_agc_hang(c_def::v_union & v) const { v=d_agc_hang_ms; return true; }
+    bool         get_agc_hang_label(c_def::v_union & v) const;
+    bool         get_agc_panning(c_def::v_union & v) const { v=d_agc_panning; return true; }
+    bool         get_agc_panning_label(c_def::v_union & v) const;
+    bool         get_agc_panning_auto(c_def::v_union & v) const { v=d_agc_panning_auto; return true; }
     inline bool  get_agc_mute() const { return d_agc_mute; }
     /* CW parameters */
     bool         get_cw_offset(c_def::v_union & v) const { v=d_cw_offset; return true; }
@@ -177,15 +184,15 @@ public:
     virtual void set_sql_level(double level_db);
     virtual void set_sql_alpha(double alpha);
     /* AGC */
-    virtual void  set_agc_on(bool agc_on);
-    virtual void  set_agc_target_level(int target_level);
-    virtual void  set_agc_manual_gain(float gain);
-    virtual void  set_agc_max_gain(int gain);
-    virtual void  set_agc_attack(int attack_ms);
-    virtual void  set_agc_decay(int decay_ms);
-    virtual void  set_agc_hang(int hang_ms);
-    virtual void  set_agc_panning(int panning);
-    virtual void  set_agc_panning_auto(bool mode);
+    virtual bool  set_agc_on(const c_def::v_union &);
+    virtual bool  set_agc_target_level(const c_def::v_union &);
+    virtual bool  set_agc_manual_gain(const c_def::v_union &);
+    virtual bool  set_agc_max_gain(const c_def::v_union &);
+    virtual bool  set_agc_attack(const c_def::v_union &);
+    virtual bool  set_agc_decay(const c_def::v_union &);
+    virtual bool  set_agc_hang(const c_def::v_union &);
+    virtual bool  set_agc_panning(const c_def::v_union &);
+    virtual bool  set_agc_panning_auto(const c_def::v_union &);
     virtual void  set_agc_mute(bool agc_mute);
     /* CW parameters */
     virtual bool set_cw_offset(const c_def::v_union &);

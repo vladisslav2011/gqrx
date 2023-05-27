@@ -884,14 +884,34 @@ receiver::status receiver::set_filter_offset(int rx_index, double offset_hz)
     {
         int channel = std::roundf(offset_hz * double(chan->decim() * chan->osr()) / double(d_decim_rate));
         chan->map_output(rx[rx_index]->get_port(), channel);
-        //rx[rx_index]->set_offset(offset_hz % (chan->decim() / 2));
     }
-    //else
     rx[rx_index]->set_offset(offset_hz);
+    update_agc_panning_auto(rx_index);
+    return STATUS_OK;
+}
+
+bool receiver::set_agc_panning_auto(const c_def::v_union & v)
+{
+    rx[d_current]->set_value(C_AGC_PANNING_AUTO, v);
+    if(v)
+        update_agc_panning_auto(d_current);
+    return true;
+}
+
+void receiver::update_agc_panning_auto(int rx_index)
+{
+    c_def::v_union v;
+    rx[rx_index]->get_value(C_AGC_PANNING_AUTO,v);
+    if(v)
+    {
+        int panning = rx[rx_index]->get_offset() * 200.0 / d_decim_rate;
+        set_value(C_AGC_PANNING, panning);
+        changed_value(C_AGC_PANNING, rx_index, panning);
+    }
+/*
     if (rx[rx_index]->get_agc_panning_auto())
         rx[rx_index]->set_agc_panning(offset_hz * 200.0 / d_decim_rate);
-
-    return STATUS_OK;
+*/
 }
 
 /**
@@ -1167,115 +1187,9 @@ double receiver::get_sql_alpha()
     return rx[d_current]->get_sql_alpha();
 }
 
-/**
- * @brief Enable/disable receiver AGC.
- *
- * When AGC is disabled a fixed manual gain is used, see set_agc_manual_gain().
- */
-receiver::status receiver::set_agc_on(bool agc_on)
-{
-    rx[d_current]->set_agc_on(agc_on);
-
-    return STATUS_OK; // FIXME
-}
-
-bool receiver::get_agc_on()
-{
-    return rx[d_current]->get_agc_on();
-}
-
-/** Set AGC hang. */
-receiver::status receiver::set_agc_hang(int hang_ms)
-{
-    rx[d_current]->set_agc_hang(hang_ms);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_hang()
-{
-    return rx[d_current]->get_agc_hang();
-}
-
-/** Set AGC target level. */
-receiver::status receiver::set_agc_target_level(int target_level)
-{
-    rx[d_current]->set_agc_target_level(target_level);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_target_level()
-{
-    return rx[d_current]->get_agc_target_level();
-}
-
-/** Set fixed gain used when AGC is OFF. */
-receiver::status receiver::set_agc_manual_gain(float gain)
-{
-    rx[d_current]->set_agc_manual_gain(gain);
-
-    return STATUS_OK; // FIXME
-}
-
-float receiver::get_agc_manual_gain()
-{
-    return rx[d_current]->get_agc_manual_gain();
-}
-
-/** Set maximum gain used when AGC is ON. */
-receiver::status receiver::set_agc_max_gain(int gain)
-{
-    rx[d_current]->set_agc_max_gain(gain);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_max_gain()
-{
-    return rx[d_current]->get_agc_max_gain();
-}
-
-/** Set AGC attack. */
-receiver::status receiver::set_agc_attack(int attack_ms)
-{
-    rx[d_current]->set_agc_attack(attack_ms);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_attack()
-{
-    return rx[d_current]->get_agc_attack();
-}
-
-/** Set AGC decay time. */
-receiver::status receiver::set_agc_decay(int decay_ms)
-{
-    rx[d_current]->set_agc_decay(decay_ms);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_decay()
-{
-    return rx[d_current]->get_agc_decay();
-}
-
-/** Set AGC panning. */
-receiver::status receiver::set_agc_panning(int panning)
-{
-    rx[d_current]->set_agc_panning(panning);
-
-    return STATUS_OK; // FIXME
-}
-
-int receiver::get_agc_panning()
-{
-    return rx[d_current]->get_agc_panning();
-}
 
 /** Set AGC panning auto mode. */
+/*
 receiver::status receiver::set_agc_panning_auto(bool mode)
 {
     rx[d_current]->set_agc_panning_auto(mode);
@@ -1289,7 +1203,7 @@ bool receiver::get_agc_panning_auto()
 {
     return rx[d_current]->get_agc_panning_auto();
 }
-
+*/
 /** Set AGC mute */
 receiver::status receiver::set_agc_mute(bool agc_mute)
 {
@@ -2445,8 +2359,7 @@ bool receiver::get_value(c_id optid, c_def::v_union & value) const
 
 int receiver::conf_initializer()
 {
-    //setters[C_TEST]=&receiver::set_test;
-    //getters[C_TEST]=&receiver::get_test;
+    setters[C_AGC_PANNING_AUTO]=&receiver::set_agc_panning_auto;
     return 0;
 }
 
