@@ -265,25 +265,6 @@ public:
     status      set_sql_alpha(double alpha);
     double      get_sql_alpha();
 
-    /* AGC */
-    status      set_agc_on(bool agc_on);
-    bool        get_agc_on();
-    status      set_agc_target_level(int target_level);
-    int         get_agc_target_level();
-    status      set_agc_manual_gain(float gain);
-    float       get_agc_manual_gain();
-    status      set_agc_max_gain(int gain);
-    int         get_agc_max_gain();
-    status      set_agc_attack(int attack_ms);
-    int         get_agc_attack();
-    status      set_agc_decay(int decay_ms);
-    int         get_agc_decay();
-    status      set_agc_hang(int hang_ms);
-    int         get_agc_hang();
-    status      set_agc_panning(int panning);
-    int         get_agc_panning();
-    status      set_agc_panning_auto(bool mode);
-    bool        get_agc_panning_auto();
     status      set_agc_mute(bool agc_mute);
     bool        get_agc_mute();
     float       get_agc_gain();
@@ -384,6 +365,8 @@ private:
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
     void        configure_channelizer(bool reconnect);
+    bool        set_agc_panning_auto(const c_def::v_union &);
+    void        update_agc_panning_auto(int rx_index);
 
 private:
     int         d_current;          /*!< Current selected demodulator. */

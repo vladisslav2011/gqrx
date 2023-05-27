@@ -115,14 +115,14 @@ public:
     void set_sql_alpha(double alpha) override;
 
     /* AGC */
-    void  set_agc_on(bool agc_on) override;
-    void  set_agc_target_level(int target_level) override;
-    void  set_agc_manual_gain(float gain) override;
-    void  set_agc_max_gain(int gain) override;
-    void  set_agc_attack(int attack_ms) override;
-    void  set_agc_decay(int decay_ms) override;
-    void  set_agc_hang(int hang_ms) override;
-    void  set_agc_panning(int panning) override;
+    bool  set_agc_on(const c_def::v_union &) override;
+    bool  set_agc_target_level(const c_def::v_union &) override;
+    bool  set_agc_manual_gain(const c_def::v_union &) override;
+    bool  set_agc_max_gain(const c_def::v_union &) override;
+    bool  set_agc_attack(const c_def::v_union &) override;
+    bool  set_agc_decay(const c_def::v_union &) override;
+    bool  set_agc_hang(const c_def::v_union &) override;
+    bool  set_agc_panning(const c_def::v_union &) override;
     void  set_agc_mute(bool agc_mute) override;
     virtual float get_agc_gain();
 

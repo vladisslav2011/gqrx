@@ -24,6 +24,7 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QShortcut>
+#include <QSlider>
 #include <QDir>
 #include "dockaudio.h"
 #include "ui_dockaudio.h"
@@ -126,29 +127,12 @@ void DockAudio::setInvertScrolling(bool enabled)
     ui->audioSpectrum->setInvertScrolling(enabled);
 }
 
-/*! \brief Set new audio gain.
- *  \param gain the new audio gain in tens of dB (0 dB = 10)
- */
-void DockAudio::setAudioGain(int gain)
-{
-    ui->audioGainSlider->setValue(gain);
-}
-
-
-/*! \brief Get current audio gain.
- *  \returns The current audio gain in tens of dB (0 dB = 10).
- */
-int  DockAudio::audioGain()
-{
-    return ui->audioGainSlider->value();
-}
-
 /*! \brief Set audio gain slider state.
  *  \param state new slider state.
  */
 void DockAudio::setGainEnabled(bool state)
 {
-    ui->audioGainSlider->setEnabled(state);
+    getWidget(C_AGC_MAN_GAIN)->setEnabled(state);
 }
 
 /*! Set FFT plot color. */
@@ -206,18 +190,6 @@ void DockAudio::setRxFrequency(qint64 freq)
 void DockAudio::setWfColormap(const QString &cmap)
 {
     ui->audioSpectrum->setWfColormap(cmap);
-}
-
-/*! \brief Audio gain changed.
- *  \param value The new audio gain value in tens of dB (because slider uses int)
- */
-void DockAudio::on_audioGainSlider_valueChanged(int value)
-{
-    float gain = float(value) / 10.0;
-
-    // update dB label
-    ui->audioGainDbLabel->setText(QString("%1 dB").arg(gain, 5, 'f', 1));
-    emit audioGainChanged(gain);
 }
 
 /*! \brief Streaming button clicked.
@@ -537,13 +509,15 @@ void DockAudio::muteToggleShortcut() {
 }
 
 void DockAudio::increaseAudioGainShortcut() {
-    if(ui->audioGainSlider->isEnabled())
-        ui->audioGainSlider->triggerAction(QSlider::SliderPageStepAdd);
+    QSlider * audioGainSlider = dynamic_cast<QSlider *>(getWidget(C_AGC_MAN_GAIN));
+    if(audioGainSlider->isEnabled())
+        audioGainSlider->triggerAction(QSlider::SliderPageStepAdd);
 }
 
 void DockAudio::decreaseAudioGainShortcut() {
-    if(ui->audioGainSlider->isEnabled())
-        ui->audioGainSlider->triggerAction(QSlider::SliderPageStepSub);
+    QSlider * audioGainSlider = dynamic_cast<QSlider *>(getWidget(C_AGC_MAN_GAIN));
+    if(audioGainSlider->isEnabled())
+        audioGainSlider->triggerAction(QSlider::SliderPageStepSub);
 }
 
 void DockAudio::copyRecSettingsToAllVFOs_clicked()

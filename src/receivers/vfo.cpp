@@ -21,6 +21,9 @@
  * Boston, MA 02110-1301, USA.
  */
 #include "vfo.h"
+#include <sstream>
+#include <iostream>
+#include <iomanip>
 
 void vfo_s::set_offset(int offset)
 {
@@ -80,49 +83,135 @@ void vfo_s::set_sql_alpha(double alpha)
     d_alpha = alpha;
 }
 
-void vfo_s::set_agc_on(bool agc_on)
+bool vfo_s::set_agc_on(const c_def::v_union & v)
 {
-    d_agc_on = agc_on;
+    d_agc_on = v;
+    return true;
 }
 
-void vfo_s::set_agc_target_level(int target_level)
+bool vfo_s::set_agc_target_level(const c_def::v_union & v)
 {
-    d_agc_target_level = target_level;
+    d_agc_target_level = v;
+    c_def::v_union tmp;
+    get_agc_target_level_label(tmp);
+    changed_value(C_AGC_TARGET_LABEL, d_index, tmp);
+    return true;
 }
 
-void vfo_s::set_agc_manual_gain(float gain)
+bool vfo_s::get_agc_target_level_label(c_def::v_union & v) const
 {
-    d_agc_manual_gain = gain;
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_target_level;
+    v=tmp.str();
+    return true;
 }
 
-void vfo_s::set_agc_max_gain(int gain)
+bool vfo_s::set_agc_manual_gain(const c_def::v_union & v)
 {
-    d_agc_max_gain = gain;
+    d_agc_manual_gain = v;
+    c_def::v_union tmp;
+    get_agc_manual_gain_label(tmp);
+    changed_value(C_AGC_MAN_GAIN_LABEL, d_index, tmp);
+    return true;
 }
 
-void vfo_s::set_agc_attack(int attack_ms)
+bool vfo_s::get_agc_manual_gain_label(c_def::v_union & v) const
 {
-    d_agc_attack_ms = attack_ms;
+    std::stringstream tmp;
+    tmp<<std::fixed<<std::setprecision(1)<<d_agc_manual_gain;
+    v=tmp.str();
+    return true;
 }
 
-void vfo_s::set_agc_decay(int decay_ms)
+bool vfo_s::set_agc_max_gain(const c_def::v_union & v)
 {
-    d_agc_decay_ms = decay_ms;
+    d_agc_max_gain = v;
+    c_def::v_union tmp;
+    get_agc_max_gain_label(tmp);
+    changed_value(C_AGC_MAX_GAIN_LABEL, d_index, tmp);
+    return true;
 }
 
-void vfo_s::set_agc_hang(int hang_ms)
+bool vfo_s::get_agc_max_gain_label(c_def::v_union & v) const
 {
-    d_agc_hang_ms = hang_ms;
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_max_gain;
+    v=tmp.str();
+    return true;
 }
 
-void vfo_s::set_agc_panning(int panning)
+bool vfo_s::set_agc_attack(const c_def::v_union & v)
 {
-    d_agc_panning = panning;
+    d_agc_attack_ms = v;
+    c_def::v_union tmp;
+    get_agc_attack_label(tmp);
+    changed_value(C_AGC_ATTACK_LABEL, d_index, tmp);
+    return true;
 }
 
-void vfo_s::set_agc_panning_auto(bool mode)
+bool vfo_s::get_agc_attack_label(c_def::v_union & v) const
 {
-    d_agc_panning_auto = mode;
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_attack_ms;
+    v=tmp.str();
+    return true;
+}
+
+bool vfo_s::set_agc_decay(const c_def::v_union & v)
+{
+    d_agc_decay_ms = v;
+    c_def::v_union tmp;
+    get_agc_decay_label(tmp);
+    changed_value(C_AGC_DECAY_LABEL, d_index, tmp);
+    return true;
+}
+
+bool vfo_s::get_agc_decay_label(c_def::v_union & v) const
+{
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_decay_ms;
+    v=tmp.str();
+    return true;
+}
+
+bool vfo_s::set_agc_hang(const c_def::v_union & v)
+{
+    d_agc_hang_ms = v;
+    c_def::v_union tmp;
+    get_agc_hang_label(tmp);
+    changed_value(C_AGC_HANG_LABEL, d_index, tmp);
+    return true;
+}
+
+bool vfo_s::get_agc_hang_label(c_def::v_union & v) const
+{
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_hang_ms;
+    v=tmp.str();
+    return true;
+}
+
+bool vfo_s::set_agc_panning(const c_def::v_union & v)
+{
+    d_agc_panning = v;
+    c_def::v_union tmp;
+    get_agc_panning_label(tmp);
+    changed_value(C_AGC_PANNING_LABEL, d_index, tmp);
+    return true;
+}
+
+bool vfo_s::get_agc_panning_label(c_def::v_union & v) const
+{
+    std::stringstream tmp;
+    tmp<<std::fixed<<d_agc_panning;
+    v=tmp.str();
+    return true;
+}
+
+bool vfo_s::set_agc_panning_auto(const c_def::v_union & v)
+{
+    d_agc_panning_auto = v;
+    return true;
 }
 
 void vfo_s::set_agc_mute(bool agc_mute)
@@ -267,16 +356,6 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_sql_level(from.get_sql_level());
     set_sql_alpha(from.get_sql_alpha());
 
-    set_agc_on(from.get_agc_on());
-    set_agc_target_level(from.get_agc_target_level());
-    set_agc_manual_gain(from.get_agc_manual_gain());
-    set_agc_max_gain(from.get_agc_max_gain());
-    set_agc_attack(from.get_agc_attack());
-    set_agc_decay(from.get_agc_decay());
-    set_agc_hang(from.get_agc_hang());
-    set_agc_panning(from.get_agc_panning());
-    set_agc_panning_auto(from.get_agc_panning_auto());
-
     set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
@@ -293,6 +372,17 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_stereo(from.get_udp_stereo());
 
     c_def::v_union v(0);
+
+    from.get_agc_on(v);set_agc_on(v);
+    from.get_agc_manual_gain(v);set_agc_manual_gain(v);
+    from.get_agc_max_gain(v);set_agc_max_gain(v);
+    from.get_agc_target_level(v);set_agc_target_level(v);
+    from.get_agc_attack(v);set_agc_attack(v);
+    from.get_agc_decay(v);set_agc_decay(v);
+    from.get_agc_hang(v);set_agc_hang(v);
+    from.get_agc_panning(v);set_agc_panning(v);
+    from.get_agc_panning_auto(v);set_agc_panning_auto(v);
+
     from.get_nb1_threshold(v);set_nb1_threshold(v);
     from.get_nb2_threshold(v);set_nb2_threshold(v);
     from.get_nb3_gain(v);set_nb3_gain(v);
@@ -342,6 +432,32 @@ int vfo_s::conf_initializer()
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
 
+    // AGC parameters
+    setters[C_AGC_ON]=&vfo_s::set_agc_on;
+    getters[C_AGC_ON]=&vfo_s::get_agc_on;
+    setters[C_AGC_MAN_GAIN]=&vfo_s::set_agc_manual_gain;
+    getters[C_AGC_MAN_GAIN]=&vfo_s::get_agc_manual_gain;
+    getters[C_AGC_MAN_GAIN_LABEL]=&vfo_s::get_agc_manual_gain_label;
+    setters[C_AGC_MAX_GAIN]=&vfo_s::set_agc_max_gain;
+    getters[C_AGC_MAX_GAIN]=&vfo_s::get_agc_max_gain;
+    getters[C_AGC_MAX_GAIN_LABEL]=&vfo_s::get_agc_max_gain_label;
+    setters[C_AGC_TARGET]=&vfo_s::set_agc_target_level;
+    getters[C_AGC_TARGET]=&vfo_s::get_agc_target_level;
+    getters[C_AGC_TARGET_LABEL]=&vfo_s::get_agc_target_level_label;
+    setters[C_AGC_ATTACK]=&vfo_s::set_agc_attack;
+    getters[C_AGC_ATTACK]=&vfo_s::get_agc_attack;
+    getters[C_AGC_ATTACK_LABEL]=&vfo_s::get_agc_attack_label;
+    setters[C_AGC_DECAY]=&vfo_s::set_agc_decay;
+    getters[C_AGC_DECAY]=&vfo_s::get_agc_decay;
+    getters[C_AGC_DECAY_LABEL]=&vfo_s::get_agc_decay_label;
+    setters[C_AGC_HANG]=&vfo_s::set_agc_hang;
+    getters[C_AGC_HANG]=&vfo_s::get_agc_hang;
+    getters[C_AGC_HANG_LABEL]=&vfo_s::get_agc_hang_label;
+    setters[C_AGC_PANNING]=&vfo_s::set_agc_panning;
+    getters[C_AGC_PANNING]=&vfo_s::get_agc_panning;
+    getters[C_AGC_PANNING_LABEL]=&vfo_s::get_agc_panning_label;
+    setters[C_AGC_PANNING_AUTO]=&vfo_s::set_agc_panning_auto;
+    getters[C_AGC_PANNING_AUTO]=&vfo_s::get_agc_panning_auto;
     // NB parameters
     setters[C_NB1_THR]=&vfo_s::set_nb1_threshold;
     getters[C_NB1_THR]=&vfo_s::get_nb1_threshold;
