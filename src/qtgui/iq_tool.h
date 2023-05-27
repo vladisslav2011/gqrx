@@ -98,6 +98,7 @@ private slots:
     void sliderSave();
     void sliderGoA();
     void sliderGoB();
+    void sliderSetExtractDir();
 
 private:
     void refreshDir(void);
@@ -110,6 +111,7 @@ private:
     Ui::CIqTool *ui;
 
     QDir        *recdir;
+    QDir        *extractDir;
     QTimer      *timer;
     QPalette    *error_palette; /*!< Palette used to indicate an error. */
 
@@ -121,6 +123,7 @@ private:
     QAction     *selReset;
     QAction     *goA;
     QAction     *goB;
+    QAction     *setExtractDir;
 
     double  sel_A{-1.0};
     double  sel_B{-1.0};

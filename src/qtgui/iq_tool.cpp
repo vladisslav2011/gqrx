@@ -56,6 +56,7 @@ CIqTool::CIqTool(QWidget *parent) :
     time_ms = 0;
 
     recdir = new QDir(QDir::homePath(), "*.raw");
+    extractDir = new QDir(QDir::homePath(), "*.raw");
 
     error_palette = new QPalette();
     error_palette->setColor(QPalette::Text, Qt::red);
@@ -143,6 +144,13 @@ CIqTool::CIqTool(QWidget *parent) :
         goB=action;
         goB->setEnabled(false);
     }
+    // Set extract dir
+    {
+        QAction* action = new QAction(extractDir->path()+" ...", this);
+        sliderMenu->addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(sliderSetExtractDir()));
+        setExtractDir=action;
+    }
     ui->slider->setContextMenuPolicy(Qt::CustomContextMenu);
 }
 
@@ -152,6 +160,7 @@ CIqTool::~CIqTool()
     delete timer;
     delete ui;
     delete recdir;
+    delete extractDir;
     delete error_palette;
 
 }
@@ -444,6 +453,8 @@ void CIqTool::on_recDirEdit_textChanged(const QString &dir)
         ui->recDirEdit->setPalette(QPalette());  // Clear custom color
         recdir->setPath(dir);
         recdir->cd(dir);
+        extractDir->setPath(dir);
+        extractDir->cd(dir);
         //emit newRecDirSelected(dir);
     }
     else
@@ -462,6 +473,21 @@ void CIqTool::on_recDirButton_clicked()
 
     if (!dir.isNull())
         ui->recDirEdit->setText(dir);
+}
+
+void CIqTool::sliderSetExtractDir()
+{
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select a directory to place extracted files"),
+                                                    ui->recDirEdit->text(),
+                                                    QFileDialog::ShowDirsOnly |
+                                                    QFileDialog::DontResolveSymlinks);
+
+    if (!dir.isNull())
+    {
+        extractDir->setPath(dir);
+        extractDir->cd(dir);
+        setExtractDir->setText(extractDir->path()+" ...");
+    }
 }
 
 void CIqTool::timeoutFunction(void)
@@ -640,7 +666,7 @@ void CIqTool::sliderSave()
     quint64 len_ms=(sel_B-sel_A)*double(rec_len)*1000.0;
     if(len_ms<1.0)
         len_ms=1.0;
-    emit saveFileRange(recdir->path(), fmt, from_ms, len_ms);
+    emit saveFileRange(extractDir->path(), fmt, from_ms, len_ms);
     updateSliderStylesheet(0);
     setA->setEnabled(false);
     setB->setEnabled(false);
