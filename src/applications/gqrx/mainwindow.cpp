@@ -267,6 +267,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     set_observer(C_RDS_ON, &MainWindow::rdsOnObserver);
     set_observer(C_RDS_PI, &MainWindow::rdsPIObserver);
+    set_observer(C_AGC_ON, &MainWindow::agcOnObserver);
+    set_observer(C_AGC_MAN_GAIN, &MainWindow::agcManualGainObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -297,21 +299,12 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
     connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), remote, SLOT(setMode(Modulations::idx)));
-    connect(uiDockRxOpt, SIGNAL(agcToggled(bool)), this, SLOT(setAgcOn(bool)));
-    connect(uiDockRxOpt, SIGNAL(agcTargetLevelChanged(int)), this, SLOT(setAgcTargetLevel(int)));
-    connect(uiDockRxOpt, SIGNAL(agcMaxGainChanged(int)), this, SLOT(setAgcMaxGain(int)));
-    connect(uiDockRxOpt, SIGNAL(agcAttackChanged(int)), this, SLOT(setAgcAttack(int)));
-    connect(uiDockRxOpt, SIGNAL(agcDecayChanged(int)), this, SLOT(setAgcDecay(int)));
-    connect(uiDockRxOpt, SIGNAL(agcHangChanged(int)), this, SLOT(setAgcHang(int)));
-    connect(uiDockRxOpt, SIGNAL(agcPanningChanged(int)), this, SLOT(setAgcPanning(int)));
-    connect(uiDockRxOpt, SIGNAL(agcPanningAuto(bool)), this, SLOT(setAgcPanningAuto(bool)));
     connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool)), this, SLOT(setNoiseBlanker(int,bool)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
     connect(uiDockRxOpt, SIGNAL(sqlAutoClicked(bool)), this, SLOT(setSqlLevelAuto(bool)));
     connect(uiDockRxOpt, SIGNAL(sqlResetAllClicked()), this, SLOT(resetSqlLevelGlobal()));
     connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
-    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), this, SLOT(setAudioGain(float)));
-    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), remote, SLOT(setAudioGain(float)));
+//    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), remote, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool,bool)), this, SLOT(setAudioMute(bool,bool)));
     connect(uiDockAudio, SIGNAL(udpHostChanged(const QString)), this, SLOT(audioStreamHostChanged(const QString)));
     connect(uiDockAudio, SIGNAL(udpPortChanged(int)), this, SLOT(audioStreamPortChanged(int)));
@@ -1066,53 +1059,6 @@ void MainWindow::storeSession()
             else
                 m_settings->remove("sql_level");
 
-            // AGC settings
-            int_val = rx->get_agc_target_level();
-            if (int_val != 0)
-                m_settings->setValue("agc_target_level", int_val);
-            else
-                m_settings->remove("agc_target_level");
-
-            int_val = rx->get_agc_attack();
-            if (int_val != 20)
-                m_settings->setValue("agc_attack", int_val);
-            else
-                m_settings->remove("agc_decay");
-
-            int_val = rx->get_agc_decay();
-            if (int_val != 500)
-                m_settings->setValue("agc_decay", int_val);
-            else
-                m_settings->remove("agc_decay");
-
-            int_val = rx->get_agc_hang();
-            if (int_val != 0)
-                m_settings->setValue("agc_hang", int_val);
-            else
-                m_settings->remove("agc_hang");
-
-            int_val = rx->get_agc_panning();
-            if (int_val != 0)
-                m_settings->setValue("agc_panning", int_val);
-            else
-                m_settings->remove("agc_panning");
-
-            if (rx->get_agc_panning_auto())
-                m_settings->setValue("agc_panning_auto", true);
-            else
-                m_settings->remove("agc_panning_auto");
-
-            int_val = rx->get_agc_max_gain();
-            if (int_val != 100)
-                m_settings->setValue("agc_maxgain", int_val);
-            else
-                m_settings->remove("agc_maxgain");
-
-            // AGC Off
-            if (!rx->get_agc_on())
-                m_settings->setValue("agc_off", true);
-            else
-                m_settings->remove("agc_off");
             //noise blanker
             for (int j = 1; j < RECEIVER_NB_COUNT + 1; j++)
             {
@@ -1137,15 +1083,6 @@ void MainWindow::storeSession()
                 m_settings->endGroup();
                 m_settings->beginGroup("audio");
             }
-
-            if(!rx->get_agc_on())
-            {
-                if(rx->get_agc_manual_gain() != -6.0f)
-                    m_settings->setValue("gain", int(std::round(rx->get_agc_manual_gain()*10.0f)));
-                else
-                    m_settings->remove("gain");
-            }else
-                m_settings->remove("gain");
 
             if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
                 m_settings->setValue("rec_dir", QString::fromStdString(rx->get_audio_rec_dir()));
@@ -1284,42 +1221,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
         if (conv_ok && dbl_val < 1.0)
             rx->set_sql_level(dbl_val);
 
-        // AGC settings
-        int_val = m_settings->value("agc_target_level", 0).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_target_level(int_val);
-
-        //TODO: store/restore the preset correctly
-        int_val = m_settings->value("agc_decay", 500).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_decay(int_val);
-
-        int_val = m_settings->value("agc_attack", 20).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_attack(int_val);
-
-        int_val = m_settings->value("agc_hang", 0).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_hang(int_val);
-
-        int_val = m_settings->value("agc_panning", 0).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_panning(int_val);
-
-        if (m_settings->value("agc_panning_auto", false).toBool())
-            rx->set_agc_panning_auto(true);
-        else
-            rx->set_agc_panning_auto(false);
-
-        int_val = m_settings->value("agc_maxgain", 100).toInt(&conv_ok);
-        if (conv_ok)
-            rx->set_agc_max_gain(int_val);
-
-        if (m_settings->value("agc_off", false).toBool())
-            rx->set_agc_on(false);
-        else
-            rx->set_agc_on(true);
-
         for (int j = 1; j < RECEIVER_NB_COUNT + 1; j++)
         {
             rx->set_nb_on(j, m_settings->value(QString("nb%1on").arg(j), false).toBool());
@@ -1339,10 +1240,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
             m_settings->endGroup();
             m_settings->beginGroup("audio");
         }
-        int_val = m_settings->value("gain", QVariant(-60)).toInt(&conv_ok);
-        if (conv_ok)
-            if (!rx->get_agc_on())
-                rx->set_agc_manual_gain(float(int_val)*0.1f);
 
         QString rec_dir = m_settings->value("rec_dir", QDir::homePath()).toString();
         rx->set_audio_rec_dir(rec_dir.toStdString());
@@ -2084,7 +1981,8 @@ void MainWindow::updateDemodGUIRanges()
  */
 void MainWindow::setAudioGain(float value)
 {
-    rx->set_agc_manual_gain(value);
+    set_gui(C_AGC_MAN_GAIN, value);
+    changed_gui(C_AGC_MAN_GAIN, value);
 }
 
 /**
@@ -2098,55 +1996,6 @@ void MainWindow::setAudioMute(bool mute, bool global)
         rx->set_mute(mute);
     else
         rx->set_agc_mute(mute);
-}
-
-/** Set AGC ON/OFF. */
-void MainWindow::setAgcOn(bool agc_on)
-{
-    rx->set_agc_on(agc_on);
-    uiDockAudio->setGainEnabled(!agc_on);
-}
-
-/** AGC hang ON/OFF. */
-void MainWindow::setAgcHang(int hang)
-{
-    rx->set_agc_hang(hang);
-}
-
-/** AGC threshold changed. */
-void MainWindow::setAgcTargetLevel(int targetLevel)
-{
-    rx->set_agc_target_level(targetLevel);
-}
-
-/** AGC slope factor changed. */
-void MainWindow::setAgcAttack(int attack)
-{
-    rx->set_agc_attack(attack);
-}
-
-/** AGC maximum gain changed. */
-void MainWindow::setAgcMaxGain(int gain)
-{
-    rx->set_agc_max_gain(gain);
-}
-
-/** AGC decay changed. */
-void MainWindow::setAgcDecay(int msec)
-{
-    rx->set_agc_decay(msec);
-}
-
-/** AGC panning changed. */
-void MainWindow::setAgcPanning(int panning)
-{
-    rx->set_agc_panning(panning);
-}
-
-/** AGC panning auto changed. */
-void MainWindow::setAgcPanningAuto(bool panningAuto)
-{
-    rx->set_agc_panning_auto(panningAuto);
 }
 
 /**
@@ -2224,9 +2073,13 @@ void MainWindow::meterTimeout()
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
         d_seek_pos = iq_stats.file_pos;
     }
-    if (uiDockRxOpt->getAgcOn())
+    c_def::v_union tmp;
+    rx->get_value(C_AGC_ON, tmp);
+    if (tmp)
     {
-        uiDockAudio->setAudioGain(rx->get_agc_gain() * 10.f);
+        auto current_gain=rx->get_agc_gain();
+        set_gui(C_AGC_MAN_GAIN, current_gain);
+        rx->set_value(C_AGC_MAN_GAIN, current_gain);
     }
 }
 
@@ -2306,6 +2159,16 @@ void MainWindow::audioFftTimeout()
 
     iqFftToMag(fftsize, d_fftData, d_realFftData);
     uiDockAudio->setNewFftData(d_realFftData, fftsize);
+}
+
+void MainWindow::agcOnObserver(const c_id id, const c_def::v_union &value)
+{
+    uiDockAudio->setGainEnabled(!bool(value));
+}
+
+void MainWindow::agcManualGainObserver(const c_id id, const c_def::v_union &value)
+{
+    remote->setAudioGain(value);
 }
 
 void MainWindow::rdsPIObserver(const c_id id, const c_def::v_union &value)
@@ -3874,18 +3737,6 @@ void MainWindow::loadRxToGUI()
     uiDockRxOpt->setFilterParam(low, high);
 
     uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
-
-    uiDockRxOpt->setAgcOn(rx->get_agc_on());
-    uiDockAudio->setGainEnabled(!rx->get_agc_on());
-    uiDockRxOpt->setAgcTargetLevel(rx->get_agc_target_level());
-    uiDockRxOpt->setAgcMaxGain(rx->get_agc_max_gain());
-    uiDockRxOpt->setAgcAttack(rx->get_agc_attack());
-    uiDockRxOpt->setAgcDecay(rx->get_agc_decay());
-    uiDockRxOpt->setAgcHang(rx->get_agc_hang());
-    uiDockRxOpt->setAgcPanning(rx->get_agc_panning());
-    uiDockRxOpt->setAgcPanningAuto(rx->get_agc_panning_auto());
-    if (!rx->get_agc_on())
-        uiDockAudio->setAudioGain(rx->get_agc_manual_gain() * 10.f);
 
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k));

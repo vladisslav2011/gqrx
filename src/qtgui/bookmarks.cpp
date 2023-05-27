@@ -204,24 +204,17 @@ Bookmarks::Bookmarks()
         genSetter(&BookmarkInfo::set_filter_high), genGetter(&BookmarkInfo::get_filter_high), genCmp(&BookmarkInfo::get_filter_high)});
      m_idx_struct.append({V_INT,     "Filter TW",//7
         genSetter(&BookmarkInfo::set_filter_tw), genGetter(&BookmarkInfo::get_filter_tw), genCmp(&BookmarkInfo::get_filter_tw)});
-     m_idx_struct.append({V_BOOLEAN, "AGC On",//8
-        genSetter(&BookmarkInfo::set_agc_on), genGetter(&BookmarkInfo::get_agc_on), genCmp(&BookmarkInfo::get_agc_on)});
-     m_idx_struct.append({V_INT,     "AGC Target Level",//9
-        genSetter(&BookmarkInfo::set_agc_target_level), genGetter(&BookmarkInfo::get_agc_target_level), genCmp(&BookmarkInfo::get_agc_target_level)});
-     m_idx_struct.append({V_DOUBLE,  "AGC Manual Gain",//10
-        genSetter(&BookmarkInfo::set_agc_manual_gain), genGetter(&BookmarkInfo::get_agc_manual_gain), genCmp(&BookmarkInfo::get_agc_manual_gain)});
-     m_idx_struct.append({V_INT,     "AGC Max Gain",//11
-        genSetter(&BookmarkInfo::set_agc_max_gain), genGetter(&BookmarkInfo::get_agc_max_gain), genCmp(&BookmarkInfo::get_agc_max_gain)});
-     m_idx_struct.append({V_INT,     "AGC Attack",//12
-        genSetter(&BookmarkInfo::set_agc_attack), genGetter(&BookmarkInfo::get_agc_attack), genCmp(&BookmarkInfo::get_agc_attack)});
-     m_idx_struct.append({V_INT,     "AGC Decay",//13
-        genSetter(&BookmarkInfo::set_agc_decay), genGetter(&BookmarkInfo::get_agc_decay), genCmp(&BookmarkInfo::get_agc_decay)});
-     m_idx_struct.append({V_INT,     "AGC Hang",//14
-        genSetter(&BookmarkInfo::set_agc_hang), genGetter(&BookmarkInfo::get_agc_hang), genCmp(&BookmarkInfo::get_agc_hang)});
-     m_idx_struct.append({V_INT,     "Panning",//15
-        genSetter(&BookmarkInfo::set_agc_panning), genGetter(&BookmarkInfo::get_agc_panning), genCmp(&BookmarkInfo::get_agc_panning)});
-     m_idx_struct.append({V_BOOLEAN, "Auto Panning",//16
-        genSetter(&BookmarkInfo::set_agc_panning_auto), genGetter(&BookmarkInfo::get_agc_panning_auto), genCmp(&BookmarkInfo::get_agc_panning_auto)});
+
+     m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //8 AGC On
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //9 AGC Target Level
+     m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //10 AGC Manual Gain
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //11 AGC Max Gain
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //12 AGC Attack
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //13 AGC Decay
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //14 AGC Hang
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //15 Panning
+     m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //16 Auto Panning
+
      m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //17 CW Offset
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //18 FM Max Deviation
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //19 FM Deemphasis

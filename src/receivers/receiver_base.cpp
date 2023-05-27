@@ -226,52 +226,60 @@ void receiver_base_cf::set_sql_alpha(double alpha)
     vfo_s::set_sql_alpha(alpha);
 }
 
-void receiver_base_cf::set_agc_on(bool agc_on)
+bool receiver_base_cf::set_agc_on(const c_def::v_union & v)
 {
-    agc->set_agc_on(agc_on);
-    vfo_s::set_agc_on(agc_on);
+    vfo_s::set_agc_on(v);
+    agc->set_agc_on(d_agc_on);
+    return true;
 }
 
-void receiver_base_cf::set_agc_target_level(int target_level)
+bool receiver_base_cf::set_agc_target_level(const c_def::v_union & v)
 {
-    agc->set_target_level(target_level);
-    vfo_s::set_agc_target_level(target_level);
+    vfo_s::set_agc_target_level(v);
+    agc->set_target_level(d_agc_target_level);
+    return true;
 }
 
-void receiver_base_cf::set_agc_manual_gain(float gain)
+bool receiver_base_cf::set_agc_manual_gain(const c_def::v_union & v)
 {
-    agc->set_manual_gain(gain);
-    vfo_s::set_agc_manual_gain(gain);
+    vfo_s::set_agc_manual_gain(v);
+    agc->set_manual_gain(d_agc_manual_gain);
+    return true;
 }
 
-void receiver_base_cf::set_agc_max_gain(int gain)
+bool receiver_base_cf::set_agc_max_gain(const c_def::v_union & v)
 {
-    agc->set_max_gain(gain);
-    vfo_s::set_agc_max_gain(gain);
+    vfo_s::set_agc_max_gain(v);
+    agc->set_max_gain(d_agc_max_gain);
+    return true;
 }
 
-void receiver_base_cf::set_agc_attack(int attack_ms)
+bool receiver_base_cf::set_agc_attack(const c_def::v_union & v)
 {
-    agc->set_attack(attack_ms);
-    vfo_s::set_agc_attack(attack_ms);
+    vfo_s::set_agc_attack(v);
+    agc->set_attack(d_agc_attack_ms);
+    return true;
 }
 
-void receiver_base_cf::set_agc_decay(int decay_ms)
+bool receiver_base_cf::set_agc_decay(const c_def::v_union & v)
 {
-    agc->set_decay(decay_ms);
-    vfo_s::set_agc_decay(decay_ms);
+    vfo_s::set_agc_decay(v);
+    agc->set_decay(d_agc_decay_ms);
+    return true;
 }
 
-void receiver_base_cf::set_agc_hang(int hang_ms)
+bool receiver_base_cf::set_agc_hang(const c_def::v_union & v)
 {
-    agc->set_hang(hang_ms);
-    vfo_s::set_agc_hang(hang_ms);
+    vfo_s::set_agc_hang(v);
+    agc->set_hang(d_agc_hang_ms);
+    return true;
 }
 
-void receiver_base_cf::set_agc_panning(int panning)
+bool receiver_base_cf::set_agc_panning(const c_def::v_union & v)
 {
-    agc->set_panning(panning);
-    vfo_s::set_agc_panning(panning);
+    vfo_s::set_agc_panning(v);
+    agc->set_panning(d_agc_panning);
+    return true;
 }
 
 void receiver_base_cf::set_agc_mute(bool agc_mute)

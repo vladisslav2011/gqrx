@@ -179,6 +179,8 @@ private:
     void plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
     void rdsPIObserver(const c_id id, const c_def::v_union &value);
     void rdsOnObserver(const c_id id, const c_def::v_union &value);
+    void agcOnObserver(const c_id id, const c_def::v_union &value);
+    void agcManualGainObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
     void observer_slot(const c_id id, const c_def::v_union value);
@@ -205,14 +207,6 @@ private slots:
     void selectDemod(const QString& demod);
     void selectDemod(Modulations::idx index);
     void updateDemodGUIRanges();
-    void setAgcOn(bool agc_on);
-    void setAgcHang(int hang);
-    void setAgcTargetLevel(int targetLevel);
-    void setAgcAttack(int attack);
-    void setAgcDecay(int msec);
-    void setAgcMaxGain(int gain);
-    void setAgcPanning(int panning);
-    void setAgcPanningAuto(bool panningAuto);
     void setNoiseBlanker(int nbid, bool on);
     void setSqlLevel(double level_db);
     double setSqlLevelAuto(bool global);

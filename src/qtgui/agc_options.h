@@ -25,6 +25,7 @@
 
 #include <QDialog>
 #include <QCloseEvent>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
 class CAgcOptions;
@@ -42,7 +43,7 @@ class CAgcOptions;
  * \todo A graph that shows the current AGC profile updated in real time.
  */
 
-class CAgcOptions : public QDialog
+class CAgcOptions : public QDialog, public dcontrols_ui
 {
     Q_OBJECT
 
@@ -51,29 +52,6 @@ public:
     ~CAgcOptions();
 
     void closeEvent(QCloseEvent *event);
-
-    int maxGain();
-    void setMaxGain(int value);
-
-    int targetLevel();
-    void setTargetLevel(int value);
-
-    int attack();
-    void setAttack(int value);
-    void enableAttack(bool enabled);
-
-    int decay();
-    void setDecay(int value);
-    void enableDecay(bool enabled);
-
-    int hang();
-    void setHang(int value);
-    void enableHang(bool enabled);
-
-    int panning();
-    void setPanning(int value);
-    bool panningAuto();
-    void setPanningAuto(bool value);
 
     enum agc_preset_e
     {
@@ -86,25 +64,9 @@ public:
 
     void setPreset(agc_preset_e preset);
 
-signals:
-    void maxGainChanged(int gain);
-    void targetLevelChanged(int level);
-    void attackChanged(int decay);
-    void decayChanged(int decay);
-    void hangChanged(int hang);
-    void panningChanged(int panning);
-    void panningAutoChanged(bool panningAuto);
-
-private slots:
-    void on_maxGainSlider_valueChanged(int value);
-    void on_targetLevelSlider_valueChanged(int value);
-    void on_attackSlider_valueChanged(int value);
-    void on_decaySlider_valueChanged(int value);
-    void on_hangSlider_valueChanged(int value);
-    void on_panningSlider_valueChanged(int value);
-    void on_panningAutoCheckBox_stateChanged(int state);
-
 private:
+    void panningAutoObserver(const c_id id, const c_def::v_union &value);
+    void enableControls(bool state1, bool state2);
     Ui::CAgcOptions *ui;
 };
 
