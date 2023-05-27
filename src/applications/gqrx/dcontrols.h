@@ -34,6 +34,23 @@ enum c_id
 {
     C_TEST=0,
     
+    C_AGC_MAN_GAIN,
+    C_AGC_MAN_GAIN_LABEL,
+    C_AGC_MAX_GAIN,
+    C_AGC_MAX_GAIN_LABEL,
+    C_AGC_TARGET,
+    C_AGC_TARGET_LABEL,
+    C_AGC_ATTACK,
+    C_AGC_ATTACK_LABEL,
+    C_AGC_DECAY,
+    C_AGC_DECAY_LABEL,
+    C_AGC_HANG,
+    C_AGC_HANG_LABEL,
+    C_AGC_PANNING,
+    C_AGC_PANNING_LABEL,
+    C_AGC_PANNING_AUTO,
+    C_AGC_ON,
+
     C_NB1_THR,
     C_NB2_THR,
     C_NB3_GAIN,
@@ -118,6 +135,7 @@ enum gui_window
     W_CHILD, //"Options" extra window
     W_DEMOD_OPT,
     W_NB_OPT,
+    W_AGC_OPT,
     
     W_COUNT
 };
