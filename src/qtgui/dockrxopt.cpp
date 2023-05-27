@@ -79,13 +79,6 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 
     // AGC options dialog
     agcOpt = new CAgcOptions(this);
-    connect(agcOpt, SIGNAL(maxGainChanged(int)), this, SLOT(agcOpt_maxGainChanged(int)));
-    connect(agcOpt, SIGNAL(targetLevelChanged(int)), this, SLOT(agcOpt_targetLevelChanged(int)));
-    connect(agcOpt, SIGNAL(attackChanged(int)), this, SLOT(agcOpt_attackChanged(int)));
-    connect(agcOpt, SIGNAL(decayChanged(int)), this, SLOT(agcOpt_decayChanged(int)));
-    connect(agcOpt, SIGNAL(hangChanged(int)), this, SLOT(agcOpt_hangChanged(int)));
-    connect(agcOpt, SIGNAL(panningChanged(int)), this, SLOT(agcOpt_panningChanged(int)));
-    connect(agcOpt, SIGNAL(panningAutoChanged(bool)), this, SLOT(agcOpt_panningAutoChanged(bool)));
 
     // Noise blanker options
     nbOpt = new CNbOptions(this);
@@ -138,7 +131,10 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
     ui_windows[W_DEMOD_OPT]=demodOpt;
     ui_windows[W_NB_OPT]=nbOpt;
+    ui_windows[W_AGC_OPT]=agcOpt;
     demodOpt->setCurrentIndex(0);
+    set_observer(C_AGC_DECAY,&DockRxOpt::agcDecayObserver);
+    set_observer(C_AGC_ON,&DockRxOpt::agcOnObserver);
 }
 
 DockRxOpt::~DockRxOpt()
@@ -329,82 +325,27 @@ bool DockRxOpt::getAgcOn()
 
 void DockRxOpt::setAgcOn(bool on)
 {
+    ui->agcPresetCombo->blockSignals(true);
     if (on)
-        setAgcPresetFromParams(getAgcDecay());
-    else
+    {
+        c_def::v_union value(0);
+        get_gui(C_AGC_DECAY, value);
+        setAgcPresetFromParams(value);
+    }else
         ui->agcPresetCombo->setCurrentIndex(4);
+    ui->agcPresetCombo->blockSignals(false);
+    agcOpt->setPreset(CAgcOptions::agc_preset_e(ui->agcPresetCombo->currentIndex()));
     agc_is_on = on;
 }
 
-int DockRxOpt::getAgcTargetLevel()
+void DockRxOpt::agcDecayObserver(const c_id id, const c_def::v_union & v)
 {
-    return agcOpt->targetLevel();
+ //   setAgcOn(agc_is_on);
 }
 
-void DockRxOpt::setAgcTargetLevel(int level)
+void DockRxOpt::agcOnObserver(const c_id id, const c_def::v_union & v)
 {
-    agcOpt->setTargetLevel(level);
-}
-
-int DockRxOpt::getAgcMaxGain()
-{
-    return agcOpt->maxGain();
-}
-
-void DockRxOpt::setAgcMaxGain(int gain)
-{
-    agcOpt->setMaxGain(gain);
-}
-
-int DockRxOpt::getAgcAttack()
-{
-    return agcOpt->attack();
-}
-
-void DockRxOpt::setAgcAttack(int attack)
-{
-    agcOpt->setAttack(attack);
-}
-
-int DockRxOpt::getAgcDecay()
-{
-    return agcOpt->decay();
-}
-
-void DockRxOpt::setAgcDecay(int decay)
-{
-    agcOpt->setDecay(decay);
-    setAgcOn(agc_is_on);
-}
-
-int DockRxOpt::getAgcHang()
-{
-    return agcOpt->hang();
-}
-
-void DockRxOpt::setAgcHang(int hang)
-{
-    agcOpt->setHang(hang);
-}
-
-int  DockRxOpt::getAgcPanning()
-{
-    return agcOpt->panning();
-}
-
-void DockRxOpt::setAgcPanning(int panning)
-{
-    agcOpt->setPanning(panning);
-}
-
-bool DockRxOpt::getAgcPanningAuto()
-{
-    return agcOpt->panningAuto();
-}
-
-void DockRxOpt::setAgcPanningAuto(bool panningAuto)
-{
-    agcOpt->setPanningAuto(panningAuto);
+    setAgcOn(v);
 }
 
 void DockRxOpt::setAgcPresetFromParams(int decay)
@@ -573,7 +514,7 @@ void DockRxOpt::on_agcPresetCombo_currentIndexChanged(int index)
     case CAgcOptions::AGC_USER:
         if (!agc_is_on)
         {
-            emit agcToggled(true);
+            changed_gui(C_AGC_ON,true);
             agc_is_on = true;
         }
         agcOpt->setPreset(preset);
@@ -582,7 +523,7 @@ void DockRxOpt::on_agcPresetCombo_currentIndexChanged(int index)
     case CAgcOptions::AGC_OFF:
         if (agc_is_on)
         {
-            emit agcToggled(false);
+            changed_gui(C_AGC_ON,false);
             agc_is_on = false;
         }
         agcOpt->setPreset(preset);
@@ -591,69 +532,6 @@ void DockRxOpt::on_agcPresetCombo_currentIndexChanged(int index)
     default:
         qDebug() << "Invalid AGC preset:" << index;
     }
-}
-
-/**
- * @brief AGC hang time changed.
- * @param value The new AGC hang time in ms.
- */
-void DockRxOpt::agcOpt_hangChanged(int value)
-{
-    emit agcHangChanged(value);
-}
-
-/**
- * @brief AGC target level changed.
- * @param value The new AGC target level in dB.
- */
-void DockRxOpt::agcOpt_targetLevelChanged(int value)
-{
-    emit agcTargetLevelChanged(value);
-}
-
-/**
- * @brief AGC attack changed.
- * @param value The new attack rate in ms (tbc).
- */
-void DockRxOpt::agcOpt_attackChanged(int value)
-{
-    emit agcAttackChanged(value);
-}
-
-/**
- * @brief AGC decay changed.
- * @param value The new decay rate in ms (tbc).
- */
-void DockRxOpt::agcOpt_decayChanged(int value)
-{
-    emit agcDecayChanged(value);
-}
-
-/**
- * @brief AGC maimum gain changed.
- * @param gain The new gain in dB.
- */
-void DockRxOpt::agcOpt_maxGainChanged(int gain)
-{
-    emit agcMaxGainChanged(gain);
-}
-
-/**
- * @brief AGC panning changed.
- * @param value The new relative panning position.
- */
-void DockRxOpt::agcOpt_panningChanged(int value)
-{
-    emit agcPanningChanged(value);
-}
-
-/**
- * @brief AGC panning auto mode changed.
- * @param value The new auto mode state.
- */
-void DockRxOpt::agcOpt_panningAutoChanged(bool value)
-{
-    emit agcPanningAuto(value);
 }
 
 /**

@@ -30,6 +30,8 @@ CAgcOptions::CAgcOptions(QWidget *parent) :
     ui(new Ui::CAgcOptions)
 {
     ui->setupUi(this);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    set_observer(C_AGC_PANNING_AUTO, &CAgcOptions::panningAutoObserver);
 }
 
 CAgcOptions::~CAgcOptions()
@@ -49,51 +51,47 @@ void CAgcOptions::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-/*! \brief Get current max gain slider value. */
-int CAgcOptions::maxGain()
-{
-    return ui->maxGainSlider->value();
-}
-
 /*! \brief Set AGC preset. */
 void CAgcOptions::setPreset(agc_preset_e preset)
 {
     switch (preset)
     {
     case AGC_FAST:
-        setAttack(20);
-        setDecay(100);
-        setHang(0);
-        enableAttack(false);
-        enableDecay(false);
-        enableHang(false);
+        set_gui(C_AGC_ATTACK, 20);
+        changed_gui(C_AGC_ATTACK,20);
+        set_gui(C_AGC_DECAY, 100);
+        changed_gui(C_AGC_DECAY,100);
+        set_gui(C_AGC_HANG, 0);
+        changed_gui(C_AGC_HANG,0);
+        enableControls(false,true);
         break;
 
     case AGC_MEDIUM:
-        setAttack(50);
-        setDecay(500);
-        setHang(0);
-        enableAttack(false);
-        enableDecay(false);
-        enableHang(false);
+        set_gui(C_AGC_ATTACK, 50);
+        changed_gui(C_AGC_ATTACK,50);
+        set_gui(C_AGC_DECAY, 500);
+        changed_gui(C_AGC_DECAY,500);
+        set_gui(C_AGC_HANG, 0);
+        changed_gui(C_AGC_HANG,0);
+        enableControls(false,true);
         break;
 
     case AGC_SLOW:
-        setAttack(100);
-        setDecay(2000);
-        setHang(0);
-        enableAttack(false);
-        enableDecay(false);
-        enableHang(false);
+        set_gui(C_AGC_ATTACK, 100);
+        changed_gui(C_AGC_ATTACK,100);
+        set_gui(C_AGC_DECAY, 2000);
+        changed_gui(C_AGC_DECAY,2000);
+        set_gui(C_AGC_HANG, 0);
+        changed_gui(C_AGC_HANG,0);
+        enableControls(false,true);
         break;
 
     case AGC_USER:
-        enableAttack(true);
-        enableDecay(true);
-        enableHang(true);
+        enableControls(true,true);
         break;
 
     case AGC_OFF:
+        enableControls(false,false);
         break;
 
     default:
@@ -103,176 +101,22 @@ void CAgcOptions::setPreset(agc_preset_e preset)
     }
 }
 
-/*! \brief Set new max gain slider value. */
-void CAgcOptions::setMaxGain(int value)
+void CAgcOptions::enableControls(bool state1, bool state2)
 {
-    ui->maxGainSlider->setValue(value);
-    ui->maxGainLabel->setText(QString("%1 dB").arg(ui->maxGainSlider->value()));
+    getWidget(C_AGC_ATTACK)->setEnabled(state1);
+    getWidget(C_AGC_ATTACK_LABEL)->setEnabled(state1);
+    getWidget(C_AGC_DECAY)->setEnabled(state1);
+    getWidget(C_AGC_DECAY_LABEL)->setEnabled(state1);
+    getWidget(C_AGC_HANG)->setEnabled(state1);
+    getWidget(C_AGC_HANG_LABEL)->setEnabled(state1);
+    getWidget(C_AGC_MAX_GAIN)->setEnabled(state2);
+    getWidget(C_AGC_MAX_GAIN_LABEL)->setEnabled(state2);
+    getWidget(C_AGC_TARGET)->setEnabled(state2);
+    getWidget(C_AGC_TARGET_LABEL)->setEnabled(state2);
 }
 
-/*! \brief Get current AGC target level. */
-int CAgcOptions::targetLevel()
+void CAgcOptions::panningAutoObserver(const c_id id, const c_def::v_union &value)
 {
-    return ui->targetLevelSlider->value();
-}
-
-/*! \brief Set new AGC target level. */
-void CAgcOptions::setTargetLevel(int value)
-{
-    ui->targetLevelSlider->setValue(value);
-    ui->targetLevelLabel->setText(QString("%1 dB").arg(ui->targetLevelSlider->value()));
-}
-
-
-/*! \brief Get current attack value. */
-int CAgcOptions::attack()
-{
-    return ui->attackSlider->value();
-}
-
-/*! \brief Set new attack value. */
-void CAgcOptions::setAttack(int value)
-{
-    ui->attackSlider->setValue(value);
-    ui->attackLabel->setText(QString("%1 ms").arg(ui->attackSlider->value()));
-}
-
-/*! \brief Enable or disable AGC attack slider.
- *  \param enabled Whether the slider should be enabled or not.
- *
- * The attack slider is enabled when AGC is in user mode.
- */
-void CAgcOptions::enableAttack(bool enabled)
-{
-    ui->attackSlider->setEnabled(enabled);
-    ui->attackLabel->setEnabled(enabled);
-    ui->attackTitle->setEnabled(enabled);
-}
-
-/*! \brief Get current decay value. */
-int CAgcOptions::decay()
-{
-    return ui->decaySlider->value();
-}
-
-/*! \brief Set new decay value. */
-void CAgcOptions::setDecay(int value)
-{
-    ui->decaySlider->setValue(value);
-    ui->decayLabel->setText(QString("%1 ms").arg(ui->decaySlider->value()));
-}
-
-/*! \brief Enable or disable AGC decay slider.
- *  \param enabled Whether the slider should be enabled or not.
- *
- * The decay slider is enabled when AGC is in user mode.
- */
-void CAgcOptions::enableDecay(bool enabled)
-{
-    ui->decaySlider->setEnabled(enabled);
-    ui->decayLabel->setEnabled(enabled);
-    ui->decayTitle->setEnabled(enabled);
-}
-
-/*! \brief Get current hang value. */
-int CAgcOptions::hang()
-{
-    return ui->hangSlider->value();
-}
-
-/*! \brief Set new hang value. */
-void CAgcOptions::setHang(int value)
-{
-    ui->hangSlider->setValue(value);
-    ui->hangLabel->setText(QString("%1 ms").arg(ui->hangSlider->value()));
-}
-
-/*! \brief Enable or disable AGC hang slider.
- *  \param enabled Whether the slider should be enabled or not.
- *
- * The hang slider is enabled when AGC is in user mode.
- */
-void CAgcOptions::enableHang(bool enabled)
-{
-    ui->hangSlider->setEnabled(enabled);
-    ui->hangLabel->setEnabled(enabled);
-    ui->hangTitle->setEnabled(enabled);
-}
-
-/*! \brief Get panning fixed position. */
-int CAgcOptions::panning()
-{
-    return ui->panningSlider->value();
-}
-
-/*! \brief Set panning fixed position. */
-void CAgcOptions::setPanning(int value)
-{
-    if(value < -100)
-        return;
-    if(value > 100)
-        return;
-    ui->panningSlider->setValue(value);
-}
-
-/*! \brief Get panning auto mode. */
-bool CAgcOptions::panningAuto()
-{
-    return (Qt::Checked == ui->panningAutoCheckBox->checkState());
-}
-
-/*! \brief Set panning auto mode. */
-void CAgcOptions::setPanningAuto(bool value)
-{
-    ui->panningAutoCheckBox->setCheckState(value ? Qt::Checked : Qt::Unchecked);
-}
-
-/*! \brief AGC max gain slider value has changed. */
-void CAgcOptions::on_maxGainSlider_valueChanged(int value)
-{
-    ui->maxGainLabel->setText(QString("%1 dB").arg(ui->maxGainSlider->value()));
-    emit maxGainChanged(value);
-}
-
-/*! \brief AGC target level slider value has changed. */
-void CAgcOptions::on_targetLevelSlider_valueChanged(int value)
-{
-    ui->targetLevelLabel->setText(QString("%1 dB").arg(ui->targetLevelSlider->value()));
-    emit targetLevelChanged(value);
-}
-
-/*! \brief AGC attack slider value has changed. */
-void CAgcOptions::on_attackSlider_valueChanged(int value)
-{
-    ui->attackLabel->setText(QString("%1 ms").arg(ui->attackSlider->value()));
-    emit attackChanged(value);
-}
-
-/*! \brief AGC decay slider value has changed. */
-void CAgcOptions::on_decaySlider_valueChanged(int value)
-{
-    ui->decayLabel->setText(QString("%1 ms").arg(ui->decaySlider->value()));
-    emit decayChanged(value);
-}
-
-/*! \brief AGC hang slider value has changed. */
-void CAgcOptions::on_hangSlider_valueChanged(int value)
-{
-    ui->hangLabel->setText(QString("%1 ms").arg(ui->hangSlider->value()));
-    emit hangChanged(value);
-}
-/*! \brief Panning slider value has changed. */
-void CAgcOptions::on_panningSlider_valueChanged(int value)
-{
-    ui->panningLabel->setText(QString::number(value));
-    emit panningChanged(value);
-}
-
-/*! \brief Panning auto checkbox state changed. */
-void CAgcOptions::on_panningAutoCheckBox_stateChanged(int state)
-{
-    ui->panningSlider->setEnabled(!(state == Qt::Checked));
-    ui->panningTitle->setEnabled(!(state == Qt::Checked));
-    ui->panningLabel->setEnabled(!(state == Qt::Checked));
-    emit panningAutoChanged(state == Qt::Checked);
+    getWidget(C_AGC_PANNING)->setEnabled(!value);
+    getWidget(C_AGC_PANNING_LABEL)->setEnabled(!value);
 }
