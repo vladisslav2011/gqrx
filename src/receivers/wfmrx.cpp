@@ -96,9 +96,6 @@ void wfmrx::set_demod(Modulations::idx demod)
         return;
     }
 
-    /* lock graph while we reconfigure */
-    lock();
-
     /* disconnect current demodulator */
     switch (receiver_base_cf::get_demod()) {
 
@@ -145,8 +142,6 @@ void wfmrx::set_demod(Modulations::idx demod)
     }
     receiver_base_cf::set_demod(demod);
 
-    /* continue processing */
-    unlock();
 }
 
 void wfmrx::get_rds_data(std::string &outbuff, int &num)
