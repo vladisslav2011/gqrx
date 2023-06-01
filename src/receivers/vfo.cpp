@@ -310,42 +310,58 @@ bool vfo_s::set_nb3_gain(const c_def::v_union & v)
     return true;
 }
 
-void vfo_s::set_audio_rec_dir(const std::string& dir)
+bool vfo_s::set_audio_rec_dir(const c_def::v_union & v)
 {
-    d_rec_dir = dir;
+    d_rec_dir = std::string(v);
+    return true;
 }
 
-void vfo_s::set_audio_rec_sql_triggered(bool enabled)
+bool vfo_s::set_audio_rec_sql_triggered(const c_def::v_union & v)
 {
-    d_rec_sql_triggered = enabled;
+    d_rec_sql_triggered = v;
+    return true;
 }
 
-void vfo_s::set_audio_rec_min_time(const int time_ms)
+bool vfo_s::set_audio_rec_min_time(const c_def::v_union & v)
 {
-    d_rec_min_time = time_ms;
+    d_rec_min_time = v;
+    return true;
 }
 
-void vfo_s::set_audio_rec_max_gap(const int time_ms)
+bool vfo_s::set_audio_rec_max_gap(const c_def::v_union & v)
 {
-    d_rec_max_gap = time_ms;
+    d_rec_max_gap = v;
+    return true;
 }
 
 /* UDP streaming */
-bool vfo_s::set_udp_host(const std::string &host)
+bool vfo_s::set_udp_host(const c_def::v_union & v)
 {
-    d_udp_host = host;
+    d_udp_host = std::string(v);
     return true;
 }
 
-bool vfo_s::set_udp_port(int port)
+bool vfo_s::set_udp_port(const c_def::v_union & v)
 {
-    d_udp_port = port;
+    d_udp_port = v;
     return true;
 }
 
-bool vfo_s::set_udp_stereo(bool stereo)
+bool vfo_s::set_udp_stereo(const c_def::v_union & v)
 {
-    d_udp_stereo = stereo;
+    d_udp_stereo = v;
+    return true;
+}
+
+bool vfo_s::set_audio_dev(const c_def::v_union & v)
+{
+    d_audio_dev = std::string(v);
+    return true;
+}
+
+bool vfo_s::set_dedicated_audio_sink(const c_def::v_union & v)
+{
+    d_dedicated_audio_sink = v;
     return true;
 }
 
@@ -360,18 +376,32 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
 
     for (int k = 0; k < RECEIVER_NB_COUNT; k++)
         set_nb_on(k + 1, from.get_nb_on(k + 1));
-    if (force || (from.get_audio_rec_dir() != ""))
-        set_audio_rec_dir(from.get_audio_rec_dir());
-    if (force || (from.get_audio_rec_min_time() > 0))
-        set_audio_rec_min_time(from.get_audio_rec_min_time());
-    if (force || (from.get_audio_rec_max_gap() > 0))
-        set_audio_rec_max_gap(from.get_audio_rec_max_gap());
-    set_audio_rec_sql_triggered(from.get_audio_rec_sql_triggered());
-    set_udp_host(from.get_udp_host());
-    set_udp_port(from.get_udp_port());
-    set_udp_stereo(from.get_udp_stereo());
 
     c_def::v_union v(0);
+
+    from.get_udp_host(v);
+    set_udp_host(v);
+    from.get_udp_port(v);
+    set_udp_port(v);
+    from.get_udp_stereo(v);
+    set_udp_stereo(v);
+
+    from.get_audio_rec_dir(v);
+    if(force || !(v == ""))
+        set_audio_rec_dir(v);
+    from.get_audio_rec_min_time(v);
+    if(force || (int(v) > 0))
+        set_audio_rec_min_time(v);
+    from.get_audio_rec_max_gap(v);
+    if(force || (int(v) > 0))
+        set_audio_rec_max_gap(v);
+    from.get_audio_rec_sql_triggered(v);
+    set_audio_rec_sql_triggered(v);
+
+    from.get_audio_dev(v);
+    set_audio_dev(v);
+    from.get_dedicated_audio_sink(v);
+    set_dedicated_audio_sink(v);
 
     from.get_agc_on(v);set_agc_on(v);
     from.get_agc_manual_gain(v);set_agc_manual_gain(v);
@@ -432,6 +462,27 @@ int vfo_s::conf_initializer()
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
 
+    //Dedicated audio sink
+    setters[C_AUDIO_DEDICATED_ON]=&vfo_s::set_dedicated_audio_sink;
+    getters[C_AUDIO_DEDICATED_ON]=&vfo_s::get_dedicated_audio_sink;
+    setters[C_AUDIO_DEDICATED_DEV]=&vfo_s::set_audio_dev;
+    getters[C_AUDIO_DEDICATED_DEV]=&vfo_s::get_audio_dev;
+    //Audio streaming parameters
+    setters[C_AUDIO_UDP_HOST]=&vfo_s::set_udp_host;
+    getters[C_AUDIO_UDP_HOST]=&vfo_s::get_udp_host;
+    setters[C_AUDIO_UDP_PORT]=&vfo_s::set_udp_port;
+    getters[C_AUDIO_UDP_PORT]=&vfo_s::get_udp_port;
+    setters[C_AUDIO_UDP_STEREO]=&vfo_s::set_udp_stereo;
+    getters[C_AUDIO_UDP_STEREO]=&vfo_s::get_udp_stereo;
+    //Audio recording parameters
+    setters[C_AUDIO_REC_DIR]=&vfo_s::set_audio_rec_dir;
+    getters[C_AUDIO_REC_DIR]=&vfo_s::get_audio_rec_dir;
+    setters[C_AUDIO_REC_SQUELCH_TRIGGERED]=&vfo_s::set_audio_rec_sql_triggered;
+    getters[C_AUDIO_REC_SQUELCH_TRIGGERED]=&vfo_s::get_audio_rec_sql_triggered;
+    setters[C_AUDIO_REC_MIN_TIME]=&vfo_s::set_audio_rec_min_time;
+    getters[C_AUDIO_REC_MIN_TIME]=&vfo_s::get_audio_rec_min_time;
+    setters[C_AUDIO_REC_MAX_GAP]=&vfo_s::set_audio_rec_max_gap;
+    getters[C_AUDIO_REC_MAX_GAP]=&vfo_s::get_audio_rec_max_gap;
     // AGC parameters
     setters[C_AGC_ON]=&vfo_s::set_agc_on;
     getters[C_AGC_ON]=&vfo_s::get_agc_on;

@@ -47,9 +47,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_center_freq(145500000.0),
       d_pref_quad_rate(pref_quad_rate),
       d_audio_filename(""),
-      d_udp_streaming(false),
-      d_dedicated_audio_sink(false),
-      d_audio_dev("")
+      d_udp_streaming(false)
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
     d_quad_rate = d_decim_rate / d_ddc_decim;
@@ -179,29 +177,33 @@ void receiver_base_cf::set_port(int port)
     //unlock();
 }
 
-void receiver_base_cf::set_audio_rec_dir(const std::string& dir)
+bool receiver_base_cf::set_audio_rec_dir(const c_def::v_union & v)
 {
-    vfo_s::set_audio_rec_dir(dir);
-    wav_sink->set_rec_dir(dir);
+    vfo_s::set_audio_rec_dir(v);
+    wav_sink->set_rec_dir(v);
+    return true;
 }
 
-void receiver_base_cf::set_audio_rec_sql_triggered(bool enabled)
+bool receiver_base_cf::set_audio_rec_sql_triggered(const c_def::v_union & v)
 {
-    vfo_s::set_audio_rec_sql_triggered(enabled);
-    sql->set_impl(enabled ? rx_sql_cc::SQL_PWR : rx_sql_cc::SQL_SIMPLE);
-    wav_sink->set_sql_triggered(enabled);
+    vfo_s::set_audio_rec_sql_triggered(v);
+    sql->set_impl(bool(v) ? rx_sql_cc::SQL_PWR : rx_sql_cc::SQL_SIMPLE);
+    wav_sink->set_sql_triggered(bool(v));
+    return true;
 }
 
-void receiver_base_cf::set_audio_rec_min_time(const int time_ms)
+bool receiver_base_cf::set_audio_rec_min_time(const c_def::v_union & v)
 {
-    vfo_s::set_audio_rec_min_time(time_ms);
-    wav_sink->set_rec_min_time(time_ms);
+    vfo_s::set_audio_rec_min_time(v);
+    wav_sink->set_rec_min_time(v);
+    return true;
 }
 
-void receiver_base_cf::set_audio_rec_max_gap(const int time_ms)
+bool receiver_base_cf::set_audio_rec_max_gap(const c_def::v_union & v)
 {
-    vfo_s::set_audio_rec_max_gap(time_ms);
-    wav_sink->set_rec_max_gap(time_ms);
+    vfo_s::set_audio_rec_max_gap(v);
+    wav_sink->set_rec_max_gap(v);
+    return true;
 }
 
 float receiver_base_cf::get_signal_level()
@@ -294,31 +296,25 @@ float receiver_base_cf::get_agc_gain()
 }
 
 /* UDP streaming */
-bool receiver_base_cf::set_udp_host(const std::string &host)
+bool receiver_base_cf::set_udp_host(const c_def::v_union & v)
 {
-    if(d_udp_host == host)
+    if(d_udp_host == std::string(v))
         return true;
-    if (d_udp_streaming)
-        return false;
-    return vfo_s::set_udp_host(host);
+    return vfo_s::set_udp_host(v);
 }
 
-bool receiver_base_cf::set_udp_port(int port)
+bool receiver_base_cf::set_udp_port(const c_def::v_union & v)
 {
-    if(d_udp_port == port)
+    if(d_udp_port == int(v))
         return true;
-    if (d_udp_streaming)
-        return false;
-    return vfo_s::set_udp_port(port);
+    return vfo_s::set_udp_port(v);
 }
 
-bool receiver_base_cf::set_udp_stereo(bool stereo)
+bool receiver_base_cf::set_udp_stereo(const c_def::v_union & v)
 {
-    if(d_udp_stereo == stereo)
+    if(d_udp_stereo == bool(v))
         return true;
-    if (d_udp_streaming)
-        return false;
-    return vfo_s::set_udp_stereo(stereo);
+    return vfo_s::set_udp_stereo(v);
 }
 
 bool receiver_base_cf::set_udp_streaming(bool streaming)
@@ -390,17 +386,21 @@ void receiver_base_cf::restore_settings(receiver_base_cf& from)
     set_center_freq(from.d_center_freq);
 }
 
-void receiver_base_cf::set_dedicated_audio_sink(bool value)
+bool receiver_base_cf::set_dedicated_audio_sink(const c_def::v_union & v)
 {
-    if(d_dedicated_audio_sink == value)
-        return;
+    if(d_dedicated_audio_sink == bool(v))
+        return true;
+    if(d_connected)
+        lock();
     if( !!audio_snk )
     {
         disconnect(agc, 0, audio_snk, 0);
         disconnect(agc, 1, audio_snk, 1);
         audio_snk.reset();
+        disconnect(self(), 0, ddc, 0);
+        connect(self(), 0, ddc, 0);
     }
-    d_dedicated_audio_sink = value;
+    d_dedicated_audio_sink = v;
     if( d_port != -1 && d_dedicated_audio_sink)
     {
         try
@@ -408,10 +408,16 @@ void receiver_base_cf::set_dedicated_audio_sink(bool value)
             audio_snk = create_audio_sink(d_audio_dev, d_audio_rate, "rx" + std::to_string(d_port));
             connect(agc, 0, audio_snk, 0);
             connect(agc, 1, audio_snk, 1);
+            changed_value(C_AUDIO_DEDICATED_ERROR, d_index, "");
         }catch(std::exception &e)
         {
             audio_snk.reset();
             d_dedicated_audio_sink = false;
+            changed_value(C_AUDIO_DEDICATED_ON, d_index, d_dedicated_audio_sink);
+            changed_value(C_AUDIO_DEDICATED_ERROR, d_index, e.what());
         }
     }
+    if(d_connected)
+        unlock();
+    return true;
 }
