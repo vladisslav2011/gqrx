@@ -27,14 +27,16 @@
 #include <QDialog>
 #include <QDir>
 #include <QPalette>
+#include <QShowEvent>
 #include "audio_device_list.h"
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
     class CAudioOptions;
 }
 
 /*! \brief GUI widget for configuring audio options. */
-class CAudioOptions : public QDialog
+class CAudioOptions : public QDialog, public dcontrols_ui_tabbed
 {
     Q_OBJECT
 
@@ -42,68 +44,16 @@ public:
     explicit CAudioOptions(QWidget *parent = 0);
     ~CAudioOptions();
 
-    void closeEvent(QCloseEvent *event);
-
-    void setRecDir(const QString &dir);
-    void setUdpHost(const QString &host);
-    void setUdpPort(int port);
-    void setUdpStereo(bool stereo);
-    void setSquelchTriggered(bool value);
-    void setRecMinTime(int time_ms);
-    void setRecMaxGap(int time_ms);
-
-    void setFftSplit(int pct_2d);
-    int  getFftSplit(void) const;
-
-    void setPandapterRange(int min, int max);
-    void getPandapterRange(int * min, int * max) const;
-
-    void setWaterfallRange(int min, int max);
-    void getWaterfallRange(int * min, int * max) const;
-
-    void setLockButtonState(bool checked);
-    bool getLockButtonState(void) const;
-
-    void setDedicatedSink(bool checked, std::string name) const;
-
-public slots:
-    void setPandapterSliderValues(float min, float max);
-
-signals:
-    void newFftSplit(int pct_2d);
-    void newPandapterRange(int min, int max);
-    void newWaterfallRange(int min, int max);
-
-    /*! \brief Signal emitted when a new valid directory has been selected. */
-    void newRecDirSelected(const QString &dir);
-
-    void newUdpHost(const QString text);
-    void newUdpPort(int port);
-    void newUdpStereo(bool enabled);
-    void newSquelchTriggered(bool enabled);
-    void newRecMinTime(int time_ms);
-    void newRecMaxGap(int time_ms);
-    void copyRecSettingsToAllVFOs();
-    void newDedicatedDev(bool enabled, std::string name);
-
-private slots:
-    void on_fftSplitSlider_valueChanged(int value);
-    void on_pandRangeSlider_valuesChanged(int min, int max);
-    void on_wfRangeSlider_valuesChanged(int min, int max);
-    void on_audioLockButton_toggled(bool checked);
-    void on_recDirEdit_textChanged(const QString &text);
-    void on_recDirButton_clicked();
-    void on_udpHost_textChanged(const QString &text);
-    void on_udpPort_valueChanged(int port);
-    void on_udpStereo_stateChanged(int state);
-    void on_squelchTriggered_stateChanged(int state);
-    void on_recMinTime_valueChanged(int value);
-    void on_recMaxGap_valueChanged(int value);
-    void on_toAllVFOsButton_clicked();
-    void on_dedicatedDevCheckBox_stateChanged(int state);
+    void closeEvent(QCloseEvent *event) override;
 
 private:
+    void showEvent(QShowEvent *event) override;
     void updateOutDev();
+    void audioFFTLockObserver(const c_id id, const c_def::v_union &value);
+    void recDirObserver(const c_id id, const c_def::v_union &value);
+    void recDirButtonObserver(const c_id id, const c_def::v_union &value);
+    void dedicatedAudioSinkObserver(const c_id id, const c_def::v_union &value);
+
     Ui::CAudioOptions *ui;                   /*!< The user interface widget. */
     QDir              *work_dir;             /*!< Used for validating chosen directory. */
     QPalette          *error_palette;        /*!< Palette used to indicate an error. */

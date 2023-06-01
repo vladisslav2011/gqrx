@@ -87,6 +87,8 @@ public:
         d_udp_host("127.0.0.1"),
         d_udp_port(7355),
         d_udp_stereo(false),
+        d_dedicated_audio_sink(false),
+        d_audio_dev(""),
         d_rds_on(false),
         d_testval(0)
     {
@@ -159,14 +161,17 @@ public:
     bool         get_nb2_threshold(c_def::v_union & v) const { v=d_nb_threshold[1]; return true; }
     bool         get_nb3_gain(c_def::v_union & v) const { v=d_nb_threshold[2]; return true; }
     /* Audio recorder */
-    inline const std::string& get_audio_rec_dir() const { return d_rec_dir; }
-    inline bool get_audio_rec_sql_triggered() const { return d_rec_sql_triggered; }
-    inline int get_audio_rec_min_time() const { return d_rec_min_time; }
-    inline int get_audio_rec_max_gap() const { return d_rec_max_gap; }
+    bool         get_audio_rec_dir(c_def::v_union & v) const { v=d_rec_dir; return true; }
+    bool         get_audio_rec_sql_triggered(c_def::v_union & v) const { v=d_rec_sql_triggered; return true; }
+    bool         get_audio_rec_min_time(c_def::v_union & v) const { v=d_rec_min_time; return true; }
+    bool         get_audio_rec_max_gap(c_def::v_union & v) const { v=d_rec_max_gap; return true; }
     /* UDP streaming */
-    inline const std::string &get_udp_host() const { return d_udp_host; }
-    inline int get_udp_port() const { return d_udp_port; }
-    inline bool get_udp_stereo() const { return d_udp_stereo; }
+    bool         get_udp_host(c_def::v_union & v) const { v=d_udp_host; return true; }
+    bool         get_udp_port(c_def::v_union & v) const { v=d_udp_port; return true; }
+    bool         get_udp_stereo(c_def::v_union & v) const { v=d_udp_stereo; return true; }
+    /* Dedicated audio sink */
+    bool         get_audio_dev(c_def::v_union & v) const { v=d_audio_dev; return true; }
+    bool         get_dedicated_audio_sink(c_def::v_union & v) const { v=d_dedicated_audio_sink; return true; }
 
     //setters
     virtual void set_offset(int offset);
@@ -217,15 +222,19 @@ public:
     virtual bool set_nb3_gain(const c_def::v_union &);
 
     /* Audio recorder */
-    virtual void set_audio_rec_dir(const std::string& dir);
-    virtual void set_audio_rec_sql_triggered(bool enabled);
-    virtual void set_audio_rec_min_time(const int time_ms);
-    virtual void set_audio_rec_max_gap(const int time_ms);
+    virtual bool set_audio_rec_dir(const c_def::v_union &);
+    virtual bool set_audio_rec_sql_triggered(const c_def::v_union &);
+    virtual bool set_audio_rec_min_time(const c_def::v_union &);
+    virtual bool set_audio_rec_max_gap(const c_def::v_union &);
 
     /* UDP streaming */
-    virtual bool set_udp_host(const std::string &host);
-    virtual bool set_udp_port(int port);
-    virtual bool set_udp_stereo(bool stereo);
+    virtual bool set_udp_host(const c_def::v_union &);
+    virtual bool set_udp_port(const c_def::v_union &);
+    virtual bool set_udp_stereo(const c_def::v_union &);
+
+    /* Dedicated audio sink */
+    virtual bool set_audio_dev(const c_def::v_union &);
+    virtual bool set_dedicated_audio_sink(const c_def::v_union &);
 
     virtual void restore_settings(vfo_s& from, bool force = true);
 
@@ -301,6 +310,9 @@ protected:
     std::string      d_udp_host;
     int              d_udp_port;
     bool             d_udp_stereo;
+
+    bool             d_dedicated_audio_sink;
+    std::string      d_audio_dev;
 
     bool             d_rds_on;
     int              d_testval;

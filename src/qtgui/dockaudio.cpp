@@ -29,13 +29,12 @@
 #include "dockaudio.h"
 #include "ui_dockaudio.h"
 
-#define DEFAULT_FFT_SPLIT 100
-
 DockAudio::DockAudio(QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::DockAudio),
     autoSpan(true),
-    rx_freq(144000000)
+    rx_freq(144000000),
+    m_suppressPandUpdate(false)
 {
     ui->setupUi(this);
 
@@ -51,26 +50,11 @@ DockAudio::DockAudio(QWidget *parent) :
 
     audioOptions = new CAudioOptions(this);
 
-    connect(audioOptions, SIGNAL(newFftSplit(int)), ui->audioSpectrum, SLOT(setPercent2DScreen(int)));
-    connect(audioOptions, SIGNAL(newPandapterRange(int,int)), this, SLOT(pandapterRange_changed(int,int)));
-    connect(audioOptions, SIGNAL(newWaterfallRange(int,int)), this, SLOT(waterfallRange_changed(int,int)));
-    connect(audioOptions, SIGNAL(newRecDirSelected(QString)), this, SLOT(recDir_changed(QString)));
-    connect(audioOptions, SIGNAL(newUdpHost(QString)), this, SLOT(udpHost_changed(QString)));
-    connect(audioOptions, SIGNAL(newUdpPort(int)), this, SLOT(udpPort_changed(int)));
-    connect(audioOptions, SIGNAL(newUdpStereo(bool)), this, SLOT(udpStereo_changed(bool)));
-    connect(audioOptions, SIGNAL(newDedicatedDev(bool,std::string)), this, SLOT(dedicatedAudioDev_changed(bool,std::string)));
-    connect(audioOptions, SIGNAL(newSquelchTriggered(bool)), this, SLOT(squelchTriggered_changed(bool)));
-    connect(audioOptions, SIGNAL(newRecMinTime(int)), this, SLOT(recMinTime_changed(int)));
-    connect(audioOptions, SIGNAL(newRecMaxGap(int)), this, SLOT(recMaxGap_changed(int)));
-    connect(audioOptions, SIGNAL(copyRecSettingsToAllVFOs()), this, SLOT(copyRecSettingsToAllVFOs_clicked()));
-
-    connect(ui->audioSpectrum, SIGNAL(pandapterRangeChanged(float,float)), audioOptions, SLOT(setPandapterSliderValues(float,float)));
-
     ui->audioSpectrum->setFreqUnits(1000);
     ui->audioSpectrum->setSampleRate(48000);  // Full bandwidth
     ui->audioSpectrum->setSpanFreq(12000);
     ui->audioSpectrum->setCenterFreq(0);
-    ui->audioSpectrum->setPercent2DScreen(DEFAULT_FFT_SPLIT);
+    ui->audioSpectrum->setPercent2DScreen(c_def::all()[C_AUDIO_FFT_SPLIT].def());
     ui->audioSpectrum->setFftCenterFreq(6000);
     ui->audioSpectrum->setDemodCenterFreq(0);
     ui->audioSpectrum->setFilterBoxEnabled(false);
@@ -92,6 +76,15 @@ DockAudio::DockAudio(QWidget *parent) :
     QObject::connect(audio_gain_increase_shortcut1, &QShortcut::activated, this, &DockAudio::increaseAudioGainShortcut);
     QObject::connect(audio_gain_decrease_shortcut1, &QShortcut::activated, this, &DockAudio::decreaseAudioGainShortcut);
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    ui_windows[W_CHILD]=audioOptions;
+    set_observer(C_AUDIO_FFT_SPLIT,&DockAudio::audioFFTSplitObserver);
+    set_observer(C_AUDIO_FFT_PAND_MAX_DB,&DockAudio::audioFFTPandMaxObserver);
+    set_observer(C_AUDIO_FFT_PAND_MIN_DB,&DockAudio::audioFFTPandMinObserver);
+    set_observer(C_AUDIO_FFT_WF_MAX_DB,&DockAudio::audioFFTWfMaxObserver);
+    set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTWfMinObserver);
+    set_observer(C_AUDIO_FFT_RANGE_LOCKED,&DockAudio::audioFFTLockObserver);
+    set_observer(C_AUDIO_REC_SQUELCH_TRIGGERED,&DockAudio::audioRecSquelchTriggeredObserver);
+    
 }
 
 DockAudio::~DockAudio()
@@ -145,35 +138,6 @@ void DockAudio::setFftColor(QColor color)
 void DockAudio::setFftFill(bool enabled)
 {
     ui->audioSpectrum->setFftFill(enabled);
-}
-
-bool DockAudio::getSquelchTriggered()
-{
-    return squelch_triggered;
-}
-
-void DockAudio::setSquelchTriggered(bool mode)
-{
-    squelch_triggered = mode;
-    audioOptions->setSquelchTriggered(mode);
-}
-
-void DockAudio::setRecDir(const QString &dir)
-{
-    rec_dir = dir;
-    audioOptions->setRecDir(dir);
-}
-
-void DockAudio::setRecMinTime(int time_ms)
-{
-    recMinTime = time_ms;
-    audioOptions->setRecMinTime(time_ms);
-}
-
-void DockAudio::setRecMaxGap(int time_ms)
-{
-    recMaxGap = time_ms;
-    audioOptions->setRecMaxGap(time_ms);
 }
 
 void DockAudio::setAudioMute(bool on)
@@ -285,14 +249,10 @@ void DockAudio::setAudioRecButtonState(bool checked)
 
     ui->audioRecButton->setToolTip(isChecked ? tr("Stop audio recorder") : tr("Start audio recorder"));
     ui->audioPlayButton->setEnabled(!isChecked);
-    //ui->audioRecConfButton->setEnabled(!isChecked);
 }
 
-void DockAudio::setAudioStreamState(const std::string & host,int port,bool stereo, bool running)
+void DockAudio::setAudioStreamState(bool running)
 {
-    audioOptions->setUdpHost(udp_host = QString::fromStdString(host));
-    audioOptions->setUdpPort(udp_port = port);
-    audioOptions->setUdpStereo(udp_stereo = stereo);
     setAudioStreamButtonState(running);
 }
 
@@ -312,11 +272,6 @@ void DockAudio::setAudioStreamButtonState(bool checked)
     //TODO: disable host/port controls
 }
 
-void DockAudio::setDedicatedAudioSink(bool enabled, std::string name)
-{
-     audioOptions->setDedicatedSink(enabled, name);
-}
-
 /*! \brief Set status of audio record button. */
 void DockAudio::setAudioPlayButtonState(bool checked)
 {
@@ -332,132 +287,6 @@ void DockAudio::setAudioPlayButtonState(bool checked)
     ui->audioPlayButton->setToolTip(isChecked ? tr("Stop audio playback") : tr("Start playback of last recorded audio file"));
     ui->audioRecButton->setEnabled(!isChecked);
     //ui->audioRecConfButton->setEnabled(!isChecked);
-}
-
-void DockAudio::saveSettings(QSettings *settings)
-{
-    int     ival, fft_min, fft_max;
-
-    if (!settings)
-        return;
-
-    settings->beginGroup("audio");
-
-    ival = audioOptions->getFftSplit();
-    if (ival != DEFAULT_FFT_SPLIT)
-        settings->setValue("fft_split", ival);
-    else
-        settings->remove("fft_split");
-
-    audioOptions->getPandapterRange(&fft_min, &fft_max);
-    if (fft_min != -80)
-        settings->setValue("pandapter_min_db", fft_min);
-    else
-        settings->remove("pandapter_min_db");
-    if (fft_max != 0)
-        settings->setValue("pandapter_max_db", fft_max);
-    else
-        settings->remove("pandapter_max_db");
-
-    audioOptions->getWaterfallRange(&fft_min, &fft_max);
-    if (fft_min != -80)
-        settings->setValue("waterfall_min_db", fft_min);
-    else
-        settings->remove("waterfall_min_db");
-    if (fft_max != 0)
-        settings->setValue("waterfall_max_db", fft_max);
-    else
-        settings->remove("waterfall_max_db");
-
-    if (audioOptions->getLockButtonState())
-        settings->setValue("db_ranges_locked", true);
-    else
-        settings->remove("db_ranges_locked");
-
-    settings->endGroup();
-}
-
-void DockAudio::readSettings(QSettings *settings)
-{
-    int     bool_val, ival, fft_min, fft_max;
-    bool    conv_ok = false;
-
-    if (!settings)
-        return;
-
-    settings->beginGroup("audio");
-
-    ival = settings->value("fft_split", DEFAULT_FFT_SPLIT).toInt(&conv_ok);
-    if (conv_ok)
-        audioOptions->setFftSplit(ival);
-
-    fft_min = settings->value("pandapter_min_db", QVariant(-80)).toInt(&conv_ok);
-    if (!conv_ok)
-        fft_min = -80;
-    fft_max = settings->value("pandapter_max_db", QVariant(0)).toInt(&conv_ok);
-    if (!conv_ok)
-        fft_max = 0;
-    audioOptions->setPandapterRange(fft_min, fft_max);
-
-    fft_min = settings->value("waterfall_min_db", QVariant(-80)).toInt(&conv_ok);
-    if (!conv_ok)
-        fft_min = -80;
-    fft_max = settings->value("waterfall_max_db", QVariant(0)).toInt(&conv_ok);
-    if (!conv_ok)
-        fft_max = 0;
-    audioOptions->setWaterfallRange(fft_min, fft_max);
-
-    bool_val = settings->value("db_ranges_locked", false).toBool();
-    audioOptions->setLockButtonState(bool_val);
-
-    settings->endGroup();
-}
-
-void DockAudio::pandapterRange_changed(int min, int max)
-{
-    ui->audioSpectrum->setPandapterRange(min, max);
-}
-
-void DockAudio::waterfallRange_changed(int min, int max)
-{
-    ui->audioSpectrum->setWaterfallRange(min, max);
-}
-
-/*! \brief Slot called when a new valid recording directory has been selected
- *         in the audio conf dialog.
- */
-void DockAudio::recDir_changed(const QString &dir)
-{
-    rec_dir = dir;
-    emit recDirChanged(dir);
-}
-
-/*! \brief Slot called when a new network host has been entered. */
-void DockAudio::udpHost_changed(const QString &host)
-{
-    if (host.isEmpty())
-        udp_host = "localhost";
-    else
-        udp_host = host;
-    emit udpHostChanged(udp_host);
-}
-
-/*! \brief Slot called when a new network port has been entered. */
-void DockAudio::udpPort_changed(int port)
-{
-    udp_port = port;
-    emit udpPortChanged(port);
-}
-
-/*! \brief Slot called when the mono/stereo streaming setting changes. */
-void DockAudio::udpStereo_changed(bool enabled)
-{
-    udp_stereo = enabled;
-    emit udpStereoChanged(enabled);
-}
-void DockAudio::dedicatedAudioDev_changed(bool enabled, std::string name)
-{
-    emit dedicatedAudioDevChanged(enabled, name);
 }
 
 /*! \brief Slot called when audio recording is started after clicking rec or being triggered by squelch. */
@@ -477,26 +306,6 @@ void DockAudio::audioRecStopped()
     ui->audioRecButton->setToolTip(tr("Start audio recorder"));
     ui->audioPlayButton->setEnabled(true);
     setAudioRecButtonState(false);
-}
-
-
-void DockAudio::squelchTriggered_changed(bool enabled)
-{
-    squelch_triggered = enabled;
-    ui->audioRecButton->setStyleSheet(enabled?"color: rgb(255,0,0)":"");
-    emit recSquelchTriggeredChanged(enabled);
-}
-
-void DockAudio::recMinTime_changed(int time_ms)
-{
-    recMinTime = time_ms;
-    emit recMinTimeChanged(time_ms);
-}
-
-void DockAudio::recMaxGap_changed(int time_ms)
-{
-    recMaxGap = time_ms;
-    emit recMaxGapChanged(time_ms);
 }
 
 
@@ -520,13 +329,110 @@ void DockAudio::decreaseAudioGainShortcut() {
         audioGainSlider->triggerAction(QSlider::SliderPageStepSub);
 }
 
-void DockAudio::copyRecSettingsToAllVFOs_clicked()
-{
-    emit copyRecSettingsToAllVFOs();
-}
-
 void DockAudio::menuMuteAll(bool checked)
 {
     emit audioMuteChanged(checked, true);
     ui->audioMuteButton->setStyleSheet(checked?"color: rgb(255,0,0)":"");
+}
+
+void DockAudio::audioFFTSplitObserver(const c_id id, const c_def::v_union &value)
+{
+    ui->audioSpectrum->setPercent2DScreen(value);
+}
+
+void DockAudio::audioFFTPandMinObserver(const c_id id, const c_def::v_union &value)
+{
+    c_def::v_union max(0);
+    get_gui(C_AUDIO_FFT_PAND_MAX_DB,max);
+    ui->audioSpectrum->setPandapterRange(int(value), int(max));
+    c_def::v_union locked(0);
+    get_gui(C_AUDIO_FFT_RANGE_LOCKED,locked);
+    if(locked )
+    {
+        c_def::v_union min(0);
+        ui->audioSpectrum->setWaterfallRange(int(value), int(max));
+        if(id == C_AUDIO_FFT_PAND_MIN_DB)
+        {
+            get_gui(C_AUDIO_FFT_WF_MIN_DB,min);
+            if(min == value)
+                return;
+            set_gui(C_AUDIO_FFT_WF_MIN_DB,value,false);
+        }else{
+            get_gui(C_AUDIO_FFT_PAND_MIN_DB,min);
+            if(min == value)
+                return;
+            set_gui(C_AUDIO_FFT_PAND_MIN_DB,value,false);
+        }
+    }
+}
+
+void DockAudio::audioFFTPandMaxObserver(const c_id id, const c_def::v_union &value)
+{
+    c_def::v_union min(0);
+    get_gui(C_AUDIO_FFT_PAND_MIN_DB,min);
+    ui->audioSpectrum->setPandapterRange(int(min), int(value));
+    c_def::v_union locked(0);
+    get_gui(C_AUDIO_FFT_RANGE_LOCKED,locked);
+    if(locked)
+    {
+        c_def::v_union max(0);
+        ui->audioSpectrum->setWaterfallRange(int(min), int(value));
+        if(id == C_AUDIO_FFT_PAND_MAX_DB)
+        {
+            get_gui(C_AUDIO_FFT_WF_MAX_DB,max);
+            if(max == value)
+                return;
+            set_gui(C_AUDIO_FFT_WF_MAX_DB,value);
+        }else{
+            get_gui(C_AUDIO_FFT_PAND_MAX_DB,max);
+            if(max == value)
+                return;
+            set_gui(C_AUDIO_FFT_PAND_MAX_DB,value);
+        }
+    }
+}
+
+void DockAudio::on_audioSpectrum_pandapterRangeChanged(float min, float max)
+{
+    set_gui(C_AUDIO_FFT_PAND_MIN_DB,int(min));
+    set_gui(C_AUDIO_FFT_PAND_MAX_DB,int(max));
+    c_def::v_union locked(0);
+    get_gui(C_AUDIO_FFT_RANGE_LOCKED,locked);
+    if(locked)
+    {
+        set_gui(C_AUDIO_FFT_WF_MIN_DB,int(min));
+        set_gui(C_AUDIO_FFT_WF_MAX_DB,int(max));
+        ui->audioSpectrum->setWaterfallRange(min, max);
+    }
+}
+
+void DockAudio::audioFFTWfMinObserver(const c_id id, const c_def::v_union &value)
+{
+    c_def::v_union max(0);
+    get_gui(C_AUDIO_FFT_WF_MAX_DB,max);
+    ui->audioSpectrum->setWaterfallRange(int(value), int(max));
+}
+
+void DockAudio::audioFFTWfMaxObserver(const c_id id, const c_def::v_union &value)
+{
+    c_def::v_union min(0);
+    get_gui(C_AUDIO_FFT_WF_MIN_DB,min);
+    ui->audioSpectrum->setWaterfallRange(int(min), int(value));
+}
+
+void DockAudio::audioFFTLockObserver(const c_id id, const c_def::v_union &value)
+{
+    if(value)
+    {
+        set_observer(C_AUDIO_FFT_WF_MAX_DB,&DockAudio::audioFFTPandMaxObserver);
+        set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTPandMinObserver);
+    }else{
+        set_observer(C_AUDIO_FFT_WF_MAX_DB,&DockAudio::audioFFTWfMaxObserver);
+        set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTWfMinObserver);
+    }
+}
+
+void DockAudio::audioRecSquelchTriggeredObserver(const c_id id, const c_def::v_union &value)
+{
+    ui->audioRecButton->setStyleSheet(bool(value)?"color: rgb(255,0,0)":"");
 }

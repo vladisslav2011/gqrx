@@ -91,16 +91,16 @@ public:
     int  get_port() const { return d_port; }
 
     /* Audio recording */
-    void set_audio_rec_dir(const std::string& dir) override;
-    void set_audio_rec_sql_triggered(bool enabled) override;
-    void set_audio_rec_min_time(const int time_ms) override;
-    void set_audio_rec_max_gap(const int time_ms) override;
+    bool set_audio_rec_dir(const c_def::v_union &) override;
+    bool set_audio_rec_sql_triggered(const c_def::v_union &) override;
+    bool set_audio_rec_min_time(const c_def::v_union &) override;
+    bool set_audio_rec_max_gap(const c_def::v_union &) override;
     void set_timestamp_source(wavfile_sink_gqrx::timestamp_source * value){ wav_sink->set_timestamp_source(value); }
 
     /* UDP  streaming */
-    bool         set_udp_host(const std::string &host) override;
-    bool         set_udp_port(int port) override;
-    bool         set_udp_stereo(bool stereo) override;
+    bool         set_udp_host(const c_def::v_union &) override;
+    bool         set_udp_port(const c_def::v_union &) override;
+    bool         set_udp_stereo(const c_def::v_union &) override;
     virtual bool set_udp_streaming(bool streaming);
     inline bool  get_udp_streaming() const { return d_udp_streaming; }
 
@@ -142,10 +142,7 @@ public:
     void connected(bool value) { d_connected = value; }
 
     /* Dedicated audio sink */
-    void set_dedicated_audio_sink(bool value);
-    bool get_dedicated_audio_sink() { return d_dedicated_audio_sink; }
-    std::string get_dedicated_audio_dev() { return d_audio_dev; }
-    void set_audio_dev(std::string audio_dev) { d_audio_dev = audio_dev; }
+    bool set_dedicated_audio_sink(const c_def::v_union &) override;
 
 protected:
     bool         d_connected;
@@ -158,8 +155,6 @@ protected:
     float        d_pref_quad_rate;
     std::string  d_audio_filename;
     bool         d_udp_streaming;
-    bool         d_dedicated_audio_sink;
-    std::string  d_audio_dev;
 
     downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
