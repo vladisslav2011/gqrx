@@ -281,14 +281,6 @@ public:
                           bool force = false);
 
     /* Audio parameters */
-    status      set_audio_rec_dir(const std::string dir);
-    std::string get_audio_rec_dir();
-    status      set_audio_rec_sql_triggered(const bool enabled);
-    bool        get_audio_rec_sql_triggered();
-    status      set_audio_rec_min_time(const int time_ms);
-    int         get_audio_rec_min_time();
-    status      set_audio_rec_max_gap(const int time_ms);
-    int         get_audio_rec_max_gap();
     status      start_audio_recording();
     status      set_audio_rate(int rate);
     status      commit_audio_rate();
@@ -299,20 +291,8 @@ public:
     status      stop_audio_playback();
 
     /* UDP  streaming */
-    status      set_udp_host(std::string host);
-    std::string get_udp_host();
-    status      set_udp_port(int port);
-    int         get_udp_port();
-    status      set_udp_stereo(bool stereo);
-    bool        get_udp_stereo();
     status      set_udp_streaming(bool streaming);
     bool        get_udp_streaming();
-
-    /* Dedicated audio sink */
-    void set_dedicated_audio_sink(bool value);
-    bool get_dedicated_audio_sink() { return rx[d_current]->get_dedicated_audio_sink(); }
-    std::string get_dedicated_audio_dev() { return rx[d_current]->get_dedicated_audio_dev(); }
-    void set_dedicated_audio_dev(std::string value) { rx[d_current]->set_audio_dev(value); }
 
     /* I/Q recording and playback */
     status      start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max);
