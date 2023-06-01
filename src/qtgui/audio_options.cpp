@@ -23,6 +23,7 @@
 #include <QFileDialog>
 #include <QPalette>
 #include <QDebug>
+#include <QComboBox>
 
 #include "audio_options.h"
 #include "ui_audio_options.h"
@@ -33,13 +34,15 @@ CAudioOptions::CAudioOptions(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    // Output device
-    updateOutDev();
-
     work_dir = new QDir();
 
     error_palette = new QPalette();
     error_palette->setColor(QPalette::Text, Qt::red);
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    set_observer(C_AUDIO_FFT_RANGE_LOCKED,&CAudioOptions::audioFFTLockObserver);
+    set_observer(C_AUDIO_REC_DIR, &CAudioOptions::recDirObserver);
+    set_observer(C_AUDIO_REC_DIR_BTN, &CAudioOptions::recDirButtonObserver);
+    set_observer(C_AUDIO_DEDICATED_ON, &CAudioOptions::dedicatedAudioSinkObserver);
 }
 
 CAudioOptions::~CAudioOptions()
@@ -61,287 +64,91 @@ void CAudioOptions::closeEvent(QCloseEvent *event)
 {
     hide();
     event->ignore();
-
-    // check if we ended up with empty dir, if yes reset to $HOME
-    if (ui->recDirEdit->text().isEmpty())
-    {
-        setRecDir(QDir::homePath());
-        emit newRecDirSelected(QDir::homePath());
-    }
-
-    if (ui->udpHost->text().isEmpty())
-    {
-        ui->udpHost->setText("localhost");
-    }
 }
 
-/** Set initial location of WAV files. */
-void CAudioOptions::setRecDir(const QString &dir)
+void CAudioOptions::showEvent(QShowEvent *event)
 {
-    ui->recDirEdit->setText(dir);
+    QDialog::showEvent(event);
+    // Output device
+    updateOutDev();
 }
-
-/** Set new UDP host name or IP. */
-void CAudioOptions::setUdpHost(const QString &host)
-{
-    ui->udpHost->setText(host);
-}
-
-/** Set new UDP port. */
-void CAudioOptions::setUdpPort(int port)
-{
-    ui->udpPort->setValue(port);
-}
-
-/** Set new UDP stereo setting. */
-void CAudioOptions::setUdpStereo(bool stereo)
-{
-    ui->udpStereo->setChecked(stereo);
-}
-
-void CAudioOptions::setSquelchTriggered(bool value)
-{
-    ui->squelchTriggered->setChecked(value);
-}
-
-void CAudioOptions::setRecMinTime(int time_ms)
-{
-    ui->recMinTime->setValue(time_ms);
-}
-
-void CAudioOptions::setRecMaxGap(int time_ms)
-{
-    ui->recMaxGap->setValue(time_ms);
-}
-
-void CAudioOptions::setFftSplit(int pct_2d)
-{
-    ui->fftSplitSlider->setValue(pct_2d);
-}
-
-int  CAudioOptions::getFftSplit(void) const
-{
-    return ui->fftSplitSlider->value();
-}
-
-void CAudioOptions::on_fftSplitSlider_valueChanged(int value)
-{
-    emit newFftSplit(value);
-}
-
-void CAudioOptions::setPandapterRange(int min, int max)
-{
-    if (min < max && max <= 0)
-        ui->pandRangeSlider->setValues(min, max);
-}
-
-void CAudioOptions::getPandapterRange(int * min, int * max) const
-{
-    *min = ui->pandRangeSlider->minimumValue();
-    *max = ui->pandRangeSlider->maximumValue();
-}
-
-void CAudioOptions::on_pandRangeSlider_valuesChanged(int min, int max)
-{
-    if (ui->audioLockButton->isChecked())
-        ui->wfRangeSlider->setValues(min, max);
-
-    m_pand_last_modified = true;
-    emit newPandapterRange(min, max);
-}
-
-void CAudioOptions::setWaterfallRange(int min, int max)
-{
-    if (min < max && max <= 0)
-        ui->wfRangeSlider->setValues(min, max);
-}
-
-void CAudioOptions::getWaterfallRange(int * min, int * max) const
-{
-    *min = ui->wfRangeSlider->minimumValue();
-    *max = ui->wfRangeSlider->maximumValue();
-}
-
-void CAudioOptions::on_wfRangeSlider_valuesChanged(int min, int max)
-{
-    if (ui->audioLockButton->isChecked())
-        ui->pandRangeSlider->setValues(min, max);
-
-    m_pand_last_modified = false;
-    emit newWaterfallRange(min, max);
-}
-
-void CAudioOptions::setLockButtonState(bool checked)
-{
-    ui->audioLockButton->setChecked(checked);
-}
-
-bool CAudioOptions::getLockButtonState(void) const
-{
-    return ui->audioLockButton->isChecked();
-}
-
-void CAudioOptions::setDedicatedSink(bool checked, std::string name) const
-{
-    ui->dedicatedDevCheckBox->setChecked(checked);
-    if (checked)
-    {
-        ui->outDevCombo->setCurrentText(QString(name.c_str()));
-    }
-}
-
-void CAudioOptions::setPandapterSliderValues(float min, float max)
-{
-    ui->pandRangeSlider->blockSignals(true);
-    ui->pandRangeSlider->setValues((int)min, (int)max);
-    if (ui->audioLockButton->isChecked())
-        ui->wfRangeSlider->setValues((int) min, (int) max);
-    m_pand_last_modified = true;
-    ui->pandRangeSlider->blockSignals(false);
-}
-
-/** Lock button toggled */
-void CAudioOptions::on_audioLockButton_toggled(bool checked)
-{
-    if (checked) {
-        if (m_pand_last_modified)
-        {
-            int min = ui->pandRangeSlider->minimumValue();
-            int max = ui->pandRangeSlider->maximumValue();
-            ui->wfRangeSlider->setPositions(min, max);
-        }
-        else
-        {
-            int min = ui->wfRangeSlider->minimumValue();
-            int max = ui->wfRangeSlider->maximumValue();
-            ui->pandRangeSlider->setPositions(min, max);
-        }
-    }
-}
-
 
 /**
- * Slot called when the recordings directory has changed either
+ * Called when the recordings directory has changed either
  * because of user input or programmatically.
  */
-void CAudioOptions::on_recDirEdit_textChanged(const QString &dir)
+void CAudioOptions::recDirObserver(const c_id id, const c_def::v_union &value)
 {
 
-    if (work_dir->exists(dir))
-    {
-        ui->recDirEdit->setPalette(QPalette());  // Clear custom color
-        emit newRecDirSelected(dir);
-    }
+    if (work_dir->exists(QString::fromStdString(value)))
+        getWidget(C_AUDIO_REC_DIR)->setPalette(QPalette());
     else
-    {
-        ui->recDirEdit->setPalette(*error_palette);  // indicate error
-    }
+        getWidget(C_AUDIO_REC_DIR)->setPalette(*error_palette);  // indicate error
 }
 
-/**
- * Slot called when the squelch-triggered mode gets disabled/enabled
- */
-void CAudioOptions::on_squelchTriggered_stateChanged(int state)
+/** Called when the user clicks on the "Select" button. */
+void CAudioOptions::recDirButtonObserver(const c_id id, const c_def::v_union &value)
 {
-    emit newSquelchTriggered(state == Qt::Checked);
-}
-
-/**
- * Slot called when the squelch-triggered recording min time gets changed
- */
-void CAudioOptions::on_recMinTime_valueChanged(int value)
-{
-    emit newRecMinTime(value);
-}
-
-/**
- * Slot called when the squelch-triggered recording max gap gets changed
- */
-void CAudioOptions::on_recMaxGap_valueChanged(int value)
-{
-    emit newRecMaxGap(value);
-}
-
-/** Slot called when the user clicks on the "Select" button. */
-void CAudioOptions::on_recDirButton_clicked()
-{
+    c_def::v_union tmp;
+    get_gui(C_AUDIO_REC_DIR, tmp);
     QString dir = QFileDialog::getExistingDirectory(this, tr("Select a directory"),
-                                                    ui->recDirEdit->text(),
+                                                    QString::fromStdString(tmp),
                                                     QFileDialog::ShowDirsOnly |
                                                     QFileDialog::DontResolveSymlinks);
 
     if (!dir.isNull())
-        ui->recDirEdit->setText(dir);
-}
-
-/** UDP host name has changed. */
-void CAudioOptions::on_udpHost_textChanged(const QString &text)
-{
-    if (!text.isEmpty())
-        emit newUdpHost(text);
-}
-
-/** UDP port number has changed. */
-void CAudioOptions::on_udpPort_valueChanged(int port)
-{
-    emit newUdpPort(port);
-}
-
-/** UDP stereo setting has changed. */
-void CAudioOptions::on_udpStereo_stateChanged(int state)
-{
-    emit newUdpStereo(state);
-}
-
-void CAudioOptions::on_toAllVFOsButton_clicked()
-{
-    emit copyRecSettingsToAllVFOs();
+    {
+        set_gui(C_AUDIO_REC_DIR,dir.toStdString());
+        changed_gui(C_AUDIO_REC_DIR,dir.toStdString());
+    }
 }
 
 void CAudioOptions::updateOutDev()
 {
-    ui->outDevCombo->clear();
+    QComboBox * outDevCombo = dynamic_cast<QComboBox *>(getWidget(C_AUDIO_DEDICATED_DEV));
+    c_def::v_union curr;
+    get_gui(C_AUDIO_DEDICATED_DEV, curr);
+    outDevCombo->blockSignals(true);
+    outDevCombo->clear();
 
     // get list of audio output devices
 #if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
     audio_device_list devices;
     outDevList = devices.get_output_devices();
 
-    ui->outDevCombo->addItem("Default");
+    outDevCombo->addItem("Default","");
     qDebug() << __FUNCTION__ << ": Available output devices:";
     for (size_t i = 0; i < outDevList.size(); i++)
     {
         qDebug() << "   " << i << ":" << QString(outDevList[i].get_description().c_str());
-        //qDebug() << "     " << QString(outDevList[i].get_name().c_str());
-        ui->outDevCombo->addItem(QString(outDevList[i].get_description().c_str()));
+        outDevCombo->addItem(QString::fromStdString(outDevList[i].get_description()), QString::fromStdString(outDevList[i].get_name()));
 
-        // note that item #i in devlist will be item #(i+1)
-        // in combo box due to "default"
-//       if (outdev == QString(outDevList[i].get_name().c_str()))
-//           ui->outDevCombo->setCurrentIndex(i+1);
-   }
-#else
-   ui->outDevCombo->addItem("default","Default");
-   ui->outDevCombo->setEditable(true);
-#endif // WITH_PULSEAUDIO
-}
-
-
-/** Dedicated audio device has changed. */
-void CAudioOptions::on_dedicatedDevCheckBox_stateChanged(int state)
-{
-
-#if defined(WITH_PULSEAUDIO) || defined(WITH_PORTAUDIO) || defined(Q_OS_DARWIN)
-    int idx = ui->outDevCombo->currentIndex();
-    if (idx > 0)
-    {
-        emit newDedicatedDev(state, outDevList[idx-1].get_name());
-    }else{
-        emit newDedicatedDev(state, "");
     }
 #else
-    emit newDedicatedDev(state, ui->outDevCombo->currentText().toStdString());
-#endif
-    ui->outDevCombo->setDisabled(state);
+    outDevCombo->addItem("default","");
+    outDevCombo->setEditable(true);
+#endif // WITH_PULSEAUDIO
+    outDevCombo->blockSignals(false);
+    set_gui(C_AUDIO_DEDICATED_DEV, curr);
 }
 
+void CAudioOptions::audioFFTLockObserver(const c_id id, const c_def::v_union &value)
+{
+    if (bool(value)) {
+        c_def::v_union tmp;
+        set_gui(C_AUDIO_FFT_WF_MAX_DB,c_def::all()[C_AUDIO_FFT_WF_MAX_DB].max());
+        set_gui(C_AUDIO_FFT_WF_MIN_DB,c_def::all()[C_AUDIO_FFT_WF_MIN_DB].min());
+        get_gui(C_AUDIO_FFT_PAND_MIN_DB,tmp);
+        set_gui(C_AUDIO_FFT_WF_MIN_DB,tmp);
+        get_gui(C_AUDIO_FFT_PAND_MAX_DB,tmp);
+        set_gui(C_AUDIO_FFT_WF_MAX_DB,tmp);
+        changed_gui(C_AUDIO_FFT_WF_MAX_DB,tmp);
+        get_gui(C_AUDIO_FFT_PAND_MIN_DB,tmp);
+        changed_gui(C_AUDIO_FFT_WF_MIN_DB,tmp);
+    }
+}
+
+void CAudioOptions::dedicatedAudioSinkObserver(const c_id id, const c_def::v_union &value)
+{
+    getWidget(C_AUDIO_DEDICATED_DEV)->setEnabled(!bool(value));
+}

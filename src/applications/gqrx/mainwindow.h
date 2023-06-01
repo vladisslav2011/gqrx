@@ -220,25 +220,16 @@ private slots:
     void setChanelizer(int n);
 
     /* audio recording and playback */
-    void recDirChanged(const QString dir);
-    void recSquelchTriggeredChanged(const bool enabled);
-    void recMinTimeChanged(const int time_ms);
-    void recMaxGapChanged(const int time_ms);
     void startAudioRec();
     void stopAudioRec();
     void audioRecEvent(const QString filename, bool is_running);
     void startAudioPlayback(const QString& filename);
     void stopAudioPlayback();
-    void copyRecSettingsToAllVFOs();
+    void audioRecSettingsCopyObserver(const c_id id, const c_def::v_union &value);
 
     /* audio UDP streaming */
-    void audioStreamHostChanged(const QString udp_host);
-    void audioStreamPortChanged(const int udp_port);
-    void audioStreamStereoChanged(const bool udp_stereo);
     void startAudioStream();
     void stopAudioStreaming();
-
-    void audioDedicatedDevChanged(bool enabled, std::string name);
 
     /* I/Q playback and recording*/
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);

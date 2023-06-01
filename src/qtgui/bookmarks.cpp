@@ -227,14 +227,10 @@ Bookmarks::Bookmarks()
      m_idx_struct.append({V_BOOLEAN, "NB2 ON",//25
         genSetterN(&BookmarkInfo::set_nb_on, 2), genGetterN(&BookmarkInfo::get_nb_on, 2), genCmpN(&BookmarkInfo::get_nb_on, 2)});
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //26 NB2 Threshold
-     m_idx_struct.append({V_STRING,  "REC DIR",//27
-        genSetterCS(&BookmarkInfo::set_audio_rec_dir), genGetterCS(&BookmarkInfo::get_audio_rec_dir), genCmp(&BookmarkInfo::get_audio_rec_dir)});
-     m_idx_struct.append({V_BOOLEAN, "REC SQL Trig",//28
-        genSetter(&BookmarkInfo::set_audio_rec_sql_triggered), genGetter(&BookmarkInfo::get_audio_rec_sql_triggered), genCmp(&BookmarkInfo::get_audio_rec_sql_triggered)});
-     m_idx_struct.append({V_INT,     "REC Min Time",//29
-        genSetter(&BookmarkInfo::set_audio_rec_min_time), genGetter(&BookmarkInfo::get_audio_rec_min_time), genCmp(&BookmarkInfo::get_audio_rec_min_time)});
-     m_idx_struct.append({V_INT,     "REC Max Gap",//30
-        genSetter(&BookmarkInfo::set_audio_rec_max_gap), genGetter(&BookmarkInfo::get_audio_rec_max_gap), genCmp(&BookmarkInfo::get_audio_rec_max_gap)});
+     m_idx_struct.append({V_STRING,"",nullptr,nullptr,nullptr}); // 27 REC DIR
+     m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //28 REC SQL Trig
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //29 REC Min Time
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //30 REC Max Gap
 
     int maxIdx=-1;
     const auto & defs = c_def::all();
