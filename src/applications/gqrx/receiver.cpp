@@ -1420,53 +1420,6 @@ receiver::status receiver::reconnect_all(file_formats fmt, bool force)
     return ret;
 }
 
-
-receiver::status receiver::set_audio_rec_dir(const std::string dir)
-{
-    //FIXME is it a global option, that should be set with for-loop?
-    rx[d_current]->set_audio_rec_dir(dir);
-    return STATUS_OK;
-}
-
-std::string receiver::get_audio_rec_dir()
-{
-    //FIXME is it a global option, that should be set with for-loop?
-    return rx[d_current]->get_audio_rec_dir();
-}
-
-receiver::status receiver::set_audio_rec_sql_triggered(const bool enabled)
-{
-    rx[d_current]->set_audio_rec_sql_triggered(enabled);
-    return STATUS_OK;
-}
-
-bool receiver::get_audio_rec_sql_triggered()
-{
-    return rx[d_current]->get_audio_rec_sql_triggered();
-}
-
-receiver::status receiver::set_audio_rec_min_time(const int time_ms)
-{
-    rx[d_current]->set_audio_rec_min_time(time_ms);
-    return STATUS_OK;
-}
-
-int receiver::get_audio_rec_min_time()
-{
-    return rx[d_current]->get_audio_rec_min_time();
-}
-
-receiver::status receiver::set_audio_rec_max_gap(const int time_ms)
-{
-    rx[d_current]->set_audio_rec_max_gap(time_ms);
-    return STATUS_OK;
-}
-
-int receiver::get_audio_rec_max_gap()
-{
-    return rx[d_current]->get_audio_rec_max_gap();
-}
-
 receiver::status receiver::set_audio_rate(int rate)
 {
     if(d_audio_rate != rate)
@@ -1617,36 +1570,6 @@ receiver::status receiver::stop_audio_playback()
 }
 
 /** UDP streaming of audio. */
-receiver::status receiver::set_udp_host(std::string host)
-{
-    return rx[d_current]->set_udp_host(host) ? STATUS_OK : STATUS_ERROR;
-}
-
-std::string receiver::get_udp_host()
-{
-    return rx[d_current]->get_udp_host();
-}
-
-receiver::status receiver::set_udp_port(int port)
-{
-    return rx[d_current]->set_udp_port(port) ? STATUS_OK : STATUS_ERROR;
-}
-
-int receiver::get_udp_port()
-{
-    return rx[d_current]->get_udp_port();
-}
-
-receiver::status receiver::set_udp_stereo(bool stereo)
-{
-    return rx[d_current]->set_udp_stereo(stereo) ? STATUS_OK : STATUS_ERROR;
-}
-
-bool receiver::get_udp_stereo()
-{
-    return rx[d_current]->get_udp_stereo();
-}
-
 receiver::status receiver::set_udp_streaming(bool streaming)
 {
     return rx[d_current]->set_udp_streaming(streaming) ? STATUS_OK : STATUS_ERROR;
@@ -1657,17 +1580,6 @@ bool receiver::get_udp_streaming()
     return rx[d_current]->get_udp_streaming();
 }
 
-void receiver::set_dedicated_audio_sink(bool value)
-{
-    if(d_running)
-    {
-        tb->stop();
-        tb->wait();
-    }
-    rx[d_current]->set_dedicated_audio_sink(value);
-    if(d_running)
-        tb->start();
-}
 /**
  * @brief Connect I/Q data recorder blocks.
  */

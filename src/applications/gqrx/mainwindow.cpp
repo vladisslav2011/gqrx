@@ -217,7 +217,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addAction(ui->mainToolBar->toggleViewAction());
     ui->menu_View->addSeparator();
     ui->menu_View->addAction(ui->actionFullScreen);
-    
+
     docks.resize(D_COUNT);
     docks[D_INPUTCTL]=uiDockInputCtl;
     docks[D_RXOPT]=uiDockRxOpt;
@@ -269,6 +269,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_RDS_PI, &MainWindow::rdsPIObserver);
     set_observer(C_AGC_ON, &MainWindow::agcOnObserver);
     set_observer(C_AGC_MAN_GAIN, &MainWindow::agcManualGainObserver);
+    set_observer(C_AUDIO_REC_COPY, &MainWindow::audioRecSettingsCopyObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -306,24 +307,15 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
 //    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), remote, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(audioMuteChanged(bool,bool)), this, SLOT(setAudioMute(bool,bool)));
-    connect(uiDockAudio, SIGNAL(udpHostChanged(const QString)), this, SLOT(audioStreamHostChanged(const QString)));
-    connect(uiDockAudio, SIGNAL(udpPortChanged(int)), this, SLOT(audioStreamPortChanged(int)));
-    connect(uiDockAudio, SIGNAL(udpStereoChanged(bool)), this, SLOT(audioStreamStereoChanged(bool)));
     connect(uiDockAudio, SIGNAL(audioStreamingStarted()), this, SLOT(startAudioStream()));
     connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
-    connect(uiDockAudio, SIGNAL(dedicatedAudioDevChanged(bool,std::string)), this, SLOT(audioDedicatedDevChanged(bool,std::string)));
     connect(uiDockAudio, SIGNAL(audioRecStart()), this, SLOT(startAudioRec()));
     connect(uiDockAudio, SIGNAL(audioRecStart()), remote, SLOT(startAudioRecorder()));
     connect(uiDockAudio, SIGNAL(audioRecStop()), this, SLOT(stopAudioRec()));
     connect(uiDockAudio, SIGNAL(audioRecStop()), remote, SLOT(stopAudioRecorder()));
     connect(uiDockAudio, SIGNAL(audioPlayStarted(QString)), this, SLOT(startAudioPlayback(QString)));
     connect(uiDockAudio, SIGNAL(audioPlayStopped()), this, SLOT(stopAudioPlayback()));
-    connect(uiDockAudio, SIGNAL(recDirChanged(QString)), this, SLOT(recDirChanged(QString)));
-    connect(uiDockAudio, SIGNAL(recSquelchTriggeredChanged(bool)), this, SLOT(recSquelchTriggeredChanged(bool)));
-    connect(uiDockAudio, SIGNAL(recMinTimeChanged(int)), this, SLOT(recMinTimeChanged(int)));
-    connect(uiDockAudio, SIGNAL(recMaxGapChanged(int)), this, SLOT(recMaxGapChanged(int)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
-    connect(uiDockAudio, SIGNAL(copyRecSettingsToAllVFOs()), this, SLOT(copyRecSettingsToAllVFOs()));
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
     connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
@@ -868,7 +860,6 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
 
     uiDockFft->readSettings(m_settings);
     uiDockBookmarks->readSettings(m_settings);
-    uiDockAudio->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
     rx->commit_audio_rate();
 
@@ -1025,7 +1016,6 @@ void MainWindow::storeSession()
 
         uiDockInputCtl->saveSettings(m_settings);
         uiDockFft->saveSettings(m_settings);
-        uiDockAudio->saveSettings(m_settings);
         uiDockBookmarks->saveSettings(m_settings);
 
         remote->saveSettings(m_settings);
@@ -1033,7 +1023,6 @@ void MainWindow::storeSession()
         dxc_options->saveSettings(m_settings);
 
         int old_current = rx->get_current();
-        int int_val;
         for (int i = 0; i < rx_count; i++)
         {
             if (rx_count <= 1)
@@ -1083,44 +1072,6 @@ void MainWindow::storeSession()
                 m_settings->endGroup();
                 m_settings->beginGroup("audio");
             }
-
-            if (rx->get_audio_rec_dir() != QDir::homePath().toStdString())
-                m_settings->setValue("rec_dir", QString::fromStdString(rx->get_audio_rec_dir()));
-            else
-                m_settings->remove("rec_dir");
-
-            if (rx->get_audio_rec_sql_triggered() != false)
-                m_settings->setValue("squelch_triggered_recording", true);
-            else
-                m_settings->remove("squelch_triggered_recording");
-
-            int_val = rx->get_audio_rec_min_time();
-            if (int_val != 0)
-                m_settings->setValue("rec_min_time", int_val);
-            else
-                m_settings->remove("rec_min_time");
-
-            int_val = rx->get_audio_rec_max_gap();
-            if (int_val != 0)
-                m_settings->setValue("rec_max_gap", int_val);
-            else
-                m_settings->remove("rec_max_gap");
-
-            if (rx->get_udp_host() != "127.0.0.1")
-                m_settings->setValue("udp_host", QString::fromStdString(rx->get_udp_host()));
-            else
-                m_settings->remove("udp_host");
-
-            if (rx->get_udp_stereo() != false)
-                m_settings->setValue("udp_stereo", true);
-            else
-                m_settings->remove("udp_stereo");
-
-            int_val = rx->get_udp_port();
-            if (int_val != 7355)
-                m_settings->setValue("udp_port", int_val);
-            else
-                m_settings->remove("udp_port");
 
             m_settings->endGroup();
 
@@ -1240,33 +1191,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
             m_settings->endGroup();
             m_settings->beginGroup("audio");
         }
-
-        QString rec_dir = m_settings->value("rec_dir", QDir::homePath()).toString();
-        rx->set_audio_rec_dir(rec_dir.toStdString());
-
-        bool squelch_triggered = m_settings->value("squelch_triggered_recording", false).toBool();
-        rx->set_audio_rec_sql_triggered(squelch_triggered);
-
-        int_val = m_settings->value("rec_min_time", 0).toInt(&conv_ok);
-        if (!conv_ok)
-            int_val = 0;
-        rx->set_audio_rec_min_time(int_val);
-
-        int_val = m_settings->value("rec_max_gap", 0).toInt(&conv_ok);
-        if (!conv_ok)
-            int_val = 0;
-        rx->set_audio_rec_max_gap(int_val);
-
-        QString udp_host = m_settings->value("udp_host", "127.0.0.1").toString();
-        rx->set_udp_host(udp_host.toStdString());
-
-        int_val = m_settings->value("udp_port", 7355).toInt(&conv_ok);
-        if (!conv_ok)
-            int_val = 7355;
-        rx->set_udp_port(int_val);
-
-        bool udp_stereo = m_settings->value("udp_stereo", false).toBool();
-        rx->set_udp_stereo(udp_stereo);
 
         m_settings->endGroup();
         auto defs=c_def::all();
@@ -2171,45 +2095,25 @@ void MainWindow::agcManualGainObserver(const c_id id, const c_def::v_union &valu
     remote->setAudioGain(value);
 }
 
+void MainWindow::audioRecSettingsCopyObserver(const c_id id, const c_def::v_union &value)
+{
+    std::vector<vfo::sptr> vfos = rx->get_vfos();
+    c_def::v_union rec_dir, min_time, max_gap;
+    rx->get_value(C_AUDIO_REC_DIR, rec_dir);
+    rx->get_value(C_AUDIO_REC_MIN_TIME, min_time);
+    rx->get_value(C_AUDIO_REC_MAX_GAP, max_gap);
+    for (auto& cvfo : vfos)
+        if (cvfo->get_index() != rx->get_current())
+        {
+            cvfo->set_audio_rec_dir(rec_dir);
+            cvfo->set_audio_rec_min_time(min_time);
+            cvfo->set_audio_rec_max_gap(max_gap);
+        }
+}
+
 void MainWindow::rdsPIObserver(const c_id id, const c_def::v_union &value)
 {
     remote->rdsPI(QString::fromStdString(value));
-}
-
-/**
- * @brief Set audio recording directory.
- * @param dir The directory, where audio files should be created.
- */
-void MainWindow::recDirChanged(const QString dir)
-{
-    rx->set_audio_rec_dir(dir.toStdString());
-}
-
-/**
- * @brief Set audio recording squelch triggered mode.
- * @param enabled New state.
- */
-void MainWindow::recSquelchTriggeredChanged(const bool enabled)
-{
-    rx->set_audio_rec_sql_triggered(enabled);
-}
-
-/**
- * @brief Set audio recording squelch triggered minimum time.
- * @param time_ms New time in milliseconds.
- */
-void MainWindow::recMinTimeChanged(const int time_ms)
-{
-    rx->set_audio_rec_min_time(time_ms);
-}
-
-/**
- * @brief Set audio recording squelch triggered maximum gap time.
- * @param time_ms New time in milliseconds.
- */
-void MainWindow::recMaxGapChanged(const int time_ms)
-{
-    rx->set_audio_rec_max_gap(time_ms);
 }
 
 /**
@@ -2294,34 +2198,6 @@ void MainWindow::stopAudioPlayback()
     }
 }
 
-void MainWindow::copyRecSettingsToAllVFOs()
-{
-    std::vector<vfo::sptr> vfos = rx->get_vfos();
-    for (auto& cvfo : vfos)
-        if (cvfo->get_index() != rx->get_current())
-        {
-            cvfo->set_audio_rec_dir(rx->get_audio_rec_dir());
-            cvfo->set_audio_rec_min_time(rx->get_audio_rec_min_time());
-            cvfo->set_audio_rec_max_gap(rx->get_audio_rec_max_gap());
-        }
-}
-
-void MainWindow::audioStreamHostChanged(const QString udp_host)
-{
-    std::string host = udp_host.toStdString();
-    rx->set_udp_host(host);//TODO: handle errors
-}
-
-void MainWindow::audioStreamPortChanged(const int udp_port)
-{
-    rx->set_udp_port(udp_port);//TODO: handle errors
-}
-
-void MainWindow::audioStreamStereoChanged(const bool udp_stereo)
-{
-    rx->set_udp_stereo(udp_stereo);//TODO: handle errors
-}
-
 /** Start streaming audio over UDP. */
 void MainWindow::startAudioStream()
 {
@@ -2334,12 +2210,6 @@ void MainWindow::stopAudioStreaming()
 {
     rx->set_udp_streaming(false);
     uiDockAudio->setAudioStreamButtonState(rx->get_udp_streaming());
-}
-
-void MainWindow::audioDedicatedDevChanged(bool enabled, std::string name)
-{
-    rx->set_dedicated_audio_dev(name);
-    rx->set_dedicated_audio_sink(enabled);
 }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
@@ -3730,10 +3600,6 @@ void MainWindow::loadRxToGUI()
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k));
 
-    uiDockAudio->setRecDir(QString(rx->get_audio_rec_dir().data()));
-    uiDockAudio->setSquelchTriggered(rx->get_audio_rec_sql_triggered());
-    uiDockAudio->setRecMinTime(rx->get_audio_rec_min_time());
-    uiDockAudio->setRecMaxGap(rx->get_audio_rec_max_gap());
     uiDockAudio->setAudioMute(rx->get_agc_mute());
     auto defs=c_def::all();
     for(int j=0;j<C_COUNT;j++)
@@ -3755,8 +3621,7 @@ void MainWindow::loadRxToGUI()
         uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));
     else
         uiDockAudio->audioRecStopped();
-    uiDockAudio->setAudioStreamState(rx->get_udp_host(), rx->get_udp_port(), rx->get_udp_stereo(), rx->get_udp_streaming());
-    uiDockAudio->setDedicatedAudioSink(rx->get_dedicated_audio_sink(), rx->get_dedicated_audio_dev());
+    uiDockAudio->setAudioStreamState(rx->get_udp_streaming());
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
     switch (mode_idx)
     {
