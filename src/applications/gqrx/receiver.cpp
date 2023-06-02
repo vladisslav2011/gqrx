@@ -117,10 +117,6 @@ receiver::receiver(const std::string input_device,
     d_current = 0;
     rx.push_back(make_nbrx(d_decim_rate, d_audio_rate));
     rx[d_current]->set_index(d_current);
-    rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
-                                                   std::placeholders::_1,
-                                                   std::placeholders::_2,
-                                                   std::placeholders::_3));
 
     input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,0,1);
     input_throttle = gr::blocks::throttle::make(sizeof(gr_complex),192000.0);
@@ -730,10 +726,6 @@ int receiver::add_rx()
     int old = d_current;
     d_current = rx.size() - 1;
     rx[d_current]->set_index(d_current);
-    rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
-                            std::placeholders::_1,
-                            std::placeholders::_2,
-                            std::placeholders::_3));
     set_demod_locked(rx[old]->get_demod(), old);
     if (d_running)
         tb->start();
@@ -1204,19 +1196,6 @@ bool receiver::get_agc_panning_auto()
     return rx[d_current]->get_agc_panning_auto();
 }
 */
-/** Set AGC mute */
-receiver::status receiver::set_agc_mute(bool agc_mute)
-{
-    rx[d_current]->set_agc_mute(agc_mute);
-
-    return STATUS_OK; // FIXME
-}
-
-bool receiver::get_agc_mute()
-{
-    return rx[d_current]->get_agc_mute();
-}
-
 /** Get AGC current gain. */
 float receiver::get_agc_gain()
 {
@@ -1224,29 +1203,33 @@ float receiver::get_agc_gain()
 }
 
 /** Set audio mute. */
-receiver::status receiver::set_mute(bool mute)
+bool receiver::set_global_mute(const c_def::v_union & v)
 {
-    if (d_mute == mute)
-        return STATUS_OK;
-    d_mute = mute;
+    if (d_mute == bool(v))
+        return true;
+    d_mute = v;
     if (d_mute)
     {
         mc0->set_k(0);
         mc1->set_k(0);
     }
     else
-    {
-        float mul_k = get_rx_count() ? 1.f / float(get_rx_count()) : 1.f;
-        mc0->set_k(mul_k);
-        mc1->set_k(mul_k);
-    }
-    return STATUS_OK;
+        updateAudioVolume();
+    return true;
+}
+
+void receiver::updateAudioVolume()
+{
+    float mul_k = get_rx_count() ? 1.f / float(get_rx_count()) : 1.f;
+    mc0->set_k(mul_k);
+    mc1->set_k(mul_k);
 }
 
 /** Get audio mute. */
-bool receiver::get_mute()
+bool receiver::get_global_mute(c_def::v_union & v) const
 {
-    return d_mute;
+    v=d_mute;
+    return true;
 }
 
 receiver::rx_chain receiver::get_rxc(Modulations::idx demod) const
@@ -1310,10 +1293,6 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 else
                     rx[d_current] = make_nbrx(d_decim_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
-                rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
-                                        std::placeholders::_1,
-                                        std::placeholders::_2,
-                                        std::placeholders::_3));
             }
             break;
 
@@ -1326,10 +1305,6 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 else
                     rx[d_current] = make_wfmrx(d_decim_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
-                rx[d_current]->set_rec_event_handler(std::bind(audio_rec_event, this,
-                                        std::placeholders::_1,
-                                        std::placeholders::_2,
-                                        std::placeholders::_3));
             }
             break;
 
@@ -1345,13 +1320,19 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             rx[d_current]->set_offset(old_rx->get_offset());
             // Recorders
             if (old_idx == -1)
-                if (old_rx->get_audio_recording())
+            {
+                c_def::v_union tmp;
+                old_rx->get_audio_rec(tmp);
+                if(bool(tmp))
                     rx[d_current]->continue_audio_recording(old_rx);
+            }
             if (demod == Modulations::MODE_OFF)
             {
-                if (rx[d_current]->get_audio_recording())
+                c_def::v_union tmp;
+                rx[d_current]->get_audio_rec(tmp);
+                if(bool(tmp))
                 {
-                    rx[d_current]->stop_audio_recording();
+                    rx[d_current]->set_audio_rec(false);
                 }
             }
         }
@@ -1438,143 +1419,94 @@ int receiver::get_audio_rate()
     return d_audio_rate;
 }
 
-/**
- * @brief Start WAV file recorder.
- * @param filename The filename where to record.
- *
- * A new recorder object is created every time we start recording and deleted every time
- * we stop recording. The idea of creating one object and starting/stopping using different
- * file names does not work with WAV files (the initial /tmp/gqrx.wav will not be stopped
- * because the wav file can not be empty). See https://github.com/gqrx-sdr/gqrx/issues/36
- */
-receiver::status receiver::start_audio_recording()
+/** Start/stop audio playback. */
+bool receiver::set_audio_play(const c_def::v_union & v)
 {
-    if (is_recording_audio())
+    bool cmd = v;
+    if(cmd)
     {
-        /* error - we are already recording */
-        std::cout << "ERROR: Can not start audio recorder (already recording)" << std::endl;
+        if (!d_running)
+        {
+            /* receiver is not running */
+            std::cout << "Can not start audio playback (receiver not running)" << std::endl;
+            changed_value(C_AUDIO_PLAY, 0, false);
+            return true;
+        }
+        c_def::v_union filename;
+        get_value(C_AUDIO_REC_FILENAME, filename);
+        try {
+            // output ports set automatically from file
+            wav_src = gr::blocks::wavfile_source::make(std::string(filename).c_str(), false);
+        }
+        catch (std::runtime_error &e) {
+            std::cout << "Error loading " << std::string(filename) << ": " << e.what() << std::endl;
+            changed_value(C_AUDIO_PLAY, 0, false);
+            return true;
+        }
 
-        return STATUS_ERROR;
-    }
-    if (rx[d_current]->start_audio_recording() == 0)
-        return STATUS_OK;
-    else
-        return STATUS_ERROR;
-}
+        /** FIXME: We can only handle native rate (should maybe use the audio_rr)? */
+        unsigned int audio_rate = (unsigned int) d_audio_rate;
+        if (wav_src->sample_rate() != audio_rate)
+        {
+            std::cout << "BUG: Can not handle sample rate " << wav_src->sample_rate() << std::endl;
+            wav_src.reset();
 
-/** Stop WAV file recorder. */
-receiver::status receiver::stop_audio_recording()
-{
-    if (!is_recording_audio()){
-        /* error: we are not recording */
-        std::cout << "ERROR: Can not stop audio recorder (not recording)" << std::endl;
+            changed_value(C_AUDIO_PLAY, 0, false);
+            return true;
+        }
 
-        return STATUS_ERROR;
-    }
-    rx[d_current]->stop_audio_recording();
+        /** FIXME: We can only handle stereo files */
+        if (wav_src->channels() != 2)
+        {
+            std::cout << "BUG: Can not handle other than 2 channels. File has " << wav_src->channels() << std::endl;
+            wav_src.reset();
+            changed_value(C_AUDIO_PLAY, 0, false);
+            return true;
+        }
 
-    return STATUS_OK;
-}
+        stop();
+        /* route demodulator output to null sink */
+        if (d_active > 0)
+        {
+            tb->disconnect(mc0, 0, audio_snk, 0);
+            tb->disconnect(mc1, 0, audio_snk, 1);
+            tb->connect(mc0, 0, audio_null_sink0, 0); /** FIXME: other channel? */
+            tb->connect(mc1, 0, audio_null_sink1, 0); /** FIXME: other channel? */
+        }
+        tb->disconnect(rx[d_current], 0, audio_fft, 0);
+        tb->connect(wav_src, 0, audio_snk, 0);
+        tb->connect(wav_src, 1, audio_snk, 1);
+        tb->connect(wav_src, 0, audio_fft, 0);
+        start();
+        std::cout << "Playing audio from " << std::string(filename) << std::endl;
+    }else{
+        /* disconnect wav source and reconnect receiver */
+        stop();
+        tb->disconnect(wav_src, 0, audio_snk, 0);
+        tb->disconnect(wav_src, 1, audio_snk, 1);
+        tb->disconnect(wav_src, 0, audio_fft, 0);
+        if (d_active > 0)
+        {
+            tb->disconnect(mc0, 0, audio_null_sink0, 0);
+            tb->disconnect(mc1, 0, audio_null_sink1, 0);
+            tb->connect(mc0, 0, audio_snk, 0);
+            tb->connect(mc1, 0, audio_snk, 1);
+        }
+        tb->connect(rx[d_current], 0, audio_fft, 0);  /** FIXME: other channel? */
+        start();
 
-/** get last recorded audio file name. */
-std::string receiver::get_last_audio_filename()
-{
-    return rx[d_current]->get_last_audio_filename();
-}
-
-/** Start audio playback. */
-receiver::status receiver::start_audio_playback(const std::string filename)
-{
-    if (!d_running)
-    {
-        /* receiver is not running */
-        std::cout << "Can not start audio playback (receiver not running)" << std::endl;
-
-        return STATUS_ERROR;
-    }
-
-    try {
-        // output ports set automatically from file
-        wav_src = gr::blocks::wavfile_source::make(filename.c_str(), false);
-    }
-    catch (std::runtime_error &e) {
-        std::cout << "Error loading " << filename << ": " << e.what() << std::endl;
-        return STATUS_ERROR;
-    }
-
-    /** FIXME: We can only handle native rate (should maybe use the audio_rr)? */
-    unsigned int audio_rate = (unsigned int) d_audio_rate;
-    if (wav_src->sample_rate() != audio_rate)
-    {
-        std::cout << "BUG: Can not handle sample rate " << wav_src->sample_rate() << std::endl;
+        /* delete wav_src since we can not change file name */
         wav_src.reset();
-
-        return STATUS_ERROR;
     }
-
-    /** FIXME: We can only handle stereo files */
-    if (wav_src->channels() != 2)
-    {
-        std::cout << "BUG: Can not handle other than 2 channels. File has " << wav_src->channels() << std::endl;
-        wav_src.reset();
-
-        return STATUS_ERROR;
-    }
-
-    stop();
-    /* route demodulator output to null sink */
-    if (d_active > 0)
-    {
-        tb->disconnect(mc0, 0, audio_snk, 0);
-        tb->disconnect(mc1, 0, audio_snk, 1);
-    }
-    tb->disconnect(rx[d_current], 0, audio_fft, 0);
-    tb->connect(rx[d_current], 0, audio_null_sink0, 0); /** FIXME: other channel? */
-    tb->connect(rx[d_current], 1, audio_null_sink1, 0); /** FIXME: other channel? */
-    tb->connect(wav_src, 0, audio_snk, 0);
-    tb->connect(wav_src, 1, audio_snk, 1);
-    tb->connect(wav_src, 0, audio_fft, 0);
-    start();
-
-    std::cout << "Playing audio from " << filename << std::endl;
-
-    return STATUS_OK;
+    return true;
 }
 
-/** Stop audio playback. */
-receiver::status receiver::stop_audio_playback()
+bool receiver::get_audio_play(c_def::v_union & v) const
 {
-    /* disconnect wav source and reconnect receiver */
-    stop();
-    tb->disconnect(wav_src, 0, audio_snk, 0);
-    tb->disconnect(wav_src, 1, audio_snk, 1);
-    tb->disconnect(wav_src, 0, audio_fft, 0);
-    tb->disconnect(rx[d_current], 0, audio_null_sink0, 0);
-    tb->disconnect(rx[d_current], 1, audio_null_sink1, 0);
-    if (d_active > 0)
-    {
-        tb->connect(mc0, 0, audio_snk, 0);
-        tb->connect(mc1, 0, audio_snk, 1);
-    }
-    tb->connect(rx[d_current], 0, audio_fft, 0);  /** FIXME: other channel? */
-    start();
-
-    /* delete wav_src since we can not change file name */
-    wav_src.reset();
-
-    return STATUS_OK;
+    v=!!wav_src;
+    return true;
 }
 
-/** UDP streaming of audio. */
-receiver::status receiver::set_udp_streaming(bool streaming)
-{
-    return rx[d_current]->set_udp_streaming(streaming) ? STATUS_OK : STATUS_ERROR;
-}
-
-bool receiver::get_udp_streaming()
-{
-    return rx[d_current]->get_udp_streaming();
-}
 
 /**
  * @brief Connect I/Q data recorder blocks.
@@ -1973,8 +1905,8 @@ void receiver::foreground_rx()
             sniffer_rr.reset();
         }
     }
-    d_mute = !d_mute;
-    set_mute(!d_mute);
+    if(!d_mute)
+        updateAudioVolume();
 }
 
 uint64_t receiver::get_filesource_timestamp_ms()
@@ -2004,18 +1936,6 @@ std::string receiver::escape_filename(std::string filename)
     ss1 << std::quoted(filename, '\'', '\\');
     ss2 << std::quoted(ss1.str(), '\'', '\\');
     return ss2.str();
-}
-
-void receiver::audio_rec_event(receiver * self, int idx, std::string filename, bool running)
-{
-    if (running)
-        std::cout << "Recording audio to " << filename << std::endl;
-    else
-        std::cout << "Audio recorder stopped" << std::endl;
-
-    if (self->d_audio_rec_event_handler)
-        if (idx == self->d_current)
-            self->d_audio_rec_event_handler(filename, running);
 }
 
 // receiver::fft_reader
@@ -2272,6 +2192,10 @@ bool receiver::get_value(c_id optid, c_def::v_union & value) const
 int receiver::conf_initializer()
 {
     setters[C_AGC_PANNING_AUTO]=&receiver::set_agc_panning_auto;
+    setters[C_GLOBAL_MUTE]=&receiver::set_global_mute;
+    getters[C_GLOBAL_MUTE]=&receiver::get_global_mute;
+    setters[C_AUDIO_PLAY]=&receiver::set_audio_play;
+    getters[C_AUDIO_PLAY]=&receiver::get_audio_play;
     return 0;
 }
 
