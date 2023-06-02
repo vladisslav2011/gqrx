@@ -61,48 +61,20 @@ public:
     void setGainEnabled(bool state);
 
     void setAudioRecButtonState(bool checked);
-    void setAudioStreamState(bool running);
-    void setAudioStreamButtonState(bool checked);
-    void setAudioPlayButtonState(bool checked);
 
     void setFftColor(QColor color);
     void setFftFill(bool enabled);
 
-    void setAudioMute(bool on);
-
 public slots:
     void setRxFrequency(qint64 freq);
     void setWfColormap(const QString &cmap);
-    void audioRecStarted(const QString filename);
-    void audioRecStopped();
 
 signals:
     /*! \brief Signal emitted when audio gain has changed. Gain is in dB. */
     void audioGainChanged(float gain);
 
-    /*! \brief Audio streaming over UDP has started. */
-    void audioStreamingStarted();
-
-    /*! \brief Audio streaming stopped. */
-    void audioStreamingStopped();
-
-    /*! \brief Signal emitted when audio recording is started. */
-    void audioRecStart();
-
-    /*! \brief Signal emitted when audio recording is stopped. */
-    void audioRecStop();
-
-    /*! \brief Signal emitted when audio playback is started. */
-    void audioPlayStarted(const QString filename);
-
-    /*! \brief Signal emitted when audio playback is stopped. */
-    void audioPlayStopped();
-
     /*! \brief FFT rate changed. */
     void fftRateChanged(int fps);
-
-    /*! \brief Signal emitted when audio mute has changed. */
-    void audioMuteChanged(bool mute, bool global);
 
 private:
     void audioFFTSplitObserver(const c_id id, const c_def::v_union &value);
@@ -112,15 +84,18 @@ private:
     void audioFFTWfMaxObserver(const c_id id, const c_def::v_union &value);
     void audioFFTLockObserver(const c_id id, const c_def::v_union &value);
     void audioRecSquelchTriggeredObserver(const c_id id, const c_def::v_union &value);
+    void globalMuteObserver(const c_id id, const c_def::v_union &value);
+    void audioStreamObserver(const c_id id, const c_def::v_union &value);
+    void audioRecObserver(const c_id id, const c_def::v_union &value);
+    void audioRecFilenameObserver(const c_id id, const c_def::v_union &value);
+    void audioPlayObserver(const c_id id, const c_def::v_union &value);
+    void audioOptionsObserver(const c_id id, const c_def::v_union &value);
+    void increaseAudioGainObserver(const c_id, const c_def::v_union &);
+    void decreaseAudioGainObserver(const c_id, const c_def::v_union &);
+    // No spacer at bottom here
+    void finalizeInner() override {}
 
 private slots:
-    void on_audioStreamButton_clicked(bool checked);
-    void on_audioRecButton_clicked(bool checked);
-    void on_audioPlayButton_clicked(bool checked);
-    void on_audioConfButton_clicked();
-    void on_audioMuteButton_clicked(bool checked);
-    void on_audioMuteButton_customContextMenuRequested(const QPoint& pos);
-    void menuMuteAll(bool checked);
     void on_audioSpectrum_pandapterRangeChanged(float,float);
 
 private:
@@ -132,12 +107,6 @@ private:
 
     qint64         rx_freq;      /*! RX frequency used in filenames. */
 
-    void           recordToggleShortcut();
-    void           muteToggleShortcut();
-    void           increaseAudioGainShortcut();
-    void           decreaseAudioGainShortcut();
-    QMenu         *muteButtonMenu;
-    QAction       *muteAllAction;
     bool           m_suppressPandUpdate;
 };
 

@@ -87,6 +87,7 @@ public:
         d_udp_host("127.0.0.1"),
         d_udp_port(7355),
         d_udp_stereo(false),
+        d_udp_streaming(false),
         d_dedicated_audio_sink(false),
         d_audio_dev(""),
         d_rds_on(false),
@@ -138,7 +139,7 @@ public:
     bool         get_agc_panning(c_def::v_union & v) const { v=d_agc_panning; return true; }
     bool         get_agc_panning_label(c_def::v_union & v) const;
     bool         get_agc_panning_auto(c_def::v_union & v) const { v=d_agc_panning_auto; return true; }
-    inline bool  get_agc_mute() const { return d_agc_mute; }
+    bool         get_agc_mute(c_def::v_union & v) const { v=d_agc_mute; return true; }
     /* CW parameters */
     bool         get_cw_offset(c_def::v_union & v) const { v=d_cw_offset; return true; }
     /* FM parameters */
@@ -165,10 +166,13 @@ public:
     bool         get_audio_rec_sql_triggered(c_def::v_union & v) const { v=d_rec_sql_triggered; return true; }
     bool         get_audio_rec_min_time(c_def::v_union & v) const { v=d_rec_min_time; return true; }
     bool         get_audio_rec_max_gap(c_def::v_union & v) const { v=d_rec_max_gap; return true; }
+    virtual bool get_audio_rec(c_def::v_union &) const;
+    virtual bool get_audio_rec_filename(c_def::v_union &) const;
     /* UDP streaming */
     bool         get_udp_host(c_def::v_union & v) const { v=d_udp_host; return true; }
     bool         get_udp_port(c_def::v_union & v) const { v=d_udp_port; return true; }
     bool         get_udp_stereo(c_def::v_union & v) const { v=d_udp_stereo; return true; }
+    bool         get_udp_streaming(c_def::v_union & v) const { v=d_udp_streaming; return true; }
     /* Dedicated audio sink */
     bool         get_audio_dev(c_def::v_union & v) const { v=d_audio_dev; return true; }
     bool         get_dedicated_audio_sink(c_def::v_union & v) const { v=d_dedicated_audio_sink; return true; }
@@ -198,7 +202,7 @@ public:
     virtual bool  set_agc_hang(const c_def::v_union &);
     virtual bool  set_agc_panning(const c_def::v_union &);
     virtual bool  set_agc_panning_auto(const c_def::v_union &);
-    virtual void  set_agc_mute(bool agc_mute);
+    virtual bool  set_agc_mute(const c_def::v_union &);
     /* CW parameters */
     virtual bool set_cw_offset(const c_def::v_union &);
     /* FM parameters */
@@ -226,11 +230,13 @@ public:
     virtual bool set_audio_rec_sql_triggered(const c_def::v_union &);
     virtual bool set_audio_rec_min_time(const c_def::v_union &);
     virtual bool set_audio_rec_max_gap(const c_def::v_union &);
+    virtual bool set_audio_rec(const c_def::v_union &);
 
     /* UDP streaming */
     virtual bool set_udp_host(const c_def::v_union &);
     virtual bool set_udp_port(const c_def::v_union &);
     virtual bool set_udp_stereo(const c_def::v_union &);
+    virtual bool set_udp_streaming(const c_def::v_union &);
 
     /* Dedicated audio sink */
     virtual bool set_audio_dev(const c_def::v_union &);
@@ -310,6 +316,7 @@ protected:
     std::string      d_udp_host;
     int              d_udp_port;
     bool             d_udp_stereo;
+    bool             d_udp_streaming;
 
     bool             d_dedicated_audio_sink;
     std::string      d_audio_dev;
