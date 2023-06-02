@@ -83,6 +83,16 @@ void vfo_s::set_sql_alpha(double alpha)
     d_alpha = alpha;
 }
 
+bool vfo_s::get_audio_rec(c_def::v_union &) const
+{
+    return true;
+}
+
+bool vfo_s::get_audio_rec_filename(c_def::v_union &) const
+{
+    return true;
+}
+
 bool vfo_s::set_agc_on(const c_def::v_union & v)
 {
     d_agc_on = v;
@@ -214,9 +224,10 @@ bool vfo_s::set_agc_panning_auto(const c_def::v_union & v)
     return true;
 }
 
-void vfo_s::set_agc_mute(bool agc_mute)
+bool vfo_s::set_agc_mute(const c_def::v_union & v)
 {
-    d_agc_mute = agc_mute;
+    d_agc_mute = v;
+    return true;
 }
 
 bool vfo_s::set_cw_offset(const c_def::v_union & v)
@@ -334,6 +345,11 @@ bool vfo_s::set_audio_rec_max_gap(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_audio_rec(const c_def::v_union & v)
+{
+    return true;
+}
+
 /* UDP streaming */
 bool vfo_s::set_udp_host(const c_def::v_union & v)
 {
@@ -350,6 +366,12 @@ bool vfo_s::set_udp_port(const c_def::v_union & v)
 bool vfo_s::set_udp_stereo(const c_def::v_union & v)
 {
     d_udp_stereo = v;
+    return true;
+}
+
+bool vfo_s::set_udp_streaming(const c_def::v_union & v)
+{
+    d_udp_streaming = v;
     return true;
 }
 
@@ -385,6 +407,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_udp_port(v);
     from.get_udp_stereo(v);
     set_udp_stereo(v);
+    from.get_udp_streaming(v);
+    set_udp_streaming(v);
 
     from.get_audio_rec_dir(v);
     if(force || !(v == ""))
@@ -402,6 +426,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     set_audio_dev(v);
     from.get_dedicated_audio_sink(v);
     set_dedicated_audio_sink(v);
+
+    from.get_agc_mute(v);set_agc_mute(v);
 
     from.get_agc_on(v);set_agc_on(v);
     from.get_agc_manual_gain(v);set_agc_manual_gain(v);
@@ -462,6 +488,9 @@ int vfo_s::conf_initializer()
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
 
+    //AGC mute
+    setters[C_AGC_MUTE]=&vfo_s::set_agc_mute;
+    getters[C_AGC_MUTE]=&vfo_s::get_agc_mute;
     //Dedicated audio sink
     setters[C_AUDIO_DEDICATED_ON]=&vfo_s::set_dedicated_audio_sink;
     getters[C_AUDIO_DEDICATED_ON]=&vfo_s::get_dedicated_audio_sink;
@@ -474,6 +503,8 @@ int vfo_s::conf_initializer()
     getters[C_AUDIO_UDP_PORT]=&vfo_s::get_udp_port;
     setters[C_AUDIO_UDP_STEREO]=&vfo_s::set_udp_stereo;
     getters[C_AUDIO_UDP_STEREO]=&vfo_s::get_udp_stereo;
+    setters[C_AUDIO_UDP_STREAMING]=&vfo_s::set_udp_streaming;
+    getters[C_AUDIO_UDP_STREAMING]=&vfo_s::get_udp_streaming;
     //Audio recording parameters
     setters[C_AUDIO_REC_DIR]=&vfo_s::set_audio_rec_dir;
     getters[C_AUDIO_REC_DIR]=&vfo_s::get_audio_rec_dir;
@@ -483,6 +514,9 @@ int vfo_s::conf_initializer()
     getters[C_AUDIO_REC_MIN_TIME]=&vfo_s::get_audio_rec_min_time;
     setters[C_AUDIO_REC_MAX_GAP]=&vfo_s::set_audio_rec_max_gap;
     getters[C_AUDIO_REC_MAX_GAP]=&vfo_s::get_audio_rec_max_gap;
+    setters[C_AUDIO_REC]=&vfo_s::set_audio_rec;
+    getters[C_AUDIO_REC]=&vfo_s::get_audio_rec;
+    getters[C_AUDIO_REC_FILENAME]=&vfo_s::get_audio_rec_filename;
     // AGC parameters
     setters[C_AGC_ON]=&vfo_s::set_agc_on;
     getters[C_AGC_ON]=&vfo_s::get_agc_on;

@@ -108,9 +108,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     /* create receiver object */
     rx = new receiver("", "", 1);
     rx->set_rf_freq(144500000.0);
-    rx->set_audio_rec_event_handler(std::bind(audio_rec_event, this,
-                              std::placeholders::_1,
-                              std::placeholders::_2));
 
     // remote controller
     remote = new RemoteControl();
@@ -272,6 +269,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_AGC_ON, &MainWindow::agcOnObserver);
     set_observer(C_AGC_MAN_GAIN, &MainWindow::agcManualGainObserver);
     set_observer(C_AUDIO_REC_COPY, &MainWindow::audioRecSettingsCopyObserver);
+    set_observer(C_AUDIO_REC, &MainWindow::audioRecObserver);
+    set_observer(C_AUDIO_REC_FILENAME, &MainWindow::audioRecFilenameObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -308,15 +307,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(sqlResetAllClicked()), this, SLOT(resetSqlLevelGlobal()));
     connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
 //    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), remote, SLOT(setAudioGain(float)));
-    connect(uiDockAudio, SIGNAL(audioMuteChanged(bool,bool)), this, SLOT(setAudioMute(bool,bool)));
-    connect(uiDockAudio, SIGNAL(audioStreamingStarted()), this, SLOT(startAudioStream()));
-    connect(uiDockAudio, SIGNAL(audioStreamingStopped()), this, SLOT(stopAudioStreaming()));
-    connect(uiDockAudio, SIGNAL(audioRecStart()), this, SLOT(startAudioRec()));
-    connect(uiDockAudio, SIGNAL(audioRecStart()), remote, SLOT(startAudioRecorder()));
-    connect(uiDockAudio, SIGNAL(audioRecStop()), this, SLOT(stopAudioRec()));
-    connect(uiDockAudio, SIGNAL(audioRecStop()), remote, SLOT(stopAudioRecorder()));
-    connect(uiDockAudio, SIGNAL(audioPlayStarted(QString)), this, SLOT(startAudioPlayback(QString)));
-    connect(uiDockAudio, SIGNAL(audioPlayStopped()), this, SLOT(stopAudioPlayback()));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
@@ -381,16 +371,26 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newMode(Modulations::idx)), uiDockRxOpt, SLOT(setCurrentDemod(Modulations::idx)));
     connect(remote, SIGNAL(newSquelchLevel(double)), this, SLOT(setSqlLevel(double)));
     connect(remote, SIGNAL(newSquelchLevel(double)), uiDockRxOpt, SLOT(setSquelchLevel(double)));
-    connect(remote, SIGNAL(newAudioGain(float)), this, SLOT(setAudioGain(float)));
     connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
-    connect(remote, SIGNAL(startAudioRecorderEvent()), this, SLOT(startAudioRec()));
-    connect(remote, SIGNAL(stopAudioRecorderEvent()), this, SLOT(stopAudioRec()));
+    connect(remote, &RemoteControl::newAudioGain, [=](float v)
+        {
+            set_gui(C_AGC_MAN_GAIN, v, true);
+            changed_gui(C_AGC_MAN_GAIN, v);
+        });
+    connect(remote, &RemoteControl::startAudioRecorderEvent, [=]()
+        {
+            set_gui(C_AUDIO_REC, true, true);
+            changed_gui(C_AUDIO_REC, true);
+        });
+    connect(remote, &RemoteControl::stopAudioRecorderEvent, [=]()
+        {
+            set_gui(C_AUDIO_REC, false, true);
+            changed_gui(C_AUDIO_REC, false);
+        });
     connect(ui->plotter, SIGNAL(newFilterFreq(int, int)), remote, SLOT(setPassband(int, int)));
     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
     connect(remote, SIGNAL(gainChanged(QString, double)), uiDockInputCtl, SLOT(setGain(QString,double)));
     connect(remote, SIGNAL(dspChanged(bool)), this, SLOT(on_actionDSP_triggered(bool)));
-
-    connect(this, SIGNAL(sigAudioRecEvent(QString, bool)), this, SLOT(audioRecEvent(QString, bool)), Qt::QueuedConnection);
 
     // enable frequency tooltips on FFT plot
     ui->plotter->setTooltipsEnabled(true);
@@ -1745,11 +1745,10 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
 
         case Modulations::MODE_OFF:
             /* Spectrum analyzer only */
-            if (rx->is_recording_audio())
-            {
-                stopAudioRec();
-                uiDockAudio->setAudioRecButtonState(false);
-            }
+            //TODO: check if demod has audio/debug stream output???
+            rx->set_value(C_AUDIO_REC, false);
+            set_gui(C_AUDIO_REC, false);
+            //TODO:check for NFM here
             if (dec_afsk1200 != nullptr)
             {
                 dec_afsk1200->close();
@@ -1899,30 +1898,6 @@ void MainWindow::updateDemodGUIRanges()
         }
     }
     
-}
-
-
-/**
- * @brief Audio gain changed.
- * @param value The new audio gain in dB.
- */
-void MainWindow::setAudioGain(float value)
-{
-    set_gui(C_AGC_MAN_GAIN, value);
-    changed_gui(C_AGC_MAN_GAIN, value);
-}
-
-/**
- * @brief Audio mute changed.
- * @param mute New state.
- * @param global Set global or this VFO mute.
- */
-void MainWindow::setAudioMute(bool mute, bool global)
-{
-    if (global)
-        rx->set_mute(mute);
-    else
-        rx->set_agc_mute(mute);
 }
 
 /**
@@ -2129,100 +2104,19 @@ void MainWindow::rdsRTObserver(const c_id id, const c_def::v_union &value)
     remote->setRdsRadiotext(QString::fromStdString(value));
 }
 
-/**
- * @brief Start audio recorder.
- * @param filename The file name into which audio should be recorded.
- */
-void MainWindow::startAudioRec()
+void MainWindow::audioRecObserver(const c_id id, const c_def::v_union &value)
 {
-    if (!d_have_audio)
+    if(!bool(value))
     {
-        QMessageBox msg_box;
-        msg_box.setIcon(QMessageBox::Critical);
-        msg_box.setText(tr("Recording audio requires a demodulator.\n"
-                           "Currently, demodulation is switched off "
-                           "(Mode->Demod Off)."));
-        msg_box.exec();
-        uiDockAudio->setAudioRecButtonState(false);
-    }
-    else if (rx->start_audio_recording())
-    {
-        ui->statusBar->showMessage(tr("Error starting audio recorder"));
-        uiDockAudio->setAudioRecButtonState(false);
-    }
-}
-
-/** Stop audio recorder. */
-void MainWindow::stopAudioRec()
-{
-    if (rx->stop_audio_recording())
-    {
-        /* okay, this one would be weird if it really happened */
-        ui->statusBar->showMessage(tr("Error stopping audio recorder"));
-    }
-}
-
-/** Audio recording is started or stopped. */
-void MainWindow::audioRecEvent(const QString filename, bool is_running)
-{
-    if (is_running)
-    {
-        ui->statusBar->showMessage(tr("Recording audio to %1").arg(filename));
-        uiDockAudio->audioRecStarted(QString(filename));
-     }
-     else
-     {
-        /* reset state of record button */
-        uiDockAudio->audioRecStopped();
         ui->statusBar->showMessage(tr("Audio recorder stopped"), 5000);
-     }
-
+        remote->stopAudioRecorder();
+    }else
+        remote->startAudioRecorder();
 }
 
-/** Start playback of audio file. */
-void MainWindow::startAudioPlayback(const QString& filename)
+void MainWindow::audioRecFilenameObserver(const c_id id, const c_def::v_union &value)
 {
-    if (rx->start_audio_playback(filename.toStdString()))
-    {
-        ui->statusBar->showMessage(tr("Error trying to play %1").arg(filename));
-
-        /* reset state of record button */
-        uiDockAudio->setAudioPlayButtonState(false);
-    }
-    else
-    {
-        ui->statusBar->showMessage(tr("Playing %1").arg(filename));
-    }
-}
-
-/** Stop playback of audio file. */
-void MainWindow::stopAudioPlayback()
-{
-    if (rx->stop_audio_playback())
-    {
-        /* okay, this one would be weird if it really happened */
-        ui->statusBar->showMessage(tr("Error stopping audio playback"));
-
-        uiDockAudio->setAudioPlayButtonState(true);
-    }
-    else
-    {
-        ui->statusBar->showMessage(tr("Audio playback stopped"), 5000);
-    }
-}
-
-/** Start streaming audio over UDP. */
-void MainWindow::startAudioStream()
-{
-    rx->set_udp_streaming(true);
-    uiDockAudio->setAudioStreamButtonState(rx->get_udp_streaming());
-}
-
-/** Stop streaming audio over UDP. */
-void MainWindow::stopAudioStreaming()
-{
-    rx->set_udp_streaming(false);
-    uiDockAudio->setAudioStreamButtonState(rx->get_udp_streaming());
+    ui->statusBar->showMessage(tr("Recording audio to %1").arg(QString::fromStdString(value)));
 }
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
@@ -3624,7 +3518,6 @@ void MainWindow::loadRxToGUI()
     for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
         uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k));
 
-    uiDockAudio->setAudioMute(rx->get_agc_mute());
     auto defs=c_def::all();
     for(int j=0;j<C_COUNT;j++)
     {
@@ -3640,12 +3533,6 @@ void MainWindow::loadRxToGUI()
         }
     }
 
-    //FIXME Prevent playing incomplete audio or remove audio player
-    if (rx->is_recording_audio())
-        uiDockAudio->audioRecStarted(QString(rx->get_last_audio_filename().data()));
-    else
-        uiDockAudio->audioRecStopped();
-    uiDockAudio->setAudioStreamState(rx->get_udp_streaming());
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
     switch (mode_idx)
     {
@@ -3677,16 +3564,4 @@ void MainWindow::rxOffsetZeroShortcut()
 void MainWindow::checkDXCSpotTimeout()
 {
     DXCSpots::Get().checkSpotTimeout();
-}
-
-/** Called from GNU Radio thread */
-void MainWindow::audioRecEventEmitter(std::string filename, bool is_running)
-{
-    emit sigAudioRecEvent(QString(filename.data()), is_running);
-}
-
-/** Called from GNU Radio thread */
-void MainWindow::audio_rec_event(MainWindow *self, std::string filename, bool is_running)
-{
-    self->audioRecEventEmitter(filename, is_running);
 }

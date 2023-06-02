@@ -170,7 +170,6 @@ private:
     /* key shortcuts */
     void frequencyFocusShortcut();
     void rxOffsetZeroShortcut();
-    void audioRecEventEmitter(std::string filename, bool is_running);
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
     void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const;
@@ -183,6 +182,9 @@ private:
     void rdsOnObserver(const c_id id, const c_def::v_union &value);
     void agcOnObserver(const c_id id, const c_def::v_union &value);
     void agcManualGainObserver(const c_id id, const c_def::v_union &value);
+    void audioRecSettingsCopyObserver(const c_id id, const c_def::v_union &value);
+    void audioRecObserver(const c_id id, const c_def::v_union &value);
+    void audioRecFilenameObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
     void observer_slot(const c_id id, const c_def::v_union value);
@@ -213,23 +215,9 @@ private slots:
     void setSqlLevel(double level_db);
     double setSqlLevelAuto(bool global);
     void resetSqlLevelGlobal();
-    void setAudioGain(float gain);
-    void setAudioMute(bool mute, bool global);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
     void setChanelizer(int n);
-
-    /* audio recording and playback */
-    void startAudioRec();
-    void stopAudioRec();
-    void audioRecEvent(const QString filename, bool is_running);
-    void startAudioPlayback(const QString& filename);
-    void stopAudioPlayback();
-    void audioRecSettingsCopyObserver(const c_id id, const c_def::v_union &value);
-
-    /* audio UDP streaming */
-    void startAudioStream();
-    void stopAudioStreaming();
 
     /* I/Q playback and recording*/
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
