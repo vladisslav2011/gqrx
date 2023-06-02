@@ -75,7 +75,6 @@ public:
     /*! \brief Public constructor.
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
-    typedef std::function<void(int, std::string, bool)> rec_event_handler_t;
     receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate);
     virtual ~receiver_base_cf();
 
@@ -95,13 +94,15 @@ public:
     bool set_audio_rec_sql_triggered(const c_def::v_union &) override;
     bool set_audio_rec_min_time(const c_def::v_union &) override;
     bool set_audio_rec_max_gap(const c_def::v_union &) override;
+    bool set_audio_rec(const c_def::v_union &) override;
+    bool get_audio_rec(c_def::v_union &) const override;
+    bool get_audio_rec_filename(c_def::v_union &) const override;
 
     /* UDP  streaming */
     bool         set_udp_host(const c_def::v_union &) override;
     bool         set_udp_port(const c_def::v_union &) override;
     bool         set_udp_stereo(const c_def::v_union &) override;
-    virtual bool set_udp_streaming(bool streaming);
-    inline bool  get_udp_streaming() const { return d_udp_streaming; }
+    bool         set_udp_streaming(const c_def::v_union &) override;
 
     virtual float get_signal_level();
 
@@ -123,18 +124,10 @@ public:
     bool  set_agc_decay(const c_def::v_union &) override;
     bool  set_agc_hang(const c_def::v_union &) override;
     bool  set_agc_panning(const c_def::v_union &) override;
-    void  set_agc_mute(bool agc_mute) override;
+    bool  set_agc_mute(const c_def::v_union &) override;
     virtual float get_agc_gain();
 
-    virtual int  start_audio_recording();
-    virtual void stop_audio_recording();
     virtual void continue_audio_recording(receiver_base_cf_sptr from);
-    virtual bool get_audio_recording();
-    virtual std::string get_last_audio_filename();
-    template <typename T> void set_rec_event_handler(T handler)
-    {
-        d_rec_event = handler;
-    }
     using vfo_s::restore_settings;
     virtual void restore_settings(receiver_base_cf& from);
     bool connected() { return d_connected; }
@@ -153,7 +146,6 @@ protected:
     double       d_center_freq;
     float        d_pref_quad_rate;
     std::string  d_audio_filename;
-    bool         d_udp_streaming;
 
     downconverter_cc_sptr     ddc;        /*!< Digital down-converter for demod chain. */
     resampler_cc_sptr         iq_resamp;   /*!< Baseband resampler. */
@@ -166,7 +158,6 @@ protected:
     rx_rnnoise_f_sptr         audio_rnnoise;
     gr::basic_block_sptr      output;
 private:
-    rec_event_handler_t d_rec_event;
     static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
 
 };

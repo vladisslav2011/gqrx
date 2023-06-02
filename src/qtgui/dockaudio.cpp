@@ -25,6 +25,7 @@
 #include <QDateTime>
 #include <QShortcut>
 #include <QSlider>
+#include <QPushButton>
 #include <QDir>
 #include "dockaudio.h"
 #include "ui_dockaudio.h"
@@ -37,16 +38,6 @@ DockAudio::DockAudio(QWidget *parent) :
     m_suppressPandUpdate(false)
 {
     ui->setupUi(this);
-
-    muteButtonMenu = new QMenu(this);
-    // MenuItem Global mute
-    {
-        muteAllAction = new QAction("Global Mute", this);
-        muteAllAction->setCheckable(true);
-        muteButtonMenu->addAction(muteAllAction);
-        connect(muteAllAction, SIGNAL(toggled(bool)), this, SLOT(menuMuteAll(bool)));
-    }
-    ui->audioMuteButton->setContextMenuPolicy(Qt::CustomContextMenu);
 
     audioOptions = new CAudioOptions(this);
 
@@ -66,15 +57,6 @@ DockAudio::DockAudio(QWidget *parent) :
     ui->audioSpectrum->setHdivDelta(40);
     ui->audioSpectrum->setFreqDigits(1);
 
-    QShortcut *rec_toggle_shortcut = new QShortcut(QKeySequence(Qt::Key_R), this);
-    QShortcut *mute_toggle_shortcut = new QShortcut(QKeySequence(Qt::Key_M), this);
-    QShortcut *audio_gain_increase_shortcut1 = new QShortcut(QKeySequence(Qt::Key_Plus), this);
-    QShortcut *audio_gain_decrease_shortcut1 = new QShortcut(QKeySequence(Qt::Key_Minus), this);
-
-    QObject::connect(rec_toggle_shortcut, &QShortcut::activated, this, &DockAudio::recordToggleShortcut);
-    QObject::connect(mute_toggle_shortcut, &QShortcut::activated, this, &DockAudio::muteToggleShortcut);
-    QObject::connect(audio_gain_increase_shortcut1, &QShortcut::activated, this, &DockAudio::increaseAudioGainShortcut);
-    QObject::connect(audio_gain_decrease_shortcut1, &QShortcut::activated, this, &DockAudio::decreaseAudioGainShortcut);
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
     ui_windows[W_CHILD]=audioOptions;
     set_observer(C_AUDIO_FFT_SPLIT,&DockAudio::audioFFTSplitObserver);
@@ -84,7 +66,14 @@ DockAudio::DockAudio(QWidget *parent) :
     set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTWfMinObserver);
     set_observer(C_AUDIO_FFT_RANGE_LOCKED,&DockAudio::audioFFTLockObserver);
     set_observer(C_AUDIO_REC_SQUELCH_TRIGGERED,&DockAudio::audioRecSquelchTriggeredObserver);
-    
+    set_observer(C_GLOBAL_MUTE,&DockAudio::globalMuteObserver);
+    set_observer(C_AUDIO_UDP_STREAMING,&DockAudio::audioStreamObserver);
+    set_observer(C_AUDIO_REC, &DockAudio::audioRecObserver);
+    set_observer(C_AUDIO_REC_FILENAME, &DockAudio::audioRecFilenameObserver);
+    set_observer(C_AUDIO_PLAY, &DockAudio::audioPlayObserver);
+    set_observer(C_AUDIO_OPTIONS, &DockAudio::audioOptionsObserver);
+    set_observer(C_AGC_MAN_GAIN_UP, &DockAudio::increaseAudioGainObserver);
+    set_observer(C_AGC_MAN_GAIN_DOWN, &DockAudio::decreaseAudioGainObserver);
 }
 
 DockAudio::~DockAudio()
@@ -140,11 +129,6 @@ void DockAudio::setFftFill(bool enabled)
     ui->audioSpectrum->setFftFill(enabled);
 }
 
-void DockAudio::setAudioMute(bool on)
-{
-    ui->audioMuteButton->setChecked(on);
-}
-
 /*! Public slot to set new RX frequency in Hz. */
 void DockAudio::setRxFrequency(qint64 freq)
 {
@@ -156,183 +140,63 @@ void DockAudio::setWfColormap(const QString &cmap)
     ui->audioSpectrum->setWfColormap(cmap);
 }
 
-/*! \brief Streaming button clicked.
- *  \param checked Whether streaming is ON or OFF.
- */
-void DockAudio::on_audioStreamButton_clicked(bool checked)
+void DockAudio::audioStreamObserver(const c_id id, const c_def::v_union &value)
 {
-    if (checked)
-        emit audioStreamingStarted();
-    else
-        emit audioStreamingStopped();
+    dynamic_cast<QWidget *>(getWidget(C_AUDIO_UDP_HOST))->setEnabled(!bool(value));
+    dynamic_cast<QWidget *>(getWidget(C_AUDIO_UDP_PORT))->setEnabled(!bool(value));
+    dynamic_cast<QWidget *>(getWidget(C_AUDIO_UDP_STEREO))->setEnabled(!bool(value));
+    dynamic_cast<QWidget *>(getWidget(C_AUDIO_UDP_STREAMING))->setToolTip(bool(value) ? tr("Stop audio streaming") : tr("Start audio streaming"));
 }
 
-/*! \brief Record button clicked.
- *  \param checked Whether recording is ON or OFF.
- *
- * We use the clicked signal instead of the toggled which allows us to change the
- * state programmatically using toggle() without triggering the signal.
- */
-void DockAudio::on_audioRecButton_clicked(bool checked)
+void DockAudio::audioRecObserver(const c_id id, const c_def::v_union &value)
 {
-    if (checked) {
+    bool isChecked = value;
 
-        // emit signal and start timer
-        emit audioRecStart();
-    }
-    else {
-        emit audioRecStop();
-    }
+    QWidget * audioRecButton = getWidget(C_AUDIO_REC);
+    audioRecButton->setToolTip(isChecked ? tr("Stop audio recorder") : tr("Start audio recorder"));
+    getWidget(C_AUDIO_PLAY)->setEnabled(!isChecked);
+    if(!isChecked)
+        set_gui(C_AUDIO_REC_FILENAME,"DSP");
 }
 
-/*! \brief Playback button clicked.
- *  \param checked Whether playback is ON or OFF.
- *
- * We use the clicked signal instead of the toggled which allows us to change the
- * state programmatically using toggle() without triggering the signal.
- */
-void DockAudio::on_audioPlayButton_clicked(bool checked)
+void DockAudio::audioRecFilenameObserver(const c_id id, const c_def::v_union &value)
 {
-    if (checked) {
-        QFileInfo info(last_audio);
-
-        if(info.exists()) {
-            // emit signal and start timer
-            emit audioPlayStarted(last_audio);
-
-            ui->audioRecLabel->setText(info.fileName());
-            ui->audioPlayButton->setToolTip(tr("Stop audio playback"));
-            ui->audioRecButton->setEnabled(false); // prevent recording while we play
-        }
-        else {
-            ui->audioPlayButton->setChecked(false);
-            ui->audioPlayButton->setEnabled(false);
-        }
-    }
-    else {
-        ui->audioRecLabel->setText("<i>DSP</i>");
-        ui->audioPlayButton->setToolTip(tr("Start playback of last recorded audio file"));
-        emit audioPlayStopped();
-
-        ui->audioRecButton->setEnabled(true);
-    }
-}
-
-/*! \brief Configure button clicked. */
-void DockAudio::on_audioConfButton_clicked()
-{
-    audioOptions->show();
-}
-
-/*! \brief Mute audio. */
-void DockAudio::on_audioMuteButton_clicked(bool checked)
-{
-    emit audioMuteChanged(checked, false);
-}
-
-void DockAudio::on_audioMuteButton_customContextMenuRequested(const QPoint& pos)
-{
-    muteButtonMenu->popup(ui->audioMuteButton->mapToGlobal(pos));
-}
-
-/*! \brief Set status of audio record button. */
-void DockAudio::setAudioRecButtonState(bool checked)
-{
-    if (checked == ui->audioRecButton->isChecked()) {
-        /* nothing to do */
-        return;
-    }
-
-    // toggle the button and set the state of the other buttons accordingly
-    ui->audioRecButton->toggle();
-    bool isChecked = ui->audioRecButton->isChecked();
-
-    ui->audioRecButton->setToolTip(isChecked ? tr("Stop audio recorder") : tr("Start audio recorder"));
-    ui->audioPlayButton->setEnabled(!isChecked);
-}
-
-void DockAudio::setAudioStreamState(bool running)
-{
-    setAudioStreamButtonState(running);
-}
-
-/*! \brief Set status of audio record button. */
-void DockAudio::setAudioStreamButtonState(bool checked)
-{
-    if (checked == ui->audioStreamButton->isChecked()) {
-        /* nothing to do */
-        return;
-    }
-
-    // toggle the button and set the state of the other buttons accordingly
-    ui->audioStreamButton->toggle();
-    bool isChecked = ui->audioStreamButton->isChecked();
-
-    ui->audioStreamButton->setToolTip(isChecked ? tr("Stop audio streaming") : tr("Start audio streaming"));
-    //TODO: disable host/port controls
-}
-
-/*! \brief Set status of audio record button. */
-void DockAudio::setAudioPlayButtonState(bool checked)
-{
-    if (checked == ui->audioPlayButton->isChecked()) {
-        // nothing to do
-        return;
-    }
-
-    // toggle the button and set the state of the other buttons accordingly
-    ui->audioPlayButton->toggle();
-    bool isChecked = ui->audioPlayButton->isChecked();
-
-    ui->audioPlayButton->setToolTip(isChecked ? tr("Stop audio playback") : tr("Start playback of last recorded audio file"));
-    ui->audioRecButton->setEnabled(!isChecked);
-    //ui->audioRecConfButton->setEnabled(!isChecked);
-}
-
-/*! \brief Slot called when audio recording is started after clicking rec or being triggered by squelch. */
-void DockAudio::audioRecStarted(const QString filename)
-{
-    last_audio = filename;
+    last_audio = QString::fromStdString(value);
     QFileInfo info(last_audio);
-    ui->audioRecLabel->setText(info.fileName());
-    ui->audioRecButton->setToolTip(tr("Stop audio recorder"));
-    ui->audioPlayButton->setEnabled(false); /* prevent playback while recording */
-    setAudioRecButtonState(true);
+    c_def::v_union is_rec;
+    get_gui(C_AUDIO_REC, is_rec);
+    getWidget(C_AUDIO_PLAY)->setEnabled(!((last_audio=="DSP")||(last_audio=="")||is_rec));
 }
 
-void DockAudio::audioRecStopped()
+void DockAudio::audioPlayObserver(const c_id id, const c_def::v_union &value)
 {
-    ui->audioRecLabel->setText("<i>DSP</i>");
-    ui->audioRecButton->setToolTip(tr("Start audio recorder"));
-    ui->audioPlayButton->setEnabled(true);
-    setAudioRecButtonState(false);
+    getWidget(C_AUDIO_REC)->setEnabled(!bool(value));
+    if(bool(value))
+    {
+        getWidget(C_AUDIO_PLAY)->setToolTip(tr("Stop audio playback"));
+    }else{
+        set_gui(C_AUDIO_REC_FILENAME,"DSP");
+        getWidget(C_AUDIO_PLAY)->setToolTip(tr("Start playback of last recorded audio file"));
+    }
 }
 
-
-void DockAudio::recordToggleShortcut() {
-    ui->audioRecButton->click();
-}
-
-void DockAudio::muteToggleShortcut() {
-    ui->audioMuteButton->click();
-}
-
-void DockAudio::increaseAudioGainShortcut() {
+void DockAudio::increaseAudioGainObserver(const c_id, const c_def::v_union &)
+{
     QSlider * audioGainSlider = dynamic_cast<QSlider *>(getWidget(C_AGC_MAN_GAIN));
     if(audioGainSlider->isEnabled())
         audioGainSlider->triggerAction(QSlider::SliderPageStepAdd);
 }
 
-void DockAudio::decreaseAudioGainShortcut() {
+void DockAudio::decreaseAudioGainObserver(const c_id, const c_def::v_union &)
+{
     QSlider * audioGainSlider = dynamic_cast<QSlider *>(getWidget(C_AGC_MAN_GAIN));
     if(audioGainSlider->isEnabled())
         audioGainSlider->triggerAction(QSlider::SliderPageStepSub);
 }
 
-void DockAudio::menuMuteAll(bool checked)
+void DockAudio::globalMuteObserver(const c_id id, const c_def::v_union &value)
 {
-    emit audioMuteChanged(checked, true);
-    ui->audioMuteButton->setStyleSheet(checked?"color: rgb(255,0,0)":"");
+    dynamic_cast<QPushButton *>(getWidget(C_AGC_MUTE))->setStyleSheet(bool(value)?"color: rgb(255,0,0)":"");
 }
 
 void DockAudio::audioFFTSplitObserver(const c_id id, const c_def::v_union &value)
@@ -434,5 +298,11 @@ void DockAudio::audioFFTLockObserver(const c_id id, const c_def::v_union &value)
 
 void DockAudio::audioRecSquelchTriggeredObserver(const c_id id, const c_def::v_union &value)
 {
-    ui->audioRecButton->setStyleSheet(bool(value)?"color: rgb(255,0,0)":"");
+    getWidget(C_AUDIO_REC)->setStyleSheet(bool(value)?"color: rgb(255,0,0)":"");
+}
+
+/*! \brief Configure button clicked. */
+void DockAudio::audioOptionsObserver(const c_id id, const c_def::v_union &value)
+{
+    audioOptions->show();
 }

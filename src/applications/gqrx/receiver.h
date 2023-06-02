@@ -107,7 +107,6 @@ public:
         size_t sample_pos;
      };
 
-    typedef std::function<void(std::string, bool)> audio_rec_event_handler_t;
     typedef std::function<void(int64_t)> iq_save_progress_t;
 
     struct fft_reader
@@ -265,13 +264,12 @@ public:
     status      set_sql_alpha(double alpha);
     double      get_sql_alpha();
 
-    status      set_agc_mute(bool agc_mute);
-    bool        get_agc_mute();
     float       get_agc_gain();
 
     /* Mute */
-    status      set_mute(bool mute);
-    bool        get_mute();
+    bool        set_global_mute(const c_def::v_union &);
+    bool        get_global_mute(c_def::v_union &) const;
+    void        updateAudioVolume();
     /* Demod */
     rx_chain    get_rxc(Modulations::idx demod) const;
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
@@ -281,18 +279,11 @@ public:
                           bool force = false);
 
     /* Audio parameters */
-    status      start_audio_recording();
     status      set_audio_rate(int rate);
     status      commit_audio_rate();
     int         get_audio_rate();
-    status      stop_audio_recording();
-    std::string get_last_audio_filename();
-    status      start_audio_playback(const std::string filename);
-    status      stop_audio_playback();
-
-    /* UDP  streaming */
-    status      set_udp_streaming(bool streaming);
-    bool        get_udp_streaming();
+    bool        get_audio_play(c_def::v_union &) const;
+    bool        set_audio_play(const c_def::v_union &);
 
     /* I/Q recording and playback */
     status      start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max);
@@ -314,16 +305,11 @@ public:
     status      stop_sniffer();
     void        get_sniffer_data(float * outbuff, unsigned int &num);
 
-    bool        is_recording_audio(void) const { return rx[d_current]->get_audio_recording(); }
     bool        is_snifffer_active(void) const { return d_sniffer_active; }
 
 
     /* utility functions */
     static std::string escape_filename(std::string filename);
-    template <typename T> void set_audio_rec_event_handler(T handler)
-    {
-        d_audio_rec_event_handler = handler;
-    }
     uint64_t get_filesource_timestamp_ms();
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     file_formats get_last_format() const { return d_last_format; }
@@ -447,12 +433,9 @@ private:
     resampler_ff_sptr sniffer_rr; /*!< Sniffer resampler. */
 
     gr::basic_block_sptr  audio_snk;  /*!< Pulse audio sink. */
-    audio_rec_event_handler_t d_audio_rec_event_handler;
     //! Get a path to a file containing random bytes
     receiver::fft_reader_sptr d_fft_reader;
     static std::string get_zero_file(void);
-    static void audio_rec_event(receiver * self, int idx, std::string filename,
-                                bool running);
      iq_save_progress_t d_save_progress{};
 };
 

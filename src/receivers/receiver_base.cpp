@@ -45,9 +45,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
-      d_pref_quad_rate(pref_quad_rate),
-      d_audio_filename(""),
-      d_udp_streaming(false)
+      d_pref_quad_rate(pref_quad_rate)
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
     d_quad_rate = d_decim_rate / d_ddc_decim;
@@ -279,10 +277,11 @@ bool receiver_base_cf::set_agc_panning(const c_def::v_union & v)
     return true;
 }
 
-void receiver_base_cf::set_agc_mute(bool agc_mute)
+bool receiver_base_cf::set_agc_mute(const c_def::v_union & v)
 {
-    agc->set_mute(agc_mute);
-    vfo_s::set_agc_mute(agc_mute);
+    agc->set_mute(v);
+    vfo_s::set_agc_mute(v);
+    return true;
 }
 
 float receiver_base_cf::get_agc_gain()
@@ -312,36 +311,46 @@ bool receiver_base_cf::set_udp_stereo(const c_def::v_union & v)
     return vfo_s::set_udp_stereo(v);
 }
 
-bool receiver_base_cf::set_udp_streaming(bool streaming)
+bool receiver_base_cf::set_udp_streaming(const c_def::v_union & v)
 {
-    if(d_udp_streaming == streaming)
+    if(d_udp_streaming == bool(v))
         return true;
     try{
-        if(!d_udp_streaming && streaming)
+        if(!d_udp_streaming && bool(v)) //Start
             audio_udp_sink->start_streaming(d_udp_host, d_udp_port, d_udp_stereo);
-        if(d_udp_streaming && !streaming)
+        if(d_udp_streaming && !bool(v)) //Stop
             audio_udp_sink->stop_streaming();
     }catch(std::exception & e)
     {
-        return false;
+        d_udp_streaming = false;
+        changed_value(C_AUDIO_UDP_STREAMING, d_index, false);
+        return true;
     }
-    d_udp_streaming = streaming;
+    return vfo_s::set_udp_streaming(v);
+}
+
+bool receiver_base_cf::get_audio_rec(c_def::v_union & v) const
+{
+    v = wav_sink->is_active();
     return true;
 }
 
-int receiver_base_cf::start_audio_recording()
+bool receiver_base_cf::set_audio_rec(const c_def::v_union & v)
 {
-    return wav_sink->open_new();
-}
-
-bool receiver_base_cf::get_audio_recording()
-{
-    return wav_sink->is_active();
-}
-
-void receiver_base_cf::stop_audio_recording()
-{
-    wav_sink->close();
+    bool recording = wav_sink->is_active();
+    if(recording == bool(v))
+        return true;
+    if(bool(v))
+    {
+        if(d_demod == Modulations::MODE_OFF)
+            recording = false;
+        else
+            recording = (0 == wav_sink->open_new());
+        if(!recording)
+            changed_value(C_AUDIO_REC, d_index, recording);
+    }else
+        wav_sink->close();
+    return true;
 }
 
 //FIXME Reimplement wavfile_sink correctly to make this work as expected
@@ -357,21 +366,20 @@ void receiver_base_cf::continue_audio_recording(receiver_base_cf_sptr from)
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     from->wav_sink.reset();
+    d_audio_filename = from->d_audio_filename;
 }
 
-std::string receiver_base_cf::get_last_audio_filename()
+bool receiver_base_cf::get_audio_rec_filename(c_def::v_union & v) const
 {
-    return d_audio_filename;
+    v=d_audio_filename;
+    return true;
 }
 
 void receiver_base_cf::rec_event(receiver_base_cf * self, std::string filename, bool is_running)
 {
     self->d_audio_filename = filename;
-    if (self->d_rec_event)
-    {
-        self->d_rec_event(self->get_index(), filename, is_running);
-        std::cerr<<"d_rec_event("<<self->get_index()<<","<<filename<<","<<is_running<<")\n";
-    }
+    self->changed_value(C_AUDIO_REC, self->d_index, is_running);
+    self->changed_value(C_AUDIO_REC_FILENAME, self->d_index, self->d_audio_filename);
 }
 
 void receiver_base_cf::restore_settings(receiver_base_cf& from)
