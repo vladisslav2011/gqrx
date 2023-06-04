@@ -51,54 +51,22 @@ void CAgcOptions::closeEvent(QCloseEvent *event)
     event->ignore();
 }
 
-/*! \brief Set AGC preset. */
-void CAgcOptions::setPreset(agc_preset_e preset)
+const CAgcOptions::agc_preset & CAgcOptions::findPreset(const std::string & pr)
 {
-    switch (preset)
-    {
-    case AGC_FAST:
-        set_gui(C_AGC_ATTACK, 20);
-        changed_gui(C_AGC_ATTACK,20);
-        set_gui(C_AGC_DECAY, 100);
-        changed_gui(C_AGC_DECAY,100);
-        set_gui(C_AGC_HANG, 0);
-        changed_gui(C_AGC_HANG,0);
-        enableControls(false,true);
-        break;
+    for(auto & pp : presets)
+        if(pr == pp.key)
+            return pp;
+    return presets[4];
+}
 
-    case AGC_MEDIUM:
-        set_gui(C_AGC_ATTACK, 50);
-        changed_gui(C_AGC_ATTACK,50);
-        set_gui(C_AGC_DECAY, 500);
-        changed_gui(C_AGC_DECAY,500);
-        set_gui(C_AGC_HANG, 0);
-        changed_gui(C_AGC_HANG,0);
-        enableControls(false,true);
-        break;
-
-    case AGC_SLOW:
-        set_gui(C_AGC_ATTACK, 100);
-        changed_gui(C_AGC_ATTACK,100);
-        set_gui(C_AGC_DECAY, 2000);
-        changed_gui(C_AGC_DECAY,2000);
-        set_gui(C_AGC_HANG, 0);
-        changed_gui(C_AGC_HANG,0);
-        enableControls(false,true);
-        break;
-
-    case AGC_USER:
-        enableControls(true,true);
-        break;
-
-    case AGC_OFF:
-        enableControls(false,false);
-        break;
-
-    default:
-        qDebug() << __func__ << "Invalid AGC preset" << preset;
-        break;
-
-    }
+const CAgcOptions::agc_preset & CAgcOptions::findPreset(const int attack, const int decay, const int hang)
+{
+    for(auto & pp : presets)
+        if(attack == int(pp.attack))
+            if(decay == int(pp.decay))
+                if(hang == int(pp.hang))
+                    return pp;
+    return presets[3];
 }
 
 void CAgcOptions::enableControls(bool state1, bool state2)
@@ -120,3 +88,11 @@ void CAgcOptions::panningAutoObserver(const c_id id, const c_def::v_union &value
     getWidget(C_AGC_PANNING)->setEnabled(!value);
     getWidget(C_AGC_PANNING_LABEL)->setEnabled(!value);
 }
+
+const std::array<CAgcOptions::agc_preset, 5> CAgcOptions::presets{
+    CAgcOptions::agc_preset({.key="Fast",  .attack=20, .decay=100, .hang=0,.off=false,.user=false}),
+    CAgcOptions::agc_preset({.key="Medium",.attack=50, .decay=500, .hang=0,.off=false,.user=false}),
+    CAgcOptions::agc_preset({.key="Slow",  .attack=100,.decay=2000,.hang=0,.off=false,.user=false}),
+    CAgcOptions::agc_preset({.key="User",  .attack=0,  .decay=0,   .hang=0,.off=false,.user=true}),
+    CAgcOptions::agc_preset({.key="Off",   .attack=0,  .decay=0,   .hang=0,.off=true, .user=false}),
+};

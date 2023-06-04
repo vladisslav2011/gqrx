@@ -60,130 +60,43 @@ public:
 
     void setFilterOffsetRange(qint64 range_hz);
 
-    void setFilterParam(int lo, int hi);
-    void setCurrentFilter(int index);
-    int  currentFilter() const;
-
-    void setCurrentFilterShape(int index);
-    int  currentFilterShape() const;
-
-    void setHwFreq(qint64 freq_hz);
     void setRxFreqRange(qint64 min_hz, qint64 max_hz);
 
     void setResetLowerDigits(bool enabled);
     void setInvertScrolling(bool enabled);
 
-    Modulations::idx  currentDemod() const;
-    QString currentDemodAsString();
-
-    double currentSquelchLevel() const;
-
-    double  getSqlLevel(void) const;
-
-    bool    getAgcOn();
-    void    setAgcOn(bool on);
-
-    void    setNoiseBlanker(int nbid, bool on);
-
-    void    setFreqLock(bool lock);
-    bool    getFreqLock();
-
 public slots:
-    void setRxFreq(qint64 freq_hz);
-    void setCurrentDemod(Modulations::idx demod);
     void setFilterOffset(qint64 freq_hz);
-    void setSquelchLevel(double level);
 
 private:
-    void updateHwFreq();
     unsigned int filterIdxFromLoHi(int lo, int hi) const;
+    void setFilterParam(int lo, int hi);
 
-    void modeOffShortcut();
-    void modeRawShortcut();
-    void modeAMShortcut();
-    void modeNFMShortcut();
-    void modeWFMmonoShortcut();
-    void modeWFMstereoShortcut();
-    void modeLSBShortcut();
-    void modeUSBShortcut();
-    void modeCWLShortcut();
-    void modeCWUShortcut();
-    void modeWFMoirtShortcut();
-    void modeAMsyncShortcut();
-    void filterNarrowShortcut();
-    void filterNormalShortcut();
-    void filterWideShortcut();
     void setAgcPresetFromParams(int decay);
-    void agcDecayObserver(const c_id id, const c_def::v_union & v);
     void agcOnObserver(const c_id id, const c_def::v_union & v);
+    void nbOptObserver(const c_id id, const c_def::v_union & v);
+    void agcOptObserver(const c_id id, const c_def::v_union & v);
+    void agcPresetObserver(const c_id id, const c_def::v_union & v);
+    void modeObserver(const c_id id, const c_def::v_union & v);
+    void modeOptObserver(const c_id id, const c_def::v_union & v);
+    void filterLoObserver(const c_id id, const c_def::v_union &value);
+    void filterHiObserver(const c_id id, const c_def::v_union &value);
 
 signals:
-    /** Signal emitted when receiver frequency has changed */
-    void rxFreqChanged(qint64 freq_hz);
-
     /** Signal emitted when the channel filter frequency has changed. */
     void filterOffsetChanged(qint64 freq_hz);
 
-    /** Signal emitted when new demodulator is selected. */
-    void demodSelected(Modulations::idx demod);
-
-    /** Signal emitted when baseband gain has changed. Gain is in dB. */
-    //void bbGainChanged(float gain);
-
-    /** Signal emitted when squelch level has changed. Level is in dBFS. */
-    void sqlLevelChanged(double level);
-
-    /**
-     * Signal emitted when auto squelch level is clicked.
-     *
-     * @note Need current signal/noise level returned
-     */
-    double sqlAutoClicked(bool global);
-
-    /** Signal emitted when squelch reset all popup menu item is clicked. */
-    void sqlResetAllClicked();
-
-    /** Signal emitted when noise blanker status has changed. */
-    void noiseBlankerChanged(int nbid, bool on);
-
-    /** Signal emitted when freq lock mode changed. */
-    void freqLock(bool lock, bool all);
-
 private slots:
-    void on_freqSpinBox_valueChanged(double freq);
     void on_filterFreq_newFrequency(qint64 freq);
-    void on_filterCombo_activated(int index);
-    void on_modeSelector_activated(int index);
-    void on_modeButton_clicked();
-    void on_agcButton_clicked();
-    void on_autoSquelchButton_clicked();
-    void on_autoSquelchButton_customContextMenuRequested(const QPoint& pos);
-    void menuSquelchAutoAll();
-    void on_resetSquelchButton_clicked();
-    void menuSquelchResetAll();
-    //void on_agcPresetCombo_activated(int index);
-    void on_agcPresetCombo_currentIndexChanged(int index);
-    void on_sqlSpinBox_valueChanged(double value);
-    void on_nb1Button_toggled(bool checked);
-    void on_nb2Button_toggled(bool checked);
-    void on_nb3Button_toggled(bool checked);
-    void on_nbOptButton_clicked();
-    void on_freqLockButton_clicked();
-    void on_freqLockButton_customContextMenuRequested(const QPoint& pos);
-    void menuFreqLockAll();
-    void menuFreqUnlockAll();
 
 private:
+    void setAgcPreset(const CAgcOptions::agc_preset &);
     Ui::DockRxOpt *ui;        /** The Qt designer UI file. */
     CDemodOptions *demodOpt;  /** Demodulator options. */
     CAgcOptions   *agcOpt;    /** AGC options. */
     CNbOptions    *nbOpt;     /** Noise blanker options. */
-    QMenu         *freqLockButtonMenu;
-    QMenu         *squelchButtonMenu;
-
-    bool agc_is_on;
-
-    qint64 hw_freq_hz;   /** Current PLL frequency in Hz. */
+    int m_lo;
+    int m_hi;
 };
 
 #endif // DOCKRXOPT_H

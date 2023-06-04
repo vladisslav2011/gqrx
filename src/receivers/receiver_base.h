@@ -107,14 +107,14 @@ public:
 
     virtual float get_signal_level();
 
-    void set_demod(Modulations::idx demod) override;
+    bool         set_demod(const c_def::v_union &) override;
 
     /* Noise blanker */
     virtual bool has_nb();
 
     /* Squelch parameter */
-    void set_sql_level(double level_db) override;
-    void set_sql_alpha(double alpha) override;
+    bool set_sql_level(const c_def::v_union &) override;
+    bool set_sql_alpha(const c_def::v_union &) override;
 
     /* AGC */
     bool  set_agc_on(const c_def::v_union &) override;

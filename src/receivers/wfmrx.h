@@ -62,12 +62,13 @@ public:
 
     void set_audio_rate(int audio_rate) override;
 
-    void set_filter(int low, int high, int tw) override;
+    void set_filter(int low, int high, Modulations::filter_shape shape) override;
+    bool set_filter_shape(const c_def::v_union &) override;
 
     /* Noise blanker */
     bool has_nb() override { return false; }
 
-    void set_demod(Modulations::idx demod) override;
+    bool set_demod(const c_def::v_union &) override;
     void set_index(int index) override;
 
     bool set_wfm_deemph(const c_def::v_union & v) override;

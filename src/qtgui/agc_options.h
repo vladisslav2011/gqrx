@@ -25,6 +25,7 @@
 
 #include <QDialog>
 #include <QCloseEvent>
+#include <array>
 #include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
@@ -53,20 +54,24 @@ public:
 
     void closeEvent(QCloseEvent *event);
 
-    enum agc_preset_e
+    struct agc_preset
     {
-        AGC_FAST = 0,    /*! decay =  500 ms, slope = 2 */
-        AGC_MEDIUM = 1,  /*! decay = 1500 ms, slope = 2 */
-        AGC_SLOW = 2,    /*! decay = 3000 ms, slope = 2 */
-        AGC_USER = 3,
-        AGC_OFF = 4
+        std::string key;
+        c_def::v_union attack;
+        c_def::v_union decay;
+        c_def::v_union hang;
+        bool off;
+        bool user;
     };
 
-    void setPreset(agc_preset_e preset);
+    const agc_preset & findPreset(const int,const int,const int);
+    void enableControls(bool state1, bool state2);
+    const agc_preset & findPreset(const std::string&);
+
+    static const std::array<agc_preset, 5> presets;
 
 private:
     void panningAutoObserver(const c_id id, const c_def::v_union &value);
-    void enableControls(bool state1, bool state2);
     Ui::CAgcOptions *ui;
 };
 

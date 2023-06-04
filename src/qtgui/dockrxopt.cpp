@@ -23,59 +23,25 @@
 #include <QDebug>
 #include <QVariant>
 #include <QShortcut>
+#include <QPushButton>
+#include <QComboBox>
+#include <QDoubleSpinBox>
 #include <iostream>
 #include "dockrxopt.h"
 #include "ui_dockrxopt.h"
 
 DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     QDockWidget(parent),
-    ui(new Ui::DockRxOpt),
-    agc_is_on(true),
-    hw_freq_hz(144500000)
+    ui(new Ui::DockRxOpt)
 {
     ui->setupUi(this);
-
-    for(auto & mode: Modulations::modes)
-        ui->modeSelector->addItem(mode.name);
-    freqLockButtonMenu = new QMenu(this);
-    // MenuItem Lock all
-    {
-        QAction* action = new QAction("Lock all", this);
-        freqLockButtonMenu->addAction(action);
-        connect(action, SIGNAL(triggered()), this, SLOT(menuFreqLockAll()));
-    }
-    // MenuItem Unlock all
-    {
-        QAction* action = new QAction("Unlock all", this);
-        freqLockButtonMenu->addAction(action);
-        connect(action, SIGNAL(triggered()), this, SLOT(menuFreqUnlockAll()));
-    }
-    ui->freqLockButton->setContextMenuPolicy(Qt::CustomContextMenu);
-    squelchButtonMenu = new QMenu(this);
-    // MenuItem Auto all
-    {
-        QAction* action = new QAction("AUTO all", this);
-        squelchButtonMenu->addAction(action);
-        connect(action, SIGNAL(triggered()), this, SLOT(menuSquelchAutoAll()));
-    }
-    // MenuItem Reset all
-    {
-        QAction* action = new QAction("Reset all", this);
-        squelchButtonMenu->addAction(action);
-        connect(action, SIGNAL(triggered()), this, SLOT(menuSquelchResetAll()));
-    }
-    ui->autoSquelchButton->setContextMenuPolicy(Qt::CustomContextMenu);
 
     ui->filterFreq->setup(7, -filterOffsetRange/2, filterOffsetRange/2, 1,
                           FCTL_UNIT_KHZ);
     ui->filterFreq->setFrequency(0);
 
-    // use same slot for filteCombo and filterShapeCombo
-    connect(ui->filterShapeCombo, SIGNAL(activated(int)), this, SLOT(on_filterCombo_activated(int)));
-
     // demodulator options dialog
     demodOpt = new CDemodOptions(this);
-
 
     // AGC options dialog
     agcOpt = new CAgcOptions(this);
@@ -83,58 +49,19 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     // Noise blanker options
     nbOpt = new CNbOptions(this);
 
-    /* mode setting shortcuts */
-    QShortcut *mode_off_shortcut = new QShortcut(QKeySequence(Qt::Key_Exclam), this);
-    QShortcut *mode_raw_shortcut = new QShortcut(QKeySequence(Qt::Key_I), this);
-    QShortcut *mode_am_shortcut = new QShortcut(QKeySequence(Qt::Key_A), this);
-    QShortcut *mode_nfm_shortcut = new QShortcut(QKeySequence(Qt::Key_N), this);
-    QShortcut *mode_wfm_mono_shortcut = new QShortcut(QKeySequence(Qt::Key_W), this);
-    QShortcut *mode_wfm_stereo_shortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_W), this);
-    QShortcut *mode_lsb_shortcut = new QShortcut(QKeySequence(Qt::Key_S), this);
-    QShortcut *mode_usb_shortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_S), this);
-    QShortcut *mode_cwl_shortcut = new QShortcut(QKeySequence(Qt::Key_C), this);
-    QShortcut *mode_cwu_shortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_C), this);
-    QShortcut *mode_wfm_oirt_shortcut = new QShortcut(QKeySequence(Qt::Key_O), this);
-    QShortcut *mode_am_sync_shortcut = new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_A), this);
-
-    QObject::connect(mode_off_shortcut, &QShortcut::activated, this, &DockRxOpt::modeOffShortcut);
-    QObject::connect(mode_raw_shortcut, &QShortcut::activated, this, &DockRxOpt::modeRawShortcut);
-    QObject::connect(mode_am_shortcut, &QShortcut::activated, this, &DockRxOpt::modeAMShortcut);
-    QObject::connect(mode_nfm_shortcut, &QShortcut::activated, this, &DockRxOpt::modeNFMShortcut);
-    QObject::connect(mode_wfm_mono_shortcut, &QShortcut::activated, this, &DockRxOpt::modeWFMmonoShortcut);
-    QObject::connect(mode_wfm_stereo_shortcut, &QShortcut::activated, this, &DockRxOpt::modeWFMstereoShortcut);
-    QObject::connect(mode_lsb_shortcut, &QShortcut::activated, this, &DockRxOpt::modeLSBShortcut);
-    QObject::connect(mode_usb_shortcut, &QShortcut::activated, this, &DockRxOpt::modeUSBShortcut);
-    QObject::connect(mode_cwl_shortcut, &QShortcut::activated, this, &DockRxOpt::modeCWLShortcut);
-    QObject::connect(mode_cwu_shortcut, &QShortcut::activated, this, &DockRxOpt::modeCWUShortcut);
-    QObject::connect(mode_wfm_oirt_shortcut, &QShortcut::activated, this, &DockRxOpt::modeWFMoirtShortcut);
-    QObject::connect(mode_am_sync_shortcut, &QShortcut::activated, this, &DockRxOpt::modeAMsyncShortcut);
-
-    /* squelch shortcuts */
-    QShortcut *squelch_reset_shortcut = new QShortcut(QKeySequence(Qt::Key_QuoteLeft), this);
-    QShortcut *squelch_auto_shortcut = new QShortcut(QKeySequence(Qt::Key_AsciiTilde), this);
-
-    QObject::connect(squelch_reset_shortcut, &QShortcut::activated, this, &DockRxOpt::on_resetSquelchButton_clicked);
-    QObject::connect(squelch_auto_shortcut, &QShortcut::activated, this, &DockRxOpt::on_autoSquelchButton_clicked);
-
-    /* filter width shortcuts */
-    QShortcut *filter_narrow_shortcut = new QShortcut(QKeySequence(Qt::Key_Less), this);
-    QShortcut *filter_normal_shortcut = new QShortcut(QKeySequence(Qt::Key_Period), this);
-    QShortcut *filter_wide_shortcut = new QShortcut(QKeySequence(Qt::Key_Greater), this);
-
-    QObject::connect(filter_narrow_shortcut, &QShortcut::activated, this, &DockRxOpt::filterNarrowShortcut);
-    QObject::connect(filter_normal_shortcut, &QShortcut::activated, this, &DockRxOpt::filterNormalShortcut);
-    QObject::connect(filter_wide_shortcut, &QShortcut::activated, this, &DockRxOpt::filterWideShortcut);
-    #ifndef ENABLE_RNNOISE
-        ui->nb3Button->setDisabled(true);
-    #endif
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
     ui_windows[W_DEMOD_OPT]=demodOpt;
     ui_windows[W_NB_OPT]=nbOpt;
     ui_windows[W_AGC_OPT]=agcOpt;
     demodOpt->setCurrentIndex(0);
-    set_observer(C_AGC_DECAY,&DockRxOpt::agcDecayObserver);
     set_observer(C_AGC_ON,&DockRxOpt::agcOnObserver);
+    set_observer(C_NB_OPT,&DockRxOpt::nbOptObserver);
+    set_observer(C_AGC_OPT,&DockRxOpt::agcOptObserver);
+    set_observer(C_AGC_PRESET,&DockRxOpt::agcPresetObserver);
+    set_observer(C_MODE,&DockRxOpt::modeObserver);
+    set_observer(C_MODE_OPT,&DockRxOpt::modeOptObserver);
+    set_observer(C_FILTER_LO, &DockRxOpt::filterLoObserver);
+    set_observer(C_FILTER_HI, &DockRxOpt::filterHiObserver);
 }
 
 DockRxOpt::~DockRxOpt()
@@ -181,27 +108,6 @@ void DockRxOpt::setFilterOffsetRange(qint64 range_hz)
 }
 
 /**
- * @brief Set new RF frequency
- * @param freq_hz The frequency in Hz
- *
- * RF frequency is the frequency to which the device device is tuned to
- * The actual RX frequency is the sum of the RF frequency and the filter
- * offset.
- */
-void DockRxOpt::setHwFreq(qint64 freq_hz)
-{
-    hw_freq_hz = freq_hz;
-    updateHwFreq();
-}
-
-/** Update RX frequency label. */
-void DockRxOpt::updateHwFreq()
-{
-    double hw_freq_mhz = hw_freq_hz / 1.0e6;
-    ui->hwFreq->setText(QString("%1 MHz").arg(hw_freq_mhz, 11, 'f', 6, ' '));
-}
-
-/**
  * Get filter index from filter LO / HI values.
  * @param lo The filter low cut frequency.
  * @param hi The filter high cut frequency.
@@ -212,7 +118,9 @@ void DockRxOpt::updateHwFreq()
  */
 unsigned int DockRxOpt::filterIdxFromLoHi(int lo, int hi) const
 {
-    Modulations::idx mode_index = Modulations::idx(ui->modeSelector->currentIndex());
+    c_def::v_union tmp;
+    get_gui(C_MODE,tmp);
+    Modulations::idx mode_index = Modulations::idx(int(tmp));
     return Modulations::FindFilterPreset(mode_index, lo, hi);
 }
 
@@ -228,176 +136,112 @@ void DockRxOpt::setFilterParam(int lo, int hi)
 {
     int filter_index = filterIdxFromLoHi(lo, hi);
 
-    ui->filterCombo->setCurrentIndex(filter_index);
+    set_gui(C_FILTER_WIDTH, filter_index);
     if (filter_index == FILTER_PRESET_USER)
     {
         float width_f;
         width_f = abs((hi-lo)/1000.f);
-        ui->filterCombo->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
+        dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
                                      .arg((double)width_f));
     }
 }
 
-/**
- * @brief Select new filter preset.
- * @param index Index of the new filter preset (0=wide, 1=normal, 2=narrow).
- */
-void DockRxOpt::setCurrentFilter(int index)
+void DockRxOpt::agcOnObserver(const c_id id, const c_def::v_union & v)
 {
-    ui->filterCombo->setCurrentIndex(index);
-}
-
-/**
- * @brief Get current filter preset.
- * @param The current filter preset (0=wide, 1=normal, 2=narrow).
- */
-int  DockRxOpt::currentFilter() const
-{
-    return ui->filterCombo->currentIndex();
-}
-
-/** Select filter shape */
-void DockRxOpt::setCurrentFilterShape(int index)
-{
-    ui->filterShapeCombo->setCurrentIndex(index);
-}
-
-int  DockRxOpt::currentFilterShape() const
-{
-    return ui->filterShapeCombo->currentIndex();
-}
-
-/**
- * @brief Select new demodulator.
- * @param demod Demodulator index corresponding to receiver::demod.
- */
-void DockRxOpt::setCurrentDemod(Modulations::idx demod)
-{
-    if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
+    if (bool(v))
     {
-        ui->modeSelector->setCurrentIndex(demod);
-        demodOpt->setCurrentIndex(demod);
+        c_def::v_union attack(0);
+        c_def::v_union decay(0);
+        c_def::v_union hang(0);
+        get_gui(C_AGC_ATTACK, attack);
+        get_gui(C_AGC_DECAY, decay);
+        get_gui(C_AGC_HANG, hang);
+        auto pp = agcOpt->findPreset(int(attack),int(decay),int(hang));
+        set_gui(C_AGC_PRESET,pp.key);
+        if(pp.user)
+            agcOpt->enableControls(true,true);
+        else
+            agcOpt->enableControls(false,true);
+    }else{
+        set_gui(C_AGC_PRESET,"Off");
+        agcOpt->enableControls(false,false);
     }
 }
 
-/**
- * @brief Get current demodulator selection.
- * @return The current demodulator corresponding to receiver::demod.
- */
-Modulations::idx DockRxOpt::currentDemod() const
+void DockRxOpt::nbOptObserver(const c_id id, const c_def::v_union & v)
 {
-    return Modulations::idx(ui->modeSelector->currentIndex());
+    nbOpt->show();
 }
 
-QString DockRxOpt::currentDemodAsString()
+/** Show AGC options. */
+void DockRxOpt::agcOptObserver(const c_id id, const c_def::v_union & v)
 {
-    return QString(Modulations::modes[currentDemod()].name);
+    agcOpt->show();
 }
 
-/**
- * @brief Set squelch level.
- * @param level Squelch level in dBFS
- */
-void DockRxOpt::setSquelchLevel(double level)
+/** AGC preset has changed. */
+void DockRxOpt::agcPresetObserver(const c_id id, const c_def::v_union & v)
 {
-    ui->sqlSpinBox->setValue(level);
-}
-
-double DockRxOpt::getSqlLevel(void) const
-{
-    return ui->sqlSpinBox->value();
-}
-
-/**
- * @brief Get the current squelch level
- * @returns The current squelch setting in dBFS
- */
-double DockRxOpt::currentSquelchLevel() const
-{
-    return ui->sqlSpinBox->value();
-}
-
-/** Get agc settings */
-bool DockRxOpt::getAgcOn()
-{
-    return agc_is_on;
-}
-
-void DockRxOpt::setAgcOn(bool on)
-{
-    ui->agcPresetCombo->blockSignals(true);
-    if (on)
-    {
-        c_def::v_union value(0);
-        get_gui(C_AGC_DECAY, value);
-        setAgcPresetFromParams(value);
-    }else
-        ui->agcPresetCombo->setCurrentIndex(4);
-    ui->agcPresetCombo->blockSignals(false);
-    agcOpt->setPreset(CAgcOptions::agc_preset_e(ui->agcPresetCombo->currentIndex()));
-    agc_is_on = on;
-}
-
-void DockRxOpt::agcDecayObserver(const c_id id, const c_def::v_union & v)
-{
- //   setAgcOn(agc_is_on);
-}
-
-void DockRxOpt::agcOnObserver(const c_id id, const c_def::v_union & v)
-{
-    setAgcOn(v);
-}
-
-void DockRxOpt::setAgcPresetFromParams(int decay)
-{
-    if (decay == 100)
-        ui->agcPresetCombo->setCurrentIndex(0);
-    else if (decay == 500)
-        ui->agcPresetCombo->setCurrentIndex(1);
-    else if (decay == 2000)
-        ui->agcPresetCombo->setCurrentIndex(2);
+    auto pp = agcOpt->findPreset(v);
+    setAgcPreset(pp);
+    changed_gui(C_AGC_ON,!pp.off);
+    set_gui(C_AGC_PRESET,v);
+    if(pp.user)
+        agcOpt->enableControls(true,true);
+    else if(pp.off)
+        agcOpt->enableControls(false,false);
     else
-        ui->agcPresetCombo->setCurrentIndex(3);
+        agcOpt->enableControls(false,true);
 }
 
-void DockRxOpt::setNoiseBlanker(int nbid, bool on)
+/*! \brief Set AGC preset. */
+void DockRxOpt::setAgcPreset(const CAgcOptions::agc_preset & pp)
 {
-    if (nbid == 1)
-        ui->nb1Button->setChecked(on);
-    else if (nbid == 2)
-        ui->nb2Button->setChecked(on);
-    else if (nbid == 3)
-        ui->nb3Button->setChecked(on);
+    if(pp.off)
+        agcOpt->enableControls(false,false);
+    else if(!pp.user)
+    {
+        set_gui(C_AGC_DECAY, pp.decay);
+        changed_gui(C_AGC_DECAY, pp.decay);
+        set_gui(C_AGC_ATTACK, pp.attack);
+        changed_gui(C_AGC_ATTACK, pp.attack);
+        set_gui(C_AGC_HANG, pp.hang);
+        changed_gui(C_AGC_HANG,pp.hang);
+        agcOpt->enableControls(false,true);
+    }else
+        agcOpt->enableControls(true,true);
 }
 
-void DockRxOpt::setFreqLock(bool lock)
+void DockRxOpt::modeObserver(const c_id id, const c_def::v_union & v)
 {
-    ui->freqLockButton->setChecked(lock);
+    Modulations::idx demod = Modulations::idx(int(v));
+    if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
+        demodOpt->setCurrentIndex(demod);
 }
 
-bool DockRxOpt::getFreqLock()
+void DockRxOpt::modeOptObserver(const c_id id, const c_def::v_union & v)
 {
-    return ui->freqLockButton->isChecked();
+    demodOpt->show();
 }
 
-/** RX frequency changed through spin box */
-void DockRxOpt::on_freqSpinBox_valueChanged(double freq)
+void DockRxOpt::filterLoObserver(const c_id id, const c_def::v_union &v)
 {
-    emit rxFreqChanged(1.e3 * freq);
+    m_lo=v;
+    setFilterParam(m_lo,m_hi);
 }
 
-void DockRxOpt::setRxFreq(qint64 freq_hz)
+void DockRxOpt::filterHiObserver(const c_id id, const c_def::v_union &v)
 {
-    ui->freqSpinBox->blockSignals(true);
-    ui->freqSpinBox->setValue(1.e-3 * (double)freq_hz);
-    ui->freqSpinBox->blockSignals(false);
+    m_hi=v;
+    setFilterParam(m_lo,m_hi);
 }
 
 void DockRxOpt::setRxFreqRange(qint64 min_hz, qint64 max_hz)
 {
-    ui->freqSpinBox->blockSignals(true);
-    ui->freqSpinBox->setRange(1.e-3 * (double)min_hz, 1.e-3 * (double)max_hz);
-    ui->freqSpinBox->blockSignals(false);
+    QDoubleSpinBox * freqSpinBox = dynamic_cast<QDoubleSpinBox *>(getWidget(C_VFO_FREQUENCY));
+    freqSpinBox->blockSignals(true);
+    freqSpinBox->setRange(1.e-3 * (double)min_hz, 1.e-3 * (double)max_hz);
+    freqSpinBox->blockSignals(false);
 }
 
 void DockRxOpt::setResetLowerDigits(bool enabled)
@@ -419,234 +263,5 @@ void DockRxOpt::setInvertScrolling(bool enabled)
  */
 void DockRxOpt::on_filterFreq_newFrequency(qint64 freq)
 {
-    updateHwFreq();
-
     emit filterOffsetChanged(freq);
-}
-
-/**
- * New filter preset selected.
- *
- * Instead of implementing a new signal, we simply emit demodSelected() since
- * demodulator and filter preset are tightly coupled.
- */
-void DockRxOpt::on_filterCombo_activated(int index)
-{
-    Q_UNUSED(index);
-
-    qDebug() << "New filter preset:" << ui->filterCombo->currentText();
-    qDebug() << "            shape:" << ui->filterShapeCombo->currentIndex();
-    emit demodSelected(Modulations::idx(ui->modeSelector->currentIndex()));
-}
-
-/**
- * @brief Mode selector activated.
- * @param New mode selection.
- *
- * This slot is activated when the user selects a new demodulator (mode change).
- * It is connected automatically by the UI constructor, and it emits the demodSelected()
- * signal.
- *
- * Note that the modes listed in the selector are different from those defined by
- * receiver::demod (we want to list LSB/USB separately but they have identical demods).
- */
-void DockRxOpt::on_modeSelector_activated(int index)
-{
-    demodOpt->setCurrentIndex(index);
-    emit demodSelected(Modulations::idx(index));
-}
-
-/** Show demodulator options. */
-void DockRxOpt::on_modeButton_clicked()
-{
-    demodOpt->show();
-}
-
-/** Show AGC options. */
-void DockRxOpt::on_agcButton_clicked()
-{
-    agcOpt->show();
-}
-
-/**
- * @brief Auto-squelch button clicked.
- *
- * This slot is called when the user clicks on the auto-squelch button.
- */
-void DockRxOpt::on_autoSquelchButton_clicked()
-{
-    double newval = sqlAutoClicked(false); // FIXME: We rely on signal only being connected to one slot
-    ui->sqlSpinBox->setValue(newval);
-}
-
-void DockRxOpt::on_autoSquelchButton_customContextMenuRequested(const QPoint& pos)
-{
-    squelchButtonMenu->popup(ui->autoSquelchButton->mapToGlobal(pos));
-}
-
-void DockRxOpt::menuSquelchAutoAll()
-{
-    double newval = sqlAutoClicked(true); // FIXME: We rely on signal only being connected to one slot
-    ui->sqlSpinBox->setValue(newval);
-}
-
-void DockRxOpt::on_resetSquelchButton_clicked()
-{
-    ui->sqlSpinBox->setValue(-150.0);
-}
-
-void DockRxOpt::menuSquelchResetAll()
-{
-    ui->sqlSpinBox->setValue(-150.0);
-    emit sqlResetAllClicked();
-}
-
-/** AGC preset has changed. */
-void DockRxOpt::on_agcPresetCombo_currentIndexChanged(int index)
-{
-    CAgcOptions::agc_preset_e preset = (CAgcOptions::agc_preset_e) index;
-
-    switch (preset)
-    {
-    case CAgcOptions::AGC_FAST:
-    case CAgcOptions::AGC_MEDIUM:
-    case CAgcOptions::AGC_SLOW:
-    case CAgcOptions::AGC_USER:
-        if (!agc_is_on)
-        {
-            changed_gui(C_AGC_ON,true);
-            agc_is_on = true;
-        }
-        agcOpt->setPreset(preset);
-        break;
-
-    case CAgcOptions::AGC_OFF:
-        if (agc_is_on)
-        {
-            changed_gui(C_AGC_ON,false);
-            agc_is_on = false;
-        }
-        agcOpt->setPreset(preset);
-        break;
-
-    default:
-        qDebug() << "Invalid AGC preset:" << index;
-    }
-}
-
-/**
- * @brief Squelch level change.
- * @param value The new squelch level in dB.
- */
-void DockRxOpt::on_sqlSpinBox_valueChanged(double value)
-{
-    emit sqlLevelChanged(value);
-}
-
-/** Noise blanker 1 button has been toggled. */
-void DockRxOpt::on_nb1Button_toggled(bool checked)
-{
-    emit noiseBlankerChanged(1, checked);
-}
-
-/** Noise blanker 2 button has been toggled. */
-void DockRxOpt::on_nb2Button_toggled(bool checked)
-{
-    emit noiseBlankerChanged(2, checked);
-}
-
-/** Noise blanker 3 button has been toggled. */
-void DockRxOpt::on_nb3Button_toggled(bool checked)
-{
-    emit noiseBlankerChanged(3, checked);
-}
-
-void DockRxOpt::on_freqLockButton_clicked()
-{
-    emit freqLock(ui->freqLockButton->isChecked(), false);
-}
-
-void DockRxOpt::on_freqLockButton_customContextMenuRequested(const QPoint& pos)
-{
-    freqLockButtonMenu->popup(ui->freqLockButton->mapToGlobal(pos));
-}
-
-void DockRxOpt::menuFreqLockAll()
-{
-    emit freqLock(true, true);
-    ui->freqLockButton->setChecked(true);
-}
-
-void DockRxOpt::menuFreqUnlockAll()
-{
-    emit freqLock(false, true);
-    ui->freqLockButton->setChecked(false);
-}
-
-void DockRxOpt::on_nbOptButton_clicked()
-{
-    nbOpt->show();
-}
-
-void DockRxOpt::modeOffShortcut() {
-    on_modeSelector_activated(Modulations::MODE_OFF);
-}
-
-void DockRxOpt::modeRawShortcut() {
-    on_modeSelector_activated(Modulations::MODE_RAW);
-}
-
-void DockRxOpt::modeAMShortcut() {
-    on_modeSelector_activated(Modulations::MODE_AM);
-}
-
-void DockRxOpt::modeNFMShortcut() {
-    on_modeSelector_activated(Modulations::MODE_NFM);
-}
-
-void DockRxOpt::modeWFMmonoShortcut() {
-    on_modeSelector_activated(Modulations::MODE_WFM_MONO);
-}
-
-void DockRxOpt::modeWFMstereoShortcut() {
-    on_modeSelector_activated(Modulations::MODE_WFM_STEREO);
-}
-
-void DockRxOpt::modeLSBShortcut() {
-    on_modeSelector_activated(Modulations::MODE_LSB);
-}
-
-void DockRxOpt::modeUSBShortcut() {
-    on_modeSelector_activated(Modulations::MODE_USB);
-}
-
-void DockRxOpt::modeCWLShortcut() {
-    on_modeSelector_activated(Modulations::MODE_CWL);
-}
-
-void DockRxOpt::modeCWUShortcut() {
-    on_modeSelector_activated(Modulations::MODE_CWU);
-}
-
-void DockRxOpt::modeWFMoirtShortcut() {
-    on_modeSelector_activated(Modulations::MODE_WFM_STEREO_OIRT);
-}
-
-void DockRxOpt::modeAMsyncShortcut() {
-    on_modeSelector_activated(Modulations::MODE_AM_SYNC);
-}
-
-void DockRxOpt::filterNarrowShortcut() {
-    setCurrentFilter(FILTER_PRESET_NARROW);
-    on_filterCombo_activated(FILTER_PRESET_NARROW);
-}
-
-void DockRxOpt::filterNormalShortcut() {
-    setCurrentFilter(FILTER_PRESET_NORMAL);
-    on_filterCombo_activated(FILTER_PRESET_NORMAL);
-}
-
-void DockRxOpt::filterWideShortcut() {
-    setCurrentFilter(FILTER_PRESET_WIDE);
-    on_filterCombo_activated(FILTER_PRESET_WIDE);
 }
