@@ -103,8 +103,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->freqCtrl->setup(0, 0, 9999e6, 1, FCTL_UNIT_NONE);
     ui->freqCtrl->setFrequency(144500000);
 
-    d_filter_shape = Modulations::FILTER_SHAPE_NORMAL;
-
     /* create receiver object */
     rx = new receiver("", "", 1);
     rx->set_rf_freq(144500000.0);
@@ -262,6 +260,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
         if(*it)
             (*it)->finalize();
 
+    #ifndef ENABLE_RNNOISE
+        getWidget(C_NB3_ON)->setDisabled(true);
+        getWidget(C_NB3_GAIN)->setDisabled(true);
+    #endif
     set_observer(C_RDS_ON, &MainWindow::rdsOnObserver);
     set_observer(C_RDS_PI, &MainWindow::rdsPIObserver);
     set_observer(C_RDS_PS, &MainWindow::rdsPSObserver);
@@ -271,6 +273,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_AUDIO_REC_COPY, &MainWindow::audioRecSettingsCopyObserver);
     set_observer(C_AUDIO_REC, &MainWindow::audioRecObserver);
     set_observer(C_AUDIO_REC_FILENAME, &MainWindow::audioRecFilenameObserver);
+    set_observer(C_SQUELCH_LEVEL, &MainWindow::sqlLevelObserver);
+    set_observer(C_MODE, &MainWindow::modeObserver);
+    set_observer(C_MODE_CHANGED, &MainWindow::modeChangeObserver);
+    set_observer(C_FILTER_WIDTH, &MainWindow::filterWidthObserver);
+    set_observer(C_VFO_FREQUENCY, &MainWindow::frequencyObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -296,17 +303,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(invertScrollingChanged(bool)), this, SLOT(setInvertScrolling(bool)));
     connect(uiDockInputCtl, SIGNAL(autoBookmarksChanged(bool)), this, SLOT(setAutoBookmarks(bool)));
     connect(uiDockInputCtl, SIGNAL(channelizerChanged(int)), this, SLOT(setChanelizer(int)));
-    connect(uiDockRxOpt, SIGNAL(rxFreqChanged(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
-    connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
-    connect(uiDockRxOpt, SIGNAL(demodSelected(Modulations::idx)), remote, SLOT(setMode(Modulations::idx)));
-    connect(uiDockRxOpt, SIGNAL(noiseBlankerChanged(int,bool)), this, SLOT(setNoiseBlanker(int,bool)));
-    connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), this, SLOT(setSqlLevel(double)));
-    connect(uiDockRxOpt, SIGNAL(sqlAutoClicked(bool)), this, SLOT(setSqlLevelAuto(bool)));
-    connect(uiDockRxOpt, SIGNAL(sqlResetAllClicked()), this, SLOT(resetSqlLevelGlobal()));
-    connect(uiDockRxOpt, SIGNAL(freqLock(bool, bool)), this, SLOT(setFreqLock(bool, bool)));
-//    connect(uiDockAudio, SIGNAL(audioGainChanged(float)), remote, SLOT(setAudioGain(float)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
     connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
@@ -367,15 +365,20 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
     connect(remote, SIGNAL(newLnbLo(double)), uiDockInputCtl, SLOT(setLnbLo(double)));
     connect(remote, SIGNAL(newLnbLo(double)), this, SLOT(setLnbLo(double)));
-    connect(remote, SIGNAL(newMode(Modulations::idx)), this, SLOT(selectDemod(Modulations::idx)));
-    connect(remote, SIGNAL(newMode(Modulations::idx)), uiDockRxOpt, SLOT(setCurrentDemod(Modulations::idx)));
-    connect(remote, SIGNAL(newSquelchLevel(double)), this, SLOT(setSqlLevel(double)));
-    connect(remote, SIGNAL(newSquelchLevel(double)), uiDockRxOpt, SLOT(setSquelchLevel(double)));
-    connect(uiDockRxOpt, SIGNAL(sqlLevelChanged(double)), remote, SLOT(setSquelchLevel(double)));
+    connect(remote, &RemoteControl::newMode, [=](Modulations::idx v)
+        {
+            set_gui(C_MODE, int(v), true);
+            changed_gui(C_MODE, int(v));
+        });
     connect(remote, &RemoteControl::newAudioGain, [=](float v)
         {
             set_gui(C_AGC_MAN_GAIN, v, true);
             changed_gui(C_AGC_MAN_GAIN, v);
+        });
+    connect(remote, &RemoteControl::newSquelchLevel, [=](double v)
+        {
+            set_gui(C_SQUELCH_LEVEL, v, true);
+            changed_gui(C_SQUELCH_LEVEL, v);
         });
     connect(remote, &RemoteControl::startAudioRecorderEvent, [=]()
         {
@@ -387,7 +390,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
             set_gui(C_AUDIO_REC, false, true);
             changed_gui(C_AUDIO_REC, false);
         });
-    connect(ui->plotter, SIGNAL(newFilterFreq(int, int)), remote, SLOT(setPassband(int, int)));
     connect(remote, SIGNAL(newPassband(int)), this, SLOT(setPassband(int)));
     connect(remote, SIGNAL(gainChanged(QString, double)), uiDockInputCtl, SLOT(setGain(QString,double)));
     connect(remote, SIGNAL(dspChanged(bool)), this, SLOT(on_actionDSP_triggered(bool)));
@@ -1035,40 +1037,8 @@ void MainWindow::storeSession()
             m_settings->remove("");
             rx->fake_select_rx(i);
 
-            m_settings->setValue("demod", Modulations::GetStringForModulationIndex(rx->get_demod()));
-
             qint64 offs = rx->get_filter_offset();
                 m_settings->setValue("offset", offs);
-
-            if (rx->get_freq_lock())
-                m_settings->setValue("freq_locked", true);
-            else
-                m_settings->remove("freq_locked");
-
-            double sql_lvl = rx->get_sql_level();
-            if (sql_lvl > -150.0)
-                m_settings->setValue("sql_level", sql_lvl);
-            else
-                m_settings->remove("sql_level");
-
-            //noise blanker
-            for (int j = 1; j < RECEIVER_NB_COUNT + 1; j++)
-            {
-                if(rx->get_nb_on(j))
-                    m_settings->setValue(QString("nb%1on").arg(j), true);
-                else
-                    m_settings->remove(QString("nb%1on").arg(j));
-            }
-            //filter
-            int     flo, fhi;
-            receiver::filter_shape fdw;
-            rx->get_filter(flo, fhi, fdw);
-            if (flo != fhi)
-            {
-                m_settings->setValue("filter_low_cut", flo);
-                m_settings->setValue("filter_high_cut", fhi);
-                m_settings->setValue("filter_shape", fdw);
-            }
 
             if (rx_count <= 1)
             {
@@ -1135,10 +1105,10 @@ void MainWindow::storeSession()
 void MainWindow::readRXSettings(int ver, double actual_rate)
 {
     bool conv_ok;
-    int int_val;
-    double  dbl_val;
+    int int_val = 0;
     int i = 0;
     qint64 offs = 0;
+    c_def::v_union v;
     rxSpinBox->setMaximum(0);
     while (rx->get_rx_count() > 1)
         rx->delete_rx();
@@ -1147,55 +1117,8 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
     QString grp = (ver >= 4) ? QString("rx%1").arg(i) : "receiver";
     while (1)
     {
-        m_settings->beginGroup(grp);
 
-        bool isLocked = m_settings->value("freq_locked", false).toBool();
-        rx->set_freq_lock(isLocked);
 
-        offs = m_settings->value("offset", 0).toInt(&conv_ok);
-        if (conv_ok)
-        {
-            if(!isLocked || ver < 4)
-                if(std::abs(offs) > actual_rate / 2)
-                    offs = (offs > 0) ? (actual_rate / 2) : (-actual_rate / 2);
-            rx->set_filter_offset(offs);
-        }
-
-        int_val = Modulations::MODE_AM;
-        if (m_settings->contains("demod")) {
-            if (ver >= 3) {
-                int_val = Modulations::GetEnumForModulationString(m_settings->value("demod").toString());
-            } else {
-                int_val = Modulations::ConvertFromOld(m_settings->value("demod").toInt(&conv_ok));
-            }
-        }
-        rx->set_demod(Modulations::idx(int_val));
-
-        dbl_val = m_settings->value("sql_level", 1.0).toDouble(&conv_ok);
-        if (conv_ok && dbl_val < 1.0)
-            rx->set_sql_level(dbl_val);
-
-        for (int j = 1; j < RECEIVER_NB_COUNT + 1; j++)
-        {
-            rx->set_nb_on(j, m_settings->value(QString("nb%1on").arg(j), false).toBool());
-        }
-
-        bool flo_ok = false;
-        bool fhi_ok = false;
-        int flo = m_settings->value("filter_low_cut", 0).toInt(&flo_ok);
-        int fhi = m_settings->value("filter_high_cut", 0).toInt(&fhi_ok);
-        int_val = m_settings->value("filter_shape", Modulations::FILTER_SHAPE_NORMAL).toInt(&conv_ok);
-
-        if (flo != fhi)
-            rx->set_filter(flo, fhi, receiver::filter_shape(int_val));
-
-        if (ver < 4)
-        {
-            m_settings->endGroup();
-            m_settings->beginGroup("audio");
-        }
-
-        m_settings->endGroup();
         auto defs=c_def::all();
         for(int j=0;j<C_COUNT;j++)
         {
@@ -1204,7 +1127,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
                 continue;
             if((def.scope()==S_VFO)&&(def.config_key()!=""))
             {
-                c_def::v_union v(0);
                 const c_id id=c_id(j);
                 if(ver < 4)
                     m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
@@ -1215,6 +1137,18 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
                 rx->set_value(id,v);
             }
         }
+        m_settings->beginGroup(grp);
+        offs = m_settings->value("offset", 0).toInt(&conv_ok);
+        get_gui(C_FREQ_LOCK,v);
+        if (conv_ok)
+        {
+            if(!bool(v) || ver < 4)
+                if(std::abs(offs) > actual_rate / 2)
+                    offs = (offs > 0) ? (actual_rate / 2) : (-actual_rate / 2);
+            rx->set_filter_offset(offs);
+        }
+        m_settings->endGroup();
+
         ui->plotter->addVfo(rx->get_current_vfo());
         i++;
         if (ver < 4)
@@ -1384,8 +1318,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     if(rx->get_current() == 0)
         uiDockProbe->setCenterOffset(center_freq, new_offset);
     ui->plotter->setFilterOffset(new_offset);
-    uiDockRxOpt->setRxFreq(rx_freq);
-    uiDockRxOpt->setHwFreq(d_hw_freq);
+    set_gui(C_VFO_FREQUENCY, rx_freq * 1e-3);
     uiDockRxOpt->setFilterOffset(new_offset);
     ui->freqCtrl->setFrequency(rx_freq);
     uiDockBookmarks->setNewFrequency(rx_freq);
@@ -1457,11 +1390,12 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
                 int n = rx->add_rx();
                 if (n > 0)
                 {
+                    c_def::v_union old_sql;
                     rxSpinBox->setMaximum(rx->get_rx_count() - 1);
                     rx->set_demod(bm.get_demod());
                     // preserve squelch level, force locked state
                     auto old_vfo = rx->get_current_vfo();
-                    auto old_sql = old_vfo->get_sql_level();
+                    old_vfo->get_sql_level(old_sql);
                     old_vfo->restore_settings(bm, false);
                     old_vfo->set_sql_level(old_sql);
                     old_vfo->set_offset(bm.frequency - center_freq);
@@ -1669,117 +1603,6 @@ void MainWindow::setAutoBookmarks(bool enabled)
 }
 
 /**
- * @brief Select new demodulator.
- * @param demod New demodulator.
- */
-void MainWindow::selectDemod(const QString& strModulation)
-{
-    Modulations::idx iDemodIndex;
-
-    iDemodIndex = Modulations::GetEnumForModulationString(strModulation);
-    qDebug() << "selectDemod(str):" << strModulation << "-> IDX:" << iDemodIndex;
-
-    return selectDemod(iDemodIndex);
-}
-
-/**
- * @brief Select new demodulator.
- * @param demod New demodulator index.
- *
- * This slot basically maps the index of the mode selector to receiver::demod
- * and configures the default channel filter.
- *
- */
-void MainWindow::selectDemod(Modulations::idx mode_idx)
-{
-    int     filter_preset = uiDockRxOpt->currentFilter();
-    int     flo=0, fhi=0;
-    Modulations::filter_shape filter_shape;
-
-    // validate mode_idx
-    if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_COUNT)
-    {
-        qDebug() << "Invalid mode index:" << mode_idx;
-        mode_idx = Modulations::MODE_OFF;
-    }
-    qDebug() << "New mode index:" << mode_idx;
-
-    d_filter_shape = (receiver::filter_shape)uiDockRxOpt->currentFilterShape();
-    rx->get_filter(flo, fhi, filter_shape);
-    if (filter_preset == FILTER_PRESET_USER)
-    {
-        if (((rx->get_demod() == Modulations::MODE_USB) &&
-            (mode_idx == Modulations::MODE_LSB))
-            ||
-           ((rx->get_demod() == Modulations::MODE_LSB) &&
-             (mode_idx == Modulations::MODE_USB)))
-        {
-            std::swap(flo, fhi);
-            flo = -flo;
-            fhi = -fhi;
-            filter_preset = FILTER_PRESET_USER;
-        }
-        Modulations::UpdateFilterRange(mode_idx, flo, fhi);
-    }else
-        Modulations::GetFilterPreset(mode_idx, filter_preset, flo, fhi);
-
-    if (mode_idx != rx->get_demod())
-    {
-        if ((mode_idx >Modulations::MODE_OFF) && (mode_idx <Modulations::MODE_COUNT))
-            rx->set_demod(mode_idx);
-
-        switch (mode_idx) {
-        case Modulations::MODE_WFM_MONO:
-        case Modulations::MODE_WFM_STEREO:
-        case Modulations::MODE_WFM_STEREO_OIRT:
-            /* Broadcast FM */
-            uiDockRDS->setEnabled();
-            break;
-
-        default:
-            uiDockRDS->setDisabled();
-            rx->set_value(C_RDS_ON, false);
-            set_gui(C_RDS_ON, false);
-       }
-        switch (mode_idx) {
-
-        case Modulations::MODE_OFF:
-            /* Spectrum analyzer only */
-            //TODO: check if demod has audio/debug stream output???
-            rx->set_value(C_AUDIO_REC, false);
-            set_gui(C_AUDIO_REC, false);
-            //TODO:check for NFM here
-            if (dec_afsk1200 != nullptr)
-            {
-                dec_afsk1200->close();
-            }
-            rx->set_demod(mode_idx);
-            break;
-        case Modulations::MODE_AM:
-        case Modulations::MODE_AM_SYNC:
-        case Modulations::MODE_USB:
-        case Modulations::MODE_LSB:
-        case Modulations::MODE_CWL:
-        case Modulations::MODE_CWU:
-        case Modulations::MODE_NFM:
-        case Modulations::MODE_NFMPLL:
-        case Modulations::MODE_WFM_MONO:
-        case Modulations::MODE_WFM_STEREO:
-        case Modulations::MODE_WFM_STEREO_OIRT:
-            break;
-
-        default:
-            qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
-            flo = -5000;
-            fhi = 5000;
-            break;
-        }
-    }
-    rx->set_filter(flo, fhi, d_filter_shape);
-    updateDemodGUIRanges();
-}
-
-/**
  * @brief Update GUI after demodulator selection.
  *
  * Update plotter demod ranges
@@ -1790,14 +1613,13 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
  * Update remote settings too
  *
  */
-void MainWindow::updateDemodGUIRanges()
+void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
 {
     int click_res=100;
     int     flo=0, fhi=0, loMin, loMax, hiMin,hiMax;
     int     audio_rate = rx->get_audio_rate();
     Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
-    Modulations::idx mode_idx = rx->get_demod();
     Modulations::GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
     ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, hiMax == -loMin);
     switch (mode_idx) {
@@ -1874,14 +1696,12 @@ void MainWindow::updateDemodGUIRanges()
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
     ui->plotter->setClickResolution(click_res);
     ui->plotter->setFilterClickResolution(click_res);
-    uiDockRxOpt->setFilterParam(flo, fhi);
 
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
 
     d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
-    uiDockRxOpt->setCurrentDemod(mode_idx);
     //Update demod-specific GUI widgets to keep shared options in sync
     auto defs=c_def::all();
     for(int j=0;j<C_COUNT;j++)
@@ -1897,53 +1717,96 @@ void MainWindow::updateDemodGUIRanges()
             set_gui(id, v, true);
         }
     }
-    
+    d_have_audio = (mode_idx != Modulations::MODE_OFF);
+    switch (mode_idx)
+    {
+        case Modulations::MODE_WFM_MONO:
+        case Modulations::MODE_WFM_STEREO:
+        case Modulations::MODE_WFM_STEREO_OIRT:
+            /* Broadcast FM */
+            uiDockRDS->setEnabled();
+            break;
+        default:
+            uiDockRDS->setDisabled();
+            rx->set_value(C_RDS_ON, false);
+            set_gui(C_RDS_ON, false);
+    }
 }
 
-/**
- * @brief Noise blanker configuration changed.
- * @param nb1 Noise blanker 1 ON/OFF.
- * @param nb2 Noise blanker 2 ON/OFF.
- */
-void MainWindow::setNoiseBlanker(int nbid, bool on)
+void MainWindow::modeObserver(const c_id id, const c_def::v_union &value)
 {
-    qDebug() << "Noise blanker NB:" << nbid << " ON:" << on ;
+    Modulations::idx mode_idx = Modulations::idx(int(value));
+    c_def::v_union tmp;
+    rx->get_value(C_MODE, tmp);
+    const Modulations::idx mode_old = Modulations::idx(int(tmp));
+    if(mode_old != mode_idx)
+    {
 
-    rx->set_nb_on(nbid, on);
+        switch (mode_idx)
+        {
+            case Modulations::MODE_OFF:
+                /* Spectrum analyzer only */
+                //TODO: check if demod has audio/debug stream output???
+                rx->set_value(C_AUDIO_REC, false);
+                set_gui(C_AUDIO_REC, false);
+                //TODO:check for NFM here
+                if (dec_afsk1200 != nullptr)
+                {
+                    dec_afsk1200->close();
+                }
+                break;
+            case Modulations::MODE_AM:
+            case Modulations::MODE_AM_SYNC:
+            case Modulations::MODE_USB:
+            case Modulations::MODE_LSB:
+            case Modulations::MODE_CWL:
+            case Modulations::MODE_CWU:
+            case Modulations::MODE_NFM:
+            case Modulations::MODE_NFMPLL:
+            case Modulations::MODE_WFM_MONO:
+            case Modulations::MODE_WFM_STEREO:
+            case Modulations::MODE_WFM_STEREO_OIRT:
+                break;
+            default:
+                qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
+                break;
+        }
+    }
+}
+
+void MainWindow::modeChangeObserver(const c_id id, const c_def::v_union &value)
+{
+    c_def::v_union tmp;
+    rx->get_value(C_MODE, tmp);
+    const Modulations::idx mode_idx = Modulations::idx(int(tmp));
+    updateDemodGUIRanges(mode_idx);
+}
+
+void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
+{
+    int     flo=0, fhi=0;
+    Modulations::filter_shape filter_shape;
+    rx->get_filter(flo, fhi, filter_shape);
+    if(Modulations::GetFilterPreset(rx->get_demod(), value, flo, fhi))
+    {
+        rx->set_filter(flo, fhi, filter_shape);
+        ui->plotter->setHiLowCutFrequencies(flo, fhi);
+    }
+}
+
+void MainWindow::frequencyObserver(const c_id id, const c_def::v_union &value)
+{
+    setNewFrequency(std::llround(double(value)*1e3));
 }
 
 /**
  * @brief Squelch level changed.
  * @param level_db The new squelch level in dBFS.
  */
-void MainWindow::setSqlLevel(double level_db)
+void MainWindow::sqlLevelObserver(const c_id id, const c_def::v_union &value)
 {
-    rx->set_sql_level(level_db);
-    ui->sMeter->setSqlLevel(level_db);
-}
-
-/**
- * @brief Squelch level auto clicked.
- * @return The new squelch level.
- */
-double MainWindow::setSqlLevelAuto(bool global)
-{
-    if  (global)
-        rx->set_sql_level(3.0, true, true);
-    double level = (double)rx->get_signal_pwr() + 3.0;
-    if (level > -10.0)  // avoid 0 dBFS
-        level = uiDockRxOpt->getSqlLevel();
-
-    setSqlLevel(level);
-    return level;
-}
-
-/**
- * @brief Squelch level reset all clicked.
- */
-void MainWindow::resetSqlLevelGlobal()
-{
-    rx->set_sql_level(-150.0, true, false);
+    ui->sMeter->setSqlLevel(value);
+    remote->setSquelchLevel(value);
 }
 
 /** Signal strength meter timeout. */
@@ -3011,14 +2874,19 @@ void MainWindow::on_plotter_newDemodFreqAdd(qint64 freq, qint64 delta)
 /* CPlotter::NewfilterFreq() is emitted or bookmark activated */
 void MainWindow::on_plotter_newFilterFreq(int low, int high)
 {   /* parameter correctness will be checked in receiver class */
-    receiver::status retcode = rx->set_filter((double) low, (double) high, d_filter_shape);
+    c_def::v_union filter_shape;
+    rx->get_value(C_FILTER_SHAPE, filter_shape);
+    rx->set_value(C_FILTER_LO, low);
+    rx->set_value(C_FILTER_HI, high);
+    rx->set_value(C_FILTER_SHAPE, filter_shape);
+    set_gui(C_FILTER_LO, low, true);
+    set_gui(C_FILTER_HI, high, true);
 
     /* Update filter range of plotter, in case this slot is triggered by
      * switching to a bookmark */
     ui->plotter->setHiLowCutFrequencies(low, high);
+    remote->setPassband(low, high);
 
-    if (retcode == receiver::STATUS_OK)
-        uiDockRxOpt->setFilterParam(low, high);
 }
 
 /** Full screen button or menu item toggled. */
@@ -3167,12 +3035,13 @@ void MainWindow::dockAudioVisibilityChanged(bool visible)
 
 void MainWindow::onBookmarkActivated(BookmarkInfo & bm)
 {
+    c_def::v_union old_sql;
     setNewFrequency(bm.frequency);
-    selectDemod(bm.get_demod());
+    rx->set_value(C_MODE, bm.get_demod());
     // preserve offset, squelch level, force locked state
     auto old_vfo = rx->get_current_vfo();
     auto old_offset = old_vfo->get_offset();
-    auto old_sql = old_vfo->get_sql_level();
+    old_vfo->get_sql_level(old_sql);
     rx->get_current_vfo()->restore_settings(bm, false);
     old_vfo->set_sql_level(old_sql);
     old_vfo->set_offset(old_offset);
@@ -3192,8 +3061,11 @@ void MainWindow::onBookmarkActivatedAddDemod(BookmarkInfo & bm)
 void MainWindow::setPassband(int bandwidth)
 {
     /* Check if filter is symmetric or not by checking the presets */
-    auto mode = uiDockRxOpt->currentDemod();
-    auto preset = uiDockRxOpt->currentFilter();
+    c_def::v_union tmp;
+    rx->get_value(C_MODE, tmp);
+    Modulations::idx mode = Modulations::idx(int(tmp));
+    get_gui(C_FILTER_WIDTH, tmp);
+    int preset = tmp;
 
     int lo, hi;
     Modulations::GetFilterPreset(mode, preset, lo, hi);
@@ -3212,14 +3084,7 @@ void MainWindow::setPassband(int bandwidth)
         lo = hi - bandwidth;
     }
 
-    remote->setPassband(lo, hi);
-
     on_plotter_newFilterFreq(lo, hi);
-}
-
-void MainWindow::setFreqLock(bool lock, bool all)
-{
-    rx->set_freq_lock(lock, all);
 }
 
 void MainWindow::setChanelizer(int n)
@@ -3435,7 +3300,7 @@ void MainWindow::on_actionAddBookmark_triggered()
         //FIXME: implement Bookmarks::replace(&BookmarkInfo, &BookmarkInfo) method
         if (bookmarkFound.size())
         {
-            info.set_freq_lock(bookmarkFound.first().get_freq_lock());
+            info.set_autostart(bookmarkFound.first().get_autostart());
             Bookmarks::Get().remove(bookmarkFound.first());
         }
         else
@@ -3493,30 +3358,16 @@ void MainWindow::loadRxToGUI()
     auto new_offset = rx->get_filter_offset();
     auto rx_freq = (double)(rf_freq + d_lnb_lo + new_offset);
 
-    int low, high;
-    receiver::filter_shape fs;
     auto mode_idx = rx->get_demod();
 
     ui->plotter->setFilterOffset(new_offset);
-    uiDockRxOpt->setRxFreq(rx_freq);
-    uiDockRxOpt->setHwFreq(d_hw_freq);
+    set_gui(C_VFO_FREQUENCY, rx_freq * 1e-3);
     uiDockRxOpt->setFilterOffset(new_offset);
 
     ui->freqCtrl->setFrequency(rx_freq);
     uiDockBookmarks->setNewFrequency(rx_freq);
     remote->setNewFrequency(rx_freq);
     uiDockAudio->setRxFrequency(rx_freq);
-
-    rx->get_filter(low, high, fs);
-    updateDemodGUIRanges();
-    uiDockRxOpt->setFreqLock(rx->get_freq_lock());
-    uiDockRxOpt->setCurrentFilterShape(fs);
-    uiDockRxOpt->setFilterParam(low, high);
-
-    uiDockRxOpt->setSquelchLevel(rx->get_sql_level());
-
-    for (int k = 1; k < RECEIVER_NB_COUNT + 1; k++)
-        uiDockRxOpt->setNoiseBlanker(k,rx->get_nb_on(k));
 
     auto defs=c_def::all();
     for(int j=0;j<C_COUNT;j++)
@@ -3533,17 +3384,7 @@ void MainWindow::loadRxToGUI()
         }
     }
 
-    d_have_audio = (mode_idx != Modulations::MODE_OFF);
-    switch (mode_idx)
-    {
-    case Modulations::MODE_WFM_MONO:
-    case Modulations::MODE_WFM_STEREO:
-    case Modulations::MODE_WFM_STEREO_OIRT:
-        uiDockRDS->setEnabled();
-        break;
-    default:
-        uiDockRDS->setDisabled();
-    }
+    updateDemodGUIRanges(mode_idx);
 }
 
 void MainWindow::addClusterSpot()

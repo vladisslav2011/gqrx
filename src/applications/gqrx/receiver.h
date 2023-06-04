@@ -219,6 +219,7 @@ public:
     status      set_rf_freq(double freq_hz);
     double      get_rf_freq(void);
     status      get_rf_range(double *start, double *stop, double *step);
+    bool        get_hw_freq_label(c_def::v_union &) const;
 
     std::vector<std::string>    get_gain_names();
     status      get_gain_range(std::string &name, double *start, double *stop,
@@ -241,8 +242,7 @@ public:
     status      set_filter_offset(double offset_hz);
     status      set_filter_offset(int rx_index, double offset_hz);
     double      get_filter_offset(void) const;
-    void        set_freq_lock(bool on, bool all = false);
-    bool        get_freq_lock();
+    bool        set_freq_lock_all(const c_def::v_union & v);
 
     status      set_filter(int low, int high, filter_shape shape);
     status      get_filter(int &low, int &high, filter_shape &shape);
@@ -270,16 +270,10 @@ public:
     void        set_chan_filter_param(float n);
     void        set_channelizer(int n);
 
-    /* Noise blanker */
-    status      set_nb_on(int nbid, bool on);
-    bool        get_nb_on(int nbid);
-
     /* Squelch parameter */
-    status      set_sql_level(double level_db);
-    status      set_sql_level(double level_offset, bool global, bool relative);
-    double      get_sql_level();
-    status      set_sql_alpha(double alpha);
-    double      get_sql_alpha();
+    bool        set_sql_auto(const c_def::v_union &);
+    bool        set_sql_auto_global(const c_def::v_union &);
+    bool        reset_sql_global(const c_def::v_union &);
 
     float       get_agc_gain();
 
@@ -291,9 +285,12 @@ public:
     rx_chain    get_rxc(Modulations::idx demod) const;
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
+    void        set_demod_and_update_filter(receiver_base_cf_sptr old_rx, receiver_base_cf_sptr new_rx, Modulations::idx demod);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
     status      reconnect_all(file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
+    bool        set_mode(const c_def::v_union &);
+    bool        get_mode(c_def::v_union &) const;
 
     /* Audio parameters */
     status      set_audio_rate(int rate);
