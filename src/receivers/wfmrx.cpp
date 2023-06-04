@@ -97,26 +97,35 @@ void wfmrx::set_audio_rate(int audio_rate)
     }
 }
 
-void wfmrx::set_filter(int low, int high, int tw)
+void wfmrx::set_filter(int low, int high, Modulations::filter_shape shape)
 {
-    receiver_base_cf::set_filter(low, high, tw);
+    receiver_base_cf::set_filter(low, high, shape);
     if(d_demod!=Modulations::MODE_OFF)
-        filter->set_param(double(low), double(high), double(tw));
+        filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
 }
 
-void wfmrx::set_demod(Modulations::idx demod)
+bool wfmrx::set_filter_shape(const c_def::v_union & v)
 {
-    /* check if new demodulator selection is valid */
-    if ((demod < Modulations::MODE_WFM_MONO) || (demod > Modulations::MODE_WFM_STEREO_OIRT))
-        return;
+    receiver_base_cf::set_filter_shape(v);
+    if(d_demod!=Modulations::MODE_OFF)
+        filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
+    return true;
+}
 
-    if (demod == receiver_base_cf::get_demod()) {
+bool wfmrx::set_demod(const c_def::v_union & v)
+{
+    Modulations::idx new_demod = Modulations::idx(int(v));
+    /* check if new demodulator selection is valid */
+    if ((new_demod < Modulations::MODE_WFM_MONO) || (new_demod > Modulations::MODE_WFM_STEREO_OIRT))
+        return true;
+
+    if (new_demod == d_demod) {
         /* nothing to do */
-        return;
+        return true;
     }
 
     /* disconnect current demodulator */
-    switch (receiver_base_cf::get_demod()) {
+    switch (d_demod) {
 
     case Modulations::MODE_WFM_MONO:
     default:
@@ -138,7 +147,7 @@ void wfmrx::set_demod(Modulations::idx demod)
         break;
     }
 
-    switch (demod) {
+    switch (new_demod) {
 
     case Modulations::MODE_WFM_MONO:
     default:
@@ -162,8 +171,7 @@ void wfmrx::set_demod(Modulations::idx demod)
         stereo_oirt->set_audio_rate(d_audio_rate);
         break;
     }
-    receiver_base_cf::set_demod(demod);
-
+    return receiver_base_cf::set_demod(v);
 }
 
 bool wfmrx::set_wfm_deemph(const c_def::v_union & v)

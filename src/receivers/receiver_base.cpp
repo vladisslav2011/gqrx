@@ -84,9 +84,9 @@ receiver_base_cf::~receiver_base_cf()
         wav_sink->set_rec_event_handler(nullptr);
 }
 
-void receiver_base_cf::set_demod(Modulations::idx demod)
+bool receiver_base_cf::set_demod(const c_def::v_union & v)
 {
-    if ((get_demod() == Modulations::MODE_OFF) && (demod != Modulations::MODE_OFF))
+    if ((d_demod == Modulations::MODE_OFF) && (int(v) != Modulations::MODE_OFF))
     {
         qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
         lock();
@@ -94,7 +94,7 @@ void receiver_base_cf::set_demod(Modulations::idx demod)
         iq_resamp->set_rate(d_pref_quad_rate/d_quad_rate);
         unlock();
     }
-    vfo_s::set_demod(demod);
+    return vfo_s::set_demod(v);
 }
 
 void receiver_base_cf::set_quad_rate(double quad_rate)
@@ -105,7 +105,7 @@ void receiver_base_cf::set_quad_rate(double quad_rate)
         d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
         d_quad_rate = d_decim_rate / d_ddc_decim;
         //avoid triggering https://github.com/gnuradio/gnuradio/issues/5436
-        if (get_demod() != Modulations::MODE_OFF)
+        if (d_demod != Modulations::MODE_OFF)
         {
             qDebug() << "Changing RX quad rate:"  << d_decim_rate << "->" << d_quad_rate;
             lock();
@@ -209,16 +209,19 @@ bool receiver_base_cf::has_nb()
     return false;
 }
 
-void receiver_base_cf::set_sql_level(double level_db)
+bool receiver_base_cf::set_sql_level(const c_def::v_union & v)
 {
-    sql->set_threshold(level_db);
-    vfo_s::set_sql_level(level_db);
+    c_def::v_union level = std::min(float(c_def::all()[C_SQUELCH_LEVEL].max()),float(v));
+    sql->set_threshold(level);
+    if(std::abs(float(level) - float(v)) > 0.05)
+        changed_value(C_SQUELCH_LEVEL, d_index, level);
+    return vfo_s::set_sql_level(level);
 }
 
-void receiver_base_cf::set_sql_alpha(double alpha)
+bool receiver_base_cf::set_sql_alpha(const c_def::v_union & v)
 {
-    sql->set_alpha(alpha);
-    vfo_s::set_sql_alpha(alpha);
+    sql->set_alpha(v);
+    return vfo_s::set_sql_alpha(v);
 }
 
 bool receiver_base_cf::set_agc_on(const c_def::v_union & v)
