@@ -34,6 +34,31 @@ enum c_id
 {
     C_TEST=0,
     
+//    C_AUTOSTART,
+    C_HW_FREQ_LABEL,
+    C_VFO_FREQUENCY,
+    C_FREQ_LOCK,
+    C_FREQ_LOCK_ALL,
+    C_FREQ_UNLOCK_ALL,
+    C_MODE,
+    C_MODE_CHANGED,
+    C_MODE_OPT,
+    C_FILTER_WIDTH,
+    C_FILTER_LO,
+    C_FILTER_HI,
+    C_FILTER_SHAPE,
+    C_AGC_PRESET,
+    C_AGC_OPT,
+    C_SQUELCH_LEVEL,
+    C_SQUELCH_AUTO,
+    C_SQUELCH_RESET,
+    C_SQUELCH_AUTO_GLOBAL,
+    C_SQUELCH_RESET_GLOBAL,
+    C_NB3_ON,
+    C_NB2_ON,
+    C_NB1_ON,
+    C_NB_OPT,
+
     C_AGC_MAN_GAIN_UP,
     C_AGC_MAN_GAIN_DOWN,
     C_AGC_MAN_GAIN,
@@ -520,7 +545,7 @@ struct c_def
     DD(gui_window,window,W_BASE)
     DD(value_scope,scope,S_RX)
     DD(bool,demod_specific,false) //should be hidden if current demod does not match demod member
-    DD(Modulations::grp,demodgroup,Modulations::GRP_OFF)
+    DD(Modulations::grp,demodgroup,Modulations::GRP_COUNT)
     DD(std::string,v3_config_group,"V3_DEFAULT")
     DD(std::string,v4_config_group,"V4_DEFAULT")
     DD(std::string,config_key,"Unnamed")

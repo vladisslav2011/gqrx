@@ -54,6 +54,7 @@ public:
         d_filter_low(-5000),
         d_filter_high(5000),
         d_filter_tw(100),
+        d_filter_shape(Modulations::FILTER_SHAPE_NORMAL),
         d_demod(Modulations::MODE_OFF),
         d_index(-1),
         d_locked(false),
@@ -109,19 +110,26 @@ public:
     /* Filter parameter */
     inline int get_filter_low() const { return d_filter_low;}
     inline int get_filter_high() const { return d_filter_high;}
-    inline int get_filter_tw() const { return d_filter_tw; }
-    inline void get_filter(int &low, int &high, int &tw) const
+    bool         get_filter_low(c_def::v_union & v) const { v=d_filter_low; return true; }
+    bool         get_filter_high(c_def::v_union & v) const { v=d_filter_high; return true; }
+    bool         get_filter_shape(c_def::v_union & v) const { v=d_filter_shape; return true; }
+    inline void get_filter(int &low, int &high, Modulations::filter_shape &shape) const
     {
         low = d_filter_low;
         high = d_filter_high;
-        tw = d_filter_tw;
+        shape = d_filter_shape;
     }
-    inline Modulations::idx get_demod() const { return d_demod; }
+
+    Modulations::idx get_demod() const { return d_demod; }
+
+    bool         get_demod(c_def::v_union & v) const { v=d_demod; return true; }
     inline int get_index() const { return d_index; }
-    inline bool get_freq_lock() const { return d_locked; }
+    bool         get_autostart() const { return d_locked; }
+    bool         get_freq_lock() const { return d_locked; }
+    bool         get_freq_lock(c_def::v_union & v) const { v=d_locked; return true; }
     /* Squelch parameter */
-    inline double get_sql_level() const { return d_level_db; }
-    inline double get_sql_alpha() const { return d_alpha; }
+    bool         get_sql_level(c_def::v_union & v) const { v=d_level_db; return true; }
+    bool         get_sql_alpha(c_def::v_union & v) const { v=d_alpha; return true; }
     /* AGC */
     bool         get_agc_on(c_def::v_union & v) const { v=d_agc_on; return true; }
     bool         get_agc_target_level(c_def::v_union & v) const { v=d_agc_target_level; return true; }
@@ -157,7 +165,9 @@ public:
     /* WFM parameters */
     bool         get_wfm_deemph(c_def::v_union & v) const { v=d_wfm_deemph; return true; }
     /* Noise blanker */
-    bool get_nb_on(int nbid) const;
+    bool         get_nb1_on(c_def::v_union & v) const { v=d_nb_on[0]; return true; }
+    bool         get_nb2_on(c_def::v_union & v) const { v=d_nb_on[1]; return true; }
+    bool         get_nb3_on(c_def::v_union & v) const { v=d_nb_on[2]; return true; }
     bool         get_nb1_threshold(c_def::v_union & v) const { v=d_nb_threshold[0]; return true; }
     bool         get_nb2_threshold(c_def::v_union & v) const { v=d_nb_threshold[1]; return true; }
     bool         get_nb3_gain(c_def::v_union & v) const { v=d_nb_threshold[2]; return true; }
@@ -180,18 +190,19 @@ public:
     //setters
     virtual void set_offset(int offset);
     /* Filter parameter */
-    virtual void set_filter_low(int low);
-    virtual void set_filter_high(int high);
-    virtual void set_filter_tw(int tw);
-    virtual void set_filter(int low, int high, int tw);
+    virtual bool set_filter_low(const c_def::v_union &);
+    virtual bool set_filter_high(const c_def::v_union &);
+    virtual bool set_filter_shape(const c_def::v_union &);
+    virtual void set_filter(int low, int high, Modulations::filter_shape shape);
     virtual void filter_adjust();
 
-    virtual void set_demod(Modulations::idx demod);
+    virtual bool set_demod(const c_def::v_union &);
     virtual void set_index(int index);
-    virtual void set_freq_lock(bool on);
+    virtual void set_autostart(bool v);
+    virtual bool set_freq_lock(const c_def::v_union &);
     /* Squelch parameter */
-    virtual void set_sql_level(double level_db);
-    virtual void set_sql_alpha(double alpha);
+    virtual bool  set_sql_level(const c_def::v_union &);
+    virtual bool  set_sql_alpha(const c_def::v_union &);
     /* AGC */
     virtual bool  set_agc_on(const c_def::v_union &);
     virtual bool  set_agc_target_level(const c_def::v_union &);
@@ -220,7 +231,9 @@ public:
     /* WFM parameters */
     virtual bool  set_wfm_deemph(const c_def::v_union &);
     /* Noise blanker */
-    virtual void set_nb_on(int nbid, bool on);
+    virtual bool set_nb1_on(const c_def::v_union &);
+    virtual bool set_nb2_on(const c_def::v_union &);
+    virtual bool set_nb3_on(const c_def::v_union &);
     virtual bool set_nb1_threshold(const c_def::v_union &);
     virtual bool set_nb2_threshold(const c_def::v_union &);
     virtual bool set_nb3_gain(const c_def::v_union &);
@@ -274,6 +287,7 @@ protected:
     int              d_filter_low;
     int              d_filter_high;
     int              d_filter_tw;
+    Modulations::filter_shape d_filter_shape;
     Modulations::idx d_demod;
     int              d_index;
     bool             d_locked;

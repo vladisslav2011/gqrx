@@ -195,15 +195,11 @@ Bookmarks::Bookmarks()
      m_idx_struct.append({V_STRING,  "Tags",//2
         genSetter(&BookmarkInfo::set_tags), genGetter(&BookmarkInfo::get_tags), genCmp(&BookmarkInfo::get_tags)});
      m_idx_struct.append({V_BOOLEAN, "Autostart",//3
-        genSetter(&BookmarkInfo::set_freq_lock), genGetter(&BookmarkInfo::get_freq_lock), genCmp(&BookmarkInfo::get_freq_lock)});
-     m_idx_struct.append({V_INT,     "Modulation",//4
-        genSetter(&BookmarkInfo::set_demod), genGetter(&BookmarkInfo::get_demod), genCmp(&BookmarkInfo::get_demod)});
-     m_idx_struct.append({V_INT,     "Filter Low",//5
-        genSetter(&BookmarkInfo::set_filter_low), genGetter(&BookmarkInfo::get_filter_low), genCmp(&BookmarkInfo::get_filter_low)});
-     m_idx_struct.append({V_INT,     "Filter High",//6
-        genSetter(&BookmarkInfo::set_filter_high), genGetter(&BookmarkInfo::get_filter_high), genCmp(&BookmarkInfo::get_filter_high)});
-     m_idx_struct.append({V_INT,     "Filter TW",//7
-        genSetter(&BookmarkInfo::set_filter_tw), genGetter(&BookmarkInfo::get_filter_tw), genCmp(&BookmarkInfo::get_filter_tw)});
+        genSetter(&BookmarkInfo::set_autostart), genGetter(&BookmarkInfo::get_autostart), genCmp(&BookmarkInfo::get_autostart)});
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //4 Modulation
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //5 Filter Low
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //6 Filter High
+     m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //7 Filter Shape
 
      m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //8 AGC On
      m_idx_struct.append({V_INT,"",nullptr,nullptr,nullptr}); //9 AGC Target Level
@@ -221,11 +217,9 @@ Bookmarks::Bookmarks()
      m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //20 AM DCR
      m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //21 AM SYNC DCR
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //22 PLL BW
-     m_idx_struct.append({V_BOOLEAN, "NB1 ON",//23
-        genSetterN(&BookmarkInfo::set_nb_on, 1), genGetterN(&BookmarkInfo::get_nb_on, 1), genCmpN(&BookmarkInfo::get_nb_on, 1)});
+     m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //23 NB1 ON
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //24 NB1 Threshold
-     m_idx_struct.append({V_BOOLEAN, "NB2 ON",//25
-        genSetterN(&BookmarkInfo::set_nb_on, 2), genGetterN(&BookmarkInfo::get_nb_on, 2), genCmpN(&BookmarkInfo::get_nb_on, 2)});
+     m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //25 NB2 ON
      m_idx_struct.append({V_DOUBLE,"",nullptr,nullptr,nullptr}); //26 NB2 Threshold
      m_idx_struct.append({V_STRING,"",nullptr,nullptr,nullptr}); // 27 REC DIR
      m_idx_struct.append({V_BOOLEAN,"",nullptr,nullptr,nullptr}); //28 REC SQL Trig
@@ -480,14 +474,14 @@ bool Bookmarks::load()
                 {
                 case Modulations::MODE_LSB:
                 case Modulations::MODE_CWL:
-                    info.set_filter(-100 - bandwidth, -100, bandwidth * 0.2);
+                    info.set_filter(-100 - bandwidth, -100, Modulations::FILTER_SHAPE_NORMAL);
                     break;
                 case Modulations::MODE_USB:
                 case Modulations::MODE_CWU:
-                    info.set_filter(100, 100 + bandwidth, bandwidth * 0.2);
+                    info.set_filter(100, 100 + bandwidth, Modulations::FILTER_SHAPE_NORMAL);
                     break;
                 default:
-                    info.set_filter(-bandwidth / 2, bandwidth / 2, bandwidth * 0.2);
+                    info.set_filter(-bandwidth / 2, bandwidth / 2, Modulations::FILTER_SHAPE_NORMAL);
                 }
                 m_idx_struct[2].fromString( info, row[4].trimmed());
 
@@ -586,7 +580,7 @@ QList<BookmarkInfo> Bookmarks::getBookmarksInRange(qint64 low, qint64 high, bool
     while (lb != ub)
     {
         const BookmarkInfo& info = *lb;
-        if ((!autoAdded || lb->get_freq_lock()) && info.IsActive())
+        if ((!autoAdded || lb->get_autostart()) && info.IsActive())
             found.append(info);
         lb++;
     }
