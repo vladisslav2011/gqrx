@@ -30,37 +30,47 @@ void vfo_s::set_offset(int offset)
     d_offset = offset;
 }
 
-void vfo_s::set_filter_low(int low)
+bool vfo_s::set_filter_low(const c_def::v_union & v)
+{
+    d_filter_low = v;
+    return true;
+}
+
+bool vfo_s::set_filter_high(const c_def::v_union & v)
+{
+    d_filter_high = v;
+    return true;
+}
+
+bool vfo_s::set_filter_shape(const c_def::v_union & v)
+{
+    d_filter_shape = Modulations::filter_shape(int(v));
+    // Allow asymmetric filters (Shift+Wheel)
+    #if 0
+     Modulations::UpdateFilterRange(d_demod, d_filter_low, d_filter_high);
+    #endif
+    d_filter_tw = Modulations::TwFromFilterShape(d_filter_low, d_filter_high, d_filter_shape);
+    return true;
+}
+
+void vfo_s::set_filter(int low, int high, Modulations::filter_shape shape)
 {
     d_filter_low = low;
-}
-
-void vfo_s::set_filter_high(int high)
-{
     d_filter_high = high;
-}
-
-void vfo_s::set_filter_tw(int tw)
-{
-    d_filter_tw = tw;
-}
-
-void vfo_s::set_filter(int low, int high, int tw)
-{
-    d_filter_low = low;
-    d_filter_high = high;
-    d_filter_tw = tw;
+    d_filter_shape = shape;
+    d_filter_tw = Modulations::TwFromFilterShape(low, high, shape);
 }
 
 void vfo_s::filter_adjust()
 {
     Modulations::UpdateFilterRange(d_demod, d_filter_low, d_filter_high);
-    Modulations::UpdateTw(d_filter_low, d_filter_high, d_filter_tw);
+    d_filter_tw = Modulations::TwFromFilterShape(d_filter_low, d_filter_high, d_filter_shape);
 }
 
-void vfo_s::set_demod(Modulations::idx demod)
+bool vfo_s::set_demod(const c_def::v_union & v)
 {
-    d_demod = demod;
+    d_demod = Modulations::idx(int(v));
+    return true;
 }
 
 void vfo_s::set_index(int index)
@@ -68,19 +78,27 @@ void vfo_s::set_index(int index)
     d_index = index;
 }
 
-void vfo_s::set_freq_lock(bool on)
+void vfo_s::set_autostart(bool v)
 {
-    d_locked = on;
+    d_locked = v;
 }
 
-void vfo_s::set_sql_level(double level_db)
+bool vfo_s::set_freq_lock(const c_def::v_union & v)
 {
-    d_level_db = level_db;
+    d_locked = v;
+    return true;
 }
 
-void vfo_s::set_sql_alpha(double alpha)
+bool vfo_s::set_sql_level(const c_def::v_union & v)
 {
-    d_alpha = alpha;
+    d_level_db = v;
+    return true;
+}
+
+bool vfo_s::set_sql_alpha(const c_def::v_union & v)
+{
+    d_alpha = v;
+    return true;
 }
 
 bool vfo_s::get_audio_rec(c_def::v_union &) const
@@ -290,17 +308,22 @@ bool vfo_s::set_wfm_deemph(const c_def::v_union & v)
     return true;
 }
 
-void vfo_s::set_nb_on(int nbid, bool on)
+bool vfo_s::set_nb1_on(const c_def::v_union & v)
 {
-    if (nbid - 1 < RECEIVER_NB_COUNT)
-        d_nb_on[nbid - 1] = on;
+    d_nb_on[0] = v;
+    return true;
 }
 
-bool vfo_s::get_nb_on(int nbid) const
+bool vfo_s::set_nb2_on(const c_def::v_union & v)
 {
-    if (nbid - 1 < RECEIVER_NB_COUNT)
-        return d_nb_on[nbid - 1];
-    return false;
+    d_nb_on[1] = v;
+    return true;
+}
+
+bool vfo_s::set_nb3_on(const c_def::v_union & v)
+{
+    d_nb_on[2] = v;
+    return true;
 }
 
 bool vfo_s::set_nb1_threshold(const c_def::v_union & v)
@@ -389,17 +412,16 @@ bool vfo_s::set_dedicated_audio_sink(const c_def::v_union & v)
 
 void vfo_s::restore_settings(vfo_s& from, bool force)
 {
-    set_freq_lock(from.get_freq_lock());
-    set_demod(from.get_demod());
-    set_sql_level(from.get_sql_level());
-    set_sql_alpha(from.get_sql_alpha());
-
-    set_filter(from.get_filter_low(), from.get_filter_high(), from.get_filter_tw());
-
-    for (int k = 0; k < RECEIVER_NB_COUNT; k++)
-        set_nb_on(k + 1, from.get_nb_on(k + 1));
-
     c_def::v_union v(0);
+
+    from.get_freq_lock(v);set_freq_lock(v);
+    from.get_demod(v);set_demod(v);
+    from.get_sql_level(v);set_sql_level(v);
+    from.get_sql_alpha(v);set_sql_alpha(v);
+
+    from.get_filter_low(v);set_filter_low(v);
+    from.get_filter_high(v);set_filter_high(v);
+    from.get_filter_shape(v);set_filter_shape(v);
 
     from.get_udp_host(v);
     set_udp_host(v);
@@ -439,6 +461,9 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_agc_panning(v);set_agc_panning(v);
     from.get_agc_panning_auto(v);set_agc_panning_auto(v);
 
+    from.get_nb1_on(v);set_nb1_on(v);
+    from.get_nb2_on(v);set_nb2_on(v);
+    from.get_nb3_on(v);set_nb3_on(v);
     from.get_nb1_threshold(v);set_nb1_threshold(v);
     from.get_nb2_threshold(v);set_nb2_threshold(v);
     from.get_nb3_gain(v);set_nb3_gain(v);
@@ -488,6 +513,25 @@ int vfo_s::conf_initializer()
     setters[C_TEST]=&vfo_s::set_test;
     getters[C_TEST]=&vfo_s::get_test;
 
+    setters[C_FREQ_LOCK]=&vfo_s::set_freq_lock;
+    getters[C_FREQ_LOCK]=&vfo_s::get_freq_lock;
+
+    setters[C_FILTER_SHAPE]=&vfo_s::set_filter_shape;
+    getters[C_FILTER_SHAPE]=&vfo_s::get_filter_shape;
+    setters[C_FILTER_LO]=&vfo_s::set_filter_low;
+    getters[C_FILTER_LO]=&vfo_s::get_filter_low;
+    setters[C_FILTER_HI]=&vfo_s::set_filter_high;
+    getters[C_FILTER_HI]=&vfo_s::get_filter_high;
+    setters[C_MODE]=&vfo_s::set_demod;
+    getters[C_MODE]=&vfo_s::get_demod;
+    //Squelch
+    setters[C_SQUELCH_LEVEL]=&vfo_s::set_sql_level;
+    getters[C_SQUELCH_LEVEL]=&vfo_s::get_sql_level;
+    #if 0
+    // Unimplemented
+    setters[C_SQL_ALPHA]=&vfo_s::set_sql_alpha;
+    getters[C_SQL_ALPHA]=&vfo_s::get_sql_alpha;
+    #endif
     //AGC mute
     setters[C_AGC_MUTE]=&vfo_s::set_agc_mute;
     getters[C_AGC_MUTE]=&vfo_s::get_agc_mute;
@@ -544,6 +588,12 @@ int vfo_s::conf_initializer()
     setters[C_AGC_PANNING_AUTO]=&vfo_s::set_agc_panning_auto;
     getters[C_AGC_PANNING_AUTO]=&vfo_s::get_agc_panning_auto;
     // NB parameters
+    setters[C_NB1_ON]=&vfo_s::set_nb1_on;
+    getters[C_NB1_ON]=&vfo_s::get_nb1_on;
+    setters[C_NB2_ON]=&vfo_s::set_nb2_on;
+    getters[C_NB2_ON]=&vfo_s::get_nb2_on;
+    setters[C_NB3_ON]=&vfo_s::set_nb3_on;
+    getters[C_NB3_ON]=&vfo_s::get_nb3_on;
     setters[C_NB1_THR]=&vfo_s::set_nb1_threshold;
     getters[C_NB1_THR]=&vfo_s::get_nb1_threshold;
     setters[C_NB2_THR]=&vfo_s::set_nb2_threshold;

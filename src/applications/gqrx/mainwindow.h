@@ -103,7 +103,6 @@ private:
     bool d_ignore_limits;
     bool d_auto_bookmarks;
 
-    Modulations::filter_shape d_filter_shape;
     std::complex<float>* d_fftData;
     float          *d_realFftData;
     float          *d_iirFftData;
@@ -183,6 +182,11 @@ private:
     void audioRecSettingsCopyObserver(const c_id id, const c_def::v_union &value);
     void audioRecObserver(const c_id id, const c_def::v_union &value);
     void audioRecFilenameObserver(const c_id id, const c_def::v_union &value);
+    void sqlLevelObserver(const c_id id, const c_def::v_union &value);
+    void modeObserver(const c_id id, const c_def::v_union &value);
+    void modeChangeObserver(const c_id id, const c_def::v_union &value);
+    void filterWidthObserver(const c_id id, const c_def::v_union &value);
+    void frequencyObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
     void observer_slot(const c_id id, const c_def::v_union value);
@@ -206,15 +210,8 @@ private slots:
     void setFreqCtrlReset(bool enabled);
     void setInvertScrolling(bool enabled);
     void setAutoBookmarks(bool enabled);
-    void selectDemod(const QString& demod);
-    void selectDemod(Modulations::idx index);
-    void updateDemodGUIRanges();
-    void setNoiseBlanker(int nbid, bool on);
-    void setSqlLevel(double level_db);
-    double setSqlLevelAuto(bool global);
-    void resetSqlLevelGlobal();
+    void updateDemodGUIRanges(const Modulations::idx mode_idx);
     void setPassband(int bandwidth);
-    void setFreqLock(bool lock, bool all);
     void setChanelizer(int n);
 
     /* I/Q playback and recording*/

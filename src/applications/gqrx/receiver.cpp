@@ -359,7 +359,8 @@ void receiver::set_output_device(const std::string device)
     if (d_active > 0)
     {
         try {
-            tb->disconnect(audio_snk);
+            tb->disconnect(mc0, 0, audio_snk, 0);
+            tb->disconnect(mc1, 0, audio_snk, 1);
         } catch(std::exception &x) {
         }
     }
@@ -608,7 +609,7 @@ receiver::status receiver::set_rf_freq(double freq_hz)
     for (auto& rxc : rx)
         rxc->set_center_freq(d_rf_freq);//to generate audio filename
     // FIXME: read back frequency?
-
+    changed_value(C_HW_FREQ_LABEL, d_current, d_rf_freq * 1e-6);
     return STATUS_OK;
 }
 
@@ -651,6 +652,12 @@ receiver::status receiver::get_rf_range(double *start, double *stop, double *ste
     }
 
     return STATUS_ERROR;
+}
+
+bool receiver::get_hw_freq_label(c_def::v_union & v) const
+{
+    v = d_rf_freq * 1e-6;
+    return true;
 }
 
 /** Get the names of available gain stages. */
@@ -722,6 +729,7 @@ int receiver::add_rx()
     }
     if (d_current >= 0)
         background_rx();
+    //TODO: implement virtual receiver_base::sptr receiver_base::copy(int new_index)
     rx.push_back(make_nbrx(d_decim_rate / (d_use_chan ? chan->decim() : 1.0), d_audio_rate));
     int old = d_current;
     d_current = rx.size() - 1;
@@ -916,18 +924,11 @@ double receiver::get_filter_offset(void) const
     return rx[d_current]->get_offset();
 }
 
-void receiver::set_freq_lock(bool on, bool all)
+bool receiver::set_freq_lock_all(const c_def::v_union & v)
 {
-    if (all)
-        for (auto& rxc : rx)
-            rxc->set_freq_lock(on);
-    else
-        rx[d_current]->set_freq_lock(on);
-}
-
-bool receiver::get_freq_lock()
-{
-    return rx[d_current]->get_freq_lock();
+    for (auto& rxc : rx)
+        rxc->set_freq_lock(v);
+    return true;
 }
 
 receiver::status receiver::set_filter(int low, int high, filter_shape shape)
@@ -935,15 +936,13 @@ receiver::status receiver::set_filter(int low, int high, filter_shape shape)
     if ((low >= high) || (std::abs(high-low) < RX_FILTER_MIN_WIDTH))
         return STATUS_ERROR;
 
-    rx[d_current]->set_filter(low, high, Modulations::TwFromFilterShape(low, high, shape));
+    rx[d_current]->set_filter(low, high, shape);
     return STATUS_OK;
 }
 
 receiver::status receiver::get_filter(int &low, int &high, filter_shape &shape)
 {
-    int tw;
-    rx[d_current]->get_filter(low, high, tw);
-    shape = Modulations::FilterShapeFromTw(low, high, tw);
+    rx[d_current]->get_filter(low, high, shape);
     return STATUS_OK;
 }
 
@@ -1127,58 +1126,32 @@ void receiver::configure_channelizer(bool reconnect)
         set_channelizer_int(use_chan);
 }
 
-receiver::status receiver::set_nb_on(int nbid, bool on)
+bool receiver::set_sql_auto(const c_def::v_union & level_offset)
 {
-    rx[d_current]->set_nb_on(nbid, on);
-
-    return STATUS_OK; // FIXME
+    const c_def::v_union new_level(rx[d_current]->get_signal_level() + float(level_offset));
+    rx[d_current]->set_value(C_SQUELCH_LEVEL, new_level);
+    changed_value(C_SQUELCH_LEVEL, d_current, new_level);
+    return true;
 }
 
-bool receiver::get_nb_on(int nbid)
+bool receiver::set_sql_auto_global(const c_def::v_union & level_offset)
 {
-    return rx[d_current]->get_nb_on(nbid);
+    for (auto& rxc: rx)
+        rxc->set_sql_level(rxc->get_signal_level() + float(level_offset));
+    c_def::v_union new_level;
+    rx[d_current]->get_value(C_SQUELCH_LEVEL, new_level);
+    changed_value(C_SQUELCH_LEVEL, d_current, new_level);
+    return true;
 }
 
-/**
- * @brief Set squelch level.
- * @param level_db The new level in dBFS.
- */
-receiver::status receiver::set_sql_level(double level_db)
+bool receiver::reset_sql_global(const c_def::v_union &)
 {
-    rx[d_current]->set_sql_level(level_db);
-
-    return STATUS_OK; // FIXME
+    c_def::v_union new_level = c_def::all()[C_SQUELCH_LEVEL].min();
+    for (auto& rxc: rx)
+        rxc->set_sql_level(new_level);
+    changed_value(C_SQUELCH_LEVEL, d_current, new_level);
+    return true;
 }
-
-receiver::status receiver::set_sql_level(double level_offset, bool global, bool relative)
-{
-    if (global)
-        for (auto& rxc: rx)
-            rxc->set_sql_level((relative ? (double)rxc->get_signal_level() : 0.) + level_offset);
-    else
-        rx[d_current]->set_sql_level((relative ? (double)rx[d_current]->get_signal_level() : 0.) + level_offset);
-
-    return STATUS_OK; // FIXME
-}
-
-double receiver::get_sql_level()
-{
-    return rx[d_current]->get_sql_level();
-}
-
-/** Set squelch alpha */
-receiver::status receiver::set_sql_alpha(double alpha)
-{
-    rx[d_current]->set_sql_alpha(alpha);
-
-    return STATUS_OK; // FIXME
-}
-
-double receiver::get_sql_alpha()
-{
-    return rx[d_current]->get_sql_alpha();
-}
-
 
 /** Set AGC panning auto mode. */
 /*
@@ -1336,7 +1309,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 }
             }
         }
-        rx[d_current]->set_demod(demod);
+        set_demod_and_update_filter(old_rx, rx[d_current], demod);
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
         tb->disconnect(iq_src, 0, rx[d_current], 0);
         // End temporary workaronud
@@ -1345,6 +1318,37 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
     }else
         return STATUS_ERROR;
     return ret;
+}
+
+void receiver::set_demod_and_update_filter(receiver_base_cf_sptr old_rx, receiver_base_cf_sptr new_rx, Modulations::idx demod)
+{
+    Modulations::idx old_demod=old_rx->get_demod();
+    int     flo=0, fhi=0;
+    Modulations::filter_shape filter_shape;
+    old_rx->get_filter(flo, fhi, filter_shape);
+    int     filter_preset=Modulations::FindFilterPreset(old_demod,flo,fhi);
+    bool changed = false;
+
+    if (filter_preset == FILTER_PRESET_USER)
+    {
+        if (((old_demod == Modulations::MODE_USB) &&
+            (demod == Modulations::MODE_LSB))
+            ||
+        ((old_demod == Modulations::MODE_LSB) &&
+            (demod == Modulations::MODE_USB)))
+        {
+            std::swap(flo, fhi);
+            flo = -flo;
+            fhi = -fhi;
+            changed =true;
+        }
+        changed |= Modulations::UpdateFilterRange(demod, flo, fhi);
+    }else
+        changed = Modulations::GetFilterPreset(demod, filter_preset, flo, fhi);
+    new_rx->set_demod(demod);
+    if(changed)
+        new_rx->set_filter(flo, fhi, filter_shape);
+    changed_value(C_MODE_CHANGED, d_current, int(old_demod));
 }
 
 receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
@@ -1357,7 +1361,7 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
         if(get_rxc(rx[d_current]->get_demod()) == get_rxc(demod))
         {
             rx[d_current]->lock();
-            rx[d_current]->set_demod(demod);
+            set_demod_and_update_filter(rx[d_current], rx[d_current], demod);
             rx[d_current]->unlock();
             return ret;
         }
@@ -1395,6 +1399,18 @@ receiver::status receiver::reconnect_all(file_formats fmt, bool force)
         tb->start();
 
     return ret;
+}
+
+bool receiver::set_mode(const c_def::v_union & v)
+{
+    set_demod(Modulations::idx(int(v)));
+    return true;
+}
+
+bool receiver::get_mode(c_def::v_union & v) const
+{
+    v=rx[d_current]->get_demod();
+    return true;
 }
 
 receiver::status receiver::set_audio_rate(int rate)
@@ -2191,6 +2207,14 @@ bool receiver::get_value(c_id optid, c_def::v_union & value) const
 
 int receiver::conf_initializer()
 {
+    getters[C_HW_FREQ_LABEL]=&receiver::get_hw_freq_label;
+    setters[C_FREQ_LOCK_ALL]=&receiver::set_freq_lock_all;
+    setters[C_FREQ_UNLOCK_ALL]=&receiver::set_freq_lock_all;
+    setters[C_MODE]=&receiver::set_mode;
+    getters[C_MODE]=&receiver::get_mode;
+    setters[C_SQUELCH_AUTO]=&receiver::set_sql_auto;
+    setters[C_SQUELCH_AUTO_GLOBAL]=&receiver::set_sql_auto_global;
+    setters[C_SQUELCH_RESET_GLOBAL]=&receiver::reset_sql_global;
     setters[C_AGC_PANNING_AUTO]=&receiver::set_agc_panning_auto;
     setters[C_GLOBAL_MUTE]=&receiver::set_global_mute;
     getters[C_GLOBAL_MUTE]=&receiver::get_global_mute;

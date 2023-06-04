@@ -57,7 +57,8 @@ public:
     bool start() override;
     bool stop() override;
 
-    void set_filter(int low, int high, int tw) override;
+    void set_filter(int low, int high, Modulations::filter_shape shape) override;
+    bool set_filter_shape(const c_def::v_union &) override;
     void set_offset(int offset) override;
     bool set_cw_offset(const c_def::v_union &) override;
 
@@ -65,13 +66,15 @@ public:
 
     /* Noise blanker */
     bool has_nb() override { return true; }
-    void set_nb_on(int nbid, bool on) override;
+    bool set_nb1_on(const c_def::v_union &) override;
+    bool set_nb2_on(const c_def::v_union &) override;
+    bool set_nb3_on(const c_def::v_union &) override;
     bool set_nb1_threshold(const c_def::v_union &) override;
     bool set_nb2_threshold(const c_def::v_union &) override;
     bool set_nb3_gain(const c_def::v_union &) override;
 
 
-    void set_demod(Modulations::idx new_demod) override;
+    bool set_demod(const c_def::v_union &) override;
 
     /* FM parameters */
     bool set_fm_maxdev(const c_def::v_union &) override;
