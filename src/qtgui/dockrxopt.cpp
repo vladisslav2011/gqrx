@@ -35,7 +35,7 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->modeSelector->addItems(Modulations::Strings);
+    ui->modeSelector->addItems(Modulations::Get().Strings);
     freqLockButtonMenu = new QMenu(this);
     // MenuItem Lock all
     {

@@ -24,19 +24,7 @@
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
 
-class ModulationsInitializer:public Modulations
-{
-public:
-    ModulationsInitializer():Modulations()
-    {
-    }
-    ~ModulationsInitializer()
-    {
-    }
-};
 
-QStringList Modulations::Strings;
-static ModulationsInitializer modulations = ModulationsInitializer();
 // Lookup table for conversion from old settings
 static const Modulations::idx old2new[] = {
     Modulations::MODE_OFF,
@@ -93,20 +81,21 @@ static const int filter_ranges_table[Modulations::MODE_LAST][2][2] =
 
 QString Modulations::GetStringForModulationIndex(int iModulationIndex)
 {
-    return Modulations::Strings[iModulationIndex];
+    return Get().Strings[iModulationIndex];
 }
 
 bool Modulations::IsModulationValid(QString strModulation)
 {
-    return Modulations::Strings.contains(strModulation, Qt::CaseInsensitive);
+    return Get().Strings.contains(strModulation, Qt::CaseInsensitive);
 }
 
 Modulations::idx Modulations::GetEnumForModulationString(QString param)
 {
     int iModulation = -1;
-    for(int i = 0; i < Modulations::Strings.size(); ++i)
+    const Modulations & mm = Get();
+    for(int i = 0; i < mm.Strings.size(); ++i)
     {
-        QString& strModulation = Modulations::Strings[i];
+        const QString& strModulation = mm.Strings[i];
         if (param.compare(strModulation, Qt::CaseInsensitive) == 0)
         {
             iModulation = i;
@@ -295,4 +284,10 @@ Modulations::Modulations()
 
 Modulations::~Modulations()
 {
+}
+
+const Modulations& Modulations::Get()
+{
+    static const Modulations instance{};
+    return instance;
 }
