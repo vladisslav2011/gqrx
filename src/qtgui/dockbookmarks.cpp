@@ -276,9 +276,10 @@ ComboBoxDelegateModulation::ComboBoxDelegateModulation(QObject *parent)
 QWidget *ComboBoxDelegateModulation::createEditor(QWidget *parent, const QStyleOptionViewItem &/* option */, const QModelIndex &index) const
 {
     QComboBox* comboBox = new QComboBox(parent);
-    for (int i = 0; i < Modulations::Strings.size(); ++i)
+    const Modulations & mm = Modulations::Get();
+    for (int i = 0; i < mm.Strings.size(); ++i)
     {
-        comboBox->addItem(Modulations::Strings[i]);
+        comboBox->addItem(mm.Strings[i]);
     }
     setEditorData(comboBox, index);
     return comboBox;
