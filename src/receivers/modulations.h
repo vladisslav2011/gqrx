@@ -66,7 +66,7 @@ public:
     };
     typedef enum rxopt_mode_idx idx;
 
-    static QStringList Strings;
+    QStringList Strings;
 
     static QString GetStringForModulationIndex(int iModulationIndex);
     static bool IsModulationValid(QString strModulation);
@@ -81,6 +81,7 @@ public:
     static filter_shape FilterShapeFromTw(const int low, const int high, const int tw);
     static int TwFromFilterShape(const int low, const int high, const filter_shape shape);
     ~Modulations();
+    static const Modulations & Get();
 protected:
     Modulations();
 };
