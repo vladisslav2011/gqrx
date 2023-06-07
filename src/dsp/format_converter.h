@@ -117,6 +117,8 @@ public:
 
 class any_to_any_impl : virtual public gr::sync_block, virtual public any_to_any_base
 {
+public:
+    using any_to_any_base::convert;
 protected:
     void convert(const gr_complex *in, gr_complex * out, int noutput_items);
     void convert(const gr_complex *in, std::complex<int32_t> * out, int noutput_items);
@@ -342,6 +344,8 @@ private:
 
 class any_to_any_impl_32 : virtual public gr::sync_block, virtual public any_to_any_base
 {
+public:
+    using any_to_any_base::convert;
 protected:
     void convert(const gr_complex *in, std::array<int8_t,40> * out, int noutput_items);
     void convert(const std::array<int8_t,40> *in, gr_complex * out, int noutput_items);
@@ -398,6 +402,8 @@ private:
 
 class any_to_any_impl_64 : virtual public gr::sync_block, virtual public any_to_any_base
 {
+public:
+    using any_to_any_base::convert;
 protected:
     void convert(const gr_complex *in, std::array<int8_t,40> * out, int noutput_items);
     void convert(const std::array<int8_t,40> *in, gr_complex * out, int noutput_items);
@@ -454,6 +460,8 @@ private:
 
 class any_to_any_impl_bmi64 : virtual public gr::sync_block, virtual public any_to_any_base
 {
+public:
+    using any_to_any_base::convert;
 protected:
     void convert(const gr_complex *in, std::array<int8_t,40> * out, int noutput_items);
     void convert(const std::array<int8_t,40> *in, gr_complex * out, int noutput_items);
