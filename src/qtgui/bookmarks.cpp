@@ -188,67 +188,67 @@ Bookmarks::Bookmarks()
 {
      TagInfo::sptr tag = TagInfo::make(TagInfo::strUntagged);
      m_TagList.append(tag);
-     m_idx_struct.append({T:V_INT,     name:"Frequency",
+     m_idx_struct.append({V_INT,     "Frequency",
         genSetter(&BookmarkInfo::set_frequency), genGetter(&BookmarkInfo::get_frequency), genCmp(&BookmarkInfo::get_frequency)});
-     m_idx_struct.append({T:V_STRING,  name:"Name",
+     m_idx_struct.append({V_STRING,  "Name",
         genSetter(&BookmarkInfo::set_name), genGetter(&BookmarkInfo::get_name), genCmp(&BookmarkInfo::get_name)});
-     m_idx_struct.append({T:V_STRING,  name:"Tags",
+     m_idx_struct.append({V_STRING,  "Tags",
         genSetter(&BookmarkInfo::set_tags), genGetter(&BookmarkInfo::get_tags), genCmp(&BookmarkInfo::get_tags)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"Autostart",
+     m_idx_struct.append({V_BOOLEAN, "Autostart",
         genSetter(&BookmarkInfo::set_freq_lock), genGetter(&BookmarkInfo::get_freq_lock), genCmp(&BookmarkInfo::get_freq_lock)});
-     m_idx_struct.append({T:V_INT,     name:"Modulation",
+     m_idx_struct.append({V_INT,     "Modulation",
         genSetter(&BookmarkInfo::set_demod), genGetter(&BookmarkInfo::get_demod), genCmp(&BookmarkInfo::get_demod)});
-     m_idx_struct.append({T:V_INT,     name:"Filter Low",
+     m_idx_struct.append({V_INT,     "Filter Low",
         genSetter(&BookmarkInfo::set_filter_low), genGetter(&BookmarkInfo::get_filter_low), genCmp(&BookmarkInfo::get_filter_low)});
-     m_idx_struct.append({T:V_INT,     name:"Filter High",
+     m_idx_struct.append({V_INT,     "Filter High",
         genSetter(&BookmarkInfo::set_filter_high), genGetter(&BookmarkInfo::get_filter_high), genCmp(&BookmarkInfo::get_filter_high)});
-     m_idx_struct.append({T:V_INT,     name:"Filter TW",
+     m_idx_struct.append({V_INT,     "Filter TW",
         genSetter(&BookmarkInfo::set_filter_tw), genGetter(&BookmarkInfo::get_filter_tw), genCmp(&BookmarkInfo::get_filter_tw)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"AGC On",
+     m_idx_struct.append({V_BOOLEAN, "AGC On",
         genSetter(&BookmarkInfo::set_agc_on), genGetter(&BookmarkInfo::get_agc_on), genCmp(&BookmarkInfo::get_agc_on)});
-     m_idx_struct.append({T:V_INT,     name:"AGC Target Level",
+     m_idx_struct.append({V_INT,     "AGC Target Level",
         genSetter(&BookmarkInfo::set_agc_target_level), genGetter(&BookmarkInfo::get_agc_target_level), genCmp(&BookmarkInfo::get_agc_target_level)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"AGC Manual Gain",
+     m_idx_struct.append({V_DOUBLE,  "AGC Manual Gain",
         genSetter(&BookmarkInfo::set_agc_manual_gain), genGetter(&BookmarkInfo::get_agc_manual_gain), genCmp(&BookmarkInfo::get_agc_manual_gain)});
-     m_idx_struct.append({T:V_INT,     name:"AGC Max Gain",
+     m_idx_struct.append({V_INT,     "AGC Max Gain",
         genSetter(&BookmarkInfo::set_agc_max_gain), genGetter(&BookmarkInfo::get_agc_max_gain), genCmp(&BookmarkInfo::get_agc_max_gain)});
-     m_idx_struct.append({T:V_INT,     name:"AGC Attack",
+     m_idx_struct.append({V_INT,     "AGC Attack",
         genSetter(&BookmarkInfo::set_agc_attack), genGetter(&BookmarkInfo::get_agc_attack), genCmp(&BookmarkInfo::get_agc_attack)});
-     m_idx_struct.append({T:V_INT,     name:"AGC Decay",
+     m_idx_struct.append({V_INT,     "AGC Decay",
         genSetter(&BookmarkInfo::set_agc_decay), genGetter(&BookmarkInfo::get_agc_decay), genCmp(&BookmarkInfo::get_agc_decay)});
-     m_idx_struct.append({T:V_INT,     name:"AGC Hang",
+     m_idx_struct.append({V_INT,     "AGC Hang",
         genSetter(&BookmarkInfo::set_agc_hang), genGetter(&BookmarkInfo::get_agc_hang), genCmp(&BookmarkInfo::get_agc_hang)});
-     m_idx_struct.append({T:V_INT,     name:"Panning",
+     m_idx_struct.append({V_INT,     "Panning",
         genSetter(&BookmarkInfo::set_agc_panning), genGetter(&BookmarkInfo::get_agc_panning), genCmp(&BookmarkInfo::get_agc_panning)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"Auto Panning",
+     m_idx_struct.append({V_BOOLEAN, "Auto Panning",
         genSetter(&BookmarkInfo::set_agc_panning_auto), genGetter(&BookmarkInfo::get_agc_panning_auto), genCmp(&BookmarkInfo::get_agc_panning_auto)});
-     m_idx_struct.append({T:V_INT,     name:"CW Offset",
+     m_idx_struct.append({V_INT,     "CW Offset",
         genSetter(&BookmarkInfo::set_cw_offset), genGetter(&BookmarkInfo::get_cw_offset), genCmp(&BookmarkInfo::get_cw_offset)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"FM Max Deviation",
+     m_idx_struct.append({V_DOUBLE,  "FM Max Deviation",
         genSetter(&BookmarkInfo::set_fm_maxdev), genGetter(&BookmarkInfo::get_fm_maxdev), genCmp(&BookmarkInfo::get_fm_maxdev)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"FM Deemphasis",
+     m_idx_struct.append({V_DOUBLE,  "FM Deemphasis",
         genSetter(&BookmarkInfo::set_fm_deemph), genGetter(&BookmarkInfo::get_fm_deemph), genCmp(&BookmarkInfo::get_fm_deemph)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"AM DCR",
+     m_idx_struct.append({V_BOOLEAN, "AM DCR",
         genSetter(&BookmarkInfo::set_am_dcr), genGetter(&BookmarkInfo::get_am_dcr), genCmp(&BookmarkInfo::get_am_dcr)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"AM SYNC DCR",
+     m_idx_struct.append({V_BOOLEAN, "AM SYNC DCR",
         genSetter(&BookmarkInfo::set_amsync_dcr), genGetter(&BookmarkInfo::get_amsync_dcr), genCmp(&BookmarkInfo::get_amsync_dcr)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"PLL BW",
+     m_idx_struct.append({V_DOUBLE,  "PLL BW",
         genSetter(&BookmarkInfo::set_pll_bw), genGetter(&BookmarkInfo::get_pll_bw), genCmp(&BookmarkInfo::get_pll_bw)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"NB1 ON",
+     m_idx_struct.append({V_BOOLEAN, "NB1 ON",
         genSetterN(&BookmarkInfo::set_nb_on, 1), genGetterN(&BookmarkInfo::get_nb_on, 1), genCmpN(&BookmarkInfo::get_nb_on, 1)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"NB1 Threshold",
+     m_idx_struct.append({V_DOUBLE,  "NB1 Threshold",
         genSetterN(&BookmarkInfo::set_nb_threshold, 1), genGetterN(&BookmarkInfo::get_nb_threshold, 1), genCmpN(&BookmarkInfo::get_nb_threshold, 1)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"NB2 ON",
+     m_idx_struct.append({V_BOOLEAN, "NB2 ON",
         genSetterN(&BookmarkInfo::set_nb_on, 2), genGetterN(&BookmarkInfo::get_nb_on, 2), genCmpN(&BookmarkInfo::get_nb_on, 2)});
-     m_idx_struct.append({T:V_DOUBLE,  name:"NB2 Threshold",
+     m_idx_struct.append({V_DOUBLE,  "NB2 Threshold",
         genSetterN(&BookmarkInfo::set_nb_threshold, 2), genGetterN(&BookmarkInfo::get_nb_threshold, 2), genCmpN(&BookmarkInfo::get_nb_threshold, 2)});
-     m_idx_struct.append({T:V_STRING,  name:"REC DIR",
+     m_idx_struct.append({V_STRING,  "REC DIR",
         genSetterCS(&BookmarkInfo::set_audio_rec_dir), genGetterCS(&BookmarkInfo::get_audio_rec_dir), genCmp(&BookmarkInfo::get_audio_rec_dir)});
-     m_idx_struct.append({T:V_BOOLEAN, name:"REC SQL Trig",
+     m_idx_struct.append({V_BOOLEAN, "REC SQL Trig",
         genSetter(&BookmarkInfo::set_audio_rec_sql_triggered), genGetter(&BookmarkInfo::get_audio_rec_sql_triggered), genCmp(&BookmarkInfo::get_audio_rec_sql_triggered)});
-     m_idx_struct.append({T:V_INT,     name:"REC Min Time",
+     m_idx_struct.append({V_INT,     "REC Min Time",
         genSetter(&BookmarkInfo::set_audio_rec_min_time), genGetter(&BookmarkInfo::get_audio_rec_min_time), genCmp(&BookmarkInfo::get_audio_rec_min_time)});
-     m_idx_struct.append({T:V_INT,     name:"REC Max Gap",
+     m_idx_struct.append({V_INT,     "REC Max Gap",
         genSetter(&BookmarkInfo::set_audio_rec_max_gap), genGetter(&BookmarkInfo::get_audio_rec_max_gap), genCmp(&BookmarkInfo::get_audio_rec_max_gap)});
 
      for(int k=0;k<m_idx_struct.length();k++)
