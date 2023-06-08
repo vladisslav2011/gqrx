@@ -32,7 +32,7 @@
 #include <QString>
 #include <QTimer>
 #include <QMenu>
-#include "applications/gqrx/receiver.h"
+#include "dsp/format_converter.h"
 
 
 namespace Ui {
@@ -66,15 +66,15 @@ public:
     qint64 selectionLength();
 
 signals:
-    void startRecording(const QString recdir, enum receiver::file_formats fmt,
+    void startRecording(const QString recdir, file_formats fmt,
                         int buffers_max);
     void stopRecording();
     void startPlayback(const QString filename, float samprate,
-                       qint64 center_freq, enum receiver::file_formats fmt,
+                       qint64 center_freq, file_formats fmt,
                        qint64 time_ms, int buffers_max, bool repeat);
     void stopPlayback();
     void seek(qint64 seek_pos);
-    void saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64);
+    void saveFileRange(const QString &, file_formats, quint64,quint64);
 
 public slots:
     void cancelRecording();
@@ -135,8 +135,8 @@ private:
     bool    is_running{false};
     int     chunk_size;
     qint64  samples_per_chunk;
-    enum receiver::file_formats fmt;
-    enum receiver::file_formats rec_fmt;
+    file_formats fmt;
+    file_formats rec_fmt;
     quint64 time_ms;
     qint64  sample_rate;       /*!< Current sample rate. */
     qint64  center_freq;       /*!< Center frequency. */

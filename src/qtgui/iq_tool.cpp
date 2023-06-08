@@ -48,8 +48,8 @@ CIqTool::CIqTool(QWidget *parent) :
     is_playing = false;
     chunk_size = 8;
     samples_per_chunk = 1;
-    fmt = receiver::FILE_FORMAT_CF;
-    rec_fmt = receiver::FILE_FORMAT_CF;
+    fmt = FILE_FORMAT_CF;
+    rec_fmt = FILE_FORMAT_CF;
     sample_rate = 192000;
     rec_len = 0;
     center_freq = 1e8;
@@ -64,16 +64,16 @@ CIqTool::CIqTool(QWidget *parent) :
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timeoutFunction()));
     connect(ui->formatCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(on_formatCombo_currentIndexChanged(int)));
-    ui->formatCombo->addItem("gr_complex cf", receiver::FILE_FORMAT_CF);
-    ui->formatCombo->addItem("int 32", receiver::FILE_FORMAT_CS32L);
-    ui->formatCombo->addItem("short 16", receiver::FILE_FORMAT_CS16L);
-    ui->formatCombo->addItem("char 8", receiver::FILE_FORMAT_CS8);
-    ui->formatCombo->addItem("uint 32", receiver::FILE_FORMAT_CS32LU);
-    ui->formatCombo->addItem("ushort 16", receiver::FILE_FORMAT_CS16LU);
-    ui->formatCombo->addItem("uchar 8", receiver::FILE_FORMAT_CS8U);
-    ui->formatCombo->addItem("10 bit", receiver::FILE_FORMAT_CS10L);
-    ui->formatCombo->addItem("12 bit", receiver::FILE_FORMAT_CS12L);
-    ui->formatCombo->addItem("14 bit", receiver::FILE_FORMAT_CS14L);
+    ui->formatCombo->addItem("gr_complex cf", FILE_FORMAT_CF);
+    ui->formatCombo->addItem("int 32", FILE_FORMAT_CS32L);
+    ui->formatCombo->addItem("short 16", FILE_FORMAT_CS16L);
+    ui->formatCombo->addItem("char 8", FILE_FORMAT_CS8);
+    ui->formatCombo->addItem("uint 32", FILE_FORMAT_CS32LU);
+    ui->formatCombo->addItem("ushort 16", FILE_FORMAT_CS16LU);
+    ui->formatCombo->addItem("uchar 8", FILE_FORMAT_CS8U);
+    ui->formatCombo->addItem("10 bit", FILE_FORMAT_CS10L);
+    ui->formatCombo->addItem("12 bit", FILE_FORMAT_CS12L);
+    ui->formatCombo->addItem("14 bit", FILE_FORMAT_CS14L);
     ui->bufferStats->hide();
     ui->sizeStats->hide();
     sliderMenu = new QMenu(this);
@@ -449,10 +449,10 @@ void CIqTool::readSettings(QSettings *settings)
     // Location of baseband recordings
     QString dir = settings->value("baseband/rec_dir", QDir::homePath()).toString();
     ui->recDirEdit->setText(dir);
-    int found = ui->formatCombo->findData(settings->value("baseband/rec_fmt", receiver::FILE_FORMAT_CF));
+    int found = ui->formatCombo->findData(settings->value("baseband/rec_fmt", FILE_FORMAT_CF));
     if(found == -1)
     {
-        rec_fmt = receiver::FILE_FORMAT_CF;
+        rec_fmt = FILE_FORMAT_CF;
     }
     else
     {
@@ -536,7 +536,7 @@ void CIqTool::on_slider_customContextMenuRequested(const QPoint& pos)
 
 void CIqTool::on_formatCombo_currentIndexChanged(int index)
 {
-    rec_fmt = (enum receiver::file_formats)ui->formatCombo->currentData().toInt();
+    rec_fmt = (file_formats)ui->formatCombo->currentData().toInt();
 }
 
 void CIqTool::updateSliderStylesheet(qint64 save_progress)
@@ -788,25 +788,25 @@ void CIqTool::parseFileName(const QString &filename)
     if (center_ok)
         center_freq = center;
     if(fmt_str.compare("fc") == 0)
-        fmt = receiver::FILE_FORMAT_CF;
+        fmt = FILE_FORMAT_CF;
     if(fmt_str.compare("32") == 0)
-        fmt = receiver::FILE_FORMAT_CS32L;
+        fmt = FILE_FORMAT_CS32L;
     if(fmt_str.compare("16") == 0)
-        fmt = receiver::FILE_FORMAT_CS16L;
+        fmt = FILE_FORMAT_CS16L;
     if(fmt_str.compare("14") == 0)
-        fmt = receiver::FILE_FORMAT_CS14L;
+        fmt = FILE_FORMAT_CS14L;
     if(fmt_str.compare("12") == 0)
-        fmt = receiver::FILE_FORMAT_CS12L;
+        fmt = FILE_FORMAT_CS12L;
     if(fmt_str.compare("10") == 0)
-        fmt = receiver::FILE_FORMAT_CS10L;
+        fmt = FILE_FORMAT_CS10L;
     if(fmt_str.compare("8") == 0)
-        fmt = receiver::FILE_FORMAT_CS8;
+        fmt = FILE_FORMAT_CS8;
     if(fmt_str.compare("32u") == 0)
-        fmt = receiver::FILE_FORMAT_CS32LU;
+        fmt = FILE_FORMAT_CS32LU;
     if(fmt_str.compare("16u") == 0)
-        fmt = receiver::FILE_FORMAT_CS16LU;
+        fmt = FILE_FORMAT_CS16LU;
     if(fmt_str.compare("8u") == 0)
-        fmt = receiver::FILE_FORMAT_CS8U;
-    samples_per_chunk = receiver::samples_per_chunk[fmt];
-    chunk_size = receiver::chunk_size[fmt];
+        fmt = FILE_FORMAT_CS8U;
+    samples_per_chunk = any_to_any_base::samples_per_chunk[fmt];
+    chunk_size = any_to_any_base::chunk_size[fmt];
 }

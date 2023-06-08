@@ -260,14 +260,14 @@ void receiver::set_input_device(const std::string device)
  * @param fmt
  */
 void receiver::set_input_file(const std::string name, const int sample_rate,
-                              const enum file_formats fmt, uint64_t time_ms,
+                              const file_formats fmt, uint64_t time_ms,
                               int buffers_max, bool repeat)
 {
     std::string error = "";
 
     d_iq_filename = name;
     d_iq_time_ms = time_ms;
-    input_file = file_source::make(chunk_size[fmt], name.c_str(), 0, 0, sample_rate / samples_per_chunk[fmt],
+    input_file = file_source::make(any_to_any_base::chunk_size[fmt], name.c_str(), 0, 0, sample_rate / any_to_any_base::samples_per_chunk[fmt],
                                    time_ms, repeat, buffers_max);
 
     if (d_running)
@@ -301,7 +301,7 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
  * @brief Setup input part of the graph for a file ar a device
  * @param fmt
  */
-gr::basic_block_sptr receiver::setup_source(enum file_formats fmt)
+gr::basic_block_sptr receiver::setup_source(file_formats fmt)
 {
     gr::basic_block_sptr b;
 
@@ -1515,7 +1515,7 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
     return ret;
 }
 
-receiver::status receiver::reconnect_all(enum file_formats fmt, bool force)
+receiver::status receiver::reconnect_all(file_formats fmt, bool force)
 {
     status ret = STATUS_OK;
     // tb->lock() seems to hang occasionally
@@ -1909,9 +1909,9 @@ receiver::status receiver::connect_iq_recorder()
  * @param filename The filename where to record.
 + * @param bytes_per_sample A hint to choose correct sample format.
  */
-receiver::status receiver::start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max)
+receiver::status receiver::start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max)
 {
-    int sink_bytes_per_chunk = chunk_size[fmt];
+    int sink_bytes_per_chunk = any_to_any_base::chunk_size[fmt];
 
     if (d_recording_iq) {
         std::cout << __func__ << ": already recording" << std::endl;
@@ -1920,7 +1920,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate / samples_per_chunk[fmt], true, buffers_max);
+        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate / any_to_any_base::samples_per_chunk[fmt], true, buffers_max);
     }
     catch (std::runtime_error &e)
     {
@@ -2025,14 +2025,14 @@ void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
         stats.failed = iq_sink->get_failed();
         stats.buffer_usage = iq_sink->get_buffer_usage();
         stats.file_pos = iq_sink->get_written();
-        stats.sample_pos = stats.file_pos * samples_per_chunk[d_last_format];
+        stats.sample_pos = stats.file_pos * any_to_any_base::samples_per_chunk[d_last_format];
     }
     if(stats.playing)
     {
         stats.failed = input_file->get_failed();
         stats.buffer_usage = input_file->get_buffer_usage();
         stats.file_pos = input_file->tell();
-        stats.sample_pos = stats.file_pos * samples_per_chunk[d_last_format];
+        stats.sample_pos = stats.file_pos * any_to_any_base::samples_per_chunk[d_last_format];
     }
 }
 
@@ -2094,7 +2094,7 @@ void receiver::get_sniffer_data(float * outbuff, unsigned int &num)
 }
 
 /** Convenience function to connect all blocks. */
-void receiver::connect_all(enum file_formats fmt)
+void receiver::connect_all(file_formats fmt)
 {
     gr::basic_block_sptr b;
 
@@ -2337,13 +2337,13 @@ receiver::fft_reader_sptr receiver::get_fft_reader(uint64_t offset, receiver::ff
 {
     if( d_fft_reader)
     {
-        d_fft_reader->reconfigure(d_iq_filename, chunk_size[d_last_format], samples_per_chunk[d_last_format], d_input_rate, d_iq_time_ms, offset,
+        d_fft_reader->reconfigure(d_iq_filename, any_to_any_base::chunk_size[d_last_format], any_to_any_base::samples_per_chunk[d_last_format], d_input_rate, d_iq_time_ms, offset,
                                   convert_from[d_last_format], iq_fft, cb, nthreads);
         return d_fft_reader;
     }else
-        return d_fft_reader = std::make_shared<receiver::fft_reader>(d_iq_filename, chunk_size[d_last_format], samples_per_chunk[d_last_format],
-                                                                     d_input_rate, d_iq_time_ms, offset, convert_from[d_last_format],
-                                                                     iq_fft, cb, nthreads);
+        return d_fft_reader = std::make_shared<receiver::fft_reader>(d_iq_filename, any_to_any_base::chunk_size[d_last_format],
+            any_to_any_base::samples_per_chunk[d_last_format], d_input_rate, d_iq_time_ms, offset, convert_from[d_last_format],
+            iq_fft, cb, nthreads);
 }
 
 std::string receiver::escape_filename(std::string filename)
@@ -2604,6 +2604,3 @@ void receiver::fft_reader::task::thread_func()
         lock.lock();
     }
 }
-
-constexpr int receiver::chunk_size[FILE_FORMAT_COUNT];
-constexpr int receiver::samples_per_chunk[FILE_FORMAT_COUNT];

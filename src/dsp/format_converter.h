@@ -42,6 +42,22 @@ template <typename T_IN, typename T_OUT> class any_to_any_bmi32;
 template <typename T_IN, typename T_OUT> class any_to_any_64;
 template <typename T_IN, typename T_OUT> class any_to_any_bmi64;
 
+enum file_formats {
+    FILE_FORMAT_LAST=0,
+    FILE_FORMAT_NONE,
+    FILE_FORMAT_CF,
+    FILE_FORMAT_CS8,
+    FILE_FORMAT_CS16L,
+    FILE_FORMAT_CS32L,
+    FILE_FORMAT_CS8U,
+    FILE_FORMAT_CS16LU,
+    FILE_FORMAT_CS32LU,
+    FILE_FORMAT_CS10L,
+    FILE_FORMAT_CS12L,
+    FILE_FORMAT_CS14L,
+    FILE_FORMAT_COUNT,
+};
+
 class any_to_any_base: virtual public gr::sync_block
 {
 public:
@@ -50,6 +66,37 @@ public:
 #else
     typedef std::shared_ptr<any_to_any_base> sptr;
 #endif
+
+    static constexpr int chunk_size[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        8,
+        2,
+        4,
+        8,
+        2,
+        4,
+        8,
+        5*8,
+        3,
+        7
+    };
+    static constexpr int samples_per_chunk[FILE_FORMAT_COUNT]
+    {
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2*8,
+        1,
+        2
+    };
 
     void set_decimation(unsigned decimation)
     {

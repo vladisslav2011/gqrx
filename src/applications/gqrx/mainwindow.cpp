@@ -352,13 +352,13 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(&DXCSpots::Get(), SIGNAL(dxcSpotsUpdated()), this, SLOT(updateClusterSpots()));
 
     // I/Q playback
-    connect(iq_tool, SIGNAL(startRecording(QString, enum receiver::file_formats, int)), this, SLOT(startIqRecording(QString, enum receiver::file_formats, int)));
+    connect(iq_tool, SIGNAL(startRecording(QString, file_formats, int)), this, SLOT(startIqRecording(QString, file_formats, int)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)),
-                 this, SLOT(startIqPlayback(QString, float, qint64, enum receiver::file_formats, qint64, int, bool)));
+    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, file_formats, qint64, int, bool)),
+                 this, SLOT(startIqPlayback(QString, float, qint64, file_formats, qint64, int, bool)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
-    connect(iq_tool, SIGNAL(saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, enum receiver::file_formats, quint64,quint64)));
+    connect(iq_tool, SIGNAL(saveFileRange(const QString &, file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, file_formats, quint64,quint64)));
 
     // remote control
     connect(remote, SIGNAL(newRDSmode(bool)), uiDockRDS, SLOT(setRDSmode(bool)));
@@ -2471,7 +2471,7 @@ void MainWindow::audioDedicatedDevChanged(bool enabled, std::string name)
     rx->set_dedicated_audio_sink(enabled);
 }
 
-QString MainWindow::makeIQFilename(const QString& recdir, receiver::file_formats fmt, const QDateTime ts)
+QString MainWindow::makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts)
 {
     // generate file name using date, time, rf freq in kHz and BW in Hz
     // gqrx_iq_yyyymmdd_hhmmss_freq_bw_fc.raw
@@ -2481,35 +2481,35 @@ QString MainWindow::makeIQFilename(const QString& recdir, receiver::file_formats
     QString suffix = "fc";
     switch (fmt)
     {
-    case receiver::FILE_FORMAT_CS8:
+    case FILE_FORMAT_CS8:
         suffix = "8";
     break;
-    case receiver::FILE_FORMAT_CS10L:
+    case FILE_FORMAT_CS10L:
         suffix = "10";
     break;
-    case receiver::FILE_FORMAT_CS12L:
+    case FILE_FORMAT_CS12L:
         suffix = "12";
     break;
-    case receiver::FILE_FORMAT_CS14L:
+    case FILE_FORMAT_CS14L:
         suffix = "14";
     break;
-    case receiver::FILE_FORMAT_CS16L:
+    case FILE_FORMAT_CS16L:
         suffix = "16";
     break;
-    case receiver::FILE_FORMAT_CS32L:
+    case FILE_FORMAT_CS32L:
         suffix = "32";
     break;
-    case receiver::FILE_FORMAT_CS8U:
+    case FILE_FORMAT_CS8U:
         suffix = "8u";
     break;
-    case receiver::FILE_FORMAT_CS16LU:
+    case FILE_FORMAT_CS16LU:
         suffix = "16u";
     break;
-    case receiver::FILE_FORMAT_CS32LU:
+    case FILE_FORMAT_CS32LU:
         suffix = "32u";
     break;
     default:
-        fmt = receiver::FILE_FORMAT_CF;
+        fmt = FILE_FORMAT_CF;
         suffix = "fc";
     }
     return ts.
@@ -2518,7 +2518,7 @@ QString MainWindow::makeIQFilename(const QString& recdir, receiver::file_formats
 }
 
 /** Start I/Q recording. */
-void MainWindow::startIqRecording(const QString& recdir, receiver::file_formats fmt, int buffers_max)
+void MainWindow::startIqRecording(const QString& recdir, file_formats fmt, int buffers_max)
 {
 
     auto lastRec = makeIQFilename(recdir, fmt, QDateTime::currentDateTimeUtc());
@@ -2561,7 +2561,7 @@ void MainWindow::stopIqRecording()
 
 void MainWindow::startIqPlayback(const QString& filename, float samprate,
                                  qint64 center_freq,
-                                 enum receiver::file_formats fmt,
+                                 file_formats fmt,
                                  qint64 time_ms,
                                  int buffers_max, bool repeat)
 {
@@ -2622,7 +2622,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
         int lines=0;
         double ms_per_line = 0.0;
         ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-        uint64_t pos = std::llroundl(double(lines)*ms_per_line*1e-3*double(actual_rate)/rx->samples_per_chunk[rx->get_last_format()]);
+        uint64_t pos = std::llroundl(double(lines)*ms_per_line*1e-3*double(actual_rate)/any_to_any_base::samples_per_chunk[rx->get_last_format()]);
         seekIqFile(std::min(rx->get_iq_file_size(),pos));
         //rx->get_iq_tool_stats(iq_stats);
         iq_tool->updateStats(false, 0, pos);
@@ -2709,7 +2709,7 @@ void MainWindow::seekIqFile(qint64 seek_pos)
     }
 }
 
-void MainWindow::saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_ms, quint64 len_ms)
+void MainWindow::saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms)
 {
     std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_ms)).toStdString();
     rx->save_file_range_ts(from_ms,len_ms,name);
@@ -2777,7 +2777,7 @@ void MainWindow::waterfall_background_func()
             old_seek_pos = seek_pos;
             if(ms_per_line > 0.0)
             {
-                qint64 nlines = std::round(double(seek_delta * rx->samples_per_chunk[rx->get_last_format()]) * 1000.0/double(rx->get_input_rate()*ms_per_line));
+                qint64 nlines = std::round(double(seek_delta * any_to_any_base::samples_per_chunk[rx->get_last_format()]) * 1000.0/double(rx->get_input_rate()*ms_per_line));
                 ui->plotter->scrollWaterfall(nlines);
                 emit requestPlotterUpdate();
                 rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,

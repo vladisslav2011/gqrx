@@ -96,22 +96,6 @@ public:
     /** Filter shape (convenience wrappers for "transition width"). */
     typedef Modulations::filter_shape filter_shape;
 
-    enum file_formats {
-        FILE_FORMAT_LAST=0,
-        FILE_FORMAT_NONE,
-        FILE_FORMAT_CF,
-        FILE_FORMAT_CS8,
-        FILE_FORMAT_CS16L,
-        FILE_FORMAT_CS32L,
-        FILE_FORMAT_CS8U,
-        FILE_FORMAT_CS16LU,
-        FILE_FORMAT_CS32LU,
-        FILE_FORMAT_CS10L,
-        FILE_FORMAT_CS12L,
-        FILE_FORMAT_CS14L,
-        FILE_FORMAT_COUNT,
-    };
-
     struct iq_tool_stats
     {
         bool recording;
@@ -189,7 +173,7 @@ public:
     void        set_input_device(const std::string device);
     void        set_output_device(const std::string device);
     void        set_input_file(const std::string name, const int sample_rate,
-                               const enum file_formats fmt, uint64_t time_ms,
+                               const file_formats fmt, uint64_t time_ms,
                                int buffers_max, bool repeat);
 
     std::vector<std::string> get_antennas(void) const;
@@ -317,7 +301,7 @@ public:
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
     Modulations::idx get_demod() {return rx[d_current]->get_demod();}
-    status      reconnect_all(enum file_formats fmt = FILE_FORMAT_LAST,
+    status      reconnect_all(file_formats fmt = FILE_FORMAT_LAST,
                           bool force = false);
 
     /* FM parameters */
@@ -376,7 +360,7 @@ public:
     void set_dedicated_audio_dev(std::string value) { rx[d_current]->set_audio_dev(value); }
 
     /* I/Q recording and playback */
-    status      start_iq_recording(const std::string filename, const enum file_formats fmt, int buffers_max);
+    status      start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
     status      seek_iq_file_ts(uint64_t ts, uint64_t &res_point);
@@ -413,52 +397,20 @@ public:
     }
     uint64_t get_filesource_timestamp_ms();
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
-    enum file_formats get_last_format() const { return d_last_format; }
+    file_formats get_last_format() const { return d_last_format; }
 
 private:
-    void        connect_all(enum file_formats fmt);
+    void        connect_all(file_formats fmt);
     void        connect_rx();
     void        connect_rx(int n);
     void        disconnect_rx();
     void        disconnect_rx(int n);
     void        foreground_rx();
     void        background_rx();
-    gr::basic_block_sptr setup_source(enum file_formats fmt);
+    gr::basic_block_sptr setup_source(file_formats fmt);
     status      connect_iq_recorder();
     void        set_channelizer_int(bool use_chan);
     void        configure_channelizer(bool reconnect);
-
-public:
-    static constexpr int chunk_size[FILE_FORMAT_COUNT]
-    {
-        0,
-        0,
-        8,
-        2,
-        4,
-        8,
-        2,
-        4,
-        8,
-        5*8,
-        3,
-        7
-    };
-    static constexpr int samples_per_chunk[FILE_FORMAT_COUNT]
-    {
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        2*8,
-        1,
-        2
-    };
 
 private:
     int         d_current;          /*!< Current selected demodulator. */
@@ -479,8 +431,8 @@ private:
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
     bool        d_mute;             /*!< Enable audio mute. */
-    enum file_formats d_iq_fmt;
-    enum file_formats d_last_format;
+    file_formats d_iq_fmt;
+    file_formats d_last_format;
 
     std::string input_devstr;       /*!< Current input device string. */
     std::string output_devstr;      /*!< Current output device string. */

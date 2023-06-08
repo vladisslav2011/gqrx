@@ -251,17 +251,16 @@ private slots:
     void audioDedicatedDevChanged(bool enabled, std::string name);
 
     /* I/Q playback and recording*/
-    QString makeIQFilename(const QString& recdir, receiver::file_formats fmt, const QDateTime ts);
-    void startIqRecording(const QString& recdir,
-                          enum receiver::file_formats fmt, int buffers_max);
+    QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
+    void startIqRecording(const QString& recdir, file_formats fmt, int buffers_max);
     void stopIqRecording();
     void startIqPlayback(const QString& filename, float samprate,
-                         qint64 center_freq, enum receiver::file_formats fmt,
+                         qint64 center_freq, file_formats fmt,
                          qint64 time_ms,
                          int buffers_max, bool repeat);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
-    void saveFileRange(const QString& recdir, receiver::file_formats fmt, quint64 from_ms, quint64 len_ms);
+    void saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms);
     void updateSaveProgress(const qint64 saved_ms);
     void plotterUpdate();
     void triggerIQFftRedraw();
