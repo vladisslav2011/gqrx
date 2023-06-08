@@ -377,6 +377,7 @@ public:
     status      seek_iq_file(long pos);
     status      seek_iq_file_ts(uint64_t ts, uint64_t &res_point);
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
+    uint64_t    get_iq_file_size() { return input_file->get_size(); }
     bool        is_playing_iq() { return d_last_format != FILE_FORMAT_NONE; }
     bool        is_recording_iq() { return d_iq_fmt != FILE_FORMAT_NONE; }
     status      save_file_range_ts(const uint64_t from_ms, const uint64_t len_ms, const std::string name);

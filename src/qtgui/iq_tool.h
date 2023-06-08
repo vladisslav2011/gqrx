@@ -81,6 +81,7 @@ public slots:
     void cancelPlayback();
     void updateStats(bool hasFailed, int buffersUsed, size_t fileSize);
     void updateSaveProgress(const qint64 save_progress);
+    void setRunningState(bool);
 
 private slots:
     void on_recDirEdit_textChanged(const QString &text);
@@ -106,6 +107,7 @@ private:
     void parseFileName(const QString &filename);
     void switchControlsState(bool recording, bool playback);
     void updateSliderStylesheet(qint64 save_progress = -2);
+    void listWidgetFileSelected(const QString &currentText);
 
 private:
     Ui::CIqTool *ui;
@@ -130,6 +132,7 @@ private:
     bool    is_recording;
     bool    is_playing;
     bool    is_saving{false};
+    bool    is_running{false};
     int     chunk_size;
     qint64  samples_per_chunk;
     enum receiver::file_formats fmt;
