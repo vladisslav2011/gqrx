@@ -64,16 +64,8 @@ CIqTool::CIqTool(QWidget *parent) :
     timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()), this, SLOT(timeoutFunction()));
     connect(ui->formatCombo, SIGNAL(currentIndexChanged(int)), this, SLOT(on_formatCombo_currentIndexChanged(int)));
-    ui->formatCombo->addItem("gr_complex cf", FILE_FORMAT_CF);
-    ui->formatCombo->addItem("int 32", FILE_FORMAT_CS32L);
-    ui->formatCombo->addItem("short 16", FILE_FORMAT_CS16L);
-    ui->formatCombo->addItem("char 8", FILE_FORMAT_CS8);
-    ui->formatCombo->addItem("uint 32", FILE_FORMAT_CS32LU);
-    ui->formatCombo->addItem("ushort 16", FILE_FORMAT_CS16LU);
-    ui->formatCombo->addItem("uchar 8", FILE_FORMAT_CS8U);
-    ui->formatCombo->addItem("10 bit", FILE_FORMAT_CS10L);
-    ui->formatCombo->addItem("12 bit", FILE_FORMAT_CS12L);
-    ui->formatCombo->addItem("14 bit", FILE_FORMAT_CS14L);
+    for(int k=FILE_FORMAT_CF;k<FILE_FORMAT_COUNT;k++)
+        ui->formatCombo->addItem(any_to_any_base::fmt[k].name,k);
     ui->bufferStats->hide();
     ui->sizeStats->hide();
     sliderMenu = new QMenu(this);
@@ -787,26 +779,10 @@ void CIqTool::parseFileName(const QString &filename)
         sample_rate = sr;
     if (center_ok)
         center_freq = center;
-    if(fmt_str.compare("fc") == 0)
-        fmt = FILE_FORMAT_CF;
-    if(fmt_str.compare("32") == 0)
-        fmt = FILE_FORMAT_CS32L;
-    if(fmt_str.compare("16") == 0)
-        fmt = FILE_FORMAT_CS16L;
-    if(fmt_str.compare("14") == 0)
-        fmt = FILE_FORMAT_CS14L;
-    if(fmt_str.compare("12") == 0)
-        fmt = FILE_FORMAT_CS12L;
-    if(fmt_str.compare("10") == 0)
-        fmt = FILE_FORMAT_CS10L;
-    if(fmt_str.compare("8") == 0)
-        fmt = FILE_FORMAT_CS8;
-    if(fmt_str.compare("32u") == 0)
-        fmt = FILE_FORMAT_CS32LU;
-    if(fmt_str.compare("16u") == 0)
-        fmt = FILE_FORMAT_CS16LU;
-    if(fmt_str.compare("8u") == 0)
-        fmt = FILE_FORMAT_CS8U;
-    samples_per_chunk = any_to_any_base::samples_per_chunk[fmt];
-    chunk_size = any_to_any_base::chunk_size[fmt];
+    fmt = FILE_FORMAT_CF;
+    for(int k=FILE_FORMAT_CF;k<FILE_FORMAT_COUNT;k++)
+        if(fmt_str.compare(any_to_any_base::fmt[k].suffix) == 0)
+            fmt=file_formats(k);
+    samples_per_chunk = any_to_any_base::fmt[fmt].nsamples;
+    chunk_size = any_to_any_base::fmt[fmt].size;
 }

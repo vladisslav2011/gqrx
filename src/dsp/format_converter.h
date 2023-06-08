@@ -67,35 +67,28 @@ public:
     typedef std::shared_ptr<any_to_any_base> sptr;
 #endif
 
-    static constexpr int chunk_size[FILE_FORMAT_COUNT]
+    struct format_descriptor
     {
-        0,
-        0,
-        8,
-        2,
-        4,
-        8,
-        2,
-        4,
-        8,
-        5*8,
-        3,
-        7
+        int size;
+        int nsamples;
+        const char * suffix;
+        const char * name;
     };
-    static constexpr int samples_per_chunk[FILE_FORMAT_COUNT]
+
+    static constexpr format_descriptor fmt[FILE_FORMAT_COUNT]
     {
-        0,
-        0,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        1,
-        2*8,
-        1,
-        2
+        {0,0,nullptr,nullptr},
+        {0,0,nullptr,nullptr},
+        {8,1,"fc","gr_complex cf"},
+        {2,1,"8","char 8"},
+        {4,1,"16","short 16"},
+        {8,1,"32","int 32"},
+        {2,1,"8u","uchar 8"},
+        {4,1,"16u","ushort 16"},
+        {8,1,"32u","uint 32"},
+        {5*8,2*8,"10","10 bit"},
+        {3,1,"12","12 bit"},
+        {7,2,"14","14 bit"},
     };
 
     void set_decimation(unsigned decimation)

@@ -580,5 +580,4 @@ void any_to_any_impl_bmi64::convert(const std::array<int8_t,40> *in, gr_complex 
 
 #endif
 
-constexpr int any_to_any_base::chunk_size[FILE_FORMAT_COUNT];
-constexpr int any_to_any_base::samples_per_chunk[FILE_FORMAT_COUNT];
+constexpr any_to_any_base::format_descriptor any_to_any_base::fmt[FILE_FORMAT_COUNT];

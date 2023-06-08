@@ -2622,7 +2622,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
         int lines=0;
         double ms_per_line = 0.0;
         ui->plotter->getWaterfallMetrics(lines, ms_per_line);
-        uint64_t pos = std::llroundl(double(lines)*ms_per_line*1e-3*double(actual_rate)/any_to_any_base::samples_per_chunk[rx->get_last_format()]);
+        uint64_t pos = std::llroundl(double(lines)*ms_per_line*1e-3*double(actual_rate)/any_to_any_base::fmt[rx->get_last_format()].nsamples);
         seekIqFile(std::min(rx->get_iq_file_size(),pos));
         //rx->get_iq_tool_stats(iq_stats);
         iq_tool->updateStats(false, 0, pos);
@@ -2777,7 +2777,7 @@ void MainWindow::waterfall_background_func()
             old_seek_pos = seek_pos;
             if(ms_per_line > 0.0)
             {
-                qint64 nlines = std::round(double(seek_delta * any_to_any_base::samples_per_chunk[rx->get_last_format()]) * 1000.0/double(rx->get_input_rate()*ms_per_line));
+                qint64 nlines = std::round(double(seek_delta * any_to_any_base::fmt[rx->get_last_format()].nsamples) * 1000.0/double(rx->get_input_rate()*ms_per_line));
                 ui->plotter->scrollWaterfall(nlines);
                 emit requestPlotterUpdate();
                 rd = rx->get_fft_reader(seek_pos, std::bind(plotterWfCbWr, this,
