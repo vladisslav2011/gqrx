@@ -2500,8 +2500,11 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
         // suspend DSP while we reload settings
         on_actionDSP_triggered(false);
     }
-
-    storeSession();
+    bool reopening = !rx->is_running() && rx->is_playing_iq();
+    if(reopening)
+        stopIQFftRedraw();
+    else
+        storeSession();
 
     auto sri = (int)samprate;
     auto cf  = center_freq;
@@ -2543,7 +2546,17 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     ui->actionLoadSettings->setDisabled(true);
     ui->actionSaveSettings->setDisabled(true);
 
-    on_actionDSP_triggered(true);
+    if(reopening)
+    {
+        //struct receiver::iq_tool_stats iq_stats;
+        int lines=0;
+        double ms_per_line = 0.0;
+        ui->plotter->getWaterfallMetrics(lines, ms_per_line);
+        uint64_t pos = std::llround(double(lines)*ms_per_line*1e-3*double(actual_rate)/any_to_any_base::fmt[rx->get_last_format()].nsamples);
+        seekIqFile(std::min(rx->get_iq_file_size(),pos));
+        iq_tool->updateStats(false, 0, pos);
+    }else
+        on_actionDSP_triggered(true);
 }
 
 void MainWindow::stopIqPlayback()
@@ -2992,6 +3005,7 @@ void MainWindow::on_actionDSP_triggered(bool checked)
             iq_fft_timer->start(36e7); // 100 hours
             ui->plotter->setRunningState(false);
         }
+        iq_tool->setRunningState(true);
 
         audio_fft_timer->start(40);
 
@@ -3020,6 +3034,7 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         ui->actionDSP->setText(tr("Start DSP"));
 
         ui->plotter->setRunningState(false);
+        iq_tool->setRunningState(false);
     }
 
     ui->actionDSP->setChecked(checked); //for remote control
