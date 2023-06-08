@@ -175,7 +175,22 @@ void CIqTool::setSampleRate(qint64 sr)
 /*! \brief Slot activated when the user selects a file. */
 void CIqTool::on_listWidget_currentTextChanged(const QString &currentText)
 {
+    listWidgetFileSelected(currentText);
+    if(is_playing)
+    {
+        sel_A=sel_B=-1.0;
+        updateSliderStylesheet();
+        switchControlsState(false, true);
 
+        emit startPlayback(recdir->absoluteFilePath(current_file),
+                            (float)sample_rate, center_freq, fmt,
+                            time_ms, ui->buffersSpinBox->value(),
+                            ui->repeat->checkState() == Qt::Checked);
+    }
+}
+
+void CIqTool::listWidgetFileSelected(const QString &currentText)
+{
     current_file = currentText;
     QFileInfo info(*recdir, current_file);
 
@@ -184,7 +199,12 @@ void CIqTool::on_listWidget_currentTextChanged(const QString &currentText)
 
     // Get duration of selected recording and update label
     refreshTimeWidgets();
+}
 
+void CIqTool::setRunningState(bool state)
+{
+    is_running = state;
+    ui->listWidget->setEnabled(!(is_recording || (is_playing && is_running)));
 }
 
 /*! \brief Show/hide/enable/disable GUI controls */
@@ -197,7 +217,7 @@ void CIqTool::switchControlsState(bool recording, bool playback)
     ui->slider->setEnabled(!recording);
 
     ui->repeat->setEnabled(!(recording || playback));
-    ui->listWidget->setEnabled(!(recording || playback));
+    ui->listWidget->setEnabled(!(recording || (playback && is_running)));
     ui->recDirEdit->setEnabled(!(recording || playback));
     ui->recDirButton->setEnabled(!(recording || playback));
     ui->formatCombo->setEnabled(!(recording || playback));
@@ -252,7 +272,7 @@ void CIqTool::on_playButton_clicked(bool checked)
         {
             sel_A=sel_B=-1.0;
             updateSliderStylesheet();
-            on_listWidget_currentTextChanged(current_file);
+            listWidgetFileSelected(current_file);
             switchControlsState(false, true);
 
             emit startPlayback(recdir->absoluteFilePath(current_file),

@@ -115,6 +115,7 @@ public:
     void open(const char* filename, bool repeat, uint64_t offset, uint64_t len);
     void close();
     uint64_t tell();
+    uint64_t get_size() { return d_length_items - d_start_offset_items; }
     bool get_failed() const { return d_failed;};
     int get_buffer_usage();
 
