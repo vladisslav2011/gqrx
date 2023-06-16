@@ -197,24 +197,17 @@ private slots:
     void loadConfigSlot(const QString &cfgfile);
 
     /* rf */
-    void setLnbLo(double freq_mhz);
-    void setAntenna(const QString& antenna);
+    void lnbLoObserver(c_id, const c_def::v_union & v);
 
     /* baseband receiver */
     void setFilterOffset(qint64 freq_hz);
     void setGain(const QString& name, double gain);
-    void setAutoGain(bool enabled);
-    void setFreqCorr(double ppm);
-    void setIqSwap(bool reversed);
-    void setDcCancel(bool enabled);
-    void setIqBalance(bool enabled);
-    void setIgnoreLimits(bool ignore_limits);
-    void setFreqCtrlReset(bool enabled);
-    void setInvertScrolling(bool enabled);
-    void setAutoBookmarks(bool enabled);
+    void ignoreLimitsObserver(c_id, const c_def::v_union & ignore_limits);
+    void freqCtrlResetObserver(c_id, const c_def::v_union &);
+    void invertScrollingObserver(c_id, const c_def::v_union &);
+    void autoBookmarksObserver(c_id, const c_def::v_union &);
     void updateDemodGUIRanges(const Modulations::idx mode_idx);
     void setPassband(int bandwidth);
-    void setChanelizer(int n);
 
     /* I/Q playback and recording*/
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);

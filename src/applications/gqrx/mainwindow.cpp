@@ -278,6 +278,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_MODE_CHANGED, &MainWindow::modeChangeObserver);
     set_observer(C_FILTER_WIDTH, &MainWindow::filterWidthObserver);
     set_observer(C_VFO_FREQUENCY, &MainWindow::frequencyObserver);
+    set_observer(C_AUTO_BOOKMARKS, &MainWindow::autoBookmarksObserver);
+    set_observer(C_DIGITS_RESET, &MainWindow::freqCtrlResetObserver);
+    set_observer(C_WHEEL_INVERT, &MainWindow::invertScrollingObserver);
+    set_observer(C_IGNORE_LIMITS, &MainWindow::ignoreLimitsObserver);
+    set_observer(C_LNB_LO, &MainWindow::lnbLoObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -288,21 +293,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     /* connect signals and slots */
     connect(rxSpinBox, SIGNAL(valueChanged(int)), this, SLOT(rxSpinBox_valueChanged(int)));
     connect(ui->freqCtrl, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
-    connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), this, SLOT(setLnbLo(double)));
-    connect(uiDockInputCtl, SIGNAL(lnbLoChanged(double)), remote, SLOT(setLnbLo(double)));
     connect(uiDockInputCtl, SIGNAL(gainChanged(QString, double)), this, SLOT(setGain(QString,double)));
     connect(uiDockInputCtl, SIGNAL(gainChanged(QString, double)), remote, SLOT(setGain(QString,double)));
-    connect(uiDockInputCtl, SIGNAL(autoGainChanged(bool)), this, SLOT(setAutoGain(bool)));
-    connect(uiDockInputCtl, SIGNAL(freqCorrChanged(double)), this, SLOT(setFreqCorr(double)));
-    connect(uiDockInputCtl, SIGNAL(iqSwapChanged(bool)), this, SLOT(setIqSwap(bool)));
-    connect(uiDockInputCtl, SIGNAL(dcCancelChanged(bool)), this, SLOT(setDcCancel(bool)));
-    connect(uiDockInputCtl, SIGNAL(iqBalanceChanged(bool)), this, SLOT(setIqBalance(bool)));
-    connect(uiDockInputCtl, SIGNAL(ignoreLimitsChanged(bool)), this, SLOT(setIgnoreLimits(bool)));
-    connect(uiDockInputCtl, SIGNAL(antennaSelected(QString)), this, SLOT(setAntenna(QString)));
-    connect(uiDockInputCtl, SIGNAL(freqCtrlResetChanged(bool)), this, SLOT(setFreqCtrlReset(bool)));
-    connect(uiDockInputCtl, SIGNAL(invertScrollingChanged(bool)), this, SLOT(setInvertScrolling(bool)));
-    connect(uiDockInputCtl, SIGNAL(autoBookmarksChanged(bool)), this, SLOT(setAutoBookmarks(bool)));
-    connect(uiDockInputCtl, SIGNAL(channelizerChanged(int)), this, SLOT(setChanelizer(int)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
@@ -363,8 +355,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(remote, SIGNAL(newFilterOffset(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(remote, SIGNAL(newFilterOffset(qint64)), uiDockRxOpt, SLOT(setFilterOffset(qint64)));
     connect(remote, SIGNAL(newFrequency(qint64)), this, SLOT(setNewFrequency(qint64)));
-    connect(remote, SIGNAL(newLnbLo(double)), uiDockInputCtl, SLOT(setLnbLo(double)));
-    connect(remote, SIGNAL(newLnbLo(double)), this, SLOT(setLnbLo(double)));
+    connect(remote, &RemoteControl::newLnbLo, [=](double v)
+        {
+            set_gui(C_LNB_LO,int64_t(v*1e6),true);
+            changed_gui(C_LNB_LO,int64_t(v*1e6));
+        });
     connect(remote, &RemoteControl::newMode, [=](Modulations::idx v)
         {
             set_gui(C_MODE, int(v), true);
@@ -812,24 +807,10 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         qDebug() << "Actual bandwidth   :" << actual_bw << "Hz";
     }
 
-    uiDockInputCtl->readSettings(m_settings); // this will also update freq range
+    uiDockInputCtl->readSettings(m_settings);
+    //update frequency range. Actual "ignore limits" value will be read later.
+    ignoreLimitsObserver(C_IGNORE_LIMITS, 1);
 
-    int64_val = m_settings->value("input/frequency", 14236000).toLongLong(&conv_ok);
-
-    // If frequency is out of range set frequency to the center of the range.
-    hw_freq = int64_val - d_lnb_lo;
-    if (hw_freq < d_hw_freq_start || hw_freq > d_hw_freq_stop)
-    {
-        hw_freq = (d_hw_freq_stop - d_hw_freq_start) / 2;
-        int64_val = hw_freq + d_lnb_lo;
-    }
-
-    rx->set_rf_freq(hw_freq);
-    if (ver >= 4)
-    {
-        ui->freqCtrl->setFrequency(int64_val  + (qint64)(rx->get_filter_offset()));
-        setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
-    }
     auto defs=c_def::all();
     for(int j=0;j<C_COUNT;j++)
     {
@@ -847,6 +828,22 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
                 rx->set_value(id,v);
             set_gui(id, v, true);
         }
+    }
+    int64_val = m_settings->value("input/frequency", 14236000).toLongLong(&conv_ok);
+
+    // If frequency is out of range set frequency to the center of the range.
+    hw_freq = int64_val - d_lnb_lo;
+    if (hw_freq < d_hw_freq_start || hw_freq > d_hw_freq_stop)
+    {
+        hw_freq = (d_hw_freq_stop - d_hw_freq_start) / 2;
+        int64_val = hw_freq + d_lnb_lo;
+    }
+
+    rx->set_rf_freq(hw_freq);
+    if (ver >= 4)
+    {
+        ui->freqCtrl->setFrequency(int64_val  + (qint64)(rx->get_filter_offset()));
+        setNewFrequency(ui->freqCtrl->getFrequency()); // ensure all GUI and RF is updated
     }
     readRXSettings(ver, actual_rate);
     if (ver < 4)
@@ -1444,30 +1441,29 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
  * @brief Set new LNB LO frequency.
  * @param freq_mhz The new frequency in MHz.
  */
-void MainWindow::setLnbLo(double freq_mhz)
+void MainWindow::lnbLoObserver(c_id, const c_def::v_union &v)
 {
+    const qint64 lnb_lo_hz = v;
+    if(d_lnb_lo==lnb_lo_hz)
+        return;
     // calculate current RF frequency
     auto rf_freq = ui->freqCtrl->getFrequency() - d_lnb_lo;
 
-    d_lnb_lo = qint64(freq_mhz*1e6);
+    d_lnb_lo = lnb_lo_hz;
     qDebug() << "New LNB LO:" << d_lnb_lo << "Hz";
 
+    remote->setLnbLo(int64_t(v)*1e-6);
     // Update ranges and show updated frequency
     updateFrequencyRange();
     setNewFrequency(d_lnb_lo + rf_freq);
 
+    #if 0
     // update LNB LO in settings
     if (freq_mhz == 0.)
         m_settings->remove("input/lnb_lo");
     else
         m_settings->setValue("input/lnb_lo", d_lnb_lo);
-}
-
-/** Select new antenna connector. */
-void MainWindow::setAntenna(const QString& antenna)
-{
-    qDebug() << "New antenna selected:" << antenna;
-    rx->set_antenna(antenna.toStdString());
+    #endif
 }
 
 /**
@@ -1495,65 +1491,6 @@ void MainWindow::setGain(const QString& name, double gain)
     rx->set_gain(name.toStdString(), gain);
 }
 
-/** Enable / disable hardware AGC. */
-void MainWindow::setAutoGain(bool enabled)
-{
-    rx->set_auto_gain(enabled);
-    if (!enabled)
-        uiDockInputCtl->restoreManualGains();
-}
-
-/**
- * @brief Set new frequency offset value.
- * @param ppm Frequency correction.
- *
- * The valid range is between -200 and 200.
- */
-void MainWindow::setFreqCorr(double ppm)
-{
-    if (ppm < -200.0)
-        ppm = -200.0;
-    else if (ppm > 200.0)
-        ppm = 200.0;
-
-    qDebug() << __FUNCTION__ << ":" << ppm << "ppm";
-    rx->set_freq_corr(ppm);
-}
-
-
-/** Enable/disable I/Q reversion. */
-void MainWindow::setIqSwap(bool reversed)
-{
-    rx->set_iq_swap(reversed);
-}
-
-/** Enable/disable automatic DC removal. */
-void MainWindow::setDcCancel(bool enabled)
-{
-    rx->set_dc_cancel(enabled);
-}
-
-/** Enable/disable automatic IQ balance. */
-void MainWindow::setIqBalance(bool enabled)
-{
-    try
-    {
-        rx->set_iq_balance(enabled);
-    }
-    catch (std::exception &x)
-    {
-        qCritical() << "Failed to set IQ balance: " << x.what();
-        m_settings->remove("input/iq_balance");
-        uiDockInputCtl->setIqBalance(false);
-        if (enabled)
-        {
-            QMessageBox::warning(this, tr("Gqrx error"),
-                                 tr("Failed to set IQ balance.\n"
-                                    "IQ balance setting in Input Control disabled."),
-                                 QMessageBox::Ok, QMessageBox::Ok);
-        }
-    }
-}
 
 /**
  * @brief Ignore hardware limits.
@@ -1564,7 +1501,7 @@ void MainWindow::setIqBalance(bool enabled)
  * current RF center frequency, which may change when we switch from ignore to
  * don't ignore.
  */
-void MainWindow::setIgnoreLimits(bool ignore_limits)
+void MainWindow::ignoreLimitsObserver(c_id, const c_def::v_union & ignore_limits)
 {
     updateHWFrequencyRange(ignore_limits);
 
@@ -1580,14 +1517,14 @@ void MainWindow::setIgnoreLimits(bool ignore_limits)
 
 
 /** Reset lower digits of main frequency control widget */
-void MainWindow::setFreqCtrlReset(bool enabled)
+void MainWindow::freqCtrlResetObserver(c_id, const c_def::v_union & enabled)
 {
     ui->freqCtrl->setResetLowerDigits(enabled);
     uiDockRxOpt->setResetLowerDigits(enabled);
 }
 
 /** Invert scroll wheel direction */
-void MainWindow::setInvertScrolling(bool enabled)
+void MainWindow::invertScrollingObserver(c_id, const c_def::v_union & enabled)
 {
     ui->freqCtrl->setInvertScrolling(enabled);
     ui->plotter->setInvertScrolling(enabled);
@@ -1596,10 +1533,10 @@ void MainWindow::setInvertScrolling(bool enabled)
     uiDockProbe->setInvertScrolling(enabled);
 }
 
-/** Invert scroll wheel direction */
-void MainWindow::setAutoBookmarks(bool enabled)
+/** Automatic demodulators */
+void MainWindow::autoBookmarksObserver(c_id, const c_def::v_union & v)
 {
-    d_auto_bookmarks = enabled;
+    d_auto_bookmarks = v;
 }
 
 /**
@@ -2195,6 +2132,15 @@ void MainWindow::stopIqPlayback()
 
     // restore frequency, gain, etc...
     uiDockInputCtl->readSettings(m_settings);
+    auto defs = c_def::all();
+    c_def::v_union tmp;
+    for(int k=0;k<C_COUNT;k++)
+        if(defs[k].dock()==D_INPUTCTL)
+            if(defs[k].scope()==S_RX)
+            {
+                get_gui(c_id(k), tmp);
+                changed_gui(c_id(k), tmp);
+            }
     bool centerOK = false;
     bool offsetOK = false;
     qint64 oldCenter = m_settings->value("input/frequency", 0).toLongLong(&centerOK);
@@ -2704,6 +2650,7 @@ int MainWindow::on_actionIoConfig_triggered()
 {
     qDebug() << "Configure I/O devices.";
 
+    storeSession();
     auto *ioconf = new CIoConfig(m_settings, devList);
     auto confres = ioconf->exec();
 
@@ -2716,7 +2663,12 @@ int MainWindow::on_actionIoConfig_triggered()
             on_actionDSP_triggered(false);
 
         // Refresh LNB LO in dock widget, otherwise changes will be lost
-        uiDockInputCtl->readLnbLoFromSettings(m_settings);
+        c_def::v_union tmp;
+        auto def=c_def::all()[C_LNB_LO];
+        m_settings->beginGroup(QString::fromStdString(def.v3_config_group()));
+        loadSetting(m_settings, def,tmp);
+        set_gui(C_LNB_LO,tmp);
+        m_settings->endGroup();
         storeSession();
         loadConfig(m_settings->fileName(), false, false);
 
@@ -3085,11 +3037,6 @@ void MainWindow::setPassband(int bandwidth)
     }
 
     on_plotter_newFilterFreq(lo, hi);
-}
-
-void MainWindow::setChanelizer(int n)
-{
-    rx->set_channelizer(n);
 }
 
 /** Launch Gqrx google group website. */
