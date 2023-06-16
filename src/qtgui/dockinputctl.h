@@ -71,72 +71,20 @@ public:
     void    readSettings(QSettings * settings);
     void    saveSettings(QSettings * settings);
 
-    double  lnbLo();
-    void    readLnbLoFromSettings(QSettings * settings);
-
     double  gain(QString &name);
 
-    void    setAgc(bool enabled);
-    bool    agc();
-
-    void    setFreqCorr(double corr);
-    double  freqCorr();
-
-    void    setIqSwap(bool reversed);
-    bool    iqSwap(void);
-
-    void    setDcCancel(bool enabled);
-    bool    dcCancel(void);
-
-    void    setIqBalance(bool enabled);
-    bool    iqBalance(void);
-
-    void    setIgnoreLimits(bool reversed);
-    bool    ignoreLimits(void);
-
     void    setAntennas(std::vector<std::string> &antennas);
-    void    setAntenna(const QString &antenna);
 
     void    setGainStages(gain_list_t &gain_list);
     void    restoreManualGains(void);
-
-    void    setFreqCtrlReset(bool enabled);
-    void    setInvertScrolling(bool enabled);
 
 public slots:
     bool    setGain(QString name, double value);
 
 signals:
     void gainChanged(QString name, double value);
-    void autoGainChanged(bool enabled);
-    void freqCorrChanged(double value);
-    void lnbLoChanged(double freq_mhz);
-    void iqSwapChanged(bool reverse);
-    void dcCancelChanged(bool enabled);
-    void iqBalanceChanged(bool enabled);
-    void ignoreLimitsChanged(bool ignore);
-    void antennaSelected(QString antenna);
-    void freqCtrlResetChanged(bool enabled);
-    void invertScrollingChanged(bool enabled);
-    void autoBookmarksChanged(bool checked);
-    void channelizerChanged(int value);
-
-public slots:
-    void setLnbLo(double freq_mhz);
 
 private slots:
-    void on_lnbSpinBox_valueChanged(double value);
-    void on_agcButton_toggled(bool checked);
-    void on_freqCorrSpinBox_valueChanged(double value);
-    void on_iqSwapButton_toggled(bool checked);
-    void on_dcCancelButton_toggled(bool checked);
-    void on_iqBalanceButton_toggled(bool checked);
-    void on_ignoreButton_toggled(bool checked);
-    void on_antSelector_currentIndexChanged(int index);
-    void on_freqCtrlResetButton_toggled(bool checked);
-    void on_invertScrollingButton_toggled(bool checked);
-    void on_autoBookmarksButton_toggled(bool checked);
-    void on_channelizerCombo_currentIndexChanged(int index);
 
     void sliderValueChanged(int value);
 
@@ -145,11 +93,13 @@ private:
     void updateLabel(int idx, double value);
     void getGains(QMap<QString, QVariant> * gains);
     void setGains(QMap<QString, QVariant> * gains);
+    void hwagcObserver(c_id, const c_def::v_union & v);
 
 private:
     QList<QSlider *>  gain_sliders; /*!< A list containing the gain sliders. */
     QList<QLabel *>   gain_labels;  /*!< A list containing the gain labels. */
     QList<QLabel *>   value_labels; /*!< A list containing labels showing the current gain value. */
+    QGridLayout * gainLayout;
 
     Ui::DockInputCtl *ui;           /*!< User interface. */
 };
