@@ -192,7 +192,8 @@ public:
                                int buffers_max, bool repeat);
 
     std::vector<std::string> get_antennas(void) const;
-    void        set_antenna(const std::string &antenna);
+    bool        set_antenna(const c_def::v_union &);
+    bool        get_antenna(c_def::v_union &) const;
 
     double      set_input_rate(double rate);
     double      get_input_rate(void) const { return d_input_rate; }
@@ -207,14 +208,14 @@ public:
     double      set_analog_bandwidth(double bw);
     double      get_analog_bandwidth(void) const;
 
-    void        set_iq_swap(bool reversed);
-    bool        get_iq_swap(void) const;
+    bool        set_iq_swap(const c_def::v_union &);
+    bool        get_iq_swap(c_def::v_union &) const;
 
-    void        set_dc_cancel(bool enable);
-    bool        get_dc_cancel(void) const;
+    bool        set_dc_cancel(const c_def::v_union &);
+    bool        get_dc_cancel(c_def::v_union &) const;
 
-    void        set_iq_balance(bool enable);
-    bool        get_iq_balance(void) const;
+    bool        set_iq_balance(const c_def::v_union &);
+    bool        get_iq_balance(c_def::v_union &) const;
 
     status      set_rf_freq(double freq_hz);
     double      get_rf_freq(void);
@@ -224,7 +225,8 @@ public:
     std::vector<std::string>    get_gain_names();
     status      get_gain_range(std::string &name, double *start, double *stop,
                                double *step) const;
-    status      set_auto_gain(bool automatic);
+    bool        set_auto_gain(const c_def::v_union &);
+    bool        get_auto_gain(c_def::v_union &) const;
     status      set_gain(std::string name, double value);
     double      get_gain(std::string name) const;
 
@@ -246,7 +248,8 @@ public:
 
     status      set_filter(int low, int high, filter_shape shape);
     status      get_filter(int &low, int &high, filter_shape &shape);
-    status      set_freq_corr(double ppm);
+    bool        set_freq_corr(const c_def::v_union &);
+    bool        get_freq_corr(c_def::v_union &) const;
     float       get_signal_pwr() const;
     void        set_iq_fft_size(int newsize);
     void        set_iq_fft_window(int window_type, int correction);
@@ -268,7 +271,8 @@ public:
     int         get_chan_decim(){return chan->decim();}
     int         get_chan_osr(){return chan->osr();}
     void        set_chan_filter_param(float n);
-    void        set_channelizer(int n);
+    bool        get_channelizer(c_def::v_union &) const;
+    bool        set_channelizer(const c_def::v_union &);
 
     /* Squelch parameter */
     bool        set_sql_auto(const c_def::v_union &);
