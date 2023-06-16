@@ -34,6 +34,21 @@ enum c_id
 {
     C_TEST=0,
     
+    C_LNB_LO,
+    C_IQ_AGC,
+    C_IQ_AGC_ACK,
+    C_IQ_SWAP,
+    C_IGNORE_LIMITS,
+    C_IQ_DCR,
+    C_IQ_BALANCE,
+    C_PPM,
+    C_ANTENNA,
+    C_INPUTCTL_LINE,
+    C_DIGITS_RESET,
+    C_WHEEL_INVERT,
+    C_AUTO_BOOKMARKS,
+    C_CHAN_THREADS,
+
 //    C_AUTOSTART,
     C_HW_FREQ_LABEL,
     C_VFO_FREQUENCY,
