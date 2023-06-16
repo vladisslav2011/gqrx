@@ -64,7 +64,7 @@ receiver::receiver(const std::string input_device,
       d_running(false),
       d_input_rate(96000.0),
       d_use_chan(false),
-      d_enable_chan(true),
+      d_enable_chan(false),
       d_audio_rate(48000),
       d_decim(decimation),
       d_rf_freq(144800000.0),
@@ -395,13 +395,28 @@ std::vector<std::string> receiver::get_antennas(void) const
 }
 
 /** Select antenna connector. */
-void receiver::set_antenna(const std::string &antenna)
+bool receiver::set_antenna(const c_def::v_union &antenna)
 {
-    if (!antenna.empty())
+    if (!std::string(antenna).empty())
     {
-        src->set_antenna(antenna);
+        try{
+            src->set_antenna(antenna);
+        }catch(std::exception &e)
+        {
+            c_def::v_union n;
+            get_antenna(n);
+            changed_value(C_ANTENNA,0,n);
+        }
     }
+    return true;
 }
+
+bool receiver::get_antenna(c_def::v_union &v) const
+{
+    v=src->get_antenna();
+    return true;
+}
+
 
 /**
  * @brief Set new input sample rate.
@@ -524,16 +539,17 @@ double receiver::get_analog_bandwidth(void) const
 }
 
 /** Set I/Q reversed. */
-void receiver::set_iq_swap(bool reversed)
+bool receiver::set_iq_swap(const c_def::v_union & v)
 {
-    if (reversed == d_iq_rev)
-        return;
+    if (bool(v) == d_iq_rev)
+        return true;
 
-    d_iq_rev = reversed;
+    d_iq_rev = v;
     // until we have a way to bypass a hier_block2 without overhead
     // we do a reconf
     reconnect_all(FILE_FORMAT_LAST, true);
     iq_swap->set_enabled(d_iq_rev);
+    return true;
 }
 
 /**
@@ -541,26 +557,28 @@ void receiver::set_iq_swap(bool reversed)
  * @retval true I/Q swappign is enabled.
  * @retval false I/Q swapping is disabled.
  */
-bool receiver::get_iq_swap(void) const
+bool receiver::get_iq_swap(c_def::v_union & v) const
 {
-    return d_iq_rev;
+    v=d_iq_rev;
+    return true;
 }
 
 /**
  * @brief Enable/disable automatic DC removal in the I/Q stream.
  * @param enable Whether DC removal should enabled or not.
  */
-void receiver::set_dc_cancel(bool enable)
+bool receiver::set_dc_cancel(const c_def::v_union & v)
 {
-    if (enable == d_dc_cancel)
-        return;
+    if (bool(v) == d_dc_cancel)
+        return true;
 
-    d_dc_cancel = enable;
+    d_dc_cancel = v;
 
     // until we have a way to switch on/off
     // inside the dc_corr_cc we do a reconf
     reconnect_all(FILE_FORMAT_LAST, true);
 //    set_demod(d_demod, FILE_FORMAT_LAST, true);
+    return true;
 }
 
 /**
@@ -568,23 +586,39 @@ void receiver::set_dc_cancel(bool enable)
  * @retval true  Automatic DC removal is enabled.
  * @retval false Automatic DC removal is disabled.
  */
-bool receiver::get_dc_cancel(void) const
+bool receiver::get_dc_cancel(c_def::v_union & v) const
 {
-    return d_dc_cancel;
+    v=d_dc_cancel;
+    return true;
 }
 
 /**
  * @brief Enable/disable automatic I/Q balance.
  * @param enable Whether automatic I/Q balance should be enabled.
  */
-void receiver::set_iq_balance(bool enable)
+bool receiver::set_iq_balance(const c_def::v_union & v)
 {
-    if (enable == d_iq_balance)
-        return;
+    if (bool(v) == d_iq_balance)
+        return true;
 
-    d_iq_balance = enable;
+    d_iq_balance = v;
 
-    src->set_iq_balance_mode(enable ? 2 : 0);
+    try
+    {
+        src->set_iq_balance_mode(d_iq_balance ? 2 : 0);
+    }catch(std::exception & e)
+    {
+        changed_value(C_IQ_BALANCE,0,0);
+        // TODO: emit a message here
+/*        if (enabled)
+        {
+            QMessageBox::warning(this, tr("Gqrx error"),
+                                 tr("Failed to set IQ balance.\n"
+                                    "IQ balance setting in Input Control disabled."),
+                                 QMessageBox::Ok, QMessageBox::Ok);
+        }*/
+    }
+    return true;
 }
 
 /**
@@ -592,9 +626,10 @@ void receiver::set_iq_balance(bool enable)
  * @retval true  Automatic I/Q balance is enabled.
  * @retval false Automatic I/Q balance is disabled.
  */
-bool receiver::get_iq_balance(void) const
+bool receiver::get_iq_balance(c_def::v_union & v) const
 {
-    return d_iq_balance;
+    v=d_iq_balance;
+    return true;
 }
 
 /**
@@ -708,11 +743,21 @@ double receiver::get_gain(std::string name) const
  *                 AGC where supported).
  * @return RX_STATUS_ERROR if an error occurs, e.g. the gain is out of valid range.
  */
-receiver::status receiver::set_auto_gain(bool automatic)
+bool receiver::set_auto_gain(const c_def::v_union & v)
 {
-    src->set_gain_mode(automatic);
+    src->set_gain_mode(v);
+    //may fail silently
+    c_def::v_union tmp=src->get_gain_mode();
+    if(!(tmp == v))
+        changed_value(C_IQ_AGC,0,tmp);
+    changed_value(C_IQ_AGC_ACK,0,tmp);
+    return true;
+}
 
-    return STATUS_OK;
+bool receiver::get_auto_gain(c_def::v_union & v) const
+{
+    v=src->get_gain_mode();
+    return true;
 }
 
 /**
@@ -948,11 +993,16 @@ receiver::status receiver::get_filter(int &low, int &high, filter_shape &shape)
     return STATUS_OK;
 }
 
-receiver::status receiver::set_freq_corr(double ppm)
+bool receiver::set_freq_corr(const c_def::v_union &ppm)
 {
     src->set_freq_corr(ppm);
+    return true;
+}
 
-    return STATUS_OK;
+bool receiver::get_freq_corr(c_def::v_union &ppm) const
+{
+    ppm=src->get_freq_corr();
+    return true;
 }
 
 /**
@@ -1038,16 +1088,26 @@ void receiver::set_chan_filter_param(float n)
     chan->set_filter_param(n);
 }
 
-void receiver::set_channelizer(int n)
+bool receiver::get_channelizer(c_def::v_union & v) const
 {
+    if(!d_enable_chan)
+        v=0;
+    else
+        v=chan->nthreads();
+    return true;
+}
+
+bool receiver::set_channelizer(const c_def::v_union & v)
+{
+    const int n=v;
     if (d_enable_chan && n)
     {
         if (chan->nthreads() != n)
             chan->set_nthreads(n);
-        return;
+        return true;
     }
     if (!d_enable_chan && !n)
-        return;
+        return true;
 
     if (chan->nthreads() != n)
         chan->set_nthreads(n);
@@ -1058,7 +1118,7 @@ void receiver::set_channelizer(int n)
     if (d_decim_rate < TARGET_CHAN_RATE * 2)
         use_chan = false;
     if (use_chan == d_use_chan)
-        return;
+        return true;
     if (d_running)
     {
         tb->stop();
@@ -1069,6 +1129,7 @@ void receiver::set_channelizer(int n)
     if (d_running)
         tb->start();
     std::cerr<<"set_channelizer: started\n";
+    return true;
 }
 
 void receiver::set_channelizer_int(bool use_chan)
@@ -2210,6 +2271,21 @@ bool receiver::get_value(c_id optid, c_def::v_union & value) const
 
 int receiver::conf_initializer()
 {
+    getters[C_IQ_AGC]=&receiver::get_auto_gain;
+    setters[C_IQ_AGC]=&receiver::set_auto_gain;
+    getters[C_IQ_SWAP]=&receiver::get_iq_swap;
+    setters[C_IQ_SWAP]=&receiver::set_iq_swap;
+    getters[C_IQ_DCR]=&receiver::get_dc_cancel;
+    setters[C_IQ_DCR]=&receiver::set_dc_cancel;
+    getters[C_IQ_BALANCE]=&receiver::get_iq_balance;
+    setters[C_IQ_BALANCE]=&receiver::set_iq_balance;
+    getters[C_PPM]=&receiver::get_freq_corr;
+    setters[C_PPM]=&receiver::set_freq_corr;
+    getters[C_ANTENNA]=&receiver::get_antenna;
+    setters[C_ANTENNA]=&receiver::set_antenna;
+    getters[C_CHAN_THREADS]=&receiver::get_channelizer;
+    setters[C_CHAN_THREADS]=&receiver::set_channelizer;
+
     getters[C_HW_FREQ_LABEL]=&receiver::get_hw_freq_label;
     setters[C_FREQ_LOCK_ALL]=&receiver::set_freq_lock_all;
     setters[C_FREQ_UNLOCK_ALL]=&receiver::set_freq_lock_all;

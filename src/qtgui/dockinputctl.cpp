@@ -21,6 +21,7 @@
  * Boston, MA 02110-1301, USA.
  */
 #include <QDebug>
+#include <QComboBox>
 #include "dockinputctl.h"
 #include "ui_dockinputctl.h"
 
@@ -30,12 +31,10 @@ DockInputCtl::DockInputCtl(QWidget * parent) :
 {
     ui->setupUi(this);
 
-    ui->channelizerCombo->addItem("OFF", 0);
-    ui->channelizerCombo->addItem("singlethreaded", 1);
-    ui->channelizerCombo->addItem("2 threads", 2);
-    ui->channelizerCombo->addItem("4 threads", 4);
-    ui->channelizerCombo->addItem("8 threads", 8);
+    gainLayout = new QGridLayout();
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    ui->gridLayout->addLayout(gainLayout,2,0,1,3);
+    set_observer(C_IQ_AGC_ACK, &DockInputCtl::hwagcObserver);
 }
 
 DockInputCtl::~DockInputCtl()
@@ -45,43 +44,6 @@ DockInputCtl::~DockInputCtl()
 
 void DockInputCtl::readSettings(QSettings * settings)
 {
-    qint64  lnb_lo;
-    bool    conv_ok;
-    bool    bool_val;
-    int     int_val;
-
-    qint64 ppm_corr = settings->value("input/corr_freq", 0).toLongLong(&conv_ok);
-    setFreqCorr(((double)ppm_corr)/1.0e6);
-    emit freqCorrChanged(ui->freqCorrSpinBox->value());
-
-    setIqSwap(settings->value("input/swap_iq", false).toBool());
-    emit iqSwapChanged(ui->iqSwapButton->isChecked());
-
-    setDcCancel(settings->value("input/dc_cancel", false).toBool());
-    emit dcCancelChanged(ui->dcCancelButton->isChecked());
-
-    setIqBalance(settings->value("input/iq_balance", false).toBool());
-    emit iqBalanceChanged(ui->iqBalanceButton->isChecked());
-
-    bool_val = settings->value("input/ignore_limits", false).toBool();
-    setIgnoreLimits(bool_val);
-    emit ignoreLimitsChanged(bool_val);
-
-    lnb_lo = settings->value("input/lnb_lo", 0).toLongLong(&conv_ok);
-    if (conv_ok)
-    {
-        setLnbLo(((double)lnb_lo)/1.0e6);
-        emit lnbLoChanged(ui->lnbSpinBox->value());
-    }
-
-    // Ignore antenna selection if there is only one option
-    if (ui->antSelector->count() > 1)
-    {
-        QString ant = settings->value("input/antenna", "").toString();
-        setAntenna(ant);
-        emit antennaSelected(ant);
-    }
-
     // gains are stored as a QMap<QString, QVariant(int)>
     // note that we store the integer values, i.e. dB*10
     if (settings->contains("input/gains"))
@@ -104,46 +66,10 @@ void DockInputCtl::readSettings(QSettings * settings)
         }
     }
 
-    bool_val = settings->value("input/hwagc", false).toBool();
-    setAgc(bool_val);
-    emit autoGainChanged(bool_val);
-
-    // misc GUI settings
-    bool_val = settings->value("gui/fctl_reset_digits", true).toBool();
-    emit freqCtrlResetChanged(bool_val);
-    ui->freqCtrlResetButton->setChecked(bool_val);
-
-    bool_val = settings->value("gui/invert_scrolling", false).toBool();
-    emit invertScrollingChanged(bool_val);
-    ui->invertScrollingButton->setChecked(bool_val);
-
-    bool_val = settings->value("gui/auto_bookmarks", false).toBool();
-    emit autoBookmarksChanged(bool_val);
-    ui->autoBookmarksButton->setChecked(bool_val);
-
-    int_val = settings->value("gui/fft_channelizer", 0).toInt(&conv_ok);
-    if (conv_ok)
-    {
-        int_val = ui->channelizerCombo->findData(int_val);
-        if (int_val < 0)
-            int_val = 0;
-        ui->channelizerCombo->setCurrentIndex(int_val);
-    }
-    else
-    {
-        ui->channelizerCombo->setCurrentIndex(0);
-    }
-    emit channelizerChanged(ui->channelizerCombo->currentData().toInt());
 }
 
 void DockInputCtl::saveSettings(QSettings * settings)
 {
-    qint64 lnb_lo = (qint64)(ui->lnbSpinBox->value()*1.e6);
-    if (lnb_lo)
-        settings->setValue("input/lnb_lo", lnb_lo);
-    else
-        settings->remove("input/lnb_lo");
-
     // gains are stored as a QMap<QString, QVariant(int)>
     // note that we store the integer values, i.e. dB*10
     QMap <QString, QVariant> gains;
@@ -153,89 +79,6 @@ void DockInputCtl::saveSettings(QSettings * settings)
     else
         settings->setValue("input/gains", gains);
 
-    qint64 ppm_corr = (qint64)(ui->freqCorrSpinBox->value()*1.e6);
-    if (ppm_corr)
-        settings->setValue("input/corr_freq", ppm_corr);
-    else
-        settings->remove("input/corr_freq");
-
-    if (iqSwap())
-        settings->setValue("input/swap_iq", true);
-    else
-        settings->remove("input/swap_iq");
-
-    if (dcCancel())
-        settings->setValue("input/dc_cancel", true);
-    else
-        settings->remove("input/dc_cancel");
-
-    if (iqBalance())
-        settings->setValue("input/iq_balance", true);
-    else
-        settings->remove("input/iq_balance");
-
-    if (ignoreLimits())
-        settings->setValue("input/ignore_limits", true);
-    else
-        settings->remove("input/ignore_limits");
-
-    if (agc())
-        settings->setValue("input/hwagc", true);
-    else
-        settings->remove("input/hwagc");
-
-    // save antenna selection if there is more than one option
-    if (ui->antSelector->count() > 1)
-        settings->setValue("input/antenna", ui->antSelector->currentText());
-    else
-        settings->remove("input/antenna");
-
-    // Remember state of freqReset button. Default is checked.
-    if (!ui->freqCtrlResetButton->isChecked())
-        settings->setValue("gui/fctl_reset_digits", false);
-    else
-        settings->remove("gui/fctl_reset_digits");
-
-    // Remember state of invert scrolling button. Default is unchecked.
-    if (ui->invertScrollingButton->isChecked())
-        settings->setValue("gui/invert_scrolling", true);
-    else
-        settings->remove("gui/invert_scrolling");
-
-    // Remember state of auto bookmarks button. Default is unchecked.
-    if (ui->autoBookmarksButton->isChecked())
-        settings->setValue("gui/auto_bookmarks", true);
-    else
-        settings->remove("gui/auto_bookmarks");
-
-    // Remember state of channelizer. Default is checked.
-    if (ui->channelizerCombo->currentData() == 0)
-        settings->remove("gui/fft_channelizer");
-    else
-        settings->setValue("gui/fft_channelizer", ui->channelizerCombo->currentData().toInt());
-}
-
-void DockInputCtl::readLnbLoFromSettings(QSettings * settings)
-{
-    qint64  lnb_lo;
-    bool    conv_ok;
-
-    lnb_lo = settings->value("input/lnb_lo", 0).toLongLong(&conv_ok);
-    if (conv_ok)
-    {
-        setLnbLo(((double)lnb_lo) / 1.0e6);
-        emit lnbLoChanged(ui->lnbSpinBox->value());
-    }
-}
-
-void DockInputCtl::setLnbLo(double freq_mhz)
-{
-    ui->lnbSpinBox->setValue(freq_mhz);
-}
-
-double DockInputCtl::lnbLo()
-{
-    return ui->lnbSpinBox->value();
 }
 
 /**
@@ -282,117 +125,14 @@ double DockInputCtl::gain(QString &name)
     return gain;
 }
 
-/**
- * Set status of hardware AGC button.
- * @param enabled Whether hardware AGC is enabled or not.
- */
-void DockInputCtl::setAgc(bool enabled)
-{
-    ui->agcButton->setChecked(enabled);
-}
-
-/**
- * @brief Get status of hardware AGC button.
- * @return Whether hardware AGC is enabled or not.
- */
-bool DockInputCtl::agc()
-{
-    return ui->agcButton->isChecked();
-}
-
-
-/**
- * Set new frequency correction.
- * @param corr The new frequency correction in PPM.
- */
-void DockInputCtl::setFreqCorr(double corr)
-{
-    ui->freqCorrSpinBox->setValue(corr);
-}
-
-
-/** Get current frequency correction. */
-double DockInputCtl::freqCorr()
-{
-    return ui->freqCorrSpinBox->value();
-}
-
-/** Enasble/disable I/Q swapping. */
-void DockInputCtl::setIqSwap(bool reversed)
-{
-    ui->iqSwapButton->setChecked(reversed);
-}
-
-/** Get current I/Q swapping. */
-bool DockInputCtl::iqSwap(void)
-{
-    return ui->iqSwapButton->isChecked();
-}
-
-/** Enable automatic DC removal. */
-void DockInputCtl::setDcCancel(bool enabled)
-{
-    ui->dcCancelButton->setChecked(enabled);
-}
-
-/** Get current DC remove status. */
-bool DockInputCtl::dcCancel(void)
-{
-    return ui->dcCancelButton->isChecked();
-}
-
-/** Enable automatic IQ balance. */
-void DockInputCtl::setIqBalance(bool enabled)
-{
-    ui->iqBalanceButton->setChecked(enabled);
-}
-
-/** Get current IQ balance status. */
-bool DockInputCtl::iqBalance(void)
-{
-    return ui->iqBalanceButton->isChecked();
-}
-
-/** Enasble/disable ignoring hardware limits. */
-void DockInputCtl::setIgnoreLimits(bool reversed)
-{
-    ui->ignoreButton->setChecked(reversed);
-}
-
-/** Get current status of whether limits should be ignored or not. */
-bool DockInputCtl::ignoreLimits(void)
-{
-    return ui->ignoreButton->isChecked();
-}
-
 /** Populate antenna selector combo box with strings. */
 void DockInputCtl::setAntennas(std::vector<std::string> &antennas)
 {
-    ui->antSelector->clear();
+    QComboBox * antSelector=dynamic_cast<QComboBox *>(getWidget(C_ANTENNA));
+    antSelector->clear();
     for (std::vector<std::string>::iterator it = antennas.begin(); it != antennas.end(); ++it)
-    {
-        ui->antSelector->addItem(QString(it->c_str()));
-    }
-}
-
-/** Select antenna. */
-void DockInputCtl::setAntenna(const QString &antenna)
-{
-    int index = ui->antSelector->findText(antenna, Qt::MatchExactly);
-    if (index != -1)
-        ui->antSelector->setCurrentIndex(index);
-}
-
-/** Enable/disable resetting lower digits on freqCtrl widgets */
-void DockInputCtl::setFreqCtrlReset(bool enabled)
-{
-    ui->freqCtrlResetButton->setChecked(enabled);
-}
-
-/** Enable/disable invert scroll wheel direction */
-void DockInputCtl::setInvertScrolling(bool enabled)
-{
-    ui->invertScrollingButton->setChecked(enabled);
+        antSelector->addItem(QString(it->c_str()),QString(it->c_str()));
+    antSelector->setEnabled(antSelector->count() > 1);
 }
 
 /**
@@ -432,9 +172,9 @@ void DockInputCtl::setGainStages(gain_list_t &gain_list)
         if (abs(stop - start) > 10 * step)
             slider->setPageStep(10 * step);
 
-        ui->gainLayout->addWidget(label, i, 0, Qt::AlignLeft);
-        ui->gainLayout->addWidget(slider, i, 1);        // setting alignment would force minimum size
-        ui->gainLayout->addWidget(value, i, 2, Qt::AlignLeft);
+        gainLayout->addWidget(label, i, 0, Qt::AlignLeft);
+        gainLayout->addWidget(slider, i, 1);        // setting alignment would force minimum size
+        gainLayout->addWidget(value, i, 2, Qt::AlignLeft);
 
         gain_labels.push_back(label);
         gain_sliders.push_back(slider);
@@ -475,97 +215,15 @@ void DockInputCtl::restoreManualGains(void)
     }
 }
 
-/** LNB LO value has changed. */
-void DockInputCtl::on_lnbSpinBox_valueChanged(double value)
-{
-    emit lnbLoChanged(value);
-}
-
 /** Automatic gain control button has been toggled. */
-void DockInputCtl::on_agcButton_toggled(bool checked)
+void DockInputCtl::hwagcObserver(c_id, const c_def::v_union & v)
 {
     for (int i = 0; i < gain_sliders.length(); ++i)
     {
-        gain_sliders.at(i)->setEnabled(!checked);
+        gain_sliders.at(i)->setEnabled(!bool(v));
     }
-
-    emit autoGainChanged(checked);
-}
-
-/**
- * Frequency correction changed.
- * @param value The new frequency correction in ppm.
- */
-void DockInputCtl::on_freqCorrSpinBox_valueChanged(double value)
-{
-    emit freqCorrChanged(value);
-}
-
-/**
- * I/Q swapping checkbox changed.
- * @param checked True if I/Q swapping is enabled, false otherwise
- */
-void DockInputCtl::on_iqSwapButton_toggled(bool checked)
-{
-    emit iqSwapChanged(checked);
-}
-
-/**
- * DC removal checkbox changed.
- * @param checked True if DC removal is enabled, false otherwise
- */
-void DockInputCtl::on_dcCancelButton_toggled(bool checked)
-{
-    emit dcCancelChanged(checked);
-}
-
-/**
- * IQ balance checkbox changed.
- * @param checked True if automatic IQ balance is enabled, false otherwise
- */
-void DockInputCtl::on_iqBalanceButton_toggled(bool checked)
-{
-    emit iqBalanceChanged(checked);
-}
-
-/*! \brief Ignore hardware limits checkbox changed.
- *  \param checked True if hardware limits should be ignored, false otherwise
- *
- * This option exists to allow experimenting with out-of-spec settings.
- */
-void DockInputCtl::on_ignoreButton_toggled(bool checked)
-{
-    emit ignoreLimitsChanged(checked);
-}
-
-/** Antenna selection has changed. */
-void DockInputCtl::on_antSelector_currentIndexChanged(int index)
-{
-    emit antennaSelected(ui->antSelector->itemText(index));
-}
-
-/** Reset box has changed */
-void DockInputCtl::on_freqCtrlResetButton_toggled(bool checked)
-{
-    emit freqCtrlResetChanged(checked);
-}
-
-/** Invert scrolling box has changed */
-void DockInputCtl::on_invertScrollingButton_toggled(bool checked)
-{
-    emit invertScrollingChanged(checked);
-}
-
-/** Auto bookmarks box has changed */
-void DockInputCtl::on_autoBookmarksButton_toggled(bool checked)
-{
-    emit autoBookmarksChanged(checked);
-}
-
-/** Enable channelizer box has changed */
-void DockInputCtl::on_channelizerCombo_currentIndexChanged(int index)
-{
-    emit channelizerChanged(ui->channelizerCombo->currentData().toInt());
+    if(!bool(v))
+        restoreManualGains();
 }
 
 /** Remove all widgets from the lists. */
@@ -577,7 +235,7 @@ void DockInputCtl::clearWidgets()
     while (!gain_sliders.isEmpty())
     {
         widget = gain_sliders.takeFirst();
-        ui->gainLayout->removeWidget(widget);
+        gainLayout->removeWidget(widget);
         delete widget;
     }
 
@@ -585,7 +243,7 @@ void DockInputCtl::clearWidgets()
     while (!gain_labels.isEmpty())
     {
         widget = gain_labels.takeFirst();
-        ui->gainLayout->removeWidget(widget);
+        gainLayout->removeWidget(widget);
         delete widget;
     }
 
@@ -593,7 +251,7 @@ void DockInputCtl::clearWidgets()
     while (!value_labels.isEmpty())
     {
         widget = value_labels.takeFirst();
-        ui->gainLayout->removeWidget(widget);
+        gainLayout->removeWidget(widget);
         delete widget;
     }
 }
