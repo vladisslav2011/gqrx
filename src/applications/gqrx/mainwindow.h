@@ -102,6 +102,8 @@ private:
 
     bool d_ignore_limits;
     bool d_auto_bookmarks;
+    int d_fft_rate{25};
+    int d_fft_size{8192};
 
     std::complex<float>* d_fftData;
     float          *d_realFftData;
@@ -224,25 +226,32 @@ private slots:
 
 
     /* FFT settings */
-    void setIqFftSize(int size);
-    void setIqFftRate(int fps);
-    void setIqFftWindow(int type, int correction);
-    void setIqFftSplit(int pct_wf);
-    void setIqFftAvg(float avg);
+    void iqFftSizeObserver(c_id, const c_def::v_union &);
+    void iqFftRateObserver(c_id, const c_def::v_union &);
+    void iqFftWindowObserver(c_id, const c_def::v_union &);
+    void iqFftWindowCorrectionObserver(c_id, const c_def::v_union &);
+    void iqFftSplitObserver(c_id, const c_def::v_union &);
+    void iqFftAvgObserver(c_id, const c_def::v_union &);
     void setAudioFftRate(int fps);
-    void setFftZoomLevel(float level);
+    void on_plotter_newZoomLevel(float level);
+    void fftZoomLevelObserver(c_id, const c_def::v_union &);
     void setFftCenterFreq(qint64 f);
-    void moveToCenterFreq();
-    void moveToDemodFreq();
-    void setWfColormap(const QString colormap);
-    void setWfThreads(const int n);
-    void setWaterfallRange(float lo, float hi);
-    void setFftColor(const QColor& color);
-    void setFftFill(bool enable);
-    void setPeakDetection(bool enabled);
-    void setFftPeakHold(bool enable);
-    void setWfTimeSpan(quint64 span_ms);
+    void plotResetObserver(c_id, const c_def::v_union &);
+    void plotCenterObserver(c_id, const c_def::v_union &);
+    void plotDemodObserver(c_id, const c_def::v_union &);
+    void wfColormapObserver(c_id, const c_def::v_union & v);
+    void on_plotter_pandapterRangeChanged(float lo, float hi);
+    void fftMinDbObserver(c_id, const c_def::v_union &);
+    void fftMaxDbObserver(c_id, const c_def::v_union &);
+    void fftLockObserver(c_id, const c_def::v_union &);
+    void fftColorObserver(c_id, const c_def::v_union &);
+    void fftFillObserver(c_id, const c_def::v_union &);
+    void fftPeakHoldObserver(c_id, const c_def::v_union &);
+    void peakDetectionObserver(c_id, const c_def::v_union &);
+    void wfTimeSpanObserver(c_id, const c_def::v_union &);
     void setWfSize();
+    void wfBgThreadsObserver(c_id, const c_def::v_union &);
+    void bandPlanObserver(c_id, const c_def::v_union &);
 
     /* FFT plot */
     void on_plotter_seekIQ(qint64 ts);
