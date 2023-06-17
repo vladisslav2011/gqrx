@@ -281,6 +281,29 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_WHEEL_INVERT, &MainWindow::invertScrollingObserver);
     set_observer(C_IGNORE_LIMITS, &MainWindow::ignoreLimitsObserver);
     set_observer(C_LNB_LO, &MainWindow::lnbLoObserver);
+    set_observer(C_ENABLE_BANDPLAN, &MainWindow::bandPlanObserver);
+    set_observer(C_WF_BG_THREADS, &MainWindow::wfBgThreadsObserver);
+    set_observer(C_WF_COLORMAP, &MainWindow::wfColormapObserver);
+    set_observer(C_PLOT_COLOR, &MainWindow::fftColorObserver);
+    set_observer(C_PLOT_FILL, &MainWindow::fftFillObserver);
+    set_observer(C_PLOT_RESET, &MainWindow::plotResetObserver);
+    set_observer(C_PLOT_CENTER, &MainWindow::plotCenterObserver);
+    set_observer(C_PLOT_DEMOD, &MainWindow::plotDemodObserver);
+    set_observer(C_PLOT_ZOOM, &MainWindow::fftZoomLevelObserver);
+    set_observer(C_FFT_PAND_MIN_DB, &MainWindow::fftMinDbObserver);
+    set_observer(C_FFT_PAND_MAX_DB, &MainWindow::fftMaxDbObserver);
+    set_observer(C_FFT_WF_MIN_DB, &MainWindow::fftMinDbObserver);
+    set_observer(C_FFT_WF_MAX_DB, &MainWindow::fftMaxDbObserver);
+    set_observer(C_FFT_RANGE_LOCKED, &MainWindow::fftLockObserver);
+    set_observer(C_FFT_PEAK_DETECT, &MainWindow::peakDetectionObserver);
+    set_observer(C_FFT_PEAK_HOLD, &MainWindow::fftPeakHoldObserver);
+    set_observer(C_FFT_SPLIT, &MainWindow::iqFftSplitObserver);
+    set_observer(C_FFT_AVG, &MainWindow::iqFftAvgObserver);
+    set_observer(C_FFT_WINDOW, &MainWindow::iqFftWindowObserver);
+    set_observer(C_FFT_WINDOW_CORR, &MainWindow::iqFftWindowCorrectionObserver);
+    set_observer(C_FFT_TIMESPAN, &MainWindow::wfTimeSpanObserver);
+    set_observer(C_FFT_RATE, &MainWindow::iqFftRateObserver);
+    set_observer(C_FFT_SIZE, &MainWindow::iqFftSizeObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -297,35 +320,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
     connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
-    connect(uiDockFft, SIGNAL(fftSizeChanged(int)), this, SLOT(setIqFftSize(int)));
-    connect(uiDockFft, SIGNAL(fftRateChanged(int)), this, SLOT(setIqFftRate(int)));
-    connect(uiDockFft, SIGNAL(fftWindowChanged(int,int)), this, SLOT(setIqFftWindow(int,int)));
-    connect(uiDockFft, SIGNAL(wfSpanChanged(quint64)), this, SLOT(setWfTimeSpan(quint64)));
-    connect(uiDockFft, SIGNAL(fftSplitChanged(int)), this, SLOT(setIqFftSplit(int)));
-    connect(uiDockFft, SIGNAL(fftAvgChanged(float)), this, SLOT(setIqFftAvg(float)));
-    connect(uiDockFft, SIGNAL(fftZoomChanged(float)), ui->plotter, SLOT(zoomOnXAxis(float)));
-    connect(uiDockFft, SIGNAL(resetFftZoom()), ui->plotter, SLOT(resetHorizontalZoom()));
-    connect(uiDockFft, SIGNAL(gotoFftCenter()), this, SLOT(moveToCenterFreq()));
-    connect(uiDockFft, SIGNAL(gotoDemodFreq()), this, SLOT(moveToDemodFreq()));
-    connect(uiDockFft, SIGNAL(bandPlanChanged(bool)), ui->plotter, SLOT(toggleBandPlan(bool)));
-    connect(uiDockFft, SIGNAL(wfColormapChanged(const QString)), this, SLOT(setWfColormap(const QString)));
-    connect(uiDockFft, SIGNAL(wfThreadsChanged(const int)), this, SLOT(setWfThreads(const int)));
 
-    connect(uiDockFft, SIGNAL(pandapterRangeChanged(float,float)),
-            ui->plotter, SLOT(setPandapterRange(float,float)));
-    connect(uiDockFft, SIGNAL(waterfallRangeChanged(float,float)),
-            this, SLOT(setWaterfallRange(float,float)));
-    connect(ui->plotter, SIGNAL(pandapterRangeChanged(float,float)),
-            uiDockFft, SLOT(setPandapterRange(float,float)));
-    connect(ui->plotter, SIGNAL(newZoomLevel(float)),
-            this, SLOT(setFftZoomLevel(float)));
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
     connect(ui->plotter, SIGNAL(newFftCenterFreq(qint64)), this, SLOT(setFftCenterFreq(qint64)));
-
-    connect(uiDockFft, SIGNAL(fftColorChanged(QColor)), this, SLOT(setFftColor(QColor)));
-    connect(uiDockFft, SIGNAL(fftFillToggled(bool)), this, SLOT(setFftFill(bool)));
-    connect(uiDockFft, SIGNAL(fftPeakHoldToggled(bool)), this, SLOT(setFftPeakHold(bool)));
-    connect(uiDockFft, SIGNAL(peakDetectionToggled(bool)), this, SLOT(setPeakDetection(bool)));
 
     // Bookmarks
     connect(uiDockBookmarks, SIGNAL(newBookmarkActivated(BookmarkInfo &)), this, SLOT(onBookmarkActivated(BookmarkInfo &)));
@@ -857,7 +854,6 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         ui->plotter->setFftCenterFreq(int64_val);
     }
 
-    uiDockFft->readSettings(m_settings);
     uiDockBookmarks->readSettings(m_settings);
     dxc_options->readSettings(m_settings);
     rx->commit_audio_rate();
@@ -1014,7 +1010,6 @@ void MainWindow::storeSession()
             m_settings->setValue("input/frequency", qint64(rx->get_rf_freq() + d_lnb_lo));
 
         uiDockInputCtl->saveSettings(m_settings);
-        uiDockFft->saveSettings(m_settings);
         uiDockBookmarks->saveSettings(m_settings);
 
         remote->saveSettings(m_settings);
@@ -2348,23 +2343,26 @@ void MainWindow::stopIQFftRedraw(bool suspend)
 }
 
 /** FFT size has changed. */
-void MainWindow::setIqFftSize(int size)
+void MainWindow::iqFftSizeObserver(c_id, const c_def::v_union & v)
 {
     //Prevent crash when FFT size is changed during waterfall background update
     stopIQFftRedraw();
-    qDebug() << "Changing baseband FFT size to" << size;
-    rx->set_iq_fft_size(size);
-    for (int i = 0; i < size; i++)
+    d_fft_size = v;
+    qDebug() << "Changing baseband FFT size to" << d_fft_size;
+    rx->set_iq_fft_size(d_fft_size);
+    for (int i = 0; i < d_fft_size; i++)
         d_iirFftData[i] = -140.0;  // dBFS
+    uiDockFft->updateInfoLabels(d_fft_rate, d_fft_size);//FIXME
     triggerIQFftRedraw();
 }
 
 /** Baseband FFT rate has changed. */
-void MainWindow::setIqFftRate(int fps)
+void MainWindow::iqFftRateObserver(c_id, const c_def::v_union & v)
 {
     int interval;
+    d_fft_rate = v;
 
-    if (fps == 0)
+    if (d_fft_rate == 0)
     {
         interval = 36e7; // 100 hours
         ui->plotter->setRunningState(false);
@@ -2372,9 +2370,9 @@ void MainWindow::setIqFftRate(int fps)
     }
     else
     {
-        interval = 1000 / fps;
+        interval = 1000 / d_fft_rate;
 
-        ui->plotter->setFftRate(fps);
+        ui->plotter->setFftRate(d_fft_rate);
         if (iq_fft_timer->isActive())
             ui->plotter->setRunningState(true);
         rx->set_iq_fft_enabled(true);
@@ -2383,39 +2381,54 @@ void MainWindow::setIqFftRate(int fps)
     if (interval > 0 && iq_fft_timer->isActive())
         iq_fft_timer->setInterval(interval);
 
-    uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    uiDockFft->updateInfoLabels(d_fft_rate, d_fft_size);//FIXME
+    set_gui(C_FFT_TIMESPAN_LABEL,double(ui->plotter->getWfTimeRes()*1e-3));
     triggerIQFftRedraw();
 }
 
-void MainWindow::setIqFftWindow(int type, int correction)
+void MainWindow::iqFftWindowObserver(c_id, const c_def::v_union & v)
 {
-//    stopIQFftRedraw();
-    rx->set_iq_fft_window(type, correction);
+    c_def::v_union corr;
+    get_gui(C_FFT_WINDOW_CORR,corr);
+    rx->set_iq_fft_window(v, corr);
+    triggerIQFftRedraw();
+}
+
+void MainWindow::iqFftWindowCorrectionObserver(c_id, const c_def::v_union & v)
+{
+    c_def::v_union win;
+    get_gui(C_FFT_WINDOW,win);
+    rx->set_iq_fft_window(win, v);
     triggerIQFftRedraw();
 }
 
 /** Waterfall time span has changed. */
-void MainWindow::setWfTimeSpan(quint64 span_ms)
+void MainWindow::wfTimeSpanObserver(c_id, const c_def::v_union & v)
 {
     // set new time span, then send back new resolution to be shown by GUI label
-    ui->plotter->setWaterfallSpan(span_ms);
-    uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    ui->plotter->setWaterfallSpan(qint64(v));
+    set_gui(C_FFT_TIMESPAN_LABEL,double(ui->plotter->getWfTimeRes()*1e-3));
     triggerIQFftRedraw();
 }
 
 void MainWindow::setWfSize()
 {
-    uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
+    set_gui(C_FFT_TIMESPAN_LABEL,double(ui->plotter->getWfTimeRes()*1e-3));
     triggerIQFftRedraw();
+}
+
+void MainWindow::bandPlanObserver(c_id, const c_def::v_union & v)
+{
+    ui->plotter->toggleBandPlan(v);
 }
 
 /**
  * @brief Vertical split between waterfall and pandapter changed.
- * @param pct_pand The percentage of the waterfall.
+ * @param pct_wf The percentage of the waterfall.
  */
-void MainWindow::setIqFftSplit(int pct_wf)
+void MainWindow::iqFftSplitObserver(c_id, const c_def::v_union & pct_wf)
 {
-    if ((pct_wf >= 0) && (pct_wf <= 100))
+    if ((int(pct_wf) >= 0) && (int(pct_wf) <= 100))
     {
         stopIQFftRedraw();
         ui->plotter->setPercent2DScreen(pct_wf);
@@ -2423,9 +2436,12 @@ void MainWindow::setIqFftSplit(int pct_wf)
     }
 }
 
-void MainWindow::setIqFftAvg(float avg)
+void MainWindow::iqFftAvgObserver(c_id, const c_def::v_union & v)
 {
-    if ((avg >= 0) && (avg <= 1.f))
+    int value=int(v);
+    float avg = std::pow(10.0f, -value / 20.0f);
+    set_gui(C_FFT_AVG_LABEL,1.0f/avg);
+    if ((avg >= 0.0f) && (avg <= 1.0f))
         d_fftAvg = avg;
 }
 
@@ -2441,9 +2457,19 @@ void MainWindow::setAudioFftRate(int fps)
         audio_fft_timer->setInterval(interval);
 }
 
-void  MainWindow::setFftZoomLevel(float level)
+void  MainWindow::fftZoomLevelObserver(c_id, const c_def::v_union & v)
 {
-    uiDockFft->setZoomLevel(level);
+    ui->plotter->blockSignals(true);
+    ui->plotter->zoomOnXAxis(v);
+    ui->plotter->blockSignals(false);
+    set_gui(C_PLOT_ZOOM_LABEL,v);
+    triggerIQFftRedraw();
+}
+
+void  MainWindow::on_plotter_newZoomLevel(float level)
+{
+    set_gui(C_PLOT_ZOOM,level,false);
+    set_gui(C_PLOT_ZOOM_LABEL,level);
     triggerIQFftRedraw();
 }
 
@@ -2452,40 +2478,126 @@ void MainWindow::setFftCenterFreq(qint64 f)
     triggerIQFftRedraw();
 }
 
-void MainWindow::moveToDemodFreq()
+void MainWindow::plotResetObserver(c_id, const c_def::v_union &)
+{
+    ui->plotter->resetHorizontalZoom();
+}
+
+void MainWindow::plotDemodObserver(c_id, const c_def::v_union &)
 {
     ui->plotter->moveToDemodFreq();
     triggerIQFftRedraw();
 }
 
-void MainWindow::moveToCenterFreq()
+void MainWindow::plotCenterObserver(c_id, const c_def::v_union & v)
 {
     ui->plotter->moveToCenterFreq();
     triggerIQFftRedraw();
 }
 
-void MainWindow::setWfColormap(const QString colormap)
+void MainWindow::wfColormapObserver(c_id, const c_def::v_union & v)
 {
+    auto colormap = QString::fromStdString(v);
     ui->plotter->setWfColormap(colormap);
     uiDockAudio->setWfColormap(colormap);
     uiDockProbe->setWfColormap(colormap);
     triggerIQFftRedraw();
 }
 
-void MainWindow::setWfThreads(const int n)
+void MainWindow::wfBgThreadsObserver(c_id, const c_def::v_union & v)
 {
-    waterfall_background_threads = n;
+    waterfall_background_threads = v;
 }
 
-void MainWindow::setWaterfallRange(float lo, float hi)
+void MainWindow::on_plotter_pandapterRangeChanged(float lo, float hi)
 {
-    ui->plotter->setWaterfallRange(lo, hi);
+    set_gui(C_FFT_PAND_MIN_DB,int(lo),false);
+    set_gui(C_FFT_PAND_MAX_DB,int(hi),false);
+    c_def::v_union locked(0);
+    get_gui(C_FFT_RANGE_LOCKED,locked);
+    if(locked)
+    {
+        set_gui(C_FFT_WF_MIN_DB,int(lo),false);
+        set_gui(C_FFT_WF_MAX_DB,int(hi),false);
+        ui->plotter->setWaterfallRange(lo, hi);
+    }
     triggerIQFftRedraw();
 }
 
-/** Set FFT plot color. */
-void MainWindow::setFftColor(const QColor& color)
+void MainWindow::fftMinDbObserver(c_id id, const c_def::v_union & value)
 {
+    c_def::v_union max(0);
+    if(id==C_FFT_PAND_MIN_DB)
+    {
+        get_gui(C_FFT_PAND_MAX_DB,max);
+        ui->plotter->setPandapterRange(int(value), int(max));
+    }else{
+        get_gui(C_FFT_WF_MAX_DB,max);
+        ui->plotter->setWaterfallRange(int(value), int(max));
+    }
+    c_def::v_union locked(0);
+    get_gui(C_FFT_RANGE_LOCKED,locked);
+    if(locked)
+    {
+        c_def::v_union min(0);
+        ui->plotter->setWaterfallRange(int(value), int(max));
+        if(id == C_FFT_PAND_MIN_DB)
+        {
+            get_gui(C_FFT_WF_MIN_DB,min);
+            set_gui(C_FFT_WF_MIN_DB,value,false);
+        }else{
+            get_gui(C_FFT_PAND_MIN_DB,min);
+            set_gui(C_FFT_PAND_MIN_DB,value,false);
+        }
+    }
+    triggerIQFftRedraw();
+}
+
+void MainWindow::fftMaxDbObserver(c_id id, const c_def::v_union & value)
+{
+    c_def::v_union min(0);
+    if(id==C_FFT_PAND_MAX_DB)
+    {
+        get_gui(C_FFT_PAND_MIN_DB,min);
+        ui->plotter->setPandapterRange(int(min), int(value));
+    }else{
+        get_gui(C_FFT_WF_MIN_DB,min);
+        ui->plotter->setWaterfallRange(int(min), int(value));
+    }
+    c_def::v_union locked(0);
+    get_gui(C_FFT_RANGE_LOCKED,locked);
+    if(locked)
+    {
+        c_def::v_union max(0);
+        ui->plotter->setWaterfallRange(int(min), int(value));
+        if(id == C_FFT_PAND_MAX_DB)
+        {
+            get_gui(C_FFT_WF_MAX_DB,max);
+            set_gui(C_FFT_WF_MAX_DB,value,false);
+        }else{
+            get_gui(C_FFT_PAND_MAX_DB,max);
+            set_gui(C_FFT_PAND_MAX_DB,value,false);
+        }
+    }
+    triggerIQFftRedraw();
+}
+
+void MainWindow::fftLockObserver(c_id, const c_def::v_union & v)
+{
+    if(!bool(v))
+        return;
+    c_def::v_union min,max;
+    get_gui(C_FFT_PAND_MIN_DB,min);
+    set_gui(C_FFT_WF_MIN_DB,min,false);
+    get_gui(C_FFT_PAND_MAX_DB,max);
+    set_gui(C_FFT_WF_MAX_DB,max,false);
+    ui->plotter->setWaterfallRange(int(min), int(max));
+}
+
+/** Set FFT plot color. */
+void MainWindow::fftColorObserver(c_id, const c_def::v_union & v)
+{
+    auto color = QColor::fromRgb(qint64(v));
     ui->plotter->setFftPlotColor(color);
     uiDockAudio->setFftColor(color);
     uiDockProbe->setFftColor(color);
@@ -2493,7 +2605,7 @@ void MainWindow::setFftColor(const QColor& color)
 }
 
 /** Enable/disable filling the aread below the FFT plot. */
-void MainWindow::setFftFill(bool enable)
+void MainWindow::fftFillObserver(c_id, const c_def::v_union & enable)
 {
     ui->plotter->setFftFill(enable);
     uiDockAudio->setFftFill(enable);
@@ -2501,14 +2613,14 @@ void MainWindow::setFftFill(bool enable)
     triggerIQFftRedraw();
 }
 
-void MainWindow::setFftPeakHold(bool enable)
+void MainWindow::fftPeakHoldObserver(c_id, const c_def::v_union & enable)
 {
     ui->plotter->setPeakHold(enable);
 }
 
-void MainWindow::setPeakDetection(bool enabled)
+void MainWindow::peakDetectionObserver(c_id, const c_def::v_union & enable)
 {
-    ui->plotter->setPeakDetection(enabled ,2);
+    ui->plotter->setPeakDetection(enable ,2);
 }
 
 /**
@@ -2533,9 +2645,9 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         /* start GUI timers */
         meter_timer->start(100);
 
-        if (uiDockFft->fftRate())
+        if (d_fft_rate)
         {
-            iq_fft_timer->start(1000/uiDockFft->fftRate());
+            iq_fft_timer->start(1000/d_fft_rate);
             ui->plotter->setRunningState(true);
         }
         else
@@ -2592,9 +2704,9 @@ void MainWindow::on_plotter_setPlaying(bool state)
             /* start GUI timers */
             meter_timer->start(100);
 
-            if (uiDockFft->fftRate())
+            if (d_fft_rate)
             {
-                iq_fft_timer->start(1000/uiDockFft->fftRate());
+                iq_fft_timer->start(1000/d_fft_rate);
                 ui->plotter->setRunningState(true);
             }
             else
