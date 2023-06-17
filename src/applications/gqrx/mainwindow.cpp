@@ -1754,6 +1754,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
         on_plotter_newDemodFreq(center_freq, 0);
     else
         on_plotter_newDemodFreq(center_freq + current_offset, current_offset);
+    ui->plotter->resetHorizontalZoom();
 
     remote->setBandwidth(actual_rate);
 
