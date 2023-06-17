@@ -1177,7 +1177,7 @@ void CPlotter::wheelEvent(QWheelEvent * event)
     {
         // Vertical zoom. Wheel down: zoom out, wheel up: zoom in
         // During zoom we try to keep the point (dB or kHz) under the cursor fixed
-        float zoom_fac = delta < 0 ? 1.1 : 0.9;
+        float zoom_fac = delta < 0 ? 1.1 : (1.0/1.1);
         float ratio = (float) py / (float) h;
         float db_range = m_PandMaxdB - m_PandMindB;
         float y_range = (float) h;
@@ -1198,7 +1198,7 @@ void CPlotter::wheelEvent(QWheelEvent * event)
     }
     else if (m_CursorCaptured == XAXIS)
     {
-        zoomStepX(delta < 0 ? 1.1 : 0.9, px);
+        zoomStepX(delta < 0 ? 1.1 : (1.0/1.1), px);
     }
     else if (event->modifiers() & Qt::ControlModifier)
     {
