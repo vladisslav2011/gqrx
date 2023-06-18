@@ -33,12 +33,13 @@
 DockProbe::DockProbe(QWidget *parent) :
     QDockWidget(parent),
     ui(new Ui::DockProbe),
-    m_sampleRate(20000)
+    m_sampleRate(20000),
+    m_decim(1),
+    m_osr(1),
+    m_offset(0),
+    m_center(0)
 {
     ui->setupUi(this);
-
-    //connect(audioOptions, SIGNAL(newFftSplit(int)), ui->spectrum, SLOT(setPercent2DScreen(int)));
-    //connect(audioOptions, SIGNAL(newPandapterRange(int,int)), this, SLOT(pandapterRange_changed(int,int)));
 
     connect(ui->spectrum, SIGNAL(pandapterRangeChanged(float,float)), ui->spectrum, SLOT(setWaterfallRange(float,float)));
 
@@ -52,7 +53,7 @@ DockProbe::DockProbe(QWidget *parent) :
     ui->spectrum->setCenterLineEnabled(false);
     ui->spectrum->setBookmarksEnabled(false);
     ui->spectrum->enableBandPlan(false);
-    ui->spectrum->setFftRange(-80., 0.);
+    ui->spectrum->setFftRange(-100., -40.);
     ui->spectrum->setVdivDelta(40);
     ui->spectrum->setFreqDigits(1);
     ui->spectrum->setRunningState(true);
@@ -64,48 +65,28 @@ DockProbe::~DockProbe()
     delete ui;
 }
 
-void DockProbe::setCenterFreq(qint64 freq)
+void DockProbe::setDecimOsr(int decim, int osr)
+{
+    m_decim = decim;
+    m_osr = osr;
+    updateCenter();
+}
+
+void DockProbe::setCenterOffset(qint64 freq, qint64 ofs)
 {
     m_center = freq;
+    m_offset = ofs;
     updateCenter();
 }
 
 void DockProbe::updateCenter()
 {
-    int decim = ui->decimSpinBox->value();
-    int osr = ui->osrSpinBox->value();
-    qint64 input = ui->inputSpinBox->value();
-    if(osr == 0)
-        osr = 1;
-    if(decim == 0)
-        decim = 1;
-    input %= (decim * osr);
-    int add = 0;
-//    std::cerr<<"updateCenter: "<<(input % osr)<<std::endl;
-    if(input % osr > 2)
-        add = 1;
-    if(input % osr < -1)
-        add = -1;
-    if(input > decim * osr / 2)
-        input -= decim * osr;
-    input /= osr;
-    input += add;
-    ui->spectrum->setCenterFreq(m_center + input * m_sampleRate / decim);
-    ui->spectrum->setSampleRate(m_sampleRate / decim);  // Full bandwidth
-    ui->spectrum->setSpanFreq(m_sampleRate / decim);
-}
-
-void DockProbe::setFftRange(quint64 minf, quint64 maxf)
-{
-    if (true)
-    {
-        qint32 span = (qint32)(maxf - minf);
-        quint64 fc = minf + (maxf - minf)/2;
-
-        ui->spectrum->setFftCenterFreq(fc);
-        ui->spectrum->setSpanFreq(span);
-        ui->spectrum->setCenterFreq(0);
-    }
+    qint64 offs = (m_offset>=0)?m_sampleRate/2:m_sampleRate/-2;
+    qint64 ch=(m_offset*m_decim+offs)/m_sampleRate;
+    qint64 ch_width=m_sampleRate/m_decim;
+    ui->spectrum->setCenterFreq(m_center+ch_width*ch);
+    ui->spectrum->setSampleRate(m_sampleRate/m_decim);
+    ui->spectrum->setSpanFreq(m_sampleRate/m_decim);
 }
 
 void DockProbe::setNewFftData(float *fftData, int size)
@@ -139,46 +120,4 @@ void DockProbe::setSampleRate(int sampleRate)
 void DockProbe::setWfColormap(const QString &cmap)
 {
     ui->spectrum->setWfColormap(cmap);
-}
-
-void DockProbe::setInputChannels(int input, int inputs)
-{
-    ui->inputSpinBox->setMinimum(-inputs / 2);
-    ui->inputSpinBox->setMaximum(inputs / 2);
-    ui->inputSpinBox->setValue(input);
-}
-
-void DockProbe::pandapterRange_changed(int min, int max)
-{
-    ui->spectrum->setPandapterRange(min, max);
-}
-
-void DockProbe::waterfallRange_changed(int min, int max)
-{
-    ui->spectrum->setWaterfallRange(min, max);
-}
-
-void DockProbe::on_inputSpinBox_valueChanged(int value)
-{
-    emit inputChanged(value);
-    updateCenter();
-}
-
-void DockProbe::on_decimSpinBox_valueChanged(int value)
-{
-    emit decimChanged(value);
-    setSampleRate(m_sampleRate);
-    updateCenter();
-}
-
-void DockProbe::on_osrSpinBox_valueChanged(int value)
-{
-    emit osrChanged(value);
-    updateCenter();
-}
-
-void DockProbe::on_fparamSpinBox_valueChanged(double value)
-{
-    emit filterParamChanged(value);
-    updateCenter();
 }

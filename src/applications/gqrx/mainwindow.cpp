@@ -421,11 +421,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     }
 
     qsvg_dummy = new QSvgWidget();
-    /* FFT probe */
-    connect(uiDockProbe, SIGNAL(inputChanged(int)), this, SLOT(setFFTProbeInput(int)));
-    connect(uiDockProbe, SIGNAL(decimChanged(int)), this, SLOT(setChanDecim(int)));
-    connect(uiDockProbe, SIGNAL(osrChanged(int)), this, SLOT(setChanOsr(int)));
-    connect(uiDockProbe, SIGNAL(filterParamChanged(float)), this, SLOT(setChanFilterParam(float)));
 }
 
 MainWindow::~MainWindow()
@@ -682,6 +677,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         uiDockFft->setSampleRate(actual_rate);
         ui->plotter->setSampleRate(actual_rate);
         uiDockProbe->setSampleRate(actual_rate);
+        uiDockProbe->setDecimOsr(rx->get_chan_decim(), rx->get_chan_osr());
         ui->plotter->setSpanFreq((quint32)actual_rate);
         remote->setBandwidth((qint64)actual_rate);
         iq_tool->setSampleRate((qint64)actual_rate);
@@ -1344,7 +1340,8 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
 
     // update widgets
     ui->plotter->setCenterFreq(center_freq);
-    uiDockProbe->setCenterFreq(center_freq);
+    if(rx->get_current() == 0)
+        uiDockProbe->setCenterOffset(center_freq, new_offset);
     ui->plotter->setFilterOffset(new_offset);
     uiDockRxOpt->setRxFreq(rx_freq);
     uiDockRxOpt->setHwFreq(d_hw_freq);
@@ -2487,6 +2484,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     ui->plotter->setSampleRate(actual_rate);
     uiDockFft->setSampleRate(actual_rate);
     uiDockProbe->setSampleRate(actual_rate);
+    uiDockProbe->setDecimOsr(rx->get_chan_decim(), rx->get_chan_osr());
     ui->plotter->setSpanFreq((quint32)actual_rate);
     if (std::abs(current_offset) > actual_rate / 2)
         on_plotter_newDemodFreq(center_freq, 0);
@@ -2536,6 +2534,7 @@ void MainWindow::stopIqPlayback()
         ui->plotter->setSampleRate(actual_rate);
         uiDockFft->setSampleRate(actual_rate);
         uiDockProbe->setSampleRate(actual_rate);
+        uiDockProbe->setDecimOsr(rx->get_chan_decim(), rx->get_chan_osr());
         ui->plotter->setSpanFreq((quint32)actual_rate);
         remote->setBandwidth(sr);
     }
@@ -3140,27 +3139,6 @@ void MainWindow::setPassband(int bandwidth)
 void MainWindow::setFreqLock(bool lock, bool all)
 {
     rx->set_freq_lock(lock, all);
-}
-
-/* FFT Probe slots */
-void MainWindow::setFFTProbeInput(int i)
-{
-    rx->set_probe_channel(i);
-}
-
-void MainWindow::setChanDecim(int i)
-{
-    rx->set_chan_decim(i);
-}
-
-void MainWindow::setChanOsr(int i)
-{
-    rx->set_chan_osr(i);
-}
-
-void MainWindow::setChanFilterParam(float i)
-{
-    rx->set_chan_filter_param(i);
 }
 
 void MainWindow::setChanelizer(int n)

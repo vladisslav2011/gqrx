@@ -213,6 +213,8 @@ public:
     int         get_probe_channel_count();
     void        set_chan_decim(int n);
     void        set_chan_osr(int n);
+    int         get_chan_decim(){return chan->decim();}
+    int         get_chan_osr(){return chan->osr();}
     void        set_chan_filter_param(float n);
     void        set_channelizer(int n);
 

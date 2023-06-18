@@ -206,11 +206,6 @@ private slots:
     void setAudioMute(bool mute, bool global);
     void setPassband(int bandwidth);
     void setFreqLock(bool lock, bool all);
-    /* FFT Probe */
-    void setFFTProbeInput(int i);
-    void setChanDecim(int i);
-    void setChanOsr(int i);
-    void setChanFilterParam(float i);
     void setChanelizer(int n);
 
     /* audio recording and playback */

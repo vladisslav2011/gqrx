@@ -40,42 +40,23 @@ public:
     explicit DockProbe(QWidget *parent = 0);
     ~DockProbe();
 
-    void setFftRange(quint64 minf, quint64 maxf);
     void setNewFftData(float *fftData, int size);
     void setInvertScrolling(bool enabled);
-    int  fftRate() const { return 10; }
-
     void setFftColor(QColor color);
     void setFftFill(bool enabled);
-
-public slots:
-    void setCenterFreq(qint64 freq);
+    void setDecimOsr(int,int);
+    void setCenterOffset(qint64 freq, qint64 ofs);
     void setSampleRate(int sampleRate);
     void setWfColormap(const QString &cmap);
-    void setInputChannels(int input, int inputs);
-signals:
-    /*! \brief FFT rate changed. */
-    void fftRateChanged(int fps);
-
-    /*! \brief Signal emitted when input is changed. */
-    void inputChanged(int n);
-    void decimChanged(int n);
-    void osrChanged(int n);
-    void filterParamChanged(float n);
-
-private slots:
-    void pandapterRange_changed(int min, int max);
-    void waterfallRange_changed(int min, int max);
-    void on_inputSpinBox_valueChanged(int value);
-    void on_decimSpinBox_valueChanged(int value);
-    void on_osrSpinBox_valueChanged(int value);
-    void on_fparamSpinBox_valueChanged(double value);
 
 private:
     void updateCenter();
 private:
     Ui::DockProbe *ui;
     int m_sampleRate;
+    int m_decim;
+    int m_osr;
+    qint64 m_offset;
     qint64 m_center;
 };
 
