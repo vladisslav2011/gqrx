@@ -52,6 +52,7 @@ public:
 
 private:
     void updateCenter();
+    void finalizeInner() override {}
 private:
     Ui::DockProbe *ui;
     int m_sampleRate;
