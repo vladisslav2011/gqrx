@@ -25,6 +25,7 @@
 #include <QTcpSocket>
 #include <QString>
 #include <QStringList>
+#include <QLineEdit>
 #include "dxc_spots.h"
 
 DXCOptions::DXCOptions(QWidget *parent) :
@@ -42,6 +43,14 @@ DXCOptions::DXCOptions(QWidget *parent) :
     connect(m_socket, SIGNAL(connected()),this, SLOT(connected()));
     connect(m_socket, SIGNAL(disconnected()),this, SLOT(disconnected()));
     connect(m_socket, SIGNAL(readyRead()),this, SLOT(readyToRead()));
+    grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    set_observer(C_DXC_ADDRESS,&DXCOptions::addressObserver);
+    set_observer(C_DXC_PORT,&DXCOptions::portObserver);
+    set_observer(C_DXC_USERNAME,&DXCOptions::usernameObserver);
+    set_observer(C_DXC_TIMEOUT,&DXCOptions::timeoutObserver);
+    set_observer(C_DXC_FILTER,&DXCOptions::filterObserver);
+    set_observer(C_DXC_CONNECT,&DXCOptions::connectObserver);
+    set_observer(C_DXC_DISCONNECT,&DXCOptions::disconnectObserver);
 }
 
 DXCOptions::~DXCOptions()
@@ -67,17 +76,17 @@ void DXCOptions::showEvent(QShowEvent * event)
     Q_UNUSED(event);
 }
 
-void DXCOptions::on_pushButton_DXCConnect_clicked()
+void DXCOptions::connectObserver(c_id, const c_def::v_union & v)
 {
-    DXCSpots::Get().setSpotTimeout(ui->lineEdit_DXCSpottimeout->text().toInt());
-    m_socket->connectToHost(ui->lineEdit_DXCAddress->text(),ui->lineEdit_DXCPort->text().toInt());
+    DXCSpots::Get().setSpotTimeout(DXCSpotTimeout);
+    m_socket->connectToHost(DXCAddress,DXCPort);
     if(!m_socket->waitForConnected(5000))
     {
         ui->plainTextEdit_DXCMonitor->appendPlainText(m_socket->errorString());
     }
 }
 
-void DXCOptions::on_pushButton_DXCDisconnect_clicked()
+void DXCOptions::disconnectObserver(c_id, const c_def::v_union & v)
 {
     m_socket->close();
 }
@@ -85,15 +94,15 @@ void DXCOptions::on_pushButton_DXCDisconnect_clicked()
 void DXCOptions::connected()
 {
     ui->plainTextEdit_DXCMonitor->appendPlainText("Connected");
-    ui->pushButton_DXCConnect->setDisabled(true);
-    ui->pushButton_DXCDisconnect->setEnabled(true);
+    getWidget(C_DXC_CONNECT)->setDisabled(true);
+    getWidget(C_DXC_DISCONNECT)->setEnabled(true);
 }
 
 void DXCOptions::disconnected()
 {
     ui->plainTextEdit_DXCMonitor->appendPlainText("Disconnected");
-    ui->pushButton_DXCDisconnect->setDisabled(true);
-    ui->pushButton_DXCConnect->setEnabled(true);
+    getWidget(C_DXC_CONNECT)->setEnabled(true);
+    getWidget(C_DXC_DISCONNECT)->setDisabled(true);
 }
 
 void DXCOptions::readyToRead()
@@ -109,11 +118,11 @@ void DXCOptions::readyToRead()
         if(incomingMessage.contains("enter your call", Qt::CaseInsensitive)
                 || incomingMessage.contains("login:", Qt::CaseInsensitive))
         {
-            m_socket->write(ui->lineEdit_DXCUSername->text().append("\n").toUtf8());
-            ui->plainTextEdit_DXCMonitor->appendPlainText(ui->lineEdit_DXCUSername->text());
+            m_socket->write(DXCUsername.append("\n").toUtf8());
+            ui->plainTextEdit_DXCMonitor->appendPlainText(DXCUsername);
         }
         else if(incomingMessage.contains("DX de", Qt::CaseInsensitive) &&
-                incomingMessage.contains(ui->lineEdit_DXCFilter->text()))
+                incomingMessage.contains(DXCFilter))
         {
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
             spot = incomingMessage.split(" ", QString::SkipEmptyParts);
@@ -132,33 +141,8 @@ void DXCOptions::readyToRead()
     }
 }
 
-void DXCOptions::saveSettings(QSettings *settings)
+void DXCOptions::finalizeInner()
 {
-    if (!settings)
-        return;
-
-    settings->beginGroup("dxcluster");
-
-    settings->setValue("DXCAddress", ui->lineEdit_DXCAddress->text());
-    settings->setValue("DXCPort", ui->lineEdit_DXCPort->text());
-    settings->setValue("DXCUsername", ui->lineEdit_DXCUSername->text());
-    settings->setValue("DXCSpotTimeout", ui->lineEdit_DXCSpottimeout->text());
-    settings->setValue("DXCFilter", ui->lineEdit_DXCFilter->text());
-
-    settings->endGroup();
-}
-
-void DXCOptions::readSettings(QSettings *settings)
-{
-    if (!settings)
-        return;
-
-    settings->beginGroup("dxcluster");
-    ui->lineEdit_DXCAddress->setText(settings->value("DXCAddress", "localhost").toString());
-    ui->lineEdit_DXCPort->setText(settings->value("DXCPort", "7300").toString());
-    ui->lineEdit_DXCUSername->setText(settings->value("DXCUsername", "nocall").toString());
-    ui->lineEdit_DXCSpottimeout->setText(settings->value("DXCSpotTimeout", "10").toString());
-    ui->lineEdit_DXCFilter->setText(settings->value("DXCFilter", "").toString());
-
-    settings->endGroup();
+    dynamic_cast<QLineEdit *>(getWidget(C_DXC_FILTER))->setPlaceholderText("ex. CW or RTTY");
+    getWidget(C_DXC_DISCONNECT)->setDisabled(true);
 }
