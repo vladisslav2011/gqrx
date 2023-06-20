@@ -30,12 +30,13 @@
 #include <QSettings>
 
 #include <QDialog>
+#include "applications/gqrx/dcontrols_ui.h"
 
 namespace Ui {
 class DXCOptions;
 }
 
-class DXCOptions : public QDialog
+class DXCOptions : public QDialog, public dcontrols_ui
 {
     Q_OBJECT
 
@@ -43,22 +44,32 @@ public:
     explicit DXCOptions(QWidget *parent = 0);
     ~DXCOptions();
 
-    void closeEvent(QCloseEvent *event);
-    void showEvent(QShowEvent * event);
-    void saveSettings(QSettings *settings);
-    void readSettings(QSettings *settings);
+    void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent * event) override;
 
 private slots:
 
-    void on_pushButton_DXCConnect_clicked();
-    void on_pushButton_DXCDisconnect_clicked();
     void connected();
     void disconnected();
     void readyToRead();
+private:
+    void addressObserver(c_id, const c_def::v_union & v){ DXCAddress=QString::fromStdString(v);}
+    void portObserver(c_id, const c_def::v_union & v){ DXCPort=v;}
+    void usernameObserver(c_id, const c_def::v_union & v){ DXCUsername=QString::fromStdString(v);}
+    void timeoutObserver(c_id, const c_def::v_union & v){ DXCSpotTimeout=v;}
+    void filterObserver(c_id, const c_def::v_union & v){ DXCFilter=QString::fromStdString(v);}
+    void connectObserver(c_id, const c_def::v_union & v);
+    void disconnectObserver(c_id, const c_def::v_union & v);
+    void finalizeInner() override;
 
 private:
     Ui::DXCOptions *ui;
     QTcpSocket *m_socket;
+    QString DXCAddress{"127.0.0.1"};
+    int DXCPort{7300};
+    QString DXCUsername{"nocall"};
+    int DXCSpotTimeout{10};
+    QString DXCFilter{""};
 };
 
 #endif // DXC_OPTIONS_H

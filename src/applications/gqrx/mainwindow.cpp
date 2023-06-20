@@ -217,6 +217,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     docks[D_FFT]=uiDockFft;
     docks[D_RDS]=uiDockRDS;
     docks[D_IQTOOL]=iq_tool;
+    docks[D_DXC]=dxc_options;
     docks[D_PROBE]=uiDockProbe;
     /*
     uiDockBookmarks,//D_BOOKMARKS
@@ -841,7 +842,6 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     }
 
     uiDockBookmarks->readSettings(m_settings);
-    dxc_options->readSettings(m_settings);
     rx->commit_audio_rate();
 
     iq_tool->readSettings(m_settings);
@@ -999,7 +999,6 @@ void MainWindow::storeSession()
 
         remote->saveSettings(m_settings);
         iq_tool->saveSettings(m_settings);
-        dxc_options->saveSettings(m_settings);
 
         int old_current = rx->get_current();
         int int_val;
