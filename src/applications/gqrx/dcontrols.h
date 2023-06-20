@@ -34,6 +34,14 @@ enum c_id
 {
     C_TEST=0,
     
+    C_DXC_ADDRESS,
+    C_DXC_PORT,
+    C_DXC_TIMEOUT,
+    C_DXC_FILTER,
+    C_DXC_USERNAME,
+    C_DXC_DISCONNECT,
+    C_DXC_CONNECT,
+
     C_FFT_SIZE,
     C_FFT_RBW_LABEL,
     C_FFT_RATE,
@@ -222,6 +230,7 @@ enum gui_dock
     D_RDS,
     D_IQTOOL,
     D_BOOKMARKS,
+    D_DXC,
     D_PROBE,
     
     D_COUNT
