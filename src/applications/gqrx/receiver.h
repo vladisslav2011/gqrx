@@ -188,8 +188,7 @@ public:
     void        set_input_device(const std::string device);
     void        set_output_device(const std::string device);
     void        set_input_file(const std::string name, const int sample_rate,
-                               const file_formats fmt, uint64_t time_ms,
-                               int buffers_max, bool repeat);
+                               const file_formats fmt, uint64_t time_ms);
 
     std::vector<std::string> get_antennas(void) const;
     bool        set_antenna(const c_def::v_union &);
@@ -304,7 +303,11 @@ public:
     bool        set_audio_play(const c_def::v_union &);
 
     /* I/Q recording and playback */
-    status      start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max);
+    bool        get_buffers_max(c_def::v_union &v) const { v=d_iq_buffers_max; return true;}
+    bool        set_buffers_max(const c_def::v_union &);
+    bool        get_iq_repeat(c_def::v_union &v) const { v=d_iq_repeat; return true;}
+    bool        set_iq_repeat(const c_def::v_union &);
+    status      start_iq_recording(const std::string filename, const file_formats fmt);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
     status      seek_iq_file_ts(uint64_t ts, uint64_t &res_point);
@@ -366,6 +369,8 @@ private:
     bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
     std::string d_iq_filename;
     uint64_t    d_iq_time_ms;
+    int         d_iq_buffers_max;
+    bool        d_iq_repeat;
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
     bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
