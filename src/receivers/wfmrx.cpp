@@ -212,6 +212,17 @@ void wfmrx::stop_rds_decoder()
     unlock();
 }
 
+bool wfmrx::set_wfm_raw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_wfm_raw(v);
+    if(d_demod == Modulations::MODE_WFM_MONO)
+        lock();
+    mono->set_raw(d_wfm_raw);
+    if(d_demod == Modulations::MODE_WFM_MONO)
+        unlock();
+    return true;
+}
+
 bool wfmrx::set_rds_on(const c_def::v_union & v)
 {
     if(d_rds_on == bool(v))

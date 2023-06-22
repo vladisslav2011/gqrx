@@ -309,6 +309,12 @@ bool vfo_s::set_wfm_deemph(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_wfm_raw(const c_def::v_union & v)
+{
+    d_wfm_raw = v;
+    return true;
+}
+
 bool vfo_s::set_nb1_on(const c_def::v_union & v)
 {
     d_nb_on[0] = v;
@@ -507,6 +513,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_am_dcr(v);set_am_dcr(v);
     from.get_cw_offset(v);set_cw_offset(v);
     from.get_wfm_deemph(v);set_wfm_deemph(v);
+    from.get_wfm_raw(v);set_wfm_raw(v);
     from.get_rds_on(v);set_rds_on(v);
 
     from.get_fft_center(v);set_fft_center(v);
@@ -671,6 +678,8 @@ int vfo_s::conf_initializer()
     getters[C_WFM_STEREO_DEEMPH]=&vfo_s::get_wfm_deemph;
     setters[C_WFM_OIRT_DEEMPH]=&vfo_s::set_wfm_deemph;
     getters[C_WFM_OIRT_DEEMPH]=&vfo_s::get_wfm_deemph;
+    setters[C_WFM_RAW]=&vfo_s::set_wfm_raw;
+    getters[C_WFM_RAW]=&vfo_s::get_wfm_raw;
 
     getters[C_RDS_ON]=&vfo_s::get_rds_on;
     setters[C_RDS_ON]=&vfo_s::set_rds_on;

@@ -52,7 +52,8 @@ stereo_demod::stereo_demod(float input_rate, float audio_rate, bool stereo, bool
     d_input_rate(input_rate),
     d_audio_rate(audio_rate),
     d_stereo(stereo),
-    d_oirt(oirt)
+    d_oirt(oirt),
+    d_raw(false)
 {
   double cutof_freq = d_oirt ? 15e3 : 17e3;
   lpf0 = make_lpf_ff((double)d_input_rate, cutof_freq, 2e3); // FIXME
@@ -168,5 +169,36 @@ void stereo_demod::set_audio_rate(float audio_rate)
     {
         audio_rr1->set_rate(d_audio_rate/d_input_rate);
         deemph1->set_rate((double)d_audio_rate);
+    }
+}
+
+void stereo_demod::set_raw(bool on)
+{
+    if(d_raw == on)
+        return;
+    if(d_raw)
+    {
+        disconnect(self(), 0, audio_rr0, 0);
+        disconnect(audio_rr0, 0, self(), 0);
+        disconnect(audio_rr0, 0, self(), 1);
+    }else{
+        disconnect(self(), 0, lpf0, 0);
+        disconnect(lpf0,   0, audio_rr0, 0);
+        disconnect(audio_rr0, 0, deemph0, 0);
+        disconnect(deemph0, 0, self(), 0);
+        disconnect(deemph0, 0, self(), 1);
+    }
+    d_raw=on;
+    if(d_raw)
+    {
+        connect(self(), 0, audio_rr0, 0);
+        connect(audio_rr0, 0, self(), 0);
+        connect(audio_rr0, 0, self(), 1);
+    }else{
+        connect(self(), 0, lpf0, 0);
+        connect(lpf0,   0, audio_rr0, 0);
+        connect(audio_rr0, 0, deemph0, 0);
+        connect(deemph0, 0, self(), 0);
+        connect(deemph0, 0, self(), 1);
     }
 }
