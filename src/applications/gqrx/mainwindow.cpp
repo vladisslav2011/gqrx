@@ -65,6 +65,10 @@ using namespace std::chrono_literals;
 
 Q_DECLARE_METATYPE(c_id)
 Q_DECLARE_METATYPE(c_def::v_union)
+using std::chrono::high_resolution_clock;
+using std::chrono::duration_cast;
+using std::chrono::duration;
+using std::chrono::milliseconds;
 
 MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) :
     QMainWindow(parent),
@@ -79,6 +83,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     dec_afsk1200(nullptr),
     waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
+    auto t1 = high_resolution_clock::now();
     qRegisterMetaType<c_id>();
     qRegisterMetaType<c_def::v_union>();
 
@@ -386,7 +391,9 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     // Create list of input devices. This must be done before the configuration is
     // restored because device probing might change the device configuration
+    auto t2 = high_resolution_clock::now();
     CIoConfig::getDeviceList(devList);
+    auto t3 = high_resolution_clock::now();
 
     m_recent_config = new RecentConfig(m_cfg_dir, ui->menu_RecentConfig);
     connect(m_recent_config, SIGNAL(loadConfig(const QString &)), this, SLOT(loadConfigSlot(const QString &)));
@@ -429,6 +436,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
         {
             emit sigSaveProgress(saved_ms);
         });
+    auto t4 = high_resolution_clock::now();
+    duration<double, std::milli> diff = (t2 - t1) + (t4 - t3);
+    std::cout << "*********************************\n"
+                 "* started in "<<diff.count()<<" ms\n"
+                 "*********************************\n";
 }
 
 MainWindow::~MainWindow()
