@@ -32,6 +32,7 @@
 #include <QString>
 #include <QTimer>
 #include <QMenu>
+#include <QListWidget>
 #include "dsp/format_converter.h"
 #include "applications/gqrx/dcontrols_ui.h"
 
@@ -59,20 +60,17 @@ public:
 
     void setSampleRate(qint64 sr);
 
-    void closeEvent(QCloseEvent *event);
-    void showEvent(QShowEvent * event);
+    void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent * event) override;
 
-    void saveSettings(QSettings *settings);
-    void readSettings(QSettings *settings);
     qint64 selectionLength();
 
 signals:
-    void startRecording(const QString recdir, file_formats fmt,
-                        int buffers_max);
+    void startRecording(const QString recdir, file_formats fmt);
     void stopRecording();
     void startPlayback(const QString filename, float samprate,
                        qint64 center_freq, file_formats fmt,
-                       qint64 time_ms, int buffers_max, bool repeat);
+                       qint64 time_ms);
     void stopPlayback();
     void seek(qint64 seek_pos);
     void saveFileRange(const QString &, file_formats, quint64,quint64);
@@ -85,24 +83,24 @@ public slots:
     void setRunningState(bool);
 
 private slots:
-    void on_recDirEdit_textChanged(const QString &text);
-    void on_recDirButton_clicked();
-    void on_recButton_clicked(bool checked);
-    void on_playButton_clicked(bool checked);
-    void on_slider_valueChanged(int value);
     void on_listWidget_currentTextChanged(const QString &currentText);
     void timeoutFunction(void);
-    void on_formatCombo_currentIndexChanged(int index);
-    void on_slider_customContextMenuRequested(const QPoint& pos);
-    void sliderA();
-    void sliderB();
-    void sliderReset();
-    void sliderSave();
-    void sliderGoA();
-    void sliderGoB();
-    void sliderSetExtractDir();
 
 private:
+    void playObserver(c_id, const c_def::v_union&);
+    void posObserver(c_id, const c_def::v_union&);
+    void recObserver(c_id, const c_def::v_union&);
+    void locationObserver(c_id, const c_def::v_union&);
+    void selectObserver(c_id, const c_def::v_union&);
+    void extractDirObserver(c_id, const c_def::v_union&);
+    void formatObserver(c_id, const c_def::v_union&);
+    void fineStepObserver(c_id, const c_def::v_union&);
+    void selAObserver(c_id, const c_def::v_union&);
+    void selBObserver(c_id, const c_def::v_union&);
+    void goAObserver(c_id, const c_def::v_union&);
+    void goBObserver(c_id, const c_def::v_union&);
+    void resetObserver(c_id, const c_def::v_union&);
+    void saveObserver(c_id, const c_def::v_union&);
     void refreshDir(void);
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);
@@ -110,6 +108,7 @@ private:
     void updateSliderStylesheet(qint64 save_progress = -2);
     void listWidgetFileSelected(const QString &currentText);
     // No spacer at bottom here
+    void finalizeInner() override;
 
 private:
     Ui::CIqTool *ui;
@@ -118,16 +117,9 @@ private:
     QDir        *extractDir;
     QTimer      *timer;
     QPalette    *error_palette; /*!< Palette used to indicate an error. */
+    QListWidget *listWidget;
 
     QString current_file;      /*!< Selected file in file browser. */
-    QMenu       *sliderMenu;
-    QAction     *setA;
-    QAction     *setB;
-    QAction     *selSave;
-    QAction     *selReset;
-    QAction     *goA;
-    QAction     *goB;
-    QAction     *setExtractDir;
 
     double  sel_A{-1.0};
     double  sel_B{-1.0};
@@ -135,14 +127,16 @@ private:
     bool    is_playing;
     bool    is_saving{false};
     bool    is_running{false};
+    bool    can_play{false};
     qint64  chunk_size;
     qint64  samples_per_chunk;
     file_formats fmt;
     file_formats rec_fmt;
     quint64 time_ms;
-    qint64  sample_rate;       /*!< Current sample rate. */
-    qint64  center_freq;       /*!< Center frequency. */
-    qint64  rec_len;           /*!< Length of a recording in seconds */
+    qint64  rec_sample_rate{192000}; /*!< Current recording sample rate. */
+    qint64  sample_rate;             /*!< Current playback sample rate. */
+    qint64  center_freq;             /*!< Center frequency. */
+    qint64  rec_len;                 /*!< Length of a recording in seconds */
     int     o_buffersUsed{0};
     size_t  o_fileSize{0};
 };

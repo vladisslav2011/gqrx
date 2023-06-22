@@ -210,12 +210,11 @@ private slots:
 
     /* I/Q playback and recording*/
     QString makeIQFilename(const QString& recdir, file_formats fmt, const QDateTime ts);
-    void startIqRecording(const QString& recdir, file_formats fmt, int buffers_max);
+    void startIqRecording(const QString& recdir, file_formats fmt);
     void stopIqRecording();
     void startIqPlayback(const QString& filename, float samprate,
                          qint64 center_freq, file_formats fmt,
-                         qint64 time_ms,
-                         int buffers_max, bool repeat);
+                         qint64 time_ms);
     void stopIqPlayback();
     void seekIqFile(qint64 seek_pos);
     void saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms);
