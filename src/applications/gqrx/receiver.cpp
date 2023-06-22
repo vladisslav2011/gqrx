@@ -256,15 +256,14 @@ void receiver::set_input_device(const std::string device)
  * @param fmt
  */
 void receiver::set_input_file(const std::string name, const int sample_rate,
-                              const file_formats fmt, uint64_t time_ms,
-                              int buffers_max, bool repeat)
+                              const file_formats fmt, uint64_t time_ms)
 {
     std::string error = "";
 
     d_iq_filename = name;
     d_iq_time_ms = time_ms;
     input_file = file_source::make(any_to_any_base::fmt[fmt].size, name.c_str(), 0, 0, sample_rate / any_to_any_base::fmt[fmt].nsamples,
-                                   time_ms, repeat, buffers_max);
+                                   time_ms, d_iq_repeat, d_iq_buffers_max);
 
     if (d_running)
     {
@@ -1612,12 +1611,25 @@ receiver::status receiver::connect_iq_recorder()
     return STATUS_OK;
 }
 
+/* IQ tool Setters */
+bool receiver::set_buffers_max(const c_def::v_union &v)
+{
+    d_iq_buffers_max = v;
+    return true;
+}
+
+bool receiver::set_iq_repeat(const c_def::v_union &v)
+{
+    d_iq_repeat = v;
+    return true;
+}
+
 /**
  * @brief Start I/Q data recorder.
  * @param filename The filename where to record.
 + * @param bytes_per_sample A hint to choose correct sample format.
  */
-receiver::status receiver::start_iq_recording(const std::string filename, const file_formats fmt, int buffers_max)
+receiver::status receiver::start_iq_recording(const std::string filename, const file_formats fmt)
 {
     int sink_bytes_per_chunk = any_to_any_base::fmt[fmt].size;
 
@@ -1628,7 +1640,8 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 
     try
     {
-        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(), d_input_rate / any_to_any_base::fmt[fmt].nsamples, true, buffers_max);
+        iq_sink = file_sink::make(sink_bytes_per_chunk, filename.c_str(),
+            d_input_rate / any_to_any_base::fmt[fmt].nsamples, true, d_iq_buffers_max);
     }
     catch (std::runtime_error &e)
     {
@@ -2271,6 +2284,11 @@ bool receiver::get_value(c_id optid, c_def::v_union & value) const
 
 int receiver::conf_initializer()
 {
+    getters[C_IQ_BUFFERS]=&receiver::get_buffers_max;
+    setters[C_IQ_BUFFERS]=&receiver::set_buffers_max;
+    getters[C_IQ_REPEAT]=&receiver::get_iq_repeat;
+    setters[C_IQ_REPEAT]=&receiver::set_iq_repeat;
+
     getters[C_IQ_AGC]=&receiver::get_auto_gain;
     setters[C_IQ_AGC]=&receiver::set_auto_gain;
     getters[C_IQ_SWAP]=&receiver::get_iq_swap;

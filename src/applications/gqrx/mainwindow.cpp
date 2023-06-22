@@ -334,10 +334,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(&DXCSpots::Get(), SIGNAL(dxcSpotsUpdated()), this, SLOT(updateClusterSpots()));
 
     // I/Q playback
-    connect(iq_tool, SIGNAL(startRecording(QString, file_formats, int)), this, SLOT(startIqRecording(QString, file_formats, int)));
+    connect(iq_tool, SIGNAL(startRecording(QString, file_formats)), this, SLOT(startIqRecording(QString, file_formats)));
     connect(iq_tool, SIGNAL(stopRecording()), this, SLOT(stopIqRecording()));
-    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, file_formats, qint64, int, bool)),
-                 this, SLOT(startIqPlayback(QString, float, qint64, file_formats, qint64, int, bool)));
+    connect(iq_tool, SIGNAL(startPlayback(QString, float, qint64, file_formats, qint64)),
+                 this, SLOT(startIqPlayback(QString, float, qint64, file_formats, qint64)));
     connect(iq_tool, SIGNAL(stopPlayback()), this, SLOT(stopIqPlayback()));
     connect(iq_tool, SIGNAL(seek(qint64)), this,SLOT(seekIqFile(qint64)));
     connect(iq_tool, SIGNAL(saveFileRange(const QString &, file_formats, quint64,quint64)), this,SLOT(saveFileRange(const QString &, file_formats, quint64,quint64)));
@@ -844,8 +844,6 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     uiDockBookmarks->readSettings(m_settings);
     rx->commit_audio_rate();
 
-    iq_tool->readSettings(m_settings);
-
     /*
      * Initialization the remote control at the end.
      * We must be sure that all variables initialized before starting RC server.
@@ -998,7 +996,6 @@ void MainWindow::storeSession()
         uiDockBookmarks->saveSettings(m_settings);
 
         remote->saveSettings(m_settings);
-        iq_tool->saveSettings(m_settings);
 
         int old_current = rx->get_current();
         int int_val;
@@ -1901,14 +1898,14 @@ QString MainWindow::makeIQFilename(const QString& recdir, file_formats fmt, cons
 }
 
 /** Start I/Q recording. */
-void MainWindow::startIqRecording(const QString& recdir, file_formats fmt, int buffers_max)
+void MainWindow::startIqRecording(const QString& recdir, file_formats fmt)
 {
 
     auto lastRec = makeIQFilename(recdir, fmt, QDateTime::currentDateTimeUtc());
     ui->actionIoConfig->setDisabled(true);
     ui->actionLoadSettings->setDisabled(true);
     // start recorder; fails if recording already in progress
-    if (rx->start_iq_recording(lastRec.toStdString(), fmt, buffers_max))
+    if (rx->start_iq_recording(lastRec.toStdString(), fmt))
     {
         // reset action status
         ui->statusBar->showMessage(tr("Error starting I/Q recoder"));
@@ -1945,8 +1942,7 @@ void MainWindow::stopIqRecording()
 void MainWindow::startIqPlayback(const QString& filename, float samprate,
                                  qint64 center_freq,
                                  file_formats fmt,
-                                 qint64 time_ms,
-                                 int buffers_max, bool repeat)
+                                 qint64 time_ms)
 {
     if (ui->actionDSP->isChecked())
     {
@@ -1970,7 +1966,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
 
     rx->set_input_device(devstr.toStdString());
     updateHWFrequencyRange(false);
-    rx->set_input_file(filename.toStdString(), samprate, fmt, time_ms, buffers_max, repeat);
+    rx->set_input_file(filename.toStdString(), samprate, fmt, time_ms);
 
     // sample rate
     auto actual_rate = rx->set_input_rate(samprate);
