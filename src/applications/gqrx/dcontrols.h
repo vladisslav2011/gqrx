@@ -192,6 +192,7 @@ enum c_id
     C_RAWIQ_DUMMY,
     C_SSB_DUMMY,
     C_WFM_DEEMPH,
+    C_WFM_RAW,
     C_WFM_STEREO_DEEMPH,
     C_WFM_OIRT_DEEMPH,
     C_RDS_ON,

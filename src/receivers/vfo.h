@@ -81,6 +81,7 @@ public:
         d_amsync_dcr(true),
         d_pll_bw(0.01),
         d_wfm_deemph(50.0),
+        d_wfm_raw(false),
         d_rec_dir(""),
         d_rec_sql_triggered(false),
         d_rec_min_time(0),
@@ -164,6 +165,7 @@ public:
     bool         get_fmpll_damping_factor(c_def::v_union & v) const { v=d_fmpll_damping_factor; return true; }
     /* WFM parameters */
     bool         get_wfm_deemph(c_def::v_union & v) const { v=d_wfm_deemph; return true; }
+    bool         get_wfm_raw(c_def::v_union & v) const { v=d_wfm_raw; return true; }
     /* Noise blanker */
     bool         get_nb1_on(c_def::v_union & v) const { v=d_nb_on[0]; return true; }
     bool         get_nb2_on(c_def::v_union & v) const { v=d_nb_on[1]; return true; }
@@ -230,6 +232,7 @@ public:
     virtual bool  set_amsync_pll_bw(const c_def::v_union &);
     /* WFM parameters */
     virtual bool  set_wfm_deemph(const c_def::v_union &);
+    virtual bool  set_wfm_raw(const c_def::v_union &);
     /* Noise blanker */
     virtual bool set_nb1_on(const c_def::v_union &);
     virtual bool set_nb2_on(const c_def::v_union &);
@@ -318,6 +321,7 @@ protected:
     bool             d_amsync_dcr;
     float            d_pll_bw;
     float            d_wfm_deemph;
+    bool             d_wfm_raw;
 
     bool             d_nb_on[RECEIVER_NB_COUNT];
     float            d_nb_threshold[RECEIVER_NB_COUNT];
