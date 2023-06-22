@@ -103,7 +103,7 @@ void file_source::reader()
                 if (read_bytes > READ_MAX)
                     read_bytes = READ_MAX;
                 guard.unlock();
-                count = fread(p, 1, read_bytes, d_fp);
+                count = fread(p, d_itemsize, read_bytes / d_itemsize, d_fp) * d_itemsize;
                 guard.lock();
                 if (count == 0)
                 {
