@@ -238,6 +238,8 @@ Bookmarks::Bookmarks()
         const int bcol=defs[k].bookmarks_column();
         if(bcol>0)
         {
+            if(!defs[k].bookmarks_key())
+                continue;
             if(m_idx_struct[bcol].fromString)
             {
                 std::cerr<<"Conflicting bookmark definitions:\nlocal["<<
@@ -249,9 +251,9 @@ Bookmarks::Bookmarks()
             m_idx_struct[bcol].name=QString::fromStdString(defs[k].bookmarks_key());
             m_idx_struct[bcol].fromString=[=](BookmarkInfo & to, const QString & from) -> bool {
                 //lookup preset
-                auto it = defs[k].kpresets().find(from.toStdString());
-                if(it != defs[k].kpresets().end())
-                    return to.set_value(c_id(k),defs[k].presets()[it->second].value);
+                auto it = defs[k].presets().find(from.toStdString());
+                if(it != defs[k].presets().end())
+                    return to.set_value(c_id(k),it->value);
                 //no preset
                 c_def::v_union tmp(defs[k].v_type(),from.toStdString());
                 //TODO: validate tmp
@@ -262,9 +264,9 @@ Bookmarks::Bookmarks()
                 c_def::v_union tmp;
                 from.get_value(c_id(k), tmp);
                 //lookup preset
-                auto it = defs[k].ipresets().find(tmp);
-                if(it != defs[k].ipresets().end())
-                    return QString::fromStdString(defs[k].presets()[it->second].key);
+                auto it = defs[k].presets().find(tmp);
+                if(it != defs[k].presets().end())
+                    return QString(it->key);
                 //no preset
                 switch(defs[k].v_type())
                 {
