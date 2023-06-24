@@ -65,7 +65,7 @@ using namespace std::chrono_literals;
 #include "qtgui/bandplan.h"
 
 Q_DECLARE_METATYPE(c_id)
-Q_DECLARE_METATYPE(c_def::v_union)
+Q_DECLARE_METATYPE(tag_union)
 using std::chrono::high_resolution_clock;
 using std::chrono::duration_cast;
 using std::chrono::duration;
@@ -86,7 +86,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 {
     auto t1 = high_resolution_clock::now();
     qRegisterMetaType<c_id>();
-    qRegisterMetaType<c_def::v_union>();
+    qRegisterMetaType<tag_union>();
 
     ui->setupUi(this);
 
@@ -401,7 +401,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
 
     m_recent_config = new RecentConfig(m_cfg_dir, ui->menu_RecentConfig);
     connect(m_recent_config, SIGNAL(loadConfig(const QString &)), this, SLOT(loadConfigSlot(const QString &)));
-    connect(this,SIGNAL(observer_signal(const c_id, const c_def::v_union)), this, SLOT(observer_slot(const c_id, const c_def::v_union)), Qt::QueuedConnection);
+    connect(this,SIGNAL(observer_signal(const c_id, const tag_union)), this, SLOT(observer_slot(const c_id, const tag_union)), Qt::QueuedConnection);
 
     // restore last session
     if (!loadConfig(cfgfile, true, true))
@@ -550,22 +550,22 @@ void MainWindow::get_gui(const c_id id, c_def::v_union & value) const
 
 static void loadSetting(QPointer<QSettings> m_settings, const c_def & def, c_def::v_union & v)
 {
-    const auto vkey = QString::fromStdString(def.config_key());
+    const auto vkey = QString(def.config_key());
     bool conv_ok = false;
     if(def.presets().size()>0)
     {
         //may be stored as preset key
         QString qdef("");
         {
-            auto it=def.ipresets().find(def.def());
-            if(it!=def.ipresets().end())
-                qdef=QString::fromStdString(def.presets()[it->second].key);
+            auto it=def.presets().find(def.def());
+            if(it!=def.presets().end())
+                qdef=QString::fromStdString(it->key);
         }
         std::string ss = m_settings->value(vkey,qdef).toString().toStdString();
-        auto it=def.kpresets().find(ss);
-        if(it!=def.kpresets().end())
+        auto it=def.presets().find(ss);
+        if(it!=def.presets().end())
         {
-            v=def.presets()[it->second].value;
+            v=it->value;
             return;
         }
     }
@@ -582,7 +582,7 @@ static void loadSetting(QPointer<QSettings> m_settings, const c_def & def, c_def
             v=def.def();
     break;
     case V_STRING:
-        v=m_settings->value(vkey,QString::fromStdString(def.def())).toString().toStdString();
+        v=m_settings->value(vkey,QString(def.def())).toString().toStdString();
     break;
     case V_BOOLEAN:
         v=m_settings->value(vkey,bool(def.def())).toBool();
@@ -824,7 +824,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
         const auto & def=defs[j];
         if(!(def.writable()&&def.readable()))
             continue;
-        if((def.scope()!=S_VFO)&&(def.config_key()!=""))
+        if((def.scope()!=S_VFO)&&def.config_key())
         {
             c_def::v_union v(0);
             const c_id id=c_id(j);
@@ -943,17 +943,17 @@ bool MainWindow::saveConfig(const QString& cfgfile)
 
 static void storeSetting(QPointer<QSettings> m_settings, const c_def & def, const c_def::v_union & v)
 {
-    const auto vkey = QString::fromStdString(def.config_key());
+    const auto vkey = QString(def.config_key());
     if(def.presets().size()>0)
     {
         //try to store by preset key
-        auto it=def.ipresets().find(v);
-        if(it!=def.ipresets().end())
+        auto it=def.presets().find(v);
+        if(it!=def.presets().end())
         {
-            if(def.def()==v)
+            if(v==def.def())
                 m_settings->remove(vkey);
             else
-                m_settings->setValue(vkey,QString::fromStdString(def.presets()[it->second].key));
+                m_settings->setValue(vkey,QString(it->key));
             return;
         }
     }
@@ -1050,7 +1050,7 @@ void MainWindow::storeSession()
                 const auto & def=defs[j];
                 if(!(def.writable()&&def.readable()))
                     continue;
-                if((def.scope()==S_VFO)&&(def.config_key()!=""))
+                if((def.scope()==S_VFO)&&def.config_key())
                 {
                     c_def::v_union v(0);
                     const c_id id = c_id(j);
@@ -1077,7 +1077,7 @@ void MainWindow::storeSession()
             const auto & def = defs[j];
             if(!(def.writable()&&def.readable()))
                 continue;
-            if((def.scope()==S_RX)&&(def.config_key()!=""))
+            if((def.scope()==S_RX)&&def.config_key())
             {
                 c_def::v_union v(0);
                 const c_id id = c_id(j);
@@ -1086,7 +1086,7 @@ void MainWindow::storeSession()
                 storeSetting(m_settings, def, v);
                 m_settings->endGroup();
             }
-            if((def.scope()==S_GUI)&&(def.config_key()!=""))
+            if((def.scope()==S_GUI)&&def.config_key())
             {
                 c_def::v_union v(0);
                 const c_id id = c_id(j);
@@ -1122,7 +1122,7 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
             const auto & def=defs[j];
             if(!(def.writable()&&def.readable()))
                 continue;
-            if((def.scope()==S_VFO)&&(def.config_key()!=""))
+            if((def.scope()==S_VFO)&&def.config_key())
             {
                 const c_id id=c_id(j);
                 if(ver < 4)

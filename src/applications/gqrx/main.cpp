@@ -39,6 +39,7 @@
 
 #include "mainwindow.h"
 #include "gqrx.h"
+#include "dcontrols.h"
 
 #include <iostream>
 

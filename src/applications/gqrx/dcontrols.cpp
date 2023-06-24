@@ -25,9 +25,43 @@
 #include "dcontrols.h"
 #include "dsp/format_converter.h"
 
-static const c_def::preset_list mode_map();
+struct mode_map_helper
+{
+    c_def::v_preset presets[Modulations::MODE_COUNT]{};
+    constexpr mode_map_helper & init()
+    {
+        for(int k=0;k<Modulations::MODE_COUNT;k++)
+            presets[k]=c_def::v_preset(
+                Modulations::modes[k].name,
+                Modulations::modes[k].name,
+                k,
+                Modulations::modes[k].shortcut
+            );
+        return *this;
+    }
+};
 
-static const std::array<c_def,C_COUNT> store{
+constexpr mode_map_helper mode_map = mode_map_helper().init();
+
+struct file_format_helper
+{
+    c_def::v_preset presets[FILE_FORMAT_COUNT-FILE_FORMAT_CF]{};
+    constexpr file_format_helper & init()
+    {
+        for(int k=FILE_FORMAT_CF;k<FILE_FORMAT_COUNT;k++)
+            presets[k-FILE_FORMAT_CF]=c_def::v_preset(
+                any_to_any_base::fmt[k].suffix,
+                any_to_any_base::fmt[k].name,
+                k,
+                ""
+            );
+        return *this;
+    }
+};
+
+constexpr file_format_helper file_format_map = file_format_helper().init();
+
+static constexpr std::array<c_def,C_COUNT> store{
 
 c_def()
     .idx(C_TEST)
@@ -47,7 +81,6 @@ c_def()
     .config_key("test")
 //    .tab("Tab0")
     .bookmarks_column(-1)
-    .bookmarks_key("-1")
     .v_type(V_INT)
     .def(0)
     .min(0)
@@ -57,9 +90,6 @@ c_def()
     .readable(true)
     .writable(true)
     .event(false)
-    .presets(
-    {
-    })
     ,
     
 
@@ -203,17 +233,7 @@ c_def()
     .min(FILE_FORMAT_CF)
     .max(FILE_FORMAT_COUNT)
     .step(1)
-    .presets([](){
-        c_def::preset_list ret{};
-        for(int k=FILE_FORMAT_CF;k<FILE_FORMAT_COUNT;k++)
-            ret.push_back({
-                any_to_any_base::fmt[k].suffix,
-                any_to_any_base::fmt[k].name,
-                k,
-                ""
-            });
-        return ret;
-    }())
+    .presets(file_format_map.presets)
     ,
 c_def()
     .idx(C_IQ_BUFFERS)
@@ -563,7 +583,7 @@ c_def()
     .min(512)
     .max(4194304)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"4194304","4194304",4194304},
         {"2097152","2097152",2097152},
         {"1048576","1048576",1048576},
@@ -612,7 +632,7 @@ c_def()
     .min(0)
     .max(1000)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"1000","1000 fps",1000},
         {"500", "500 fps", 500},
         {"400", "400 fps", 400},
@@ -669,7 +689,7 @@ c_def()
     .min(0)
     .max(48*60*60*1000)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0", "Auto",     0},
         {"1", "1 min",    1*60*1000},
         {"2", "2 min",    2*60*1000},
@@ -723,7 +743,7 @@ c_def()
     .min(0)
     .max(7)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0","Hamming", 0},
         {"1","Hann",    1},
         {"2","Blackman",2},
@@ -751,7 +771,7 @@ c_def()
     .min(0)
     .max(2)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0","None", 0},
         {"1","Avg Ampl",    1},
         {"2","Avg Pwr",2},
@@ -1048,7 +1068,7 @@ c_def()
     .min(0ll)
     .max(0xffffffffll)
     .step(0ll)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"white", "White", 0xffffffffll},
         {"yellow","Yellow",0xfffafa7fll},
         {"green", "Green", 0xff97d097ll},
@@ -1092,7 +1112,7 @@ c_def()
     .min("")
     .max("")
     .step("")
-    .presets({
+    .presets((c_def::v_preset[]){
         {"gqrx",              "Gqrx",                "gqrx"},
         {"viridis",           "Viridis",             "viridis"},
         {"turbo",             "Google Turbo",        "turbo"},
@@ -1317,7 +1337,6 @@ c_def()
     .g_type(G_LINE)
     .dock(D_INPUTCTL)
     .scope(S_GUI)
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(1)
     .min(0)
@@ -1395,7 +1414,7 @@ c_def()
     .min(0)
     .max(8)
     .step(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0","Off",0},
         {"1","Singlethreaded",1},
         {"2","2 threads",2},
@@ -1416,7 +1435,6 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_VFO)
     .v3_config_group("receiver")
-    .config_key("")
     .bookmarks_column(3)
     .bookmarks_key("Autostart")
     .v_type(V_BOOLEAN)
@@ -1458,7 +1476,6 @@ c_def()
     .scope(S_GUI)
     .v3_config_group("input")
 //    .config_key("frequency")
-    .config_key("")
     .v_type(V_DOUBLE)
     .suffix(" kHz")
     .def(144500.)
@@ -1540,7 +1557,7 @@ c_def()
     .def(Modulations::MODE_AM)
     .min(Modulations::MODE_OFF)
     .max(Modulations::MODE_COUNT-1)
-    .presets(mode_map())
+    .presets(mode_map.presets)
     ,
 c_def()
     .idx(C_MODE_CHANGED)
@@ -1569,7 +1586,6 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_GUI)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(1)
     .min(0)
@@ -1588,12 +1604,11 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_GUI)
     .v3_config_group("receiver")
-    .config_key("")
     .v_type(V_INT)
     .def(1)
     .min(0)
     .max(3)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"Wide","Wide",FILTER_PRESET_WIDE,">"},
         {"Normal","Normal",FILTER_PRESET_NORMAL,"."},
         {"Narrow","Narrow",FILTER_PRESET_NARROW,"<"},
@@ -1654,7 +1669,7 @@ c_def()
     .def(1)
     .min(0)
     .max(2)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"Soft","Soft",Modulations::FILTER_SHAPE_SOFT},
         {"Normal","Normal",Modulations::FILTER_SHAPE_NORMAL},
         {"Sharp","Sharp",Modulations::FILTER_SHAPE_SHARP},
@@ -1671,13 +1686,12 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_GUI)
     .v3_config_group("receiver")
-    .config_key("")
     .v_type(V_STRING)
     .def("Medium")
     .min("")
     .max("")
     .event(1)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0","Fast","Fast"},
         {"1","Medium","Medium"},
         {"2","Slow","Slow"},
@@ -1696,7 +1710,6 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_GUI)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(1)
     .min(0)
@@ -1736,7 +1749,6 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_VFO)
     .v3_config_group("receiver")
-    .config_key("")
     .v_type(V_DOUBLE)
     .def(3.0)
     .min(0.0)
@@ -1867,7 +1879,6 @@ c_def()
     .dock(D_RXOPT)
     .scope(S_GUI)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(1)
     .min(0)
@@ -1929,7 +1940,7 @@ c_def()
     .max(100.0)
     .step(0.1)
     .event(true)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"0","0 db",0.0},
         {"-6","-6 db",-6.0},
     })
@@ -1998,7 +2009,6 @@ c_def()
     .dock(D_AUDIO)
     .scope(S_VFO)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -2017,7 +2027,6 @@ c_def()
     .dock(D_AUDIO)
     .scope(S_VFO)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -2035,7 +2044,6 @@ c_def()
     .dock(D_AUDIO)
     .scope(S_RX)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -2217,7 +2225,7 @@ c_def()
     .bookmarks_column(27)
     .bookmarks_key("REC DIR")
     .v_type(V_STRING)
-    .def(QDir::homePath().toStdString())
+    .def("")
     .min("")
     .max("")
     .step("")
@@ -2394,7 +2402,6 @@ c_def()
     .window(W_CHILD)
     .scope(S_VFO)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_STRING)
     .def("")
     .min("")
@@ -2413,7 +2420,6 @@ c_def()
     .window(W_CHILD)
     .scope(S_VFO)
     .v3_config_group("audio")
-    .config_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -2663,7 +2669,7 @@ c_def()
     .max(100)
     .step(1)
     .event(true)
-    .presets({
+    .presets((c_def::v_preset[]){
         {"Center","Center",0}
     })
     ,
@@ -2786,7 +2792,6 @@ c_def()
     .v3_config_group("receiver")
     .config_key("nb3gain")
     .bookmarks_column(-1)
-    .bookmarks_key("")
     .v_type(V_DOUBLE)
     .frac_digits(1)
     .def(5.0)
@@ -2818,7 +2823,7 @@ c_def()
     .min(10.0)
     .max(75000.0)
     .step(10.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Voice (2.5 kHz)",2500.0},
         {"1","Voice (5 kHz)",5000.0},
@@ -2840,16 +2845,14 @@ c_def()
     .demod_specific(true)
     .demodgroup(Modulations::GRP_NFMPLL)
     .v3_config_group("receiver")
-    .config_key("")
     .bookmarks_column(-1)
-    .bookmarks_key("")
     .v_type(V_DOUBLE)
     .frac_digits(0)
     .def(2500.0)
     .min(10.0)
     .max(75000.0)
     .step(10.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Voice (2.5 kHz)",2500.0},
         {"1","Voice (5 kHz)",5000.0},
@@ -2879,7 +2882,7 @@ c_def()
     .min(0.0)
     .max(1000.0)
     .step(1.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Off",0.0},
         {"1","25 us",25.0},
@@ -2905,9 +2908,7 @@ c_def()
     .demod_specific(true)
     .demodgroup(Modulations::GRP_NFM)
     .v3_config_group("receiver")
-    .config_key("")
     .bookmarks_column(-1)
-    .bookmarks_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -2930,7 +2931,6 @@ c_def()
     .v3_config_group("receiver")
     .config_key("fmpll_damping_factor")
     .bookmarks_column(-1)
-    .bookmarks_key("")
     .v_type(V_DOUBLE)
     .frac_digits(2)
     .def(0.7)
@@ -2978,7 +2978,6 @@ c_def()
     .v3_config_group("receiver")
     .config_key("subtone_filter")
     .bookmarks_column(-1)
-    .bookmarks_key("")
     .v_type(V_BOOLEAN)
     .def(0)
     .min(0)
@@ -3008,7 +3007,7 @@ c_def()
     .min(0.0001)
     .max(0.01)
     .step(0.0001)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"Fast","Fast",0.01},
         {"Medium","Medium",0.001},
@@ -3164,7 +3163,7 @@ c_def()
     .min(0.0)
     .max(1000.0)
     .step(1.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Off",0.0},
         {"1","25 us",25.0},
@@ -3196,7 +3195,7 @@ c_def()
     .min(0.0)
     .max(1000.0)
     .step(1.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Off",0.0},
         {"1","25 us",25.0},
@@ -3228,7 +3227,7 @@ c_def()
     .min(0.0)
     .max(1000.0)
     .step(1.0)
-    .presets(
+    .presets((c_def::v_preset[])
     {
         {"0","Off",0.0},
         {"1","25 us",25.0},
@@ -3396,6 +3395,22 @@ c_def()
 
 std::array<std::function<void (const int, const c_def::v_union &)>, C_COUNT> conf_base::observers{};
 
+c_def::preset_list::iterator c_def::preset_list::find(const std::string & what) const
+{
+    for(std::size_t k=0;k<n_items;k++)
+        if(what == items[k].key)
+            return &items[k];
+    return end();
+};
+
+c_def::preset_list::iterator c_def::preset_list::find(const v_union & what) const
+{
+    for(std::size_t k=0;k<n_items;k++)
+        if(what == items[k].value)
+            return &items[k];
+    return end();
+};
+
 bool c_def::clip(c_def::v_union & v) const
 {
     if(v_type()==V_STRING)
@@ -3434,17 +3449,4 @@ void conf_base::changed_value(c_id id, const int rx, const c_def::v_union & valu
     auto & handler = observer(id);
     if(handler)
         handler(rx, value);
-}
-
-static const c_def::preset_list mode_map()
-{
-    c_def::preset_list ret{};
-    for(int k=0;k<Modulations::MODE_COUNT;k++)
-        ret.push_back({
-            Modulations::modes[k].name,
-            Modulations::modes[k].name,
-            k,
-            Modulations::modes[k].shortcut,
-        });
-    return ret;
 }
