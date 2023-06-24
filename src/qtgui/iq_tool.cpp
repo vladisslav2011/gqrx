@@ -287,8 +287,8 @@ void CIqTool::recObserver(c_id, const c_def::v_union &v)
         listWidget->setCurrentRow(-1);
         c_def::v_union fmt;
         get_gui(C_IQ_FORMAT, fmt);
-        samples_per_chunk = any_to_any_base::fmt[fmt].nsamples;
-        chunk_size = any_to_any_base::fmt[fmt].size;
+        samples_per_chunk = any_to_any_base::fmt[int(fmt)].nsamples;
+        chunk_size = any_to_any_base::fmt[int(fmt)].size;
     }
     else
     {

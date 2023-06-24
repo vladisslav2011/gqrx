@@ -27,10 +27,10 @@ QWidget * dcontrols_ui::gen_none(const c_id id)
 {
     QWidget * parent = obtainParent();
     auto & def = c_def::all()[id];
-    if(!def.shortcut().empty())
+    if(def.shortcut())
     {
         QAction * action = new QAction(parent);
-        action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+        action->setShortcut(QKeySequence(def.shortcut()));
         parent->addAction(action);
         parent->connect(action, &QAction::triggered, [=](){changed_gui(id, def.def());});
     }
@@ -57,20 +57,20 @@ QWidget * dcontrols_ui::gen_text(const c_id id)
             }
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
-                parent->connect(action, &QAction::triggered, [=](){widget->setText(QString::fromStdString(it->value));});
-                if(!it->shortcut.empty())
+                parent->connect(action, &QAction::triggered, [=](){widget->setText(QString(it->value));});
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -103,8 +103,8 @@ QWidget * dcontrols_ui::gen_spinbox(const c_id id)
         widget->setMinimum(def.min());
         widget->setMaximum(def.max());
         widget->setSingleStep(def.step());
-        widget->setSuffix(QString::fromStdString(def.suffix()));
-        widget->setPrefix(QString::fromStdString(def.prefix()));
+        widget->setSuffix(QString(def.suffix()));
+        widget->setPrefix(QString(def.prefix()));
         widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
         if(def.presets().size() > 0)
         {
@@ -118,21 +118,21 @@ QWidget * dcontrols_ui::gen_spinbox(const c_id id)
             }
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 auto lambda = [=](){widget->setValue(it->value);};
                 parent->connect(action, &QAction::triggered, lambda);
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -187,8 +187,8 @@ QWidget * dcontrols_ui::gen_doublespinbox(const c_id id)
             exit(1);
         }
         widget->setDecimals(def.frac_digits());
-        widget->setSuffix(QString::fromStdString(def.suffix()));
-        widget->setPrefix(QString::fromStdString(def.prefix()));
+        widget->setSuffix(QString(def.suffix()));
+        widget->setPrefix(QString(def.prefix()));
         widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
         if(def.presets().size() > 0)
         {
@@ -197,7 +197,7 @@ QWidget * dcontrols_ui::gen_doublespinbox(const c_id id)
                 m=ui_menus[id]=new QMenu(parent);
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 switch(def.v_type())
                 {
@@ -212,17 +212,17 @@ QWidget * dcontrols_ui::gen_doublespinbox(const c_id id)
                 break;
                 default:;
                 }
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -281,14 +281,14 @@ QWidget * dcontrols_ui::gen_checkbox(const c_id id)
 {
     QWidget * parent = obtainParent();
     auto & def = c_def::all()[id];
-    QCheckBox * widget = new QCheckBox(QString::fromStdString(def.name()), parent);
+    QCheckBox * widget = new QCheckBox(QString(def.name()), parent);
     if(def.writable())
     {
         parent->connect(widget, QOverload<int>::of(&QCheckBox::stateChanged), [=](int val){changed_gui(id, val==Qt::Checked);} );
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->toggle();});
         }
@@ -322,25 +322,25 @@ QWidget * dcontrols_ui::gen_combo(const c_id id)
         {
         case V_INT:
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
-                widget->addItem(QString::fromStdString(it->display),(long long int)it->value);
+                widget->addItem(it->display,(long long int)it->value);
             parent->connect(widget, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 [=](int val){changed_gui(id, widget->currentData().toLongLong());} );
             break;
         case V_BOOLEAN:
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
-                widget->addItem(QString::fromStdString(it->display),bool(it->value));
+                widget->addItem(it->display,bool(it->value));
             parent->connect(widget, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 [=](int val){changed_gui(id, widget->currentData().toBool());} );
             break;
         case V_DOUBLE:
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
-                widget->addItem(QString::fromStdString(it->display),double(it->value));
+                widget->addItem(it->display,double(it->value));
             parent->connect(widget, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 [=](int val){changed_gui(id, widget->currentData().toDouble());} );
             break;
         case V_STRING:
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
-                widget->addItem(QString::fromStdString(it->display),QString::fromStdString(it->value));
+                widget->addItem(it->display,QString(it->value));
             parent->connect(widget, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 [=](int val){changed_gui(id, widget->currentData().toString().toStdString());} );
             parent->connect(widget, &QComboBox::currentTextChanged,
@@ -353,17 +353,17 @@ QWidget * dcontrols_ui::gen_combo(const c_id id)
         }
         int k = 0;
         for(auto it=def.presets().begin(); it!=def.presets().end();++it,++k)
-            if(!it->shortcut.empty())
+            if(it->shortcut)
             {
                 QAction * action = new QAction(parent);
-                action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                action->setShortcut(QKeySequence(it->shortcut));
                 parent->addAction(action);
                 parent->connect(action, &QAction::triggered, [=](){widget->setCurrentIndex(k);});
             }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -465,19 +465,19 @@ QWidget * dcontrols_ui::gen_stringcombo(const c_id id)
             [=](const QString & val){changed_gui(id, val.toStdString());} );
         for(auto it=def.presets().begin(); it!=def.presets().end();++it)
         {
-            if(!it->shortcut.empty())
+            if(it->shortcut)
             {
                 QAction * action = new QAction(parent);
-                action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                action->setShortcut(QKeySequence(it->shortcut));
                 parent->addAction(action);
-                parent->connect(action, &QAction::triggered, [=](){widget->setCurrentText(QString::fromStdString(it->value));});
+                parent->connect(action, &QAction::triggered, [=](){widget->setCurrentText(QString(it->value));});
             }
-            widget->addItem(QString::fromStdString(it->display),QString::fromStdString(it->value));
+            widget->addItem(it->display,QString(it->value));
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -558,7 +558,7 @@ QWidget * dcontrols_ui::gen_slider(const c_id id)
             }
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 switch(def.v_type())
                 {
@@ -577,17 +577,17 @@ QWidget * dcontrols_ui::gen_slider(const c_id id)
                         //TODO: implement switching between string preset values?
                     break;
                 }
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -688,7 +688,7 @@ QWidget * dcontrols_ui::gen_logslider(const c_id id)
             }
             for(auto it=def.presets().begin(); it!=def.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 switch(def.v_type())
                 {
@@ -702,17 +702,17 @@ QWidget * dcontrols_ui::gen_logslider(const c_id id)
                         throw std::runtime_error("logslider requires double value");
                     break;
                 }
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -765,7 +765,7 @@ QWidget * dcontrols_ui::gen_rangeslider(const c_id id)
     if(def1.v_type() != def2.v_type())
     {
         const QString ex=QString("ctkRangeSlider incorrect definition: %1 .v_type=%2 !=%3 .v_type=%4 ")
-            .arg(QString::fromStdString(def1.name())).arg(int(def1.v_type())).arg(QString::fromStdString(def2.name())).arg(int(def2.v_type()));
+            .arg(def1.name()).arg(int(def1.v_type())).arg(def2.name()).arg(int(def2.v_type()));
         throw std::runtime_error(ex.toStdString().c_str());
     }
     QWidget * parent = obtainParent();
@@ -831,7 +831,7 @@ QWidget * dcontrols_ui::gen_rangeslider(const c_id id)
             }
             for(auto it=def1.presets().begin(); it!=def1.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 switch(def1.v_type())
                 {
@@ -850,9 +850,9 @@ QWidget * dcontrols_ui::gen_rangeslider(const c_id id)
                         //TODO: implement switching between string preset values?
                     break;
                 }
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
@@ -871,7 +871,7 @@ QWidget * dcontrols_ui::gen_rangeslider(const c_id id)
             }
             for(auto it=def2.presets().begin(); it!=def2.presets().end();++it)
             {
-                QAction* action = new QAction(QString::fromStdString(it->display), parent);
+                QAction* action = new QAction(it->display, parent);
                 m->addAction(action);
                 switch(def2.v_type())
                 {
@@ -890,17 +890,17 @@ QWidget * dcontrols_ui::gen_rangeslider(const c_id id)
                         //TODO: implement switching between string preset values?
                     break;
                 }
-                if(!it->shortcut.empty())
+                if(it->shortcut)
                 {
-                    action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+                    action->setShortcut(QKeySequence(it->shortcut));
                     parent->addAction(action);
                 }
             }
         }
-        if(def1.shortcut() != "")
+        if(def1.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def1.shortcut())));
+            action->setShortcut(QKeySequence(def1.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
@@ -975,7 +975,7 @@ QWidget * dcontrols_ui::gen_menuaction(const c_id id)
     auto & def = c_def::all()[id];
     if(def.base()<0)
         throw std::runtime_error("gen_menuaction ("+std::to_string(id)+") \""+std::string(def.name())+"\" base is not set");
-    QAction * widget = new QAction(QString::fromStdString(def.title()), parent);
+    QAction * widget = new QAction(QString(def.title()), parent);
     QMenu * m = ui_menus[def.base()];
     if(!m)
     {
@@ -987,9 +987,9 @@ QWidget * dcontrols_ui::gen_menuaction(const c_id id)
     m->addAction(widget);
     parent->connect(widget, QOverload<bool>::of(&QAction::triggered), [=](bool val){changed_gui(id, def.def());} );
     ui_actions[id]=widget;
-    if(!def.shortcut().empty())
+    if(def.shortcut())
     {
-        widget->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+        widget->setShortcut(QKeySequence(def.shortcut()));
         parent->addAction(widget);
     }
     return nullptr;
@@ -1001,7 +1001,7 @@ QWidget * dcontrols_ui::gen_menucheckbox(const c_id id)
     auto & def = c_def::all()[id];
     if(def.base()<0)
         throw std::runtime_error("gen_menucheckbox ("+std::to_string(id)+") \""+std::string(def.name())+"\" base is not set");
-    QAction * widget = new QAction(QString::fromStdString(def.title()), parent);
+    QAction * widget = new QAction(QString(def.title()), parent);
     QMenu * m = ui_menus[def.base()];
     if(!m)
     {
@@ -1015,9 +1015,9 @@ QWidget * dcontrols_ui::gen_menucheckbox(const c_id id)
     {
         widget->setCheckable(true);
         parent->connect(widget, QOverload<bool>::of(&QAction::triggered), [=](bool val){changed_gui(id, val);} );
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
-            widget->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            widget->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(widget);
         }
     }
@@ -1041,7 +1041,7 @@ QWidget * dcontrols_ui::gen_button(const c_id id)
 {
     QWidget * parent = obtainParent();
     auto & def = c_def::all()[id];
-    QPushButton * widget = new QPushButton(QString::fromStdString(def.name()), parent);
+    QPushButton * widget = new QPushButton(QString(def.name()), parent);
     if(def.base() < 0)
         parent->connect(widget, QOverload<bool>::of(&QPushButton::clicked), [=](bool val){changed_gui(id, def.def());} );
     else
@@ -1051,12 +1051,12 @@ QWidget * dcontrols_ui::gen_button(const c_id id)
                 set_gui(def.base(), def.def());
             } );
     widget->setMinimumSize(10,0);
-    if(def.icon() != "")
-        widget->setIcon(QIcon(QString::fromStdString(def.icon())));
-    if(!def.shortcut().empty())
+    if(def.icon())
+        widget->setIcon(QIcon(QString(def.icon())));
+    if(def.shortcut())
     {
         QAction * action = new QAction(parent);
-        action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+        action->setShortcut(QKeySequence(def.shortcut()));
         parent->addAction(action);
         parent->connect(action, &QAction::triggered, [=](){widget->click();});
     }
@@ -1067,19 +1067,19 @@ QWidget * dcontrols_ui::gen_togglebutton(const c_id id)
 {
     QWidget * parent = obtainParent();
     auto & def = c_def::all()[id];
-    QPushButton * widget = new QPushButton(QString::fromStdString(def.name()), parent);
+    QPushButton * widget = new QPushButton(QString(def.name()), parent);
     if(def.writable())
     {
         widget->setCheckable(true);
         parent->connect(widget, QOverload<bool>::of(&QPushButton::clicked), [=](bool val){changed_gui(id, val);} );
     }
     widget->setMinimumSize(10,0);
-    if(def.icon() != "")
-        widget->setIcon(QIcon(QString::fromStdString(def.icon())));
-    if(!def.shortcut().empty())
+    if(def.icon())
+        widget->setIcon(QIcon(QString(def.icon())));
+    if(def.shortcut())
     {
         QAction * action = new QAction(parent);
-        action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+        action->setShortcut(QKeySequence(def.shortcut()));
         parent->addAction(action);
         parent->connect(action, &QAction::triggered, [=](){widget->click();});
     }
@@ -1117,22 +1117,22 @@ void dcontrols_ui::set_label(QWidget * w, const c_id id, const c_def::v_union &v
     {
         case V_INT:
         case V_BOOLEAN:
-            widget->setText(QString::fromStdString(def.prefix())
+            widget->setText(QString(def.prefix())
                 +QString::number(qint64(value))
-                +QString::fromStdString(def.suffix())
+                +QString(def.suffix())
                 );
         break;
         case V_DOUBLE:
             widget->setText(QString("%1%2%3")
-                .arg(QString::fromStdString(def.prefix()))
+                .arg(def.prefix())
                 .arg(double(value),1,'f',def.frac_digits())
-                .arg(QString::fromStdString(def.suffix()))
+                .arg(def.suffix())
                 );
         break;
         case V_STRING:
-            widget->setText(QString::fromStdString(def.prefix())
+            widget->setText(QString(def.prefix())
                 +QString::fromStdString(value.to_string())
-                +QString::fromStdString(def.suffix())
+                +QString(def.suffix())
                 );
         break;
     }
@@ -1161,21 +1161,21 @@ QWidget * dcontrols_ui::gen_colorpicker(const c_id id)
     if(def.writable())
     {
         parent->connect(widget, &QtColorPicker::colorChanged, [=](const QColor & val){changed_gui(id, qint64(val.rgb()));} );
-        if(!def.shortcut().empty())
+        if(def.shortcut())
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(def.shortcut())));
+            action->setShortcut(QKeySequence(def.shortcut()));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setFocus();});
         }
     }
     for(auto it=def.presets().begin(); it!=def.presets().end();++it)
     {
-        widget->insertColor(QColor::fromRgb(qint64(it->value)), QString::fromStdString(it->display));
-        if(!it->shortcut.empty())
+        widget->insertColor(QColor::fromRgb(qint64(it->value)), it->display);
+        if(it->shortcut)
         {
             QAction * action = new QAction(parent);
-            action->setShortcut(QKeySequence(QString::fromStdString(it->shortcut)));
+            action->setShortcut(QKeySequence(it->shortcut));
             parent->addAction(action);
             parent->connect(action, &QAction::triggered, [=](){widget->setCurrentColor(QColor::fromRgb(qint64(it->value)));});
         }
@@ -1315,7 +1315,7 @@ QWidget * dcontrols_ui::construct_widget(const c_id id)
             return nullptr;
         if(ui_widgets[id]==nullptr)
             return nullptr;
-        ui_widgets[id]->setToolTip(QString::fromStdString(c_def::all()[id].hint()));
+        ui_widgets[id]->setToolTip(QString(c_def::all()[id].hint()));
         return ui_widgets[id];
     }
     return nullptr;
@@ -1346,7 +1346,7 @@ void dcontrols_ui::add_control(const c_id id)
         QWidget * control = construct_widget(id);
         if(!control)
             return;
-        if(d.tab() != "")
+        if(d.tab())
         {
             throw std::runtime_error("dcontrols_ui::add_control: Use dcontrols_ui_tabbed to create tabbed widget");
         }else if(d.demod_specific())
@@ -1367,9 +1367,9 @@ void dcontrols_ui::grid_insert(QGridLayout * into, c_def::grid_placement & place
     if(d.title_placement().row!=PLACE_NONE)
     {
         set_placement(placement,d.title_placement());
-        auto label = new QLabel(QString::fromStdString(d.title()), what->parentWidget());
+        auto label = new QLabel(QString(d.title()), what->parentWidget());
         label->setTextFormat(Qt::PlainText);
-        label->setToolTip(QString::fromStdString(c_def::all()[id].hint()));
+        label->setToolTip(QString(c_def::all()[id].hint()));
         label->setSizePolicy(toQtSizePol(placement.align, QSizePolicy::Minimum), QSizePolicy::Minimum);
         //label->setMinimumSize(10,10);
         into->addWidget(label,placement.row,placement.column,placement.rowspan,placement.colspan,toQtAlignment(placement.align, Qt::AlignRight));
@@ -1384,9 +1384,9 @@ void dcontrols_ui::grid_insert(QGridLayout * into, c_def::grid_placement & place
     if(d.next_placement().row!=PLACE_NONE)
     {
         set_placement(placement,d.next_placement());
-        auto label = new QLabel(QString::fromStdString(d.next_title()), what->parentWidget());
+        auto label = new QLabel(QString(d.next_title()), what->parentWidget());
         label->setTextFormat(Qt::PlainText);
-        label->setToolTip(QString::fromStdString(c_def::all()[id].hint()));
+        label->setToolTip(QString(c_def::all()[id].hint()));
         label->setSizePolicy(toQtSizePol(placement.align, QSizePolicy::Minimum), QSizePolicy::Minimum);
         //label->setMinimumSize(10,10);
         into->addWidget(label,placement.row,placement.column,placement.rowspan,placement.colspan,toQtAlignment(placement.align, Qt::AlignRight));
@@ -1457,9 +1457,9 @@ void dcontrols_ui_tabbed::add_control(const c_id id)
         QWidget * control = construct_widget(id);
         if(!control)
             return;
-        if(d.tab() != "")
+        if(d.tab())
         {
-            const QString tabName(QString::fromStdString(d.tab()));
+            const QString tabName(d.tab());
             if(!ui_tabs.contains(tabName))
             {
                 QWidget * widget=obtainParent();
@@ -1516,7 +1516,7 @@ void dcontrols_ui_stacked::add_control(const c_id id)
         QWidget * control = construct_widget(id);
         if(!control)
             return;
-        if(d.tab() != "")
+        if(d.tab())
         {
             throw std::runtime_error("dcontrols_ui::add_control: Use dcontrols_ui_tabbed to create tabbed widget");
         }else if(d.demod_specific())
