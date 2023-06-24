@@ -62,7 +62,7 @@ signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
     void requestPlotterUpdate();
     void sigSaveProgress(const qint64);
-    void observer_signal(const c_id, const c_def::v_union);
+    void observer_signal(const c_id, const tag_union);
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -193,7 +193,7 @@ private:
     void frequencyObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
-    void observer_slot(const c_id id, const c_def::v_union value);
+    void observer_slot(const c_id id, const tag_union value);
 
     /* RecentConfig */
     void loadConfigSlot(const QString &cfgfile);
