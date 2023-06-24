@@ -22,11 +22,7 @@
  */
 #ifndef INCLUDED_DCONTROLS_H
 #define INCLUDED_DCONTROLS_H
-#include <functional>
-#include <array>
-#include <string>
-#include <map>
-#include <vector>
+#include "tagged_union.h"
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
 
@@ -268,14 +264,6 @@ enum gui_window
     W_COUNT
 };
 
-enum value_type
-{
-    V_INT=0,
-    V_DOUBLE,
-    V_STRING,
-    V_BOOLEAN
-};
-
 enum convenient_placement
 {
     PLACE_NONE=-3,
@@ -310,287 +298,74 @@ enum alignments
 // Macros are ugly, but convenient
 #define DD(T,N,I) \
     T d_##N{I};\
-    inline const T & N () const {return d_##N;}\
-    inline c_def & N (const T & n_##N){d_##N=n_##N; return *this;}
+    constexpr inline const T & N () const {return d_##N;}\
+    constexpr inline c_def & N (const T & n_##N){d_##N=n_##N; return *this;}
+#define DS(N,I) \
+    const char * d_##N{I};\
+    constexpr inline const char * N () const {return d_##N;}\
+    constexpr inline c_def & N (const char * n_##N){d_##N=n_##N; return *this;}
 
 struct c_def;
 
 struct c_def
 {
-    class v_union
-    {
-        enum tag_type
-        {
-            TAG_INT=0,
-            TAG_DOUBLE,
-            TAG_STRING
-        };
-        tag_type tag;
-        union union_type {
-            int64_t i;
-            double d;
-            std::string s;
-            union_type():i(0){}
-            ~union_type(){}
-        } value;
-        public:
-        v_union():tag(TAG_INT)
-        {
-            value.i=0;
-        }
-        v_union(const c_def::v_union& other):tag(other.tag)
-        {
-            switch(tag)
-            {
-            case TAG_STRING:
-                new (&value.s) std::string(other.value.s);
-                break;
-            case TAG_DOUBLE:
-                value.d=other.value.d;
-                break;
-            case TAG_INT:
-                value.i=other.value.i;
-                break;
-            }
-        }
-        v_union(const char *init):tag(TAG_STRING)
-        {
-            new (&value.s) std::string(init);
-        }
-        v_union(const std::string &init):tag(TAG_STRING)
-        {
-            new (&value.s) std::string(init);
-        }
-        v_union(const float &init):tag(TAG_DOUBLE)
-        {
-            value.d = (double)init;
-        }
-        v_union(const double &init):tag(TAG_DOUBLE)
-        {
-            value.d = init;
-        }
-        v_union(const int &init):tag(TAG_INT)
-        {
-            value.i = init;
-        }
-        v_union(const long int &init):tag(TAG_INT)
-        {
-            value.i = init;
-        }
-        v_union(const long long int &init):tag(TAG_INT)
-        {
-            value.i = init;
-        }
-        v_union(const bool &init):tag(TAG_INT)
-        {
-            value.i = init;
-        }
-        v_union(const value_type vt, const std::string & from)
-        {
-            switch(vt)
-            {
-            case V_INT:
-                    value.i=stoll(from);
-                    tag=TAG_INT;
-                break;
-            case V_DOUBLE:
-                    value.d=stod(from);
-                    tag=TAG_DOUBLE;
-                break;
-            case V_STRING:
-                    new (&value.s) std::string(from);
-                    tag=TAG_STRING;
-                break;
-            case V_BOOLEAN:
-                    value.i=(from=="true");
-                    tag=TAG_INT;
-                break;
-            }
-        }
-        ~v_union()
-        {
-            if(tag==TAG_STRING)
-                value.s.~basic_string();
-        }
-        void typecheck(const tag_type required, const char * msg) const
-        {
-            if(tag!=required)
-            {
-                dprint(msg);
-                //throw does not work as expected here
-                //emit a message and exit
-                exit(1);
-            }
-        }
-        operator int() const
-        {
-            typecheck(TAG_INT, "invalid cast to int");
-            return value.i;
-        }
-        operator long int() const
-        {
-            typecheck(TAG_INT, "invalid cast to int");
-            return value.i;
-        }
-        operator long long int() const
-        {
-            typecheck(TAG_INT, "invalid cast to int");
-            return value.i;
-        }
-        operator bool() const
-        {
-            typecheck(TAG_INT, "invalid cast to bool");
-            return value.i;
-        }
-        operator double() const
-        {
-            typecheck(TAG_DOUBLE, "invalid cast to double");
-            return value.d;
-        }
-        operator float() const
-        {
-            typecheck(TAG_DOUBLE, "invalid cast to float");
-            return value.d;
-        }
-        operator std::string() const
-        {
-            typecheck(TAG_STRING, "invalid cast to string");
-            return value.s;
-        }
-        const std::string to_string() const
-        {
-            switch(tag)
-            {
-            case TAG_INT:
-                return std::to_string(value.i);
-            case TAG_DOUBLE:
-                return std::to_string(value.d);
-            case TAG_STRING:
-                return value.s;
-            default:
-                return "";
-            }
-        }
-        void dprint(const char * x="") const
-        {
-            switch(tag)
-            {
-            case TAG_INT:
-                std::cerr<<"v_union:i="<<value.i<<" "<<x<<"\n";
-                break;
-            case TAG_DOUBLE:
-                std::cerr<<"v_union:d="<<value.d<<" "<<x<<"\n";
-                break;
-            case TAG_STRING:
-                std::cerr<<"v_union:s="<<value.s<<" "<<x<<"\n";
-                break;
-            }
-        }
-        bool typecheck_cmp(const v_union & other) const
-        {
-            if(tag!=other.tag)
-            {
-                dprint("invalid comparison");
-                other.dprint("invalid comparison");
-                return false;
-            }
-            return true;
-        }
-        bool operator < (const v_union & other) const
-        {
-            if(!typecheck_cmp(other))
-                return false;
-            switch(tag)
-            {
-            case TAG_INT:
-                return value.i<other.value.i;
-                break;
-            case TAG_DOUBLE:
-                return value.d<other.value.d;
-                break;
-            case TAG_STRING:
-                return value.s<other.value.s;
-                break;
-            }
-            return false;
-        }
-        bool operator > (const v_union & other) const
-        {
-            if(!typecheck_cmp(other))
-                return false;
-            switch(tag)
-            {
-            case TAG_INT:
-                return value.i>other.value.i;
-                break;
-            case TAG_DOUBLE:
-                return value.d>other.value.d;
-                break;
-            case TAG_STRING:
-                return value.s>other.value.s;
-                break;
-            }
-            return false;
-        }
-        bool operator == (const v_union & other) const
-        {
-            if(!typecheck_cmp(other))
-                return false;
-            switch(tag)
-            {
-            case TAG_INT:
-                return value.i==other.value.i;
-                break;
-            case TAG_DOUBLE:
-                return value.d==other.value.d;
-                break;
-            case TAG_STRING:
-                return value.s==other.value.s;
-                break;
-            }
-            return false;
-        }
-        v_union& operator=(const v_union& other)
-        {
-            if(tag == TAG_STRING)
-            {
-                if(other.tag != TAG_STRING)
-                    value.s.~basic_string();
-                else
-                    value.s=other.value.s;
-            }
-            if(tag != TAG_STRING && other.tag == TAG_STRING)
-                new (&value.s) std::string(other.value.s);
-            else{
-                switch(other.tag)
-                {
-                case TAG_INT:
-                    value.i=other.value.i;
-                    break;
-                case TAG_DOUBLE:
-                    value.d=other.value.d;
-                    break;
-                case TAG_STRING:
-                    break;
-                }
-            }
-            tag=other.tag;
-            return *this;
-        }
-    };
+    using v_union = ::tag_union;
     struct v_preset
     {
-        std::string key;
-        std::string display;//FIXME: implement translation
-        v_union value;
-        std::string shortcut;
-        v_preset(const std::string &n_key, const std::string &n_display, const v_union &n_value, const std::string & n_shortcut="")
+        const char * key;
+        const char * display;//FIXME: implement translation
+        tag_union_const value;
+        const char * shortcut;
+        constexpr v_preset()
+            :key(nullptr),display(nullptr),value(0),shortcut(nullptr)
+            {}
+        constexpr v_preset(const char * n_key, const char * n_display, const tag_union_const &n_value, const char * n_shortcut=nullptr)
             :key(n_key),display(n_display),value(n_value),shortcut(n_shortcut)
             {}
     };
+    struct preset_list
+    {
+        typedef const v_preset * iterator;
+        std::size_t n_items{0};
+        const v_preset * items{nullptr};
+        constexpr std::size_t size() const {return n_items;}
+        constexpr iterator begin() const {return items;}
+        constexpr iterator end() const {return &items[n_items];}
+        template<std::size_t N>
+        constexpr preset_list & from(const v_preset (&init) [N])
+        {
+            n_items = N;
+            items = init;
+            return *this;
+        }
+        template<std::size_t N>
+        constexpr preset_list & from(v_preset (&init) [N])
+        {
+            n_items = N;
+            items = init;
+            return *this;
+        }
+        constexpr const v_preset & operator [] (const std::size_t what)
+        {
+            return items[what];
+        }
+        iterator find(const std::string & what) const;
+        iterator find(const v_union & what) const;
+        template<std::size_t N>
+        constexpr static preset_list make(v_preset (&init) [N])
+        {
+            return preset_list{N, init};
+        };
+
+        template<std::size_t N>
+        constexpr static preset_list make(const v_preset (&init) [N])
+        {
+            return preset_list{N, init};
+        };
+    };
     struct grid_placement
     {
-        grid_placement(int n_row=0,int n_column=0, int n_rowspan=1,
+        constexpr grid_placement(int n_row=0,int n_column=0, int n_rowspan=1,
             int n_colspan=1,int alignment=ALIGN_DEFAULT)
             :column(n_column),row(n_row),colspan(n_colspan),rowspan(n_rowspan)
             ,align(alignments(alignment))
@@ -604,58 +379,50 @@ struct c_def
     };
     DD(c_id,idx,c_id(-1))
     DD(c_id,base,c_id(-1))
-    DD(std::string,name,"Unnamed")
-    DD(std::string,title,"Default title") //FIXME: implement translation
+    DS(name,"Unnamed")
+    DS(title,"Default title") //FIXME: implement translation
     DD(grid_placement,title_placement,grid_placement(PLACE_NEXT,0))
-    DD(std::string,next_title,"Default next title") //FIXME: implement translation
+    DS(next_title,"Default next title") //FIXME: implement translation
     DD(grid_placement,next_placement,grid_placement(PLACE_NONE,PLACE_NONE))
     DD(grid_placement,placement,grid_placement(PLACE_SAME,1))
-    DD(std::string,hint,"Default tooltip") //FIXME: implement translation
-    DD(std::string,icon,"")
-    DD(std::string,shortcut,"")
-    DD(std::string,tab,"") //FIXME: implement translation
+    DS(hint,"Default tooltip") //FIXME: implement translation
+    DS(icon,nullptr)
+    DS(shortcut,nullptr)
+    DS(tab,nullptr) //FIXME: implement translation
     DD(gui_type,g_type,G_TEXT)
     DD(gui_dock,dock,D_INPUTCTL)
     DD(gui_window,window,W_BASE)
     DD(value_scope,scope,S_RX)
     DD(bool,demod_specific,false) //should be hidden if current demod does not match demod member
     DD(Modulations::grp,demodgroup,Modulations::GRP_COUNT)
-    DD(std::string,v3_config_group,"V3_DEFAULT")
-    DD(std::string,v4_config_group,"V4_DEFAULT")
-    DD(std::string,config_key,"Unnamed")
+    DS(v3_config_group,"V3_DEFAULT")
+    DS(v4_config_group,"V4_DEFAULT")
+    DS(config_key,nullptr)
     DD(int,bookmarks_column,-1)
-    DD(std::string,bookmarks_key,"-1")
+    DS(bookmarks_key,nullptr)
     DD(value_type, v_type,V_INT)
-    DD(std::string,suffix,"")
-    DD(std::string,prefix,"")
-    DD(v_union,def,0)
-    DD(v_union,min,0)
-    DD(v_union,max,0)
-    DD(v_union,step,0) //for slider or double spinbox
+    DS(suffix,"")
+    DS(prefix,"")
+    DD(tag_union_const,def,0)
+    DD(tag_union_const,min,0)
+    DD(tag_union_const,max,0)
+    DD(tag_union_const,step,0) //for slider or double spinbox
     DD(int,frac_digits,0)//for double spinbox
     DD(bool,readable,true)
     DD(bool,writable,true)
     DD(bool,event,false)
-    using preset_list=std::vector<v_preset>;
+    //using preset_list=std::vector<v_preset>;
     //DD(preset_map,presets,{})
     preset_list d_presets{};
-    std::map<std::string, int> d_kpresets{};
-    std::map<v_union, int> d_ipresets{};
-    inline const preset_list& presets() const {return d_presets;}
-    inline const std::map<std::string, int> & kpresets() const {return d_kpresets;}
-    inline const std::map<v_union, int> & ipresets() const {return d_ipresets;}
-    inline c_def & presets(const preset_list & n_presets)
+    constexpr const preset_list& presets() const {return d_presets;}
+    template<std::size_t N> constexpr c_def & presets(v_preset (&init) [N])
     {
-        d_presets = n_presets;
-        std::map<std::string,int> n_kpresets{};
-        std::map<v_union,int> n_ipresets{};
-        for(unsigned k=0; k<n_presets.size(); k++)
-        {
-            n_kpresets[n_presets[k].key]=k;
-            n_ipresets[n_presets[k].value]=k;
-        }
-        d_ipresets=n_ipresets;
-        d_kpresets=n_kpresets;
+        d_presets = preset_list::make<N>(init);
+        return *this;
+    }
+    template<std::size_t N> constexpr c_def & presets(const v_preset (&init) [N])
+    {
+        d_presets = preset_list::make<N>(init);
         return *this;
     }
 public:
@@ -665,6 +432,7 @@ public:
 };
 
 #undef DD
+#undef DS
 
 struct conf_base
 {
