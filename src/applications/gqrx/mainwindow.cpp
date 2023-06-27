@@ -1782,7 +1782,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
     bool    rds_enabled;
 
     // validate mode_idx
-    if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_LAST)
+    if (mode_idx < Modulations::MODE_OFF || mode_idx >= Modulations::MODE_COUNT)
     {
         qDebug() << "Invalid mode index:" << mode_idx;
         mode_idx = Modulations::MODE_OFF;
@@ -1818,7 +1818,7 @@ void MainWindow::selectDemod(Modulations::idx mode_idx)
             setRdsDecoder(false);
         uiDockRDS->setDisabled();
 
-        if ((mode_idx >Modulations::MODE_OFF) && (mode_idx <Modulations::MODE_LAST))
+        if ((mode_idx >Modulations::MODE_OFF) && (mode_idx <Modulations::MODE_COUNT))
             rx->set_demod(mode_idx);
 
         switch (mode_idx) {
