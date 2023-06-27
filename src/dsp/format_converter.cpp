@@ -580,4 +580,4 @@ void any_to_any_impl_bmi64::convert(const std::array<int8_t,40> *in, gr_complex 
 
 #endif
 
-constexpr any_to_any_base::format_descriptor any_to_any_base::fmt[FILE_FORMAT_COUNT];
+constexpr std::array<any_to_any_base::format_descriptor, FILE_FORMAT_COUNT> any_to_any_base::fmt;

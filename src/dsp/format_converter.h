@@ -75,9 +75,9 @@ public:
         const char * name;
     };
 
-    static constexpr format_descriptor fmt[FILE_FORMAT_COUNT]
+    static constexpr std::array<format_descriptor, FILE_FORMAT_COUNT> fmt
     {
-        {0,0,nullptr,nullptr},
+        (format_descriptor){0,0,nullptr,nullptr},
         {0,0,nullptr,nullptr},
         {8,1,"fc","gr_complex cf"},
         {2,1,"8","char 8"},
