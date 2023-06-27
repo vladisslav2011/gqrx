@@ -35,7 +35,8 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->modeSelector->addItems(Modulations::Get().Strings);
+    for(auto & mode: Modulations::modes)
+        ui->modeSelector->addItem(mode.name);
     freqLockButtonMenu = new QMenu(this);
     // MenuItem Lock all
     {
@@ -282,7 +283,7 @@ int  DockRxOpt::currentFilterShape() const
  */
 void DockRxOpt::setCurrentDemod(Modulations::idx demod)
 {
-    if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_LAST))
+    if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
     {
         ui->modeSelector->setCurrentIndex(demod);
         updateDemodOptPage(demod);
@@ -300,7 +301,7 @@ Modulations::idx DockRxOpt::currentDemod() const
 
 QString DockRxOpt::currentDemodAsString()
 {
-    return Modulations::GetStringForModulationIndex(currentDemod());
+    return QString(Modulations::modes[currentDemod()].name);
 }
 
 float DockRxOpt::currentMaxdev() const

@@ -25,8 +25,10 @@
 #include "receivers/modulations.h"
 
 
+constexpr std::array<Modulations::mode, Modulations::MODE_COUNT> Modulations::modes;
+
 // Lookup table for conversion from old settings
-static const Modulations::idx old2new[] = {
+static constexpr Modulations::idx old2new[] = {
     Modulations::MODE_OFF,
     Modulations::MODE_RAW,
     Modulations::MODE_AM,
@@ -41,61 +43,23 @@ static const Modulations::idx old2new[] = {
     Modulations::MODE_AM_SYNC
 };
 
-// Filter preset table per mode, preset and lo/hi
-static const int filter_preset_table[Modulations::MODE_LAST][3][2] =
-{   //     WIDE             NORMAL            NARROW
-    {{      0,      0}, {     0,     0}, {     0,     0}},  // MODE_OFF
-    {{ -15000,  15000}, { -5000,  5000}, { -1000,  1000}},  // MODE_RAW
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_AM
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_AMSYNC
-    {{  -4000,   -100}, { -2800,  -100}, { -2400,  -300}},  // MODE_LSB
-    {{    100,   4000}, {   100,  2800}, {   300,  2400}},  // MODE_USB
-    {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWL
-    {{  -1000,   1000}, {  -250,   250}, {  -100,   100}},  // MODE_CWU
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_NFM
-    {{ -10000,  10000}, { -5000,  5000}, { -2500,  2500}},  // MODE_NFMPLL
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_MONO
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO
-    {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}}   // MODE_WFM_STEREO_OIRT
-};
-
-// Filter ranges table per mode
-static const int filter_ranges_table[Modulations::MODE_LAST][2][2] =
-{   //LOW MIN     MAX  HIGH MIN    MAX
-    {{      0,      0}, {     0,     0}},  // MODE_OFF
-    {{ -40000,   -200}, {   200, 40000}},  // MODE_RAW
-    {{ -40000,   -200}, {   200, 40000}},  // MODE_AM
-    {{ -40000,   -200}, {   200, 40000}},  // MODE_AMSYNC
-    {{ -40000,   -100}, { -5000,     0}},  // MODE_LSB
-    {{      0,   5000}, {   100, 40000}},  // MODE_USB
-    {{  -5000,   -100}, {   100,  5000}},  // MODE_CWL
-    {{  -5000,   -100}, {   100,  5000}},  // MODE_CWU
-    {{ -40000,   -200}, {   200, 40000}},  // MODE_NFM
-    {{ -40000,   -200}, {   200, 40000}},  // MODE_NFMPLL
-    {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_MONO
-    {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_STEREO
-    {{-120000, -10000}, { 10000,120000}}   // MODE_WFM_STEREO_OIRT
-};
-
-
-
-QString Modulations::GetStringForModulationIndex(int iModulationIndex)
-{
-    return Get().Strings[iModulationIndex];
-}
-
 bool Modulations::IsModulationValid(QString strModulation)
 {
-    return Get().Strings.contains(strModulation, Qt::CaseInsensitive);
+    for(auto & mode: modes)
+    {
+        const QString& strModulation = mode.name;
+        if (strModulation.compare(strModulation, Qt::CaseInsensitive) == 0)
+            return true;
+    }
+    return false;
 }
 
 Modulations::idx Modulations::GetEnumForModulationString(QString param)
 {
     int iModulation = -1;
-    const Modulations & mm = Get();
-    for(int i = 0; i < mm.Strings.size(); ++i)
+    for(int i = 0; i < Modulations::MODE_COUNT; ++i)
     {
-        const QString& strModulation = mm.Strings[i];
+        const QString& strModulation = modes[i].name;
         if (param.compare(strModulation, Qt::CaseInsensitive) == 0)
         {
             iModulation = i;
@@ -112,25 +76,25 @@ Modulations::idx Modulations::GetEnumForModulationString(QString param)
 
 bool Modulations::GetFilterPreset(Modulations::idx iModulationIndex, int preset, int& low, int& high)
 {
-    if (iModulationIndex >= MODE_LAST)
+    if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
     if (preset == FILTER_PRESET_USER)
         return false;
-    low = filter_preset_table[iModulationIndex][preset][0];
-    high = filter_preset_table[iModulationIndex][preset][1];
+    low = modes[iModulationIndex].presets[preset].lo;
+    high = modes[iModulationIndex].presets[preset].hi;
     return true;
 }
 
-int Modulations::FindFilterPreset(Modulations::idx mode_index, int lo, int hi)
+int Modulations::FindFilterPreset(Modulations::idx iModulationIndex, int lo, int hi)
 {
-    if (lo == filter_preset_table[mode_index][FILTER_PRESET_WIDE][0] &&
-        hi == filter_preset_table[mode_index][FILTER_PRESET_WIDE][1])
+    if (lo == modes[iModulationIndex].presets[FILTER_PRESET_WIDE].lo &&
+        hi == modes[iModulationIndex].presets[FILTER_PRESET_WIDE].hi)
         return FILTER_PRESET_WIDE;
-    else if (lo == filter_preset_table[mode_index][FILTER_PRESET_NORMAL][0] &&
-             hi == filter_preset_table[mode_index][FILTER_PRESET_NORMAL][1])
+    else if (lo == modes[iModulationIndex].presets[FILTER_PRESET_NORMAL].lo &&
+             hi == modes[iModulationIndex].presets[FILTER_PRESET_NORMAL].hi)
         return FILTER_PRESET_NORMAL;
-    else if (lo == filter_preset_table[mode_index][FILTER_PRESET_NARROW][0] &&
-             hi == filter_preset_table[mode_index][FILTER_PRESET_NARROW][1])
+    else if (lo == modes[iModulationIndex].presets[FILTER_PRESET_NARROW].lo &&
+             hi == modes[iModulationIndex].presets[FILTER_PRESET_NARROW].hi)
         return FILTER_PRESET_NARROW;
 
     return FILTER_PRESET_USER;
@@ -138,27 +102,27 @@ int Modulations::FindFilterPreset(Modulations::idx mode_index, int lo, int hi)
 
 void Modulations::GetFilterRanges(Modulations::idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax)
 {
-    if (iModulationIndex >= MODE_LAST)
+    if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
-    lowMin = filter_ranges_table[iModulationIndex][0][0];
-    lowMax = filter_ranges_table[iModulationIndex][0][1];
-    highMin = filter_ranges_table[iModulationIndex][1][0];
-    highMax = filter_ranges_table[iModulationIndex][1][1];
+    lowMin = modes[iModulationIndex].ranges.lo.min;
+    lowMax = modes[iModulationIndex].ranges.lo.max;
+    highMin = modes[iModulationIndex].ranges.hi.min;
+    highMax = modes[iModulationIndex].ranges.hi.max;
 }
 
-bool Modulations::IsFilterSymmetric(idx iModulationIndex)
+bool Modulations::IsFilterSymmetric(Modulations::idx iModulationIndex)
 {
-    if (iModulationIndex >= MODE_LAST)
+    if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
-    return (-filter_ranges_table[iModulationIndex][0][0] == filter_ranges_table[iModulationIndex][1][1]);
+    return (-modes[iModulationIndex].ranges.lo.min == modes[iModulationIndex].ranges.hi.max);
 }
 
 bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high)
 {
     bool updated = false;
-    if (iModulationIndex >= MODE_LAST)
+    if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
-    if (-filter_ranges_table[iModulationIndex][0][0] == filter_ranges_table[iModulationIndex][1][1])
+    if (IsFilterSymmetric(iModulationIndex))
         if (high != (high - low) / 2)
         {
             if (high > -low)
@@ -166,24 +130,24 @@ bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
             else
                 high = -low;
         }
-    if (low < filter_ranges_table[iModulationIndex][0][0])
+    if (low < modes[iModulationIndex].ranges.lo.min)
     {
-        low = filter_ranges_table[iModulationIndex][0][0];
+        low = modes[iModulationIndex].ranges.lo.min;
         updated = true;
     }
-    if (low > filter_ranges_table[iModulationIndex][0][1])
+    if (low > modes[iModulationIndex].ranges.lo.max)
     {
-        low = filter_ranges_table[iModulationIndex][0][1];
+        low = modes[iModulationIndex].ranges.lo.max;
         updated = true;
     }
-    if (high < filter_ranges_table[iModulationIndex][1][0])
+    if (high < modes[iModulationIndex].ranges.hi.min)
     {
-        high = filter_ranges_table[iModulationIndex][1][0];
+        high = modes[iModulationIndex].ranges.hi.min;
         updated = true;
     }
-    if (high > filter_ranges_table[iModulationIndex][1][1])
+    if (high > modes[iModulationIndex].ranges.hi.max)
     {
-        high = filter_ranges_table[iModulationIndex][1][1];
+        high = modes[iModulationIndex].ranges.hi.max;
         updated = true;
     }
     return updated;
@@ -259,35 +223,4 @@ int Modulations::TwFromFilterShape(const int low, const int high, const Modulati
     }
 
     return trans_width;
-}
-
-Modulations::Modulations()
-{
-    if (Modulations::Strings.size() == 0)
-    {
-        // Keep in sync with rxopt_mode_idx and filter_preset_table
-        Modulations::Strings.append("Demod Off");
-        Modulations::Strings.append("Raw I/Q");
-        Modulations::Strings.append("AM");
-        Modulations::Strings.append("AM-Sync");
-        Modulations::Strings.append("LSB");
-        Modulations::Strings.append("USB");
-        Modulations::Strings.append("CW-L");
-        Modulations::Strings.append("CW-U");
-        Modulations::Strings.append("Narrow FM");
-        Modulations::Strings.append("NFM PLL");
-        Modulations::Strings.append("WFM (mono)");
-        Modulations::Strings.append("WFM (stereo)");
-        Modulations::Strings.append("WFM (oirt)");
-    }
-}
-
-Modulations::~Modulations()
-{
-}
-
-const Modulations& Modulations::Get()
-{
-    static const Modulations instance{};
-    return instance;
 }
