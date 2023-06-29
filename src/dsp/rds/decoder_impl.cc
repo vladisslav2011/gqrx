@@ -184,15 +184,15 @@ int decoder_impl::work (int noutput_items,
         group[2]=((group[2]<<1)|(group[3]>>25))&((1<<26)-1);
         group[3]=((group[3]<<1)|(group[4]>>25))&((1<<26)-1);
         group[4]=((group[4]<<1)|in[i])&((1<<26)-1);
-        uint16_t locators[5]={0,0,0,0,0};
-        uint16_t errors[5]={0,0,0,0,0};
         ++i;
-        if(bit_counter<26*5)
-            ++bit_counter;
-        else
+        ++bit_counter;
+        if(bit_counter>=26*5)
         {
+            uint16_t locators[5]={0,0,0,0,0};
+            uint16_t errors[5]={0,0,0,0,0};
             uint16_t s;
             uint16_t w;
+            auto old_sync = d_state;
             s=calc_syndrome(group[0]>>10,16)^(group[0]&0x3ff);
             locators[0]=locator[s^offset_word[0]].l;
             errors[0]+=locator[s^offset_word[0]].w;
@@ -205,7 +205,8 @@ int decoder_impl::work (int noutput_items,
             errors[4]=locator[s^offset_word[0]].w;
             if((errors[0]<2)&&(errors[4]<2)&&(((group[0]>>10)^locators[0]) == ((group[4]>>10)^locators[4])))
             {
-                printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
+                if(d_state != SYNC)
+                    printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
                 if(errors[0] == 0)
                     d_state = SYNC;
             }
@@ -261,8 +262,10 @@ int decoder_impl::work (int noutput_items,
             if((errors[0] > 15)&&(d_state==SYNC))
             {
                 d_state=NO_SYNC;
-                continue;
+                printf("- NO Sync errors: %d\n",errors[0]);
             }
+            if(d_state != SYNC)
+                continue;
             int bit_errors=
                 __builtin_popcount(locators[0])+__builtin_popcount(locators[1])+__builtin_popcount(locators[2])+__builtin_popcount(locators[3]);
 //            if(bit_errors>5)
@@ -272,7 +275,8 @@ int decoder_impl::work (int noutput_items,
             group[2]=(group[2]>>10)^locators[2];
             group[3]=(group[3]>>10)^locators[3];
             decode_group();
-            printf("Sync %c %04x Corrected: %d\n",offset_chars[2],group[0],bit_errors);
+            if(d_state != old_sync)
+                printf("Sync %c %04x Corrected: %d %d\n",offset_chars[2],group[0],bit_errors,errors[0]);
             bit_counter=26;
         }
     }
