@@ -273,6 +273,7 @@ public:
     virtual bool get_rds_rt(c_def::v_union &) const;
     virtual bool get_rds_clock(c_def::v_union &) const;
     virtual bool get_rds_af(c_def::v_union &) const;
+    virtual bool get_rds_errors(c_def::v_union &) const;
 
 public:
     struct comp

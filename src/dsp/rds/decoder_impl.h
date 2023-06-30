@@ -42,7 +42,7 @@ private:
 	void enter_no_sync();
 	void enter_sync(unsigned int);
 	static unsigned int calc_syndrome(unsigned long, unsigned char);
-	void decode_group();
+	void decode_group(int);
 	static std::array<bit_locator,1024> build_locator();
 
 	unsigned long  bit_counter;
