@@ -38,6 +38,10 @@ public:
     {
         return d_cache[index];
     }
+    int get_n_errors()
+    {
+        return d_bit_errors;
+    }
 
 private:
 
@@ -85,7 +89,10 @@ private:
 	bool           debug;
 	unsigned char  pty_locale;
 	gr::thread::mutex d_mutex;
-    int d_index;
+    int d_index{0};
+    int d_bit_errors{0};
+    int d_best_errors{128};
+    std::string d_best_pi{""};
     std::array<std::string,MSG_IDS_COUNT> d_cache;
 };
 

@@ -127,11 +127,11 @@ unsigned int decoder_impl::calc_syndrome(unsigned long message,
 	return (lreg & ((1<<plen)-1));	// select the bottom plen bits of reg
 }
 
-void decoder_impl::decode_group()
+void decoder_impl::decode_group(int bit_errors)
 {
 	// raw data bytes, as received from RDS.
 	// 8 info bytes, followed by 4 RDS offset chars: ABCD/ABcD/EEEE (in US)
-	unsigned char bytes[12];
+	unsigned char bytes[13];
 
 	// RDS information words
 	bytes[0] = (group[0] >> 8U) & 0xffU;
@@ -148,8 +148,9 @@ void decoder_impl::decode_group()
 	bytes[9] = offset_chars[1];
 	bytes[10] = offset_chars[2];
 	bytes[11] = offset_chars[3];
+	bytes[12] = bit_errors;
 
-	pmt::pmt_t data(pmt::make_blob(bytes, 12));
+	pmt::pmt_t data(pmt::make_blob(bytes, 13));
 	pmt::pmt_t meta(pmt::PMT_NIL);
 
 	pmt::pmt_t pdu(pmt::cons(meta, data));  // make PDU: (metadata, data) pair
@@ -274,7 +275,7 @@ int decoder_impl::work (int noutput_items,
             group[1]=(group[1]>>10)^locators[1];
             group[2]=(group[2]>>10)^locators[2];
             group[3]=(group[3]>>10)^locators[3];
-            decode_group();
+            decode_group(bit_errors);
             if(d_state != old_sync)
                 printf("Sync %c %04x Corrected: %d %d\n",offset_chars[2],group[0],bit_errors,errors[0]);
             bit_counter=26;

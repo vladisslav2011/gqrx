@@ -511,6 +511,7 @@ bool vfo_s::get_rds_flagstring(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_rt(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_clock(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_af(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_errors(c_def::v_union &) const {return false;}
 
 int vfo_s::conf_initializer()
 {
@@ -650,6 +651,7 @@ int vfo_s::conf_initializer()
     getters[C_RDS_RADIOTEXT]=&vfo_s::get_rds_rt;
     getters[C_RDS_CLOCKTIME]=&vfo_s::get_rds_clock;
     getters[C_RDS_ALTFREQ]=&vfo_s::get_rds_af;
+    getters[C_RDS_BIT_ERRORS]=&vfo_s::get_rds_errors;
     return 0;
 }
 

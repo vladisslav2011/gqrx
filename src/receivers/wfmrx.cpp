@@ -274,3 +274,9 @@ bool wfmrx::get_rds_af(c_def::v_union &to) const
     to=rds_parser->get_last(gr::rds::parser::AF);
     return true;
 }
+
+bool wfmrx::get_rds_errors(c_def::v_union &to) const
+{
+    to=rds_parser->get_n_errors();
+    return true;
+}

@@ -66,6 +66,9 @@ void parser_impl::reset() {
 	artificial_head                = false;
 	compressed                     = false;
 	static_pty                     = false;
+	d_best_errors                  = 128;
+	d_bit_errors                   = 0;
+	d_best_pi                      = "";
 }
 
 /* type 0 = PI
@@ -614,7 +617,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 		dout << "input PDU message has wrong type (not u8)" << std::endl;
 		return;
 	}
-	if(pmt::blob_length(vec) != 12) {  // 8 data + 4 offset chars (ABCD)
+	if(pmt::blob_length(vec) != 13) {  // 8 data + 4 offset chars(ABCD) + n_errors
 		dout << "input PDU message has wrong size ("
 			<< pmt::blob_length(vec) << ")" << std::endl;
 		return;
@@ -634,77 +637,88 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 
 	lout << std::setfill('0') << std::setw(2) << group_type << (ab ? 'B' : 'A') << " ";
 	lout << "(" << rds_group_acronyms[group_type] << ")";
+	{
+        gr::thread::scoped_lock lock(d_mutex);
 
-	program_identification = group[0];     // "PI"
-	program_type = (group[1] >> 5) & 0x1f; // "PTY"
-	int pi_country_identification = (program_identification >> 12) & 0xf;
-	int pi_area_coverage = (program_identification >> 8) & 0xf;
-	unsigned char pi_program_reference_number = program_identification & 0xff;
-	std::stringstream pistring;
-	pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
-	send_message(PI, pistring.str());
-	send_message(PTY, pty_table[program_type][pty_locale]);
+        program_identification = group[0];     // "PI"
+        program_type = (group[1] >> 5) & 0x1f; // "PTY"
+        d_bit_errors = bytes[12];
+        int pi_country_identification = (program_identification >> 12) & 0xf;
+        int pi_area_coverage = (program_identification >> 8) & 0xf;
+        unsigned char pi_program_reference_number = program_identification & 0xff;
+        std::stringstream pistring;
+        pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
+        if(d_best_errors > d_bit_errors)
+        {
+            d_best_errors = d_bit_errors;
+            d_best_pi = pistring.str();
+        }
+        if(d_best_errors < 128)
+            pistring<<std::dec<<std::setw(0)<<" ("<<d_best_pi<<"/"<<d_best_errors<<")";
+        send_message(PI, pistring.str());
+        send_message(PTY, pty_table[program_type][pty_locale]);
+        changed_value(C_RDS_BIT_ERRORS, d_index, d_bit_errors);
 
-	lout << " - PI:" << pistring.str() << " - " << "PTY:" << pty_table[program_type][pty_locale];
-	lout << " (country:" << pi_country_codes[pi_country_identification - 1][0];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][1];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][2];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][3];
-	lout << "/" << pi_country_codes[pi_country_identification - 1][4];
-	lout << ", area:" << coverage_area_codes[pi_area_coverage];
-	lout << ", program:" << int(pi_program_reference_number) << ")" << std::endl;
+        lout << " - PI:" << pistring.str() << " - " << "PTY:" << pty_table[program_type][pty_locale];
+        lout << " (country:" << pi_country_codes[pi_country_identification - 1][0];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][1];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][2];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][3];
+        lout << "/" << pi_country_codes[pi_country_identification - 1][4];
+        lout << ", area:" << coverage_area_codes[pi_area_coverage];
+        lout << ", program:" << int(pi_program_reference_number) << ")" << std::endl;
 
-	switch (group_type) {
-		case 0:
-			decode_type0(group, ab);
-			break;
-		case 1:
-			decode_type1(group, ab);
-			break;
-		case 2:
-			decode_type2(group, ab);
-			break;
-		case 3:
-			decode_type3(group, ab);
-			break;
-		case 4:
-			decode_type4(group, ab);
-			break;
-		case 5:
-			decode_type5(group, ab);
-			break;
-		case 6:
-			decode_type6(group, ab);
-			break;
-		case 7:
-			decode_type7(group, ab);
-			break;
-		case 8:
-			decode_type8(group, ab);
-			break;
-		case 9:
-			decode_type9(group, ab);
-			break;
-		case 10:
-			decode_type10(group, ab);
-			break;
-		case 11:
-			decode_type11(group, ab);
-			break;
-		case 12:
-			decode_type12(group, ab);
-			break;
-		case 13:
-			decode_type13(group, ab);
-			break;
-		case 14:
-			decode_type14(group, ab);
-			break;
-		case 15:
-			decode_type15(group, ab);
-			break;
-	}
-
+        switch (group_type) {
+            case 0:
+                decode_type0(group, ab);
+                break;
+            case 1:
+                decode_type1(group, ab);
+                break;
+            case 2:
+                decode_type2(group, ab);
+                break;
+            case 3:
+                decode_type3(group, ab);
+                break;
+            case 4:
+                decode_type4(group, ab);
+                break;
+            case 5:
+                decode_type5(group, ab);
+                break;
+            case 6:
+                decode_type6(group, ab);
+                break;
+            case 7:
+                decode_type7(group, ab);
+                break;
+            case 8:
+                decode_type8(group, ab);
+                break;
+            case 9:
+                decode_type9(group, ab);
+                break;
+            case 10:
+                decode_type10(group, ab);
+                break;
+            case 11:
+                decode_type11(group, ab);
+                break;
+            case 12:
+                decode_type12(group, ab);
+                break;
+            case 13:
+                decode_type13(group, ab);
+                break;
+            case 14:
+                decode_type14(group, ab);
+                break;
+            case 15:
+                decode_type15(group, ab);
+                break;
+        }
+    }
 	#define HEX(a) std::hex << std::setfill('0') << std::setw(4) << long(a) << std::dec
 	for(int i = 0; i < 4; i++) {
 		dout << "  " << HEX(group[i]);
@@ -723,4 +737,5 @@ void parser_impl::clear()
     changed_value(C_RDS_RADIOTEXT, d_index, "");
     changed_value(C_RDS_CLOCKTIME, d_index, "");
     changed_value(C_RDS_ALTFREQ, d_index, "");
+    changed_value(C_RDS_BIT_ERRORS, d_index, 0);
 }

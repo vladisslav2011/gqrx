@@ -3410,6 +3410,23 @@ c_def()
     .writable(false)
     .event(true)
     ,
+c_def()
+    .idx(C_RDS_BIT_ERRORS)
+    .name("Bit errors")
+    .title("Errors:")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .g_type(G_LABEL)
+    .dock(D_RDS)
+    .scope(S_VFO)
+    .v_type(V_INT)
+    .def(0)
+    .min(0)
+    .max(0)
+    .step(0)
+    .writable(false)
+    .event(true)
+    ,
 };
 
 std::array<std::function<void (const int, const c_def::v_union &)>, C_COUNT> conf_base::observers{};

@@ -211,6 +211,7 @@ enum c_id
     C_RDS_CLOCKTIME,
     C_RDS_ALTFREQ,
     C_RDS_FLAGS,
+    C_RDS_BIT_ERRORS,
     
     C_COUNT
 };
