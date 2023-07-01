@@ -60,7 +60,7 @@ private:
 	bool           group_assembly_started;
 	unsigned char  lastseen_offset;
 	unsigned char  block_number;
-	enum { NO_SYNC, SYNC } d_state;
+	enum { NO_SYNC, SYNC, FORCE_SYNC } d_state;
 	static const std::array<bit_locator,1024> locator;
 
 };
