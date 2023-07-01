@@ -209,7 +209,7 @@ int decoder_impl::work (int noutput_items,
                 if(d_state != SYNC)
                     printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
                 if(errors[0] == 0)
-                    d_state = SYNC;
+                    d_state = FORCE_SYNC;
             }
 
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
@@ -254,21 +254,27 @@ int decoder_impl::work (int noutput_items,
             if(((group[0]>>10)^locators[0]) != ((group[4]>>10)^locators[4]))
                 continue;
             #endif
-            if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
-                continue;
-            if((errors[0] > 5)&&(d_state!=SYNC))
-                continue;
-            else
-                d_state = SYNC;
-            if((errors[0] > 15)&&(d_state==SYNC))
-            {
-                d_state=NO_SYNC;
-                printf("- NO Sync errors: %d\n",errors[0]);
-            }
-            if(d_state != SYNC)
-                continue;
             int bit_errors=
                 __builtin_popcount(locators[0])+__builtin_popcount(locators[1])+__builtin_popcount(locators[2])+__builtin_popcount(locators[3]);
+            if(d_state != FORCE_SYNC)
+            {
+                if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
+                    continue;
+                if((errors[0] > 5)&&(d_state!=SYNC))
+                    continue;
+                else
+                    d_state = SYNC;
+                if((errors[0] > 15)&&(d_state==SYNC))
+                {
+                    d_state=NO_SYNC;
+                    printf("- NO Sync errors: %d\n",errors[0]);
+                }
+                if(d_state != SYNC)
+                    continue;
+            }else{
+                d_state = SYNC;
+                bit_errors = 0;
+            }
 //            if(bit_errors>5)
 //                continue;
             group[0]=(group[0]>>10)^locators[0];
