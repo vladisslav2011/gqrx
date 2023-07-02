@@ -246,14 +246,14 @@ using any_to_any_base::sptr;
             {
                 #ifdef __BMI2__
                 if( __builtin_cpu_supports("bmi2"))
-                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN>>6),16,1,"f32s10c"));
                 #endif
-                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN>>6),16,1,"f32s10c"));
             }else{
-                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN>>6),16,1,"f32s10c"));
             }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN),16,1,"f32s10c"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>6),16,1,"f32s10c"));
         }
     }
 
@@ -272,7 +272,7 @@ using any_to_any_base::sptr;
                 return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
             }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s10f32c"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>6),1,16,"s10f32c"));
         }
     }
 
