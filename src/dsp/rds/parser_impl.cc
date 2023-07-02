@@ -648,7 +648,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         unsigned char pi_program_reference_number = program_identification & 0xff;
         std::stringstream pistring;
         pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
-        if(d_best_errors > d_bit_errors)
+        if(d_best_errors >= d_bit_errors)
         {
             d_best_errors = d_bit_errors;
             d_best_pi = pistring.str();
