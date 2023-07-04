@@ -83,6 +83,9 @@ public:
     bool get_rds_clock(c_def::v_union &) const override;
     bool get_rds_af(c_def::v_union &) const override;
     bool get_rds_errors(c_def::v_union &) const override;
+    bool set_rds_agc(const c_def::v_union & v) override;
+    bool set_rds_gmu(const c_def::v_union & v) override;
+    bool set_rds_gomega(const c_def::v_union & v) override;
 
 private:
     void start_rds_decoder();
@@ -100,6 +103,8 @@ private:
     rx_rds_sptr               rds;       /*!< RDS decoder */
     gr::rds::decoder::sptr    rds_decoder;
     gr::rds::parser::sptr     rds_parser;
+    rx_rds_sptr               rds_c;       /*!< RDS decoder */
+    gr::rds::decoder::sptr    rds_decoder_c;
 };
 
 #endif // WFMRX_H

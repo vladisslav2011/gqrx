@@ -31,7 +31,7 @@ public:
 #else
 	typedef std::shared_ptr<decoder> sptr;
 #endif
-	static sptr make(bool log, bool debug);
+	static sptr make(bool corr=false,bool log=false, bool debug=false);
 };
 
 } // namespace rds

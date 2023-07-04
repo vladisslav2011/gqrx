@@ -413,6 +413,25 @@ bool vfo_s::set_dedicated_audio_sink(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_agc(const c_def::v_union & v)
+{
+    d_rds_agc = v;
+    return true;
+}
+
+bool vfo_s::set_rds_gmu(const c_def::v_union & v)
+{
+    d_rds_gmu = v;
+    return true;
+}
+
+bool vfo_s::set_rds_gomega(const c_def::v_union & v)
+{
+    d_rds_gomega = v;
+    return true;
+}
+
+
 void vfo_s::restore_settings(vfo_s& from, bool force)
 {
     c_def::v_union v(0);
@@ -483,6 +502,11 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_wfm_deemph(v);set_wfm_deemph(v);
     from.get_wfm_raw(v);set_wfm_raw(v);
     from.get_rds_on(v);set_rds_on(v);
+    
+    from.get_rds_agc(v); set_rds_agc(v);
+    from.get_rds_gmu(v); set_rds_gmu(v);
+    from.get_rds_gomega(v); set_rds_gomega(v);
+    
     from.get_test(v);set_test(v);
 }
 
@@ -652,6 +676,12 @@ int vfo_s::conf_initializer()
     getters[C_RDS_CLOCKTIME]=&vfo_s::get_rds_clock;
     getters[C_RDS_ALTFREQ]=&vfo_s::get_rds_af;
     getters[C_RDS_BIT_ERRORS]=&vfo_s::get_rds_errors;
+    getters[C_RDS_AGC]=&vfo_s::get_rds_agc;
+    setters[C_RDS_AGC]=&vfo_s::set_rds_agc;
+    getters[C_RDS_GMU]=&vfo_s::get_rds_gmu;
+    setters[C_RDS_GMU]=&vfo_s::set_rds_gmu;
+    getters[C_RDS_GOMEGA]=&vfo_s::get_rds_gomega;
+    setters[C_RDS_GOMEGA]=&vfo_s::set_rds_gomega;
     return 0;
 }
 

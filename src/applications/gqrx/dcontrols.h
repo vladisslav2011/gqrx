@@ -212,6 +212,11 @@ enum c_id
     C_RDS_ALTFREQ,
     C_RDS_FLAGS,
     C_RDS_BIT_ERRORS,
+    C_RDS_CR_OMEGA,
+    C_RDS_CR_MU,
+    C_RDS_AGC,
+    C_RDS_GMU,
+    C_RDS_GOMEGA,
     
     C_COUNT
 };

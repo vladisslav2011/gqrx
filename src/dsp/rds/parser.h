@@ -19,6 +19,7 @@
 
 #include "dsp/rds/api.h"
 #include <gnuradio/block.h>
+#include <functional>
 
 namespace gr {
 namespace rds {
@@ -49,6 +50,7 @@ public:
     virtual void set_index(int index) = 0;
     virtual std::string & get_last(int index) = 0;
     virtual int get_n_errors() = 0;
+    std::function< void() > send_extra;
 };
 
 } // namespace rds

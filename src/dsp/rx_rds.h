@@ -50,7 +50,6 @@
 #include <gnuradio/digital/diff_decoder_bb.h>
 #include <gnuradio/blocks/file_sink.h>
 #include <gnuradio/blocks/message_debug.h>
-#include <array>
 #include "dsp/rds/decoder.h"
 #include "dsp/rds/parser.h"
 #include "applications/gqrx/dcontrols.h"
@@ -64,16 +63,20 @@ typedef std::shared_ptr<rx_rds> rx_rds_sptr;
 #endif
 
 
-rx_rds_sptr make_rx_rds(double sample_rate);
+rx_rds_sptr make_rx_rds(double sample_ratee=240000.0, bool encorr=false);
 
-class rx_rds : public gr::hier_block2
+class rx_rds : public gr::hier_block2, public conf_notifier
 {
 
 public:
-    rx_rds(double sample_rate=240000.0);
+    rx_rds(double sample_rat, bool encorr);
     ~rx_rds();
 
-    void set_param(double low, double high, double trans_width);
+    void set_index(int v) {d_index=v;}
+    void set_agc_rate(float v) {d_agc->set_rate(v);}
+    void set_gain_mu(float v) {d_sync->set_gain_mu(v);}
+    void set_gain_omega(float v) {d_sync->set_gain_omega(v);}
+    void trig();
 
 private:
     std::vector<float> d_fxff_tap;
@@ -100,6 +103,7 @@ private:
     gr::digital::diff_decoder_bb::sptr d_ddbb;
 
     double d_sample_rate;
+    int d_index;
 };
 
 

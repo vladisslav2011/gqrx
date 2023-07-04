@@ -605,39 +605,43 @@ void parser_impl::decode_type15(unsigned int *group, bool B){
 }
 
 void parser_impl::parse(pmt::pmt_t pdu) {
-	if(!pmt::is_pair(pdu)) {
-		dout << "wrong input message (not a PDU)" << std::endl;
-		return;
-	}
+    if(!pmt::is_pair(pdu)) {
+        dout << "wrong input message (not a PDU)" << std::endl;
+        return;
+    }
 
-	//pmt::pmt_t meta = pmt::car(pdu);  // meta is currently not in use
-	pmt::pmt_t vec = pmt::cdr(pdu);
+    //pmt::pmt_t meta = pmt::car(pdu);  // meta is currently not in use
+    pmt::pmt_t vec = pmt::cdr(pdu);
 
-	if(!pmt::is_blob(vec)) {
-		dout << "input PDU message has wrong type (not u8)" << std::endl;
-		return;
-	}
-	if(pmt::blob_length(vec) != 13) {  // 8 data + 4 offset chars(ABCD) + n_errors
-		dout << "input PDU message has wrong size ("
-			<< pmt::blob_length(vec) << ")" << std::endl;
-		return;
-	}
+    if(!pmt::is_blob(vec)) {
+        dout << "input PDU message has wrong type (not u8)" << std::endl;
+        return;
+    }
+    if(pmt::blob_length(vec) != 13) {  // 8 data + 4 offset chars(ABCD) + n_errors
+        dout << "input PDU message has wrong size ("
+            << pmt::blob_length(vec) << ")" << std::endl;
+        return;
+    }
+    if(send_extra)
+    send_extra();
 
-	unsigned char *bytes = (unsigned char *)pmt::blob_data(vec);
-	unsigned int group[4];
-	group[0] = bytes[1] | (((unsigned int)(bytes[0])) << 8U);
-	group[1] = bytes[3] | (((unsigned int)(bytes[2])) << 8U);
-	group[2] = bytes[5] | (((unsigned int)(bytes[4])) << 8U);
-	group[3] = bytes[7] | (((unsigned int)(bytes[6])) << 8U);
+    unsigned char *bytes = (unsigned char *)pmt::blob_data(vec);
+    unsigned int group[4];
+    if(bytes[12]>100)
+        return;
+    group[0] = bytes[1] | (((unsigned int)(bytes[0])) << 8U);
+    group[1] = bytes[3] | (((unsigned int)(bytes[2])) << 8U);
+    group[2] = bytes[5] | (((unsigned int)(bytes[4])) << 8U);
+    group[3] = bytes[7] | (((unsigned int)(bytes[6])) << 8U);
 
-	// TODO: verify offset chars are one of: "ABCD", "ABcD", "EEEE" (in US)
+    // TODO: verify offset chars are one of: "ABCD", "ABcD", "EEEE" (in US)
 
-	unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
-	bool ab = (group[1] >> 11 ) & 0x1;
+    unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
+    bool ab = (group[1] >> 11 ) & 0x1;
 
-	lout << std::setfill('0') << std::setw(2) << group_type << (ab ? 'B' : 'A') << " ";
-	lout << "(" << rds_group_acronyms[group_type] << ")";
-	{
+    lout << std::setfill('0') << std::setw(2) << group_type << (ab ? 'B' : 'A') << " ";
+    lout << "(" << rds_group_acronyms[group_type] << ")";
+    {
         gr::thread::scoped_lock lock(d_mutex);
 
         program_identification = group[0];     // "PI"
