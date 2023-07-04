@@ -25,7 +25,7 @@ namespace rds {
 class decoder_impl : public decoder
 {
 public:
-	decoder_impl(bool log, bool debug);
+	decoder_impl(bool corr, bool log, bool debug);
 
 private:
     struct bit_locator
@@ -62,6 +62,9 @@ private:
 	unsigned char  block_number;
 	enum { NO_SYNC, SYNC, FORCE_SYNC } d_state;
 	static const std::array<bit_locator,1024> locator;
+	bool           d_corr{false};
+	uint16_t       d_prev_pi{0};
+	int            d_pi_cnt{0};
 
 };
 

@@ -45,7 +45,9 @@ wfmrx::wfmrx(float quad_rate, float audio_rate)
 
     /* create rds blocks but dont connect them */
     rds = make_rx_rds(WFM_PREF_QUAD_RATE);
-    rds_decoder = gr::rds::decoder::make(1, 1);
+    rds_decoder = gr::rds::decoder::make();
+    rds_c = make_rx_rds(WFM_PREF_QUAD_RATE, true);
+    rds_decoder_c = gr::rds::decoder::make(1);
     rds_parser = gr::rds::parser::make(0, 0, 0);
 
     connect(ddc, 0, iq_resamp, 0);
@@ -188,6 +190,7 @@ void wfmrx::set_index(int index)
 {
     receiver_base_cf::set_index(index);
     rds_parser->set_index(index);
+    rds->set_index(index);
 }
 
 void wfmrx::start_rds_decoder()
@@ -196,6 +199,13 @@ void wfmrx::start_rds_decoder()
     connect(demod_fm, 0, rds, 0);
     connect(rds, 0, rds_decoder, 0);
     msg_connect(rds_decoder, "out", rds_parser, "in");
+    //connect(demod_fm, 0, rds_c, 0);
+    //connect(rds_c, 0, rds_decoder_c, 0);
+    //msg_connect(rds_decoder_c, "out", rds_parser, "in");
+    rds_parser->send_extra=[=]()
+    {
+        rds->trig();
+    };
     unlock();
     rds_parser->reset();
 }
@@ -206,6 +216,10 @@ void wfmrx::stop_rds_decoder()
     disconnect(demod_fm, 0, rds, 0);
     disconnect(rds, 0, rds_decoder, 0);
     msg_disconnect(rds_decoder, "out", rds_parser, "in");
+    //disconnect(demod_fm, 0, rds_c, 0);
+    //disconnect(rds_c, 0, rds_decoder_c, 0);
+    //msg_disconnect(rds_decoder_c, "out", rds_parser, "in");
+    rds_parser->send_extra=nullptr;
     rds_parser->clear();
     unlock();
 }
@@ -278,5 +292,26 @@ bool wfmrx::get_rds_af(c_def::v_union &to) const
 bool wfmrx::get_rds_errors(c_def::v_union &to) const
 {
     to=rds_parser->get_n_errors();
+    return true;
+}
+
+bool wfmrx::set_rds_agc(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_agc(v);
+    rds->set_agc_rate(v);
+    return true;
+}
+
+bool wfmrx::set_rds_gmu(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_gmu(v);
+    rds->set_gain_mu(powf(10.f, v)*0.007);
+    return true;
+}
+
+bool wfmrx::set_rds_gomega(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_gomega(v);
+    rds->set_gain_omega(powf(10.f, v)*0.175);
     return true;
 }

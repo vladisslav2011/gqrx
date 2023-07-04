@@ -189,6 +189,10 @@ public:
     bool         get_audio_dev(c_def::v_union & v) const { v=d_audio_dev; return true; }
     bool         get_dedicated_audio_sink(c_def::v_union & v) const { v=d_dedicated_audio_sink; return true; }
 
+    bool         get_rds_agc(c_def::v_union & v) const { v=d_rds_agc; return true; }
+    bool         get_rds_gmu(c_def::v_union & v) const { v=d_rds_gmu; return true; }
+    bool         get_rds_gomega(c_def::v_union & v) const { v=d_rds_gomega; return true; }
+
     //setters
     virtual void set_offset(int offset);
     /* Filter parameter */
@@ -274,6 +278,9 @@ public:
     virtual bool get_rds_clock(c_def::v_union &) const;
     virtual bool get_rds_af(c_def::v_union &) const;
     virtual bool get_rds_errors(c_def::v_union &) const;
+    virtual bool set_rds_agc(const c_def::v_union & v);
+    virtual bool set_rds_gmu(const c_def::v_union & v);
+    virtual bool set_rds_gomega(const c_def::v_union & v);
 
 public:
     struct comp
@@ -342,6 +349,9 @@ protected:
 
     bool             d_rds_on;
     int              d_testval;
+    float            d_rds_agc{0.002f};
+    float            d_rds_gomega{0.f};
+    float            d_rds_gmu{0.f};
 
 } vfo;
 

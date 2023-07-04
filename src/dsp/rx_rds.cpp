@@ -104,12 +104,12 @@ static const int MAX_OUT = 1; /* Maximum number of output streams. */
  * Create a new instance of rx_rds and return
  * a shared_ptr. This is effectively the public constructor.
  */
-rx_rds_sptr make_rx_rds(double sample_rate)
+rx_rds_sptr make_rx_rds(double sample_rate, bool encorr)
 {
-    return gnuradio::get_initial_sptr(new rx_rds(sample_rate));
+    return gnuradio::get_initial_sptr(new rx_rds(sample_rate, encorr));
 }
 
-rx_rds::rx_rds(double sample_rate)
+rx_rds::rx_rds(double sample_rate, bool encorr)
     : gr::hier_block2 ("rx_rds",
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (float)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char))),
@@ -119,11 +119,11 @@ rx_rds::rx_rds(double sample_rate)
         throw std::invalid_argument("RDS sample rate not supported");
     }
 
-    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 7500, 5000);
+    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
 
     int interpolation = 19;
-    int decimation = 24*4;
+    int decimation = 24;
 #if GNURADIO_VERSION < 0x030900
     float rate = (float) interpolation / (float) decimation;
     d_rsmp_tap = gr::filter::firdes::low_pass(interpolation, interpolation, rate * 0.45, rate * 0.1);
@@ -132,18 +132,18 @@ rx_rds::rx_rds(double sample_rate)
     d_rsmp = gr::filter::rational_resampler_ccf::make(interpolation, decimation);
 #endif
 
-    int n_taps = 151*3;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*interpolation)/decimation/10, 2375, 1, n_taps);
+    int n_taps = 151*5;
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*interpolation)/(decimation*10), 2375, 1, n_taps);
 
     gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
-    auto corr=iir_corr::make((d_sample_rate*interpolation)/decimation/11875*104,0.01);
+    auto corr=iir_corr::make((d_sample_rate*interpolation*104.0*2.0)/(decimation*23750.0),0.1);
 
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = gr::analog::agc_cc::make(2e-3, 0.585 * 1.25, 53 * 1.25);
 
-    d_sync = gr::digital::clock_recovery_mm_cc::make((d_sample_rate*interpolation)/decimation/23750, 0.25 * 0.175 * 0.175, 0.5, 0.175, 0.005);
+    d_sync = gr::digital::clock_recovery_mm_cc::make((d_sample_rate*interpolation)/(decimation*23750.f), 0.25 * 0.175 * 0.000175, 0.5, 0.175*0.2, 0.0002);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
@@ -166,12 +166,12 @@ rx_rds::rx_rds(double sample_rate)
     connect(self(), 0, d_fxff, 0);
     connect(d_fxff, 0, d_rsmp, 0);
     connect(d_rsmp, 0, d_bpf, 0);
-    #if 0
-    connect(d_bpf, 0, corr, 0);
-    connect(corr, 0, d_agc, 0);
-    #else
-    connect(d_bpf, 0, d_agc, 0);
-    #endif
+    if(encorr)
+    {
+        connect(d_bpf, 0, corr, 0);
+        connect(corr, 0, d_agc, 0);
+    }else
+        connect(d_bpf, 0, d_agc, 0);
     connect(d_agc, 0, d_sync, 0);
     connect(d_sync, 0, d_mpsk, 0);
 
@@ -188,4 +188,10 @@ rx_rds::rx_rds(double sample_rate)
 rx_rds::~rx_rds ()
 {
 
+}
+
+void rx_rds::trig()
+{
+    changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
+    changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
 }

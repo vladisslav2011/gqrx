@@ -69,16 +69,17 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
 }
 
 decoder::sptr
-decoder::make(bool log, bool debug) {
-  return gnuradio::get_initial_sptr(new decoder_impl(log, debug));
+decoder::make(bool corr, bool log, bool debug) {
+  return gnuradio::get_initial_sptr(new decoder_impl(corr, log, debug));
 }
 
-decoder_impl::decoder_impl(bool log, bool debug)
+decoder_impl::decoder_impl(bool corr, bool log, bool debug)
 	: gr::sync_block ("gr_rds_decoder",
 			gr::io_signature::make (1, 1, sizeof(char)),
 			gr::io_signature::make (0, 0, 0)),
 	log(log),
-	debug(debug)
+	debug(debug),
+	d_corr(corr)
 {
 	bit_counter=0;
 	set_output_multiple(104);  // 1 RDS datagroup = 104 bits
@@ -205,12 +206,35 @@ int decoder_impl::work (int noutput_items,
             errors[4]=locator[s^offset_word[0]].w;
             if((errors[0]<2)&&(errors[4]<2)&&(((group[0]>>10)^locators[0]) == ((group[4]>>10)^locators[4])))
             {
-                if(d_state != SYNC)
-                    printf("+[%04x] %d\n",(group[0]>>10)^locators[0],errors[0]);
-                if(errors[0] == 0)
-                    d_state = FORCE_SYNC;
+                uint16_t pi = (group[0]>>10)^locators[0];
+                if(d_corr)
+                {
+                    if((pi == d_prev_pi)&&(errors[0] == 0))
+                    {
+                        if(d_pi_cnt<3)
+                            d_pi_cnt++;
+                        else{
+                            printf("+[%04x] %d, %d\n",pi,errors[0], d_pi_cnt);
+                            group[0]=(group[0]>>10)^locators[0];
+                            group[1]=(group[1]>>10)^locators[1];
+                            group[2]=(group[2]>>10)^locators[2];
+                            group[3]=(group[3]>>10)^locators[3];
+                            decode_group(errors[0]);
+                        }
+                        continue;
+                    }else{
+                        d_prev_pi=pi;
+                        d_pi_cnt=0;
+                    }
+                }else{
+                    if(d_state != SYNC)
+                        printf("+[%04x] %d\n",pi,errors[0]);
+                    if(errors[0] == 0)
+                        d_state = FORCE_SYNC;
+                }
             }
-
+            if(d_corr)
+                continue;
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
             errors[0]+=locator[s^offset_word[1]].w;
@@ -259,9 +283,11 @@ int decoder_impl::work (int noutput_items,
             {
                 if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
                     continue;
-                if((errors[0] > 5)&&(d_state!=SYNC))
+                if(errors[0] > 5)
+                {
+                    if(d_state!=SYNC)
                     continue;
-                else
+                }else
                     d_state = SYNC;
                 if((errors[0] > 15)&&(d_state==SYNC))
                 {
@@ -286,6 +312,7 @@ int decoder_impl::work (int noutput_items,
             bit_counter=26;
         }
     }
+    decode_group(127);
     return noutput_items;
     while (i<noutput_items) {
         reg=(reg<<1)|in[i];		// reg contains the last 26 rds bits
