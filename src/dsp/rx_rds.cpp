@@ -25,7 +25,9 @@
 #include <cmath>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/filter/firdes.h>
-#include <gnuradio/digital/constellation_receiver_cb.h>
+#include <gnuradio/blocks/wavfile_sink.h>
+#include <gnuradio/blocks/complex_to_imag.h>
+#include <gnuradio/blocks/complex_to_real.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
@@ -119,7 +121,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         throw std::invalid_argument("RDS sample rate not supported");
     }
 
-    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
+//    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
+    d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
+        2375.0/2.0-d_fxff_bw, 2375.0/2.0+d_fxff_bw, d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
+    std::cerr<<"--------------------- rx_rds::rx_rds d_fxff_tap.size()="<<d_fxff_tap.size()<<"\n";
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
 
     int interpolation = 19;
@@ -134,6 +139,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     int n_taps = 151*5;
     d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*interpolation)/(decimation*10), 2375, 1, n_taps);
+    d_rrcf_manchester = std::vector<float>(n_taps-8);
+    for (int n = 0; n < n_taps-8; n++) {
+        d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
+    }
 
     gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
     auto corr=iir_corr::make((d_sample_rate*interpolation*104.0*2.0)/(decimation*23750.0),0.1);
@@ -147,10 +156,6 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
-    d_rrcf_manchester = std::vector<float>(n_taps-8);
-    for (int n = 0; n < n_taps-8; n++) {
-        d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
-    }
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
 
     d_agc = gr::analog::agc_cc::make(2e-3, 0.585, 53);
@@ -183,6 +188,31 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     connect(d_ddbb, 0, self(), 0);
+    #if 0
+    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/rrcf.wav",2,19000);
+    auto im1=gr::blocks::complex_to_imag::make();
+    auto re1=gr::blocks::complex_to_real::make();
+    auto w2=gr::blocks::wavfile_sink::make("/home/vlad/rrcf_manchester.wav",2,19000);
+    auto im2=gr::blocks::complex_to_imag::make();
+    auto re2=gr::blocks::complex_to_real::make();
+    auto bpf_manc=gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
+    auto w3=gr::blocks::wavfile_sink::make("/home/vlad/raw.wav",2,19000);
+    auto im3=gr::blocks::complex_to_imag::make();
+    auto re3=gr::blocks::complex_to_real::make();
+    connect(d_bpf,0,re1,0);
+    connect(d_bpf,0,im1,0);
+    connect(re1,0,w1,0);
+    connect(im1,0,w1,1);
+    connect(d_rsmp,0,bpf_manc,0);
+    connect(bpf_manc,0,re2,0);
+    connect(bpf_manc,0,im2,0);
+    connect(re2,0,w2,0);
+    connect(im2,0,w2,1);
+    connect(d_rsmp,0,re3,0);
+    connect(d_rsmp,0,im3,0);
+    connect(re3,0,w3,0);
+    connect(im3,0,w3,1);
+    #endif
 }
 
 rx_rds::~rx_rds ()
@@ -194,4 +224,14 @@ void rx_rds::trig()
 {
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
+}
+
+void rx_rds::update_fxff_taps()
+{
+    //lock();
+    d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
+        2375.0/2.0-d_fxff_bw, 2375.0/2.0+d_fxff_bw, d_fxff_tw);
+    std::cerr<<"--------------------- rx_rds::rx_rds d_fxff_tap.size()="<<d_fxff_tap.size()<<"\n";
+    d_fxff->set_taps(d_fxff_tap);
+    //unlock();
 }

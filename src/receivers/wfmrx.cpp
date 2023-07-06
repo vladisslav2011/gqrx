@@ -315,3 +315,17 @@ bool wfmrx::set_rds_gomega(const c_def::v_union & v)
     rds->set_gain_omega(powf(10.f, v)*0.175);
     return true;
 }
+
+bool wfmrx::set_rds_fxff_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_fxff_bw(v);
+    rds->set_fxff_bw(d_rds_fxff_bw);
+    return true;
+}
+
+bool wfmrx::set_rds_fxff_tw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_fxff_tw(v);
+    rds->set_fxff_tw(d_rds_fxff_tw);
+    return true;
+}

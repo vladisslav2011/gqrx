@@ -431,6 +431,17 @@ bool vfo_s::set_rds_gomega(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_fxff_tw(const c_def::v_union & v)
+{
+    d_rds_fxff_tw = v;
+    return true;
+}
+
+bool vfo_s::set_rds_fxff_bw(const c_def::v_union & v)
+{
+    d_rds_fxff_bw = v;
+    return true;
+}
 
 void vfo_s::restore_settings(vfo_s& from, bool force)
 {
@@ -506,6 +517,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_rds_agc(v); set_rds_agc(v);
     from.get_rds_gmu(v); set_rds_gmu(v);
     from.get_rds_gomega(v); set_rds_gomega(v);
+    from.get_rds_fxff_tw(v); set_rds_fxff_tw(v);
+    from.get_rds_fxff_bw(v); set_rds_fxff_bw(v);
     
     from.get_test(v);set_test(v);
 }
@@ -682,6 +695,10 @@ int vfo_s::conf_initializer()
     setters[C_RDS_GMU]=&vfo_s::set_rds_gmu;
     getters[C_RDS_GOMEGA]=&vfo_s::get_rds_gomega;
     setters[C_RDS_GOMEGA]=&vfo_s::set_rds_gomega;
+    getters[C_RDS_FXFF_BW]=&vfo_s::get_rds_fxff_bw;
+    setters[C_RDS_FXFF_BW]=&vfo_s::set_rds_fxff_bw;
+    getters[C_RDS_FXFF_TW]=&vfo_s::get_rds_fxff_tw;
+    setters[C_RDS_FXFF_TW]=&vfo_s::set_rds_fxff_tw;
     return 0;
 }
 

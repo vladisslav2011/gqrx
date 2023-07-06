@@ -86,6 +86,8 @@ public:
     bool set_rds_agc(const c_def::v_union & v) override;
     bool set_rds_gmu(const c_def::v_union & v) override;
     bool set_rds_gomega(const c_def::v_union & v) override;
+    bool set_rds_fxff_bw(const c_def::v_union & v) override;
+    bool set_rds_fxff_tw(const c_def::v_union & v) override;
 
 private:
     void start_rds_decoder();

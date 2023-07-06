@@ -77,8 +77,11 @@ public:
     void set_gain_mu(float v) {d_sync->set_gain_mu(v);}
     void set_gain_omega(float v) {d_sync->set_gain_omega(v);}
     void trig();
+    void set_fxff_bw(float bw) {d_fxff_bw=bw; update_fxff_taps();}
+    void set_fxff_tw(float tw) {d_fxff_tw=tw; update_fxff_taps();}
 
 private:
+    void update_fxff_taps();
     std::vector<float> d_fxff_tap;
     std::vector<float> d_rsmp_tap;
     gr::filter::fir_filter_ccf::sptr d_bpf;
@@ -104,6 +107,8 @@ private:
 
     double d_sample_rate;
     int d_index;
+    float d_fxff_tw{500.0f};
+    float d_fxff_bw{1000.0f};
 };
 
 

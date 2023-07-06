@@ -627,7 +627,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 
     unsigned char *bytes = (unsigned char *)pmt::blob_data(vec);
     unsigned int group[4];
-    if(bytes[12]>100)
+    if(bytes[12]>0)
         return;
     group[0] = bytes[1] | (((unsigned int)(bytes[0])) << 8U);
     group[1] = bytes[3] | (((unsigned int)(bytes[2])) << 8U);
