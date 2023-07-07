@@ -124,7 +124,6 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 //    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
-    std::cerr<<"--------------------- rx_rds::rx_rds d_fxff_tap.size()="<<d_fxff_tap.size()<<"\n";
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
 
     int interpolation = 19;
@@ -152,7 +151,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_agc = gr::analog::agc_cc::make(2e-3, 0.585 * 1.25, 53 * 1.25);
 
-    d_sync = gr::digital::clock_recovery_mm_cc::make(((float)d_sample_rate*interpolation)/(decimation*23750.f), 0.25 * 0.175 * 0.000175, 0.5, 0.175*0.2, 0.0002);
+    d_sync = gr::digital::clock_recovery_mm_cc::make(((float)d_sample_rate*interpolation)/(decimation*23750.f), 0.25 * 0.175 * 0.000175, 0.5, 0.175*0.2, 0.00025);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
@@ -231,7 +230,6 @@ void rx_rds::update_fxff_taps()
     //lock();
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw);
-    std::cerr<<"--------------------- rx_rds::rx_rds d_fxff_tap.size()="<<d_fxff_tap.size()<<"\n";
     d_fxff->set_taps(d_fxff_tap);
     //unlock();
 }

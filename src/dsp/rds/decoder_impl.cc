@@ -174,12 +174,9 @@ int decoder_impl::work (int noutput_items,
     unsigned int block_calculated_crc, block_received_crc, checkword,dataword;
     unsigned int reg_syndrome;
     unsigned char offset_char('x');  // x = error while decoding the word offset
+    constexpr int thr0 = 2;
 
 /* the synchronization process is described in Annex C, page 66 of the standard */
-    offset_chars[0]='A';
-    offset_chars[1]='B';
-    offset_chars[2]='C';
-    offset_chars[3]='D';
     while (i<noutput_items) {
         group[0]=((group[0]<<1)|(group[1]>>25))&((1<<26)-1);
         group[1]=((group[1]<<1)|(group[2]>>25))&((1<<26)-1);
@@ -190,6 +187,10 @@ int decoder_impl::work (int noutput_items,
         ++bit_counter;
         if(bit_counter>=26*5)
         {
+            offset_chars[0]='A';
+            offset_chars[1]='B';
+            offset_chars[2]='C';
+            offset_chars[3]='D';
             uint16_t locators[5]={0,0,0,0,0};
             uint16_t errors[5]={0,0,0,0,0};
             uint16_t s;
@@ -197,6 +198,8 @@ int decoder_impl::work (int noutput_items,
             auto old_sync = d_state;
             s=calc_syndrome(group[0]>>10,16)^(group[0]&0x3ff);
             locators[0]=locator[s^offset_word[0]].l;
+            if(locator[s^offset_word[0]].w>0)
+                offset_chars[0]='x';
             errors[0]+=locator[s^offset_word[0]].w;
             errors[1]+=locator[s^offset_word[3]].w;
             errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
@@ -238,6 +241,8 @@ int decoder_impl::work (int noutput_items,
                 continue;
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
+            if(locator[s^offset_word[1]].w>thr0)
+                offset_chars[1]='x';
             errors[0]+=locator[s^offset_word[1]].w;
             errors[1]+=locator[s^offset_word[0]].w;
             errors[2]+=locator[s^offset_word[3]].w;
@@ -253,7 +258,11 @@ int decoder_impl::work (int noutput_items,
                 offset_chars[2]='c';
                 w=locator[s^offset_word[4]].w;
                 locators[2]=locator[s^offset_word[4]].l;
-            }
+                if(locator[s^offset_word[4]].w>thr0)
+                    offset_chars[2]='x';
+            }else if(locator[s^offset_word[2]].w>thr0)
+                    offset_chars[2]='x';
+
             errors[0]+=w;
             errors[1]+=locator[s^offset_word[1]].w;
             errors[2]+=locator[s^offset_word[0]].w;
@@ -261,6 +270,8 @@ int decoder_impl::work (int noutput_items,
             errors[4]+=w;
 
             s=calc_syndrome(group[3]>>10,16)^(group[3]&0x3ff);
+            if(locator[s^offset_word[3]].w>thr0)
+                offset_chars[3]='x';
             locators[3]=locator[s^offset_word[3]].l;
             errors[0]+=locator[s^offset_word[3]].w;
             errors[1]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
@@ -287,19 +298,26 @@ int decoder_impl::work (int noutput_items,
                 if(errors[0] > 5)
                 {
                     if(d_state!=SYNC)
-                    continue;
-                }else
+                        continue;
+                }else{
                     d_state = SYNC;
+                    d_counter = errors[0]*2;
+                }
                 if((errors[0] > 15)&&(d_state==SYNC))
                 {
-                    d_state=NO_SYNC;
-                    printf("- NO Sync errors: %d\n",errors[0]);
+                    d_counter ++;
+                    if(d_counter > 12)
+                    {
+                        d_state=NO_SYNC;
+                        printf("- NO Sync errors: %d\n",errors[0]);
+                    }
                 }
                 if(d_state != SYNC)
                     continue;
             }else{
                 d_state = SYNC;
-                bit_errors = 0;
+                offset_chars[0]='F';
+                d_counter = 0;
             }
 //            if(bit_errors>5)
 //                continue;

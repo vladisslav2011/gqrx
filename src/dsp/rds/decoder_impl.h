@@ -65,6 +65,7 @@ private:
 	bool           d_corr{false};
 	uint16_t       d_prev_pi{0};
 	int            d_pi_cnt{0};
+	int            d_counter{0};
 
 };
 

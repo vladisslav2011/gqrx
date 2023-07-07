@@ -94,6 +94,7 @@ private:
     int d_best_errors{128};
     std::string d_best_pi{""};
     std::array<std::string,MSG_IDS_COUNT> d_cache;
+    char offset_chars[4];
 };
 
 } /* namespace rds */
