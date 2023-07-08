@@ -194,6 +194,8 @@ public:
     bool         get_rds_gomega(c_def::v_union & v) const { v=d_rds_gomega; return true; }
     bool         get_rds_fxff_bw(c_def::v_union & v) const { v=d_rds_fxff_bw; return true; }
     bool         get_rds_fxff_tw(c_def::v_union & v) const { v=d_rds_fxff_tw; return true; }
+    bool         get_rds_ecc_max(c_def::v_union & v) const { v=d_rds_ecc_max; return true; }
+    bool         get_rds_omega_lim(c_def::v_union & v) const { v=d_rds_omega_lim; return true; }
 
     //setters
     virtual void set_offset(int offset);
@@ -285,6 +287,8 @@ public:
     virtual bool set_rds_gomega(const c_def::v_union & v);
     virtual bool set_rds_fxff_bw(const c_def::v_union & v);
     virtual bool set_rds_fxff_tw(const c_def::v_union & v);
+    virtual bool set_rds_ecc_max(const c_def::v_union & v);
+    virtual bool set_rds_omega_lim(const c_def::v_union & v);
 
 public:
     struct comp
@@ -358,6 +362,8 @@ protected:
     float            d_rds_gmu{0.f};
     float            d_rds_fxff_bw{1000.f};
     float            d_rds_fxff_tw{500.f};
+    int              d_rds_ecc_max{0};
+    float            d_rds_omega_lim{2.5e-4f};
 
 } vfo;
 

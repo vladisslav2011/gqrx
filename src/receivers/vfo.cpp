@@ -443,6 +443,18 @@ bool vfo_s::set_rds_fxff_bw(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_ecc_max(const c_def::v_union & v)
+{
+    d_rds_ecc_max = v;
+    return true;
+}
+
+bool vfo_s::set_rds_omega_lim(const c_def::v_union & v)
+{
+    d_rds_omega_lim = v;
+    return true;
+}
+
 void vfo_s::restore_settings(vfo_s& from, bool force)
 {
     c_def::v_union v(0);
@@ -519,6 +531,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_rds_gomega(v); set_rds_gomega(v);
     from.get_rds_fxff_tw(v); set_rds_fxff_tw(v);
     from.get_rds_fxff_bw(v); set_rds_fxff_bw(v);
+    from.get_rds_ecc_max(v); set_rds_ecc_max(v);
+    from.get_rds_omega_lim(v); set_rds_omega_lim(v);
     
     from.get_test(v);set_test(v);
 }
@@ -699,6 +713,10 @@ int vfo_s::conf_initializer()
     setters[C_RDS_FXFF_BW]=&vfo_s::set_rds_fxff_bw;
     getters[C_RDS_FXFF_TW]=&vfo_s::get_rds_fxff_tw;
     setters[C_RDS_FXFF_TW]=&vfo_s::set_rds_fxff_tw;
+    getters[C_RDS_ECC_MAX]=&vfo_s::get_rds_ecc_max;
+    setters[C_RDS_ECC_MAX]=&vfo_s::set_rds_ecc_max;
+    getters[C_RDS_OMEGA_LIM]=&vfo_s::get_rds_omega_lim;
+    setters[C_RDS_OMEGA_LIM]=&vfo_s::set_rds_omega_lim;
     return 0;
 }
 

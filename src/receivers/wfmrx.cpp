@@ -329,3 +329,21 @@ bool wfmrx::set_rds_fxff_tw(const c_def::v_union & v)
     rds->set_fxff_tw(d_rds_fxff_tw);
     return true;
 }
+
+bool wfmrx::set_rds_ecc_max(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_ecc_max(v);
+    rds_decoder->set_ecc_max(d_rds_ecc_max);
+    return true;
+}
+
+bool wfmrx::set_rds_omega_lim(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_omega_lim(v);
+    if(d_rds_on)
+        lock();
+    rds->set_omega_lim(d_rds_omega_lim);
+    if(d_rds_on)
+        unlock();
+    return true;
+}
