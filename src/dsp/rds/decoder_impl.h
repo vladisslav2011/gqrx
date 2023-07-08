@@ -26,6 +26,7 @@ class decoder_impl : public decoder
 {
 public:
 	decoder_impl(bool corr, bool log, bool debug);
+	void set_ecc_max(int n) {d_ecc_max = n;}
 
 private:
     struct bit_locator
@@ -66,6 +67,7 @@ private:
 	uint16_t       d_prev_pi{0};
 	int            d_pi_cnt{0};
 	int            d_counter{0};
+	int            d_ecc_max{0};
 
 };
 

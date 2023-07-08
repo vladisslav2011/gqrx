@@ -173,7 +173,6 @@ int decoder_impl::work (int noutput_items,
     unsigned int block_calculated_crc, block_received_crc, checkword,dataword;
     unsigned int reg_syndrome;
     unsigned char offset_char('x');  // x = error while decoding the word offset
-    constexpr int thr0 = 2;
 
 /* the synchronization process is described in Annex C, page 66 of the standard */
     while (i<noutput_items) {
@@ -240,7 +239,7 @@ int decoder_impl::work (int noutput_items,
                 continue;
             s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
             locators[1]=locator[s^offset_word[1]].l;
-            if(locator[s^offset_word[1]].w>thr0)
+            if(locator[s^offset_word[1]].w>d_ecc_max)
                 offset_chars[1]='x';
             errors[0]+=locator[s^offset_word[1]].w;
             errors[1]+=locator[s^offset_word[0]].w;
@@ -257,9 +256,9 @@ int decoder_impl::work (int noutput_items,
                 offset_chars[2]='c';
                 w=locator[s^offset_word[4]].w;
                 locators[2]=locator[s^offset_word[4]].l;
-                if(locator[s^offset_word[4]].w>thr0)
+                if(locator[s^offset_word[4]].w>d_ecc_max)
                     offset_chars[2]='x';
-            }else if(locator[s^offset_word[2]].w>thr0)
+            }else if(locator[s^offset_word[2]].w>d_ecc_max)
                     offset_chars[2]='x';
 
             errors[0]+=w;
@@ -269,7 +268,7 @@ int decoder_impl::work (int noutput_items,
             errors[4]+=w;
 
             s=calc_syndrome(group[3]>>10,16)^(group[3]&0x3ff);
-            if(locator[s^offset_word[3]].w>thr0)
+            if(locator[s^offset_word[3]].w>d_ecc_max)
                 offset_chars[3]='x';
             locators[3]=locator[s^offset_word[3]].l;
             errors[0]+=locator[s^offset_word[3]].w;

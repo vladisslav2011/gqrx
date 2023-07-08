@@ -74,11 +74,12 @@ public:
 
     void set_index(int v) {d_index=v;}
     void set_agc_rate(float v) {d_agc->set_rate(v);}
-    void set_gain_mu(float v) {d_sync->set_gain_mu(v);}
-    void set_gain_omega(float v) {d_sync->set_gain_omega(v);}
+    void set_gain_mu(float v) {d_sync->set_gain_mu(d_gain_mu=v);}
+    void set_gain_omega(float v) {d_sync->set_gain_omega(d_gain_omega=v);}
     void trig();
     void set_fxff_bw(float bw) {d_fxff_bw=bw; update_fxff_taps();}
     void set_fxff_tw(float tw) {d_fxff_tw=tw; update_fxff_taps();}
+    void set_omega_lim(float v);
 
 private:
     void update_fxff_taps();
@@ -107,8 +108,13 @@ private:
 
     double d_sample_rate;
     int d_index;
+    constexpr static int d_interpolation = 19;
+    constexpr static int d_decimation = 24;
     float d_fxff_tw{500.0f};
     float d_fxff_bw{1000.0f};
+    float d_gain_mu{0.175*0.2};
+    float d_gain_omega{0.25 * 0.175 * 0.000175};
+    float d_omega_lim{0.00025};
 };
 
 
