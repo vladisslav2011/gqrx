@@ -220,8 +220,9 @@ void wfmrx::stop_rds_decoder()
     //disconnect(rds_c, 0, rds_decoder_c, 0);
     //msg_disconnect(rds_decoder_c, "out", rds_parser, "in");
     rds_parser->send_extra=nullptr;
-    rds_parser->clear();
     unlock();
+    rds_parser->clear();
+    rds_decoder->reset_corr();
 }
 
 bool wfmrx::set_wfm_raw(const c_def::v_union & v)
@@ -305,14 +306,14 @@ bool wfmrx::set_rds_agc(const c_def::v_union & v)
 bool wfmrx::set_rds_gmu(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gmu(v);
-    rds->set_gain_mu(powf(10.f, v)*0.007);
+    rds->set_gain_mu(powf(10.f, v)*0.175);
     return true;
 }
 
 bool wfmrx::set_rds_gomega(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gomega(v);
-    rds->set_gain_omega(powf(10.f, v)*0.175);
+    rds->set_gain_omega(powf(10.f, v)*0.007);
     return true;
 }
 

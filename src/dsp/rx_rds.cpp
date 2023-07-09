@@ -28,6 +28,7 @@
 #include <gnuradio/blocks/wavfile_sink.h>
 #include <gnuradio/blocks/complex_to_imag.h>
 #include <gnuradio/blocks/complex_to_real.h>
+#include <gnuradio/digital/costas_loop_cc.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
@@ -135,7 +136,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     int n_taps = 151*5;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*10), 2375, 1, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*10), 2375.0*0.95, 1, n_taps);
     d_rrcf_manchester = std::vector<float>(n_taps-8);
     for (int n = 0; n < n_taps-8; n++) {
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
@@ -189,26 +190,41 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     auto w1=gr::blocks::wavfile_sink::make("/home/vlad/rrcf.wav",2,19000);
     auto im1=gr::blocks::complex_to_imag::make();
     auto re1=gr::blocks::complex_to_real::make();
+    connect(d_agc,0,re1,0);
+    connect(d_agc,0,im1,0);
+    connect(re1,0,w1,0);
+    connect(im1,0,w1,1);
+    #endif
+    #if 0
     auto w2=gr::blocks::wavfile_sink::make("/home/vlad/rrcf_manchester.wav",2,19000);
     auto im2=gr::blocks::complex_to_imag::make();
     auto re2=gr::blocks::complex_to_real::make();
     auto bpf_manc=gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
-    auto w3=gr::blocks::wavfile_sink::make("/home/vlad/raw.wav",2,19000);
-    auto im3=gr::blocks::complex_to_imag::make();
-    auto re3=gr::blocks::complex_to_real::make();
-    connect(d_bpf,0,re1,0);
-    connect(d_bpf,0,im1,0);
-    connect(re1,0,w1,0);
-    connect(im1,0,w1,1);
     connect(d_rsmp,0,bpf_manc,0);
     connect(bpf_manc,0,re2,0);
     connect(bpf_manc,0,im2,0);
     connect(re2,0,w2,0);
     connect(im2,0,w2,1);
+    #endif
+    #if 0
+    auto w3=gr::blocks::wavfile_sink::make("/home/vlad/raw.wav",2,19000);
+    auto im3=gr::blocks::complex_to_imag::make();
+    auto re3=gr::blocks::complex_to_real::make();
     connect(d_rsmp,0,re3,0);
     connect(d_rsmp,0,im3,0);
     connect(re3,0,w3,0);
     connect(im3,0,w3,1);
+    #endif
+    #if 0
+    auto w4=gr::blocks::wavfile_sink::make("/home/vlad/raw4.wav",2,19000.0/8.0);
+    auto im4=gr::blocks::complex_to_imag::make();
+    auto re4=gr::blocks::complex_to_real::make();
+    auto cl4=gr::digital::costas_loop_cc::make(2.0*M_PI/200.0,2);
+    connect(d_sync,0,cl4,0);
+    connect(cl4,0,re4,0);
+    connect(cl4,0,im4,0);
+    connect(re4,0,w4,0);
+    connect(im4,0,w4,1);
     #endif
 }
 
@@ -234,6 +250,7 @@ void rx_rds::update_fxff_taps()
 
 void rx_rds::set_omega_lim(float v)
 {
+    //return;
     disconnect(d_agc, 0, d_sync, 0);
     disconnect(d_sync, 0, d_mpsk, 0);
     d_sync = gr::digital::clock_recovery_mm_cc::make((d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);

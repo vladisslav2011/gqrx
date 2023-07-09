@@ -18,6 +18,7 @@
 #define INCLUDED_RDS_DECODER_IMPL_H
 
 #include "dsp/rds/decoder.h"
+#include <atomic>
 
 namespace gr {
 namespace rds {
@@ -27,6 +28,7 @@ class decoder_impl : public decoder
 public:
 	decoder_impl(bool corr, bool log, bool debug);
 	void set_ecc_max(int n) {d_ecc_max = n;}
+	void reset_corr();
 
 private:
     struct bit_locator
@@ -39,6 +41,7 @@ private:
 	int work(int noutput_items,
 			gr_vector_const_void_star &input_items,
 			gr_vector_void_star &output_items);
+    bool start() override;
 
 	void enter_no_sync();
 	void enter_sync(unsigned int);
@@ -46,7 +49,7 @@ private:
 	void decode_group(int);
 	static std::array<bit_locator,1024> build_locator();
 
-	unsigned long  bit_counter;
+	int            bit_counter;
 	unsigned long  lastseen_offset_counter, reg;
 	unsigned int   block_bit_counter;
 	unsigned int   wrong_blocks_counter;
@@ -67,7 +70,9 @@ private:
 	uint16_t       d_prev_pi{0};
 	int            d_pi_cnt{0};
 	int            d_counter{0};
-	int            d_ecc_max{0};
+	std::atomic<int> d_ecc_max{0};
+	char           d_pi_a[65536]{};
+	int            d_pi_bitcnt{0};
 
 };
 
