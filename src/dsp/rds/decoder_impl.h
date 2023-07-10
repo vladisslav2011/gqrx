@@ -73,6 +73,7 @@ private:
 	std::atomic<int> d_ecc_max{0};
 	char           d_pi_a[65536]{};
 	int            d_pi_bitcnt{0};
+	char           d_max_weight{0};
 
 };
 

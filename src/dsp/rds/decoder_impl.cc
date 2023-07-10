@@ -224,11 +224,15 @@ int decoder_impl::work (int noutput_items,
                 {
                     if(d_pi_a[pi]<13)
                     {
-                        d_pi_a[pi]+=5-errors[0];
-                        if(errors[0]==0)
+                        constexpr char weights[]={5,2,1,1,1};
+                        d_pi_a[pi]+=weights[errors[0]];
+                        if(d_pi_a[pi]>d_max_weight)
+                        {
+                            d_max_weight=d_pi_a[pi];
                             printf("?[%04x] %d %d\n",pi,d_pi_a[pi],errors[0]);
+                        }
                     }else{
-                        printf("+[%04x] %d, %d!!\n",pi,errors[0], d_pi_cnt);
+                        printf("+[%04x] %d %d!!\n",pi,d_pi_a[pi],errors[0]);
                         group[0]=pi;
                         group[1]=(group[1]>>10)^locators[1];
                         group[2]=(group[2]>>10)^locators[2];
@@ -237,11 +241,11 @@ int decoder_impl::work (int noutput_items,
                         offset_chars[1]='x';
                         offset_chars[2]='x';
                         offset_chars[3]='x';
-                       decode_group(0);
+                        decode_group(0);
                         for(int jj=0;jj<65536;jj++)
-                            if(d_pi_a[jj]>0)
-                                d_pi_a[jj]>>=2;
+                            d_pi_a[jj]>>=2;
                         d_pi_bitcnt=0;
+                        d_max_weight>>=2;
                         continue;
                     }
                     d_pi_bitcnt++;
@@ -251,6 +255,7 @@ int decoder_impl::work (int noutput_items,
                         for(int jj=0;jj<65536;jj++)
                             if(d_pi_a[jj]>0)
                                 d_pi_a[jj]--;
+                        d_max_weight--;
                         std::cout<<"d_pi_bitcnt=0\n";
                     }
                 }
@@ -360,11 +365,11 @@ int decoder_impl::work (int noutput_items,
                         continue;
                 }else{
                     d_state = SYNC;
-                    d_counter = errors[0];
+                    d_counter = 0;
                 }
                 if((errors[0] > 15)&&(d_state==SYNC))
                 {
-                    if(d_counter > 22)
+                    if(d_counter > 12)
                     {
                         d_state=NO_SYNC;
                         printf("- NO Sync errors: %d\n",errors[0]);
@@ -505,5 +510,6 @@ int decoder_impl::work (int noutput_items,
 void decoder_impl::reset_corr()
 {
     std::memset(d_pi_a,0,sizeof(d_pi_a));
+    d_max_weight=0;
     d_pi_bitcnt=0;
 }
