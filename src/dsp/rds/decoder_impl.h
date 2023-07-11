@@ -19,6 +19,8 @@
 
 #include "dsp/rds/decoder.h"
 #include <atomic>
+#include <vector>
+#include <map>
 
 namespace gr {
 namespace rds {
@@ -36,6 +38,14 @@ private:
         uint16_t l;
         uint8_t w;
     };
+    struct grp_array
+    {
+        unsigned int data[4];
+        grp_array(const unsigned int * from)
+        {
+            std::memcpy(data,from,sizeof(data));
+        }
+    };
 	~decoder_impl();
 
 	int work(int noutput_items,
@@ -46,8 +56,9 @@ private:
 	void enter_no_sync();
 	void enter_sync(unsigned int);
 	static unsigned int calc_syndrome(unsigned long, unsigned char);
-	void decode_group(int);
+	void decode_group(unsigned *, int);
 	static std::array<bit_locator,1024> build_locator();
+    int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr);
 
 	int            bit_counter;
 	unsigned long  lastseen_offset_counter, reg;
@@ -55,7 +66,10 @@ private:
 	unsigned int   wrong_blocks_counter;
 	unsigned int   blocks_counter;
 	unsigned int   group_good_blocks_counter;
-	unsigned int   group[5];
+	unsigned int   groups[4*3];
+	unsigned int  *prev_grp;
+	unsigned int  *group;
+	unsigned int  *next_grp;
 	unsigned char  offset_chars[4];  // [ABCcDEx] (x=error)
 	bool           log;
 	bool           debug;
@@ -74,6 +88,12 @@ private:
 	char           d_pi_a[65536]{};
 	int            d_pi_bitcnt{0};
 	char           d_max_weight{0};
+    int            d_prev_errs{0};
+    int            d_curr_errs{0};
+    int            d_next_errs{0};
+    int            d_block0errs{0};
+    std::map<uint16_t,std::vector<grp_array>> d_matches{};
+    int            d_best_pi{-1};
 
 };
 

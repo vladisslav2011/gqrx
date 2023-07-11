@@ -680,9 +680,9 @@ void parser_impl::parse(pmt::pmt_t pdu) {
     group[3] = bytes[7] | (((unsigned int)(bytes[6])) << 8U);
 
 	offset_chars[0] = bytes[8];
-	offset_chars[1] = bytes[1];
-	offset_chars[2] = bytes[2];
-	offset_chars[3] = bytes[3];
+	offset_chars[1] = bytes[9];
+	offset_chars[2] = bytes[10];
+	offset_chars[3] = bytes[11];
     d_bit_errors = bytes[12];
     if(d_bit_errors >= 127)
         return;
@@ -717,8 +717,6 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         if(offset_chars[0] != 'x')
             send_message(PI, pistring.str());
         changed_value(C_RDS_BIT_ERRORS, d_index, d_bit_errors);
-        if(bytes[12]>5)
-            return;
         if(offset_chars[1] != 'x')
             send_message(PTY, pty_table[program_type][pty_locale]);
 

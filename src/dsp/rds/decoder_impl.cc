@@ -85,6 +85,9 @@ decoder_impl::decoder_impl(bool corr, bool log, bool debug)
 	set_output_multiple(104);  // 1 RDS datagroup = 104 bits
 	message_port_register_out(pmt::mp("out"));
 	enter_no_sync();
+	prev_grp=&groups[0];
+	group=&groups[4];
+	next_grp=&groups[8];
 }
 
 decoder_impl::~decoder_impl() {
@@ -132,21 +135,87 @@ unsigned int decoder_impl::calc_syndrome(unsigned long message,
 	return (lreg & ((1<<plen)-1));	// select the bottom plen bits of reg
 }
 
-void decoder_impl::decode_group(int bit_errors)
+int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_chars, uint16_t * loc)
+{
+    int ret=0;
+    if(offs_chars)
+    {
+        offs_chars[0]='A';
+        offs_chars[1]='B';
+        offs_chars[2]='C';
+        offs_chars[3]='D';
+    }
+    if(loc)
+        loc[0]=loc[1]=loc[2]=loc[3]=0;
+    uint16_t s;
+
+    s=calc_syndrome(grp[0]>>10,16)^(grp[0]&0x3ff);
+    const bit_locator & bl=locator[s^offset_word[0]];
+    if(loc)
+        loc[0]=bl.l;
+    if(offs_chars)
+        if(bl.w>0)
+            offs_chars[0]='x';
+    ret+=bl.w;
+    d_block0errs=bl.w;
+
+    s=calc_syndrome(grp[1]>>10,16)^(grp[1]&0x3ff);
+    const bit_locator & bl1=locator[s^offset_word[1]];
+    if(loc)
+        loc[1]=bl1.l;
+    if(offs_chars)
+        if(bl1.w>thr)
+            offs_chars[1]='x';
+    ret+=bl1.w;
+
+    s=calc_syndrome(grp[2]>>10,16)^(grp[2]&0x3ff);
+    const bit_locator & bl2=locator[s^offset_word[2]];
+    const bit_locator & bl4=locator[s^offset_word[4]];
+    if(bl2.w<bl4.w)
+    {
+        if(loc)
+            loc[2]=bl2.l;
+        if(offs_chars)
+            if(bl2.w>thr)
+                offs_chars[2]='x';
+        ret+=bl2.w;
+    }else{
+        if(offs_chars)
+            offs_chars[2]='c';
+        if(loc)
+            loc[2]=bl4.l;
+        if(offs_chars)
+            if(bl4.w>thr)
+                offs_chars[2]='x';
+        ret+=bl4.w;
+    }
+
+    s=calc_syndrome(grp[3]>>10,16)^(grp[3]&0x3ff);
+    const bit_locator & bl3=locator[s^offset_word[3]];
+    if(loc)
+        loc[3]=bl3.l;
+    if(offs_chars)
+        if(bl3.w>thr)
+            offs_chars[3]='x';
+    ret+=bl3.w;
+    return ret;
+}
+
+void decoder_impl::decode_group(unsigned *grp, int bit_errors)
 {
 	// raw data bytes, as received from RDS.
 	// 8 info bytes, followed by 4 RDS offset chars: ABCD/ABcD/EEEE (in US)
 	unsigned char bytes[13];
 
 	// RDS information words
-	bytes[0] = (group[0] >> 8U) & 0xffU;
-	bytes[1] = (group[0]      ) & 0xffU;
-	bytes[2] = (group[1] >> 8U) & 0xffU;
-	bytes[3] = (group[1]      ) & 0xffU;
-	bytes[4] = (group[2] >> 8U) & 0xffU;
-	bytes[5] = (group[2]      ) & 0xffU;
-	bytes[6] = (group[3] >> 8U) & 0xffU;
-	bytes[7] = (group[3]      ) & 0xffU;
+	bytes[0] = (grp[0] >> 8U) & 0xffU;
+	bytes[1] = (grp[0]      ) & 0xffU;
+	bytes[2] = (grp[1] >> 8U) & 0xffU;
+	bytes[3] = (grp[1]      ) & 0xffU;
+	bytes[4] = (grp[2] >> 8U) & 0xffU;
+	bytes[5] = (grp[2]      ) & 0xffU;
+	bytes[6] = (grp[3] >> 8U) & 0xffU;
+	bytes[7] = (grp[3]      ) & 0xffU;
 
 	// RDS offset words
 	bytes[8] = offset_chars[0];
@@ -182,70 +251,94 @@ int decoder_impl::work (int noutput_items,
 
 /* the synchronization process is described in Annex C, page 66 of the standard */
     while (i<noutput_items) {
+        std::swap(group,prev_grp);
+        std::memcpy(group,next_grp,sizeof(group[0])*4);
         group[0]=((group[0]<<1)|(group[1]>>25))&((1<<26)-1);
         group[1]=((group[1]<<1)|(group[2]>>25))&((1<<26)-1);
         group[2]=((group[2]<<1)|(group[3]>>25))&((1<<26)-1);
-        group[3]=((group[3]<<1)|(group[4]>>25))&((1<<26)-1);
-        group[4]=((group[4]<<1)|in[i])&((1<<26)-1);
+//        group[3]=((group[3]<<1)|(group[4]>>25))&((1<<26)-1);
+//        group[4]=((group[4]<<1)|in[i])&((1<<26)-1);
+        group[3]=((group[3]<<1)|in[i])&((1<<26)-1);
+        std::swap(group,next_grp);
         ++i;
         ++bit_counter;
-        if(bit_counter>=26*5)
+        if(bit_counter>=26*4+2)
         {
-            offset_chars[0]='A';
-            offset_chars[1]='B';
-            offset_chars[2]='C';
-            offset_chars[3]='D';
             uint16_t locators[5]={0,0,0,0,0};
-            uint16_t errors[5]={0,0,0,0,0};
-            uint16_t s;
-            uint16_t w;
             int good_grp=0;
+            int bit_errors=0;
             auto old_sync = d_state;
-            s=calc_syndrome(group[0]>>10,16)^(group[0]&0x3ff);
-            locators[0]=locator[s^offset_word[0]].l;
-            if(locator[s^offset_word[0]].w>0)
-                offset_chars[0]='x';
-            if(locator[s^offset_word[0]].w<=ecc_max)
-                good_grp++;
-            errors[0]+=locator[s^offset_word[0]].w;
-            errors[1]+=locator[s^offset_word[3]].w;
-            errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
-            errors[3]+=locator[s^offset_word[1]].w;
-            errors[4]+=locator[s^offset_word[0]].w;
-            s=calc_syndrome(group[4]>>10,16)^(group[4]&0x3ff);
-            locators[4]=locator[s^offset_word[0]].l;
-            if(locator[s^offset_word[0]].w<=ecc_max)
-                good_grp++;
-            errors[4]=locator[s^offset_word[0]].w;
-            uint16_t pi = (group[0]>>10)^locators[0];
-            if(d_state!=SYNC)
+            if(d_state==SYNC)
             {
-                if(errors[0]<5)
+                //handle +/- 1 bit shifts
+                d_prev_errs=process_group(prev_grp);
+                d_curr_errs=process_group(group);
+                d_next_errs=process_group(next_grp);
+                bit_counter=2;
+                if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs))
                 {
+                    std::swap(group,next_grp);
+                    std::swap(group,prev_grp);
+                    std::swap(d_curr_errs,d_next_errs);
+                    std::swap(d_curr_errs,d_prev_errs);
+                    bit_counter=1;
+                    printf("<->\n");
+                }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs))
+                {
+                    std::swap(group,prev_grp);
+                    std::swap(group,next_grp);
+                    std::swap(d_curr_errs,d_prev_errs);
+                    std::swap(d_curr_errs,d_next_errs);
+                    bit_counter=3;
+                    printf("<+>\n");
+                }/*else if((curr_errs<prev_errs)&&(curr_errs<next_errs))*/
+                 reset_corr();
+            }else{
+                d_prev_errs=d_curr_errs;
+                d_curr_errs=d_next_errs;
+                d_next_errs=process_group(next_grp, ecc_max, offset_chars, locators);
+                uint16_t pi = (next_grp[0]>>10)^locators[0];
+                if(d_block0errs<5)
+                {
+                    constexpr char weights[]={5,2,1,1,1};
+                    d_pi_a[pi]+=weights[d_block0errs];
                     if(d_pi_a[pi]<13)
                     {
-                        constexpr char weights[]={5,2,1,1,1};
-                        d_pi_a[pi]+=weights[errors[0]];
                         if(d_pi_a[pi]>d_max_weight)
                         {
                             d_max_weight=d_pi_a[pi];
-                            printf("?[%04x] %d %d\n",pi,d_pi_a[pi],errors[0]);
+                            printf("?[%04x] %d %d %d\n",pi,d_pi_a[pi],d_block0errs,d_next_errs);
+                            d_matches[pi].push_back(grp_array(next_grp));
                         }
                     }else{
-                        printf("+[%04x] %d %d!!\n",pi,d_pi_a[pi],errors[0]);
-                        group[0]=pi;
-                        group[1]=(group[1]>>10)^locators[1];
-                        group[2]=(group[2]>>10)^locators[2];
-                        group[3]=(group[3]>>10)^locators[3];
+                        printf("+[%04x] %d %d %d!!\n",pi,d_pi_a[pi],d_block0errs,d_next_errs);
+                        auto & prv=d_matches[pi];
+                        for(unsigned k=0;k<prv.size();k++)
+                        {
+                            std::memcpy(prev_grp,prv[k].data,sizeof(prv[k].data));
+                            d_prev_errs=process_group(prev_grp, ecc_max, offset_chars, locators);
+                            prev_grp[0]=pi;
+                            prev_grp[1]=(prev_grp[1]>>10)^locators[1];
+                            prev_grp[2]=(prev_grp[2]>>10)^locators[2];
+                            prev_grp[3]=(prev_grp[3]>>10)^locators[3];
+                            offset_chars[0]='A';
+                            decode_group(prev_grp,0);
+                        }
+                        d_matches.clear();
+                        d_next_errs=process_group(next_grp, ecc_max, offset_chars, locators);
+                        next_grp[0]=pi;
+                        next_grp[1]=(next_grp[1]>>10)^locators[1];
+                        next_grp[2]=(next_grp[2]>>10)^locators[2];
+                        next_grp[3]=(next_grp[3]>>10)^locators[3];
                         offset_chars[0]='A';
-                        offset_chars[1]='x';
-                        offset_chars[2]='x';
-                        offset_chars[3]='x';
-                        decode_group(0);
+                        decode_group(next_grp,0);
                         for(int jj=0;jj<65536;jj++)
                             d_pi_a[jj]>>=2;
                         d_pi_bitcnt=0;
                         d_max_weight>>=2;
+                        d_state=FORCE_SYNC;
+                        d_best_pi=pi;
+                        bit_counter=1;
                         continue;
                     }
                     d_pi_bitcnt++;
@@ -259,121 +352,39 @@ int decoder_impl::work (int noutput_items,
                         std::cout<<"d_pi_bitcnt=0\n";
                     }
                 }
-                if((errors[0]<2)&&(errors[4]<2)&&(((group[0]>>10)^locators[0]) == ((group[4]>>10)^locators[4])))
-                {
-                    if(d_corr)
-                    {
-                        if((pi == d_prev_pi)&&(errors[0] == 0))
-                        {
-                            if(d_pi_cnt<3)
-                                d_pi_cnt++;
-                            else{
-                                printf("+[%04x] %d, %d\n",pi,errors[0], d_pi_cnt);
-                                group[0]=(group[0]>>10)^locators[0];
-                                group[1]=(group[1]>>10)^locators[1];
-                                group[2]=(group[2]>>10)^locators[2];
-                                group[3]=(group[3]>>10)^locators[3];
-                                offset_chars[0]='A';
-                                offset_chars[1]='x';
-                                offset_chars[2]='x';
-                                offset_chars[3]='x';
-                                decode_group(errors[0]);
-                            }
-                            continue;
-                        }else{
-                            d_prev_pi=pi;
-                            d_pi_cnt=0;
-                        }
-                    }else{
-                        if(d_state != SYNC)
-                            printf("+[%04x] %d\n",pi,errors[0]);
-                        if(errors[0] == 0)
-                            d_state = FORCE_SYNC;
-                    }
-                }
                 if(d_corr)
                     continue;
-            }else
-                reset_corr();
-            s=calc_syndrome(group[1]>>10,16)^(group[1]&0x3ff);
-            locators[1]=locator[s^offset_word[1]].l;
-            if(locator[s^offset_word[1]].w>ecc_max)
-                offset_chars[1]='x';
-            else
-                good_grp++;
-            errors[0]+=locator[s^offset_word[1]].w;
-            errors[1]+=locator[s^offset_word[0]].w;
-            errors[2]+=locator[s^offset_word[3]].w;
-            errors[3]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
-            errors[4]+=locator[s^offset_word[1]].w;
-
-            s=calc_syndrome(group[2]>>10,16)^(group[2]&0x3ff);
-            locators[2]=locator[s^offset_word[2]].l;
-            w=locator[s^offset_word[2]].w;
-            offset_chars[2]='C';
-            if(w > locator[s^offset_word[4]].w)
-            {
-                offset_chars[2]='c';
-                w=locator[s^offset_word[4]].w;
-                locators[2]=locator[s^offset_word[4]].l;
-                if(locator[s^offset_word[4]].w>ecc_max)
-                    offset_chars[2]='x';
-                else
-                    good_grp++;
-            }else if(locator[s^offset_word[2]].w>ecc_max)
-                offset_chars[2]='x';
-            else
-                good_grp++;
-
-            errors[0]+=w;
-            errors[1]+=locator[s^offset_word[1]].w;
-            errors[2]+=locator[s^offset_word[0]].w;
-            errors[3]+=locator[s^offset_word[3]].w;
-            errors[4]+=w;
-
-            s=calc_syndrome(group[3]>>10,16)^(group[3]&0x3ff);
-            if(locator[s^offset_word[3]].w>ecc_max)
-                offset_chars[3]='x';
-            else
-                good_grp++;
-            locators[3]=locator[s^offset_word[3]].l;
-            errors[0]+=locator[s^offset_word[3]].w;
-            errors[1]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
-            errors[2]+=locator[s^offset_word[1]].w;
-            errors[3]+=locator[s^offset_word[0]].w;
-            errors[4]+=locator[s^offset_word[3]].w;
-            #if 0
-            s=calc_syndrome(group[4]>>10,16)^(group[4]&0x3ff);
-            locators[4]=locator[s^offset_word[0]].l;
-            errors[0]+=locator[s^offset_word[0]].w;
-            errors[1]+=locator[s^offset_word[3]].w;
-            errors[2]+=std::min(locator[s^offset_word[2]].w,locator[s^offset_word[4]].w);
-            errors[3]+=locator[s^offset_word[1]].w;
-            errors[4]+=locator[s^offset_word[0]].w;
-            if(((group[0]>>10)^locators[0]) != ((group[4]>>10)^locators[4]))
-                continue;
-            #endif
-            int bit_errors=
-                __builtin_popcount(locators[0])+__builtin_popcount(locators[1])+__builtin_popcount(locators[2])+__builtin_popcount(locators[3]);
+            }
             if(d_state != FORCE_SYNC)
             {
-                if((std::min(std::min(errors[0],errors[1]),std::min(errors[2],errors[3])) != errors[0])&&(d_state!=SYNC))
+                if(((d_curr_errs>d_prev_errs)||(d_curr_errs>d_next_errs))&&(d_state!=SYNC))
                     continue;
-                if(errors[0] > 5)
+                if((d_best_pi==int(group[0]>>10))&&(d_curr_errs<5)&&(d_state==NO_SYNC))
+                {
+                    d_state = SYNC;
+                    d_counter = 0;
+                    bit_counter=2;
+                }
+                if(d_curr_errs > 1)
                 {
                     if(d_state!=SYNC)
                         continue;
                 }else{
+                    if(d_state != SYNC)
+                    {
+                        bit_counter=2;
+                        d_best_pi=group[0]>>10;
+                    }
                     d_state = SYNC;
                     d_counter = 0;
                 }
-                if((errors[0] > 15)&&(d_state==SYNC))
+                if((d_curr_errs > 15)&&(d_state==SYNC))
                 {
-                    if(d_counter > 12)
+                    if(d_counter > 5)
                     {
                         d_state=NO_SYNC;
-                        printf("- NO Sync errors: %d\n",errors[0]);
-                    }else
+                        printf("- NO Sync errors: %d\n",d_curr_errs);
+                     }else
                         d_counter ++;
                 }
                 if(d_state != SYNC)
@@ -381,21 +392,20 @@ int decoder_impl::work (int noutput_items,
             }else{
                 d_state = SYNC;
                 offset_chars[0]='F';
-                d_counter = 0;
             }
 //            if(bit_errors>5)
 //                continue;
+            bit_errors=process_group(group, ecc_max, offset_chars, locators);
             group[0]=(group[0]>>10)^locators[0];
             group[1]=(group[1]>>10)^locators[1];
             group[2]=(group[2]>>10)^locators[2];
             group[3]=(group[3]>>10)^locators[3];
-            decode_group(bit_errors);
+            decode_group(group, bit_errors);
             if(d_state != old_sync)
-                printf("Sync %c %04x Corrected: %d %d %d\n",offset_chars[2],group[0],bit_errors,errors[0],ecc_max);
-            bit_counter=26;
+                printf("Sync %c %04x Corrected: %d %d\n",offset_chars[2],group[0],bit_errors,ecc_max);
         }
     }
-    decode_group(127);
+    decode_group(group, 127);
     return noutput_items;
 
     while (i<noutput_items) {
@@ -511,5 +521,7 @@ void decoder_impl::reset_corr()
 {
     std::memset(d_pi_a,0,sizeof(d_pi_a));
     d_max_weight=0;
+    d_best_pi=-1;
     d_pi_bitcnt=0;
+    d_matches.clear();
 }
