@@ -695,9 +695,15 @@ void parser_impl::parse(pmt::pmt_t pdu) {
     {
         gr::thread::scoped_lock lock(d_mutex);
 
+        bool good_block0=false;
+        if(offset_chars[0] == 'A')
+            good_block0 = true;
         if(offset_chars[0] == 'F')
-            d_bit_errors  = 0;
-        if(offset_chars[0] != 'x')
+        {
+            d_bit_errors = 0;
+            good_block0 = true;
+        }
+        if(good_block0)
             program_identification = group[0];     // "PI"
         if(offset_chars[1] != 'x')
             program_type = (group[1] >> 5) & 0x1f; // "PTY"
@@ -706,7 +712,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         unsigned char pi_program_reference_number = program_identification & 0xff;
         std::stringstream pistring;
         pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
-        if(offset_chars[0] != 'x')
+        if(good_block0)
             if(d_best_errors >= d_bit_errors)
             {
                 d_best_errors = d_bit_errors;
@@ -714,6 +720,8 @@ void parser_impl::parse(pmt::pmt_t pdu) {
             }
         if(d_best_errors < 128)
             pistring<<std::dec<<std::setw(0)<<" ("<<d_best_pi<<"/"<<d_best_errors<<")";
+        if(offset_chars[0] == '?')
+            pistring << " " << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << group[0] << "?";
         if(offset_chars[0] != 'x')
             send_message(PI, pistring.str());
         changed_value(C_RDS_BIT_ERRORS, d_index, d_bit_errors);
