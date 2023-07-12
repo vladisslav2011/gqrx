@@ -305,6 +305,7 @@ int decoder_impl::work (int noutput_items,
                             printf("?[%04x] %d %d %d\n",pi,d_pi_a[pi],d_block0errs,d_next_errs);
                             d_matches[pi].push_back(grp_array(next_grp));
                             prev_grp[0]=pi;
+                            prev_grp[1]=d_pi_a[pi];
                             offset_chars[0]='?';
                             offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
                             decode_group(prev_grp,d_next_errs);

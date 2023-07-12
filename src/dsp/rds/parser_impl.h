@@ -70,7 +70,7 @@ private:
 	void decode_type14(unsigned int* group, bool B);
 	void decode_type15(unsigned int* group, bool B);
 
-	unsigned int   program_identification;
+	unsigned int   program_identification{0xffffffff};
 	unsigned char  program_type;
 	unsigned char  pi_country_identification;
 	unsigned char  pi_area_coverage;
