@@ -82,7 +82,7 @@ decoder_impl::decoder_impl(bool corr, bool log, bool debug)
 	d_corr(corr)
 {
 	bit_counter=0;
-	set_output_multiple(104);  // 1 RDS datagroup = 104 bits
+	set_output_multiple(GROUP_SIZE);  // 1 RDS datagroup = 104 bits
 	message_port_register_out(pmt::mp("out"));
 	enter_no_sync();
 	prev_grp=&groups[0];
@@ -95,7 +95,8 @@ decoder_impl::~decoder_impl() {
 
 bool decoder_impl::start()
 {
-    bit_counter=-26;
+    bit_counter=-BLOCK_SIZE;
+    d_bit_counter=0;
     return gr::block::start();
 }
 
@@ -263,7 +264,8 @@ int decoder_impl::work (int noutput_items,
     	unsigned int  *good_group=group;
         ++i;
         ++bit_counter;
-        if(bit_counter>=26*4+2)
+        ++d_bit_counter;
+        if(bit_counter>=GROUP_SIZE+1)
         {
             uint16_t locators[5]={0,0,0,0,0};
             int good_grp=0;
@@ -275,16 +277,16 @@ int decoder_impl::work (int noutput_items,
                 d_prev_errs=process_group(prev_grp);
                 d_curr_errs=process_group(group);
                 d_next_errs=process_group(next_grp);
-                bit_counter=2;
+                bit_counter=1;
                 if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs))
                 {
                     good_group=prev_grp;
-                    bit_counter=3;
+                    bit_counter=2;
                     printf("<->\n");
                 }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs))
                 {
                     good_group=next_grp;
-                    bit_counter=1;
+                    bit_counter=0;
                     printf("<+>\n");
                 }/*else if((curr_errs<prev_errs)&&(curr_errs<next_errs))*/
                  reset_corr();
@@ -296,22 +298,27 @@ int decoder_impl::work (int noutput_items,
                 if(d_block0errs<5)
                 {
                     constexpr char weights[]={5,2,1,1,1};
-                    d_pi_a[pi]+=weights[d_block0errs];
-                    if(d_pi_a[pi]<13)
+                    d_pi_a[pi].weight+=weights[d_block0errs];
+                    d_pi_a[pi].count++;
+                    int bit_offset=d_bit_counter-d_pi_a[pi].lastseen;
+                    d_pi_a[pi].lastseen=d_bit_counter;
+                    if((d_pi_a[pi].weight>=10)&&(d_block0errs==0)&&((bit_offset+1)%GROUP_SIZE < 3))
+                        d_pi_a[pi].weight+=4;
+                    if(d_pi_a[pi].weight<13)
                     {
-                        if(d_pi_a[pi]>d_max_weight)
+                        if(d_pi_a[pi].weight>d_max_weight)
                         {
-                            d_max_weight=d_pi_a[pi];
-                            printf("?[%04x] %d %d %d\n",pi,d_pi_a[pi],d_block0errs,d_next_errs);
+                            d_max_weight=d_pi_a[pi].weight;
+                            printf("?[%04x] %d %d %d\n",pi,d_pi_a[pi].weight,d_block0errs,d_next_errs);
                             d_matches[pi].push_back(grp_array(next_grp));
                             prev_grp[0]=pi;
-                            prev_grp[1]=d_pi_a[pi];
+                            prev_grp[1]=d_pi_a[pi].weight;
                             offset_chars[0]='?';
                             offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
                             decode_group(prev_grp,d_next_errs);
                         }
                     }else{
-                        printf("+[%04x] %d %d %d!!\n",pi,d_pi_a[pi],d_block0errs,d_next_errs);
+                        printf("+[%04x] %d %d %d!!\n",pi,d_pi_a[pi].weight,d_block0errs,d_next_errs);
                         auto & prv=d_matches[pi];
                         for(unsigned k=0;k<prv.size();k++)
                         {
@@ -333,21 +340,28 @@ int decoder_impl::work (int noutput_items,
                         offset_chars[0]='A';
                         decode_group(prev_grp,0);
                         for(int jj=0;jj<65536;jj++)
-                            d_pi_a[jj]>>=2;
+                        {
+                            d_pi_a[jj].weight>>=2;
+                            d_pi_a[jj].count>>=2;
+                        }
                         d_pi_bitcnt=0;
                         d_max_weight>>=2;
                         //d_state=SYNC;
                         d_best_pi=pi;
-                        bit_counter=2;
+                        bit_counter=1;
                         continue;
                     }
                     d_pi_bitcnt++;
-                    if(d_pi_bitcnt>26*100)
+                    if(d_pi_bitcnt>BLOCK_SIZE*100)
                     {
                         d_pi_bitcnt=0;
                         for(int jj=0;jj<65536;jj++)
-                            if(d_pi_a[jj]>0)
-                                d_pi_a[jj]--;
+                        {
+                            if(d_pi_a[jj].weight>0)
+                                d_pi_a[jj].weight--;
+                            if(d_pi_a[jj].count>0)
+                                d_pi_a[jj].count--;
+                        }
                         d_max_weight--;
                         std::cout<<"d_pi_bitcnt--\n";
                     }
@@ -414,7 +428,7 @@ int decoder_impl::work (int noutput_items,
         reg=(reg<<1)|in[i];		// reg contains the last 26 rds bits
         switch (d_state) {
             case NO_SYNC:
-                reg_syndrome = calc_syndrome(reg,26);
+                reg_syndrome = calc_syndrome(reg,BLOCK_SIZE);
                 for (j=0;j<5;j++) {
                     if (reg_syndrome==syndrome[j]) {
                         if (!presync) {
@@ -428,7 +442,7 @@ int decoder_impl::work (int noutput_items,
                                 block_distance=offset_pos[j]+4-offset_pos[lastseen_offset];
                             else
                                 block_distance=offset_pos[j]-offset_pos[lastseen_offset];
-                            if ((block_distance*26)!=bit_distance) presync=false;
+                            if ((block_distance*BLOCK_SIZE)!=bit_distance) presync=false;
                             else {
                                 lout << "@@@@@ Sync State Detected" << std::endl;
                                 enter_sync(j);
@@ -522,6 +536,7 @@ int decoder_impl::work (int noutput_items,
 void decoder_impl::reset_corr()
 {
     std::memset(d_pi_a,0,sizeof(d_pi_a));
+    d_bit_counter=0;
     d_max_weight=0;
     d_best_pi=-1;
     d_pi_bitcnt=0;
