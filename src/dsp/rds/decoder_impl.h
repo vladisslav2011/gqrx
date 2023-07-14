@@ -33,10 +33,18 @@ public:
 	void reset_corr();
 
 private:
+    constexpr static int BLOCK_SIZE{26};
+    constexpr static int GROUP_SIZE{26*4};
     struct bit_locator
     {
         uint16_t l;
         uint8_t w;
+    };
+    struct pi_stats
+    {
+        char count;
+        char weight;
+        unsigned lastseen;
     };
     struct grp_array
     {
@@ -85,7 +93,8 @@ private:
 	int            d_pi_cnt{0};
 	int            d_counter{0};
 	std::atomic<int> d_ecc_max{0};
-	char           d_pi_a[65536]{};
+	pi_stats       d_pi_a[65536]{};
+	int            d_bit_counter;
 	int            d_pi_bitcnt{0};
 	char           d_max_weight{0};
     int            d_prev_errs{0};
