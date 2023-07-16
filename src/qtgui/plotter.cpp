@@ -304,10 +304,11 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_TooltipsEnabled)
                 {
                     qint64 hoverFrequency = freqFromX(pt.x());
-                    QString toolTipText = QString("F: %1 kHz, %2db")
+                    QString toolTipText = QString("F: %1 kHz, %2db\n Δ=%3 kHz")
                         .arg(hoverFrequency/1.e3, 0, 'f', 3)
                         .arg((m_OverlayPixmap.height() / m_DPR - pt.y()) * fabs(m_PandMindB - m_PandMaxdB) /
-                             float(m_OverlayPixmap.height() / m_DPR) + float(m_PandMindB), 0, 'f', 1);
+                             float(m_OverlayPixmap.height() / m_DPR) + float(m_PandMindB), 0, 'f', 1)
+                        .arg((hoverFrequency - m_DemodCenterFreq)/1.e3, 0, 'f', 3);
                     QFontMetrics metrics(m_Font);
                     int bandTopY = (m_OverlayPixmap.height() / m_DPR) - metrics.height() - 2 * VER_MARGIN - m_BandPlanHeight;
                     QList<BandInfo> hoverBands = BandPlan::Get().getBandsEncompassing(hoverFrequency);
