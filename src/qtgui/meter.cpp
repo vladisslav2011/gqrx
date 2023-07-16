@@ -41,6 +41,7 @@
 #define CTRL_XAXIS_HEGHT 0.4	// vertical position of horizontal axis
 #define CTRL_NEEDLE_TOP 0.4		// vertical position of top of needle triangle
 
+#define MIN_DB_TEXT -200.0f
 #define MIN_DB -100.0f
 #define MAX_DB +0.0f
 
@@ -111,15 +112,15 @@ void CMeter::resizeEvent(QResizeEvent *)
 
 void CMeter::setLevel(float dbfs)
 {
-    if (dbfs < MIN_DB)
-        dbfs = MIN_DB;
+    if (dbfs < MIN_DB_TEXT)
+        dbfs = MIN_DB_TEXT;
     else if (dbfs > MAX_DB)
         dbfs = MAX_DB;
 
     float level = m_dBFS;
     float alpha  = dbfs < level ? ALPHA_DECAY : ALPHA_RISE;
     m_dBFS -= alpha * (level - dbfs);
-    m_Siglevel = (level - MIN_DB) * m_pixperdb;
+    m_Siglevel = std::max(0.0, (level - MIN_DB) * m_pixperdb);
 
     draw();
 }
