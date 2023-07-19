@@ -32,6 +32,7 @@
 #include "dsp/rx_rds.h"
 #include "dsp/rds/decoder.h"
 #include "dsp/rds/parser.h"
+#include <gnuradio/analog/quadrature_demod_cf.h>
 
 class wfmrx;
 
@@ -85,8 +86,6 @@ public:
 
     /* FM parameters */
     bool has_fm() {return true; }
-    void set_fm_maxdev(float maxdev_hz);
-    void set_fm_deemph(double tau);
 
     void get_rds_data(std::string &outbuff, int &num);
     void start_rds_decoder();
@@ -101,7 +100,7 @@ private:
 
     rx_filter_sptr            filter;    /*!< Non-translating bandpass filter.*/
 
-    rx_demod_fm_sptr          demod_fm;  /*!< FM demodulator. */
+    gr::analog::quadrature_demod_cf::sptr demod_fm;  /*!< FM demodulator. */
     stereo_demod_sptr         stereo;    /*!< FM stereo demodulator. */
     stereo_demod_sptr         stereo_oirt;    /*!< FM stereo oirt demodulator. */
     stereo_demod_sptr         mono;      /*!< FM stereo demodulator OFF. */

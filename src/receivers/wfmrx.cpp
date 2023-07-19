@@ -40,7 +40,8 @@ wfmrx::wfmrx(float quad_rate, float audio_rate)
 {
 
     filter = make_rx_filter((double)PREF_QUAD_RATE, -80000.0, 80000.0, 20000.0);
-    demod_fm = make_rx_demod_fm(PREF_QUAD_RATE, 75000.0, 0.0);
+    /* demodulator */
+    demod_fm = gr::analog::quadrature_demod_cf::make(double(PREF_QUAD_RATE) / (2.0 * M_PI * 75000.0));
     stereo = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true);
     stereo_oirt = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, true, true);
     mono = make_stereo_demod(PREF_QUAD_RATE, d_audio_rate, false);
@@ -150,16 +151,6 @@ void wfmrx::set_demod(int demod)
 
     /* continue processing */
     unlock();
-}
-
-void wfmrx::set_fm_maxdev(float maxdev_hz)
-{
-    demod_fm->set_max_dev(maxdev_hz);
-}
-
-void wfmrx::set_fm_deemph(double tau)
-{
-    demod_fm->set_tau(tau);
 }
 
 void wfmrx::get_rds_data(std::string &outbuff, int &num)
