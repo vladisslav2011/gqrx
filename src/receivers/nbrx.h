@@ -62,6 +62,7 @@ public:
     void set_offset(int offset) override;
     bool set_cw_offset(const c_def::v_union &) override;
 
+    bool set_au_flt_size(const c_def::v_union &) override;
     void set_audio_rate(int audio_rate) override;
 
     /* Noise blanker */

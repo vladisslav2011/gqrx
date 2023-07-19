@@ -311,6 +311,18 @@ bool vfo_s::set_wfm_raw(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_iq_flt_size(const c_def::v_union & v)
+{
+    d_iq_flt_size = v;
+    return true;
+}
+
+bool vfo_s::set_au_flt_size(const c_def::v_union & v)
+{
+    d_au_flt_size = v;
+    return true;
+}
+
 bool vfo_s::set_nb1_on(const c_def::v_union & v)
 {
     d_nb_on[0] = v;
@@ -524,6 +536,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_cw_offset(v);set_cw_offset(v);
     from.get_wfm_deemph(v);set_wfm_deemph(v);
     from.get_wfm_raw(v);set_wfm_raw(v);
+    from.get_iq_flt_size(v);set_iq_flt_size(v);
+    from.get_au_flt_size(v);set_au_flt_size(v);
     from.get_rds_on(v);set_rds_on(v);
     
     from.get_rds_agc(v); set_rds_agc(v);
@@ -692,6 +706,11 @@ int vfo_s::conf_initializer()
     getters[C_WFM_OIRT_DEEMPH]=&vfo_s::get_wfm_deemph;
     setters[C_WFM_RAW]=&vfo_s::set_wfm_raw;
     getters[C_WFM_RAW]=&vfo_s::get_wfm_raw;
+    // other
+    setters[C_IQ_FLT_SIZE]=&vfo_s::set_iq_flt_size;
+    getters[C_IQ_FLT_SIZE]=&vfo_s::get_iq_flt_size;
+    setters[C_AU_FLT_SIZE]=&vfo_s::set_au_flt_size;
+    getters[C_AU_FLT_SIZE]=&vfo_s::get_au_flt_size;
 
     getters[C_RDS_ON]=&vfo_s::get_rds_on;
     setters[C_RDS_ON]=&vfo_s::set_rds_on;

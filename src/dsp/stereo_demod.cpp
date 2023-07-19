@@ -160,6 +160,13 @@ void stereo_demod::set_tau(double tau)
         deemph1->set_tau(tau);
 }
 
+void stereo_demod::set_au_flt_size(unsigned s)
+{
+    audio_rr0->set_flt_size(s);
+    if(d_stereo)
+        audio_rr1->set_flt_size(s);
+}
+
 void stereo_demod::set_audio_rate(float audio_rate)
 {
     d_audio_rate = audio_rate;
