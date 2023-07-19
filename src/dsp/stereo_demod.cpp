@@ -151,3 +151,10 @@ stereo_demod::~stereo_demod()
 {
 
 }
+
+void stereo_demod::set_tau(double tau)
+{
+    deemph0->set_tau(tau);
+    if(d_stereo)
+        deemph1->set_tau(tau);
+}
