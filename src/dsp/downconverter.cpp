@@ -77,6 +77,7 @@ void downconverter_cc::connect_all()
     if (d_decim > 1)
     {
         filt = gr::filter::freq_xlating_fir_filter_ccf::make(d_decim, {1}, 0.0, d_samp_rate);
+        filt->set_output_multiple(d_samp_rate/(d_decim*20));
         connect(self(), 0, filt, 0);
         connect(filt, 0, self(), 0);
     }
