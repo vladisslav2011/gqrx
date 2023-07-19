@@ -93,6 +93,7 @@ protected:
 
 public:
     ~stereo_demod();
+    void set_tau(double tau);
 
 private:
     /* GR blocks */
@@ -119,6 +120,5 @@ private:
     std::vector<gr_complex> d_tone_taps; /*! Tone BPF taps. */
     std::vector<float> d_pll_taps;       /*! Subtone BPF taps. */
 };
-
 
 #endif // STEREO_DEMOD_H

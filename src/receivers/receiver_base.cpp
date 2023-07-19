@@ -229,6 +229,11 @@ void receiver_base_cf::set_amsync_pll_bw(float pll_bw)
     (void) pll_bw;
 }
 
+void receiver_base_cf::set_wfm_deemph(double tau)
+{
+    (void) tau;
+}
+
 void receiver_base_cf::get_rds_data(std::string &outbuff, int &num)
 {
         (void) outbuff;
