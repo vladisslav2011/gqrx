@@ -32,6 +32,7 @@
 #include "dsp/rx_rds.h"
 #include "dsp/rds/decoder.h"
 #include "dsp/rds/parser.h"
+#include <gnuradio/analog/quadrature_demod_cf.h>
 
 class wfmrx;
 
@@ -63,36 +64,35 @@ public:
     wfmrx(float quad_rate, float audio_rate);
     ~wfmrx();
 
-    bool start();
-    bool stop();
+    bool start() override;
+    bool stop() override;
 
 
-    void set_filter(double low, double high, double tw);
-    void set_cw_offset(double offset) { (void)offset; }
+    void set_filter(double low, double high, double tw) override;
+    void set_cw_offset(double offset) override { (void)offset; }
 
     /* Noise blanker */
-    bool has_nb() { return false; }
+    bool has_nb() override { return false; }
     //void set_nb_on(int nbid, bool on);
     //void set_nb_threshold(int nbid, float threshold);
 
     /* Squelch parameter */
-    bool has_sql() { return true; }
+    bool has_sql() override { return true; }
 
     /* AGC */
-    bool has_agc() { return true; }
+    bool has_agc() override { return true; }
 
-    void set_demod(int demod);
+    void set_demod(int demod) override;
 
     /* FM parameters */
-    bool has_fm() {return true; }
-    void set_fm_maxdev(float maxdev_hz);
-    void set_fm_deemph(double tau);
+    bool has_fm() override {return true; }
+    void set_wfm_deemph(double tau) override;
 
-    void get_rds_data(std::string &outbuff, int &num);
-    void start_rds_decoder();
-    void stop_rds_decoder();
-    void reset_rds_parser();
-    bool is_rds_decoder_active();
+    void get_rds_data(std::string &outbuff, int &num) override;
+    void start_rds_decoder() override;
+    void stop_rds_decoder() override;
+    void reset_rds_parser() override;
+    bool is_rds_decoder_active() override;
 
 private:
     bool   d_running;          /*!< Whether receiver is running or not. */
@@ -101,7 +101,7 @@ private:
 
     rx_filter_sptr            filter;    /*!< Non-translating bandpass filter.*/
 
-    rx_demod_fm_sptr          demod_fm;  /*!< FM demodulator. */
+    gr::analog::quadrature_demod_cf::sptr demod_fm;  /*!< FM demodulator. */
     stereo_demod_sptr         stereo;    /*!< FM stereo demodulator. */
     stereo_demod_sptr         stereo_oirt;    /*!< FM stereo oirt demodulator. */
     stereo_demod_sptr         mono;      /*!< FM stereo demodulator OFF. */
