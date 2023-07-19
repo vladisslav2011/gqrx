@@ -94,6 +94,7 @@ protected:
 public:
     ~stereo_demod();
     void set_tau(double tau);
+    void set_au_flt_size(unsigned);
     void set_audio_rate(float audio_rate);
     void set_raw(bool);
 

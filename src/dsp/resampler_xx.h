@@ -45,7 +45,7 @@ typedef std::shared_ptr<resampler_ff> resampler_ff_sptr;
  *
  * This is effectively the public constructor.
  */
-resampler_cc_sptr make_resampler_cc(float rate);
+resampler_cc_sptr make_resampler_cc(float rate, unsigned flt_size=32);
 
 /*! \brief Arbitrary rate resampler based on gr_pfb_arb_resampler_ccf
  *  \ingroup DSP
@@ -58,13 +58,17 @@ class resampler_cc : public gr::hier_block2
 {
 
 public:
-    resampler_cc(float rate); // FIXME: should be private
+    resampler_cc(float rate, unsigned flt_size); // FIXME: should be private
     ~resampler_cc();
 
     void set_rate(float rate);
+    void set_flt_size(unsigned flt_size);
 
 private:
+    void reconfigure();
     std::vector<float>            d_taps;
+    float                         d_rate;
+    unsigned                      d_flt_size;
     gr::filter::pfb_arb_resampler_ccf::sptr d_filter;
 };
 
@@ -74,7 +78,7 @@ private:
  *
  * This is effectively the public constructor.
  */
-resampler_ff_sptr make_resampler_ff(float rate);
+resampler_ff_sptr make_resampler_ff(float rate, unsigned flt_size=32);
 
 
 /*! \brief Arbitrary rate resampler based on gr_pfb_arb_resampler_fff
@@ -88,13 +92,17 @@ class resampler_ff : public gr::hier_block2
 {
 
 public:
-    resampler_ff(float rate); // FIXME: should be private
+    resampler_ff(float rate, unsigned flt_size); // FIXME: should be private
     ~resampler_ff();
 
     void set_rate(float rate);
+    void set_flt_size(unsigned flt_size);
 
 private:
+    void reconfigure();
     std::vector<float>            d_taps;
+    float                         d_rate;
+    unsigned                      d_flt_size;
     gr::filter::pfb_arb_resampler_fff::sptr d_filter;
 };
 

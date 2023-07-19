@@ -109,6 +109,8 @@ public:
 
     bool         set_demod(const c_def::v_union &) override;
 
+    bool set_iq_flt_size(const c_def::v_union &) override;
+
     /* Noise blanker */
     virtual bool has_nb();
 

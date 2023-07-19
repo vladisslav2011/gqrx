@@ -97,6 +97,17 @@ bool receiver_base_cf::set_demod(const c_def::v_union & v)
     return vfo_s::set_demod(v);
 }
 
+bool receiver_base_cf::set_iq_flt_size(const c_def::v_union & v)
+{
+    vfo_s::set_iq_flt_size(v);
+    if(d_connected)
+        lock();
+    iq_resamp->set_flt_size(d_iq_flt_size);
+    if(d_connected)
+        unlock();
+    return true;
+}
+
 void receiver_base_cf::set_quad_rate(double quad_rate)
 {
     if (std::abs(d_decim_rate-quad_rate) > 0.5)
