@@ -28,6 +28,8 @@
 #include <gnuradio/blocks/wavfile_sink.h>
 #include <gnuradio/blocks/complex_to_imag.h>
 #include <gnuradio/blocks/complex_to_real.h>
+#include <gnuradio/blocks/complex_to_magphase.h>
+#include <gnuradio/blocks/multiply_const_ff.h>
 #include <gnuradio/digital/costas_loop_cc.h>
 #include <iostream>
 #include <stdio.h>
@@ -187,15 +189,29 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     connect(d_ddbb, 0, self(), 0);
     #if 0
-    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/rrcf.wav",2,19000);
-    auto im1=gr::blocks::complex_to_imag::make();
-    auto re1=gr::blocks::complex_to_real::make();
-    connect(d_agc,0,re1,0);
-    connect(d_agc,0,im1,0);
-    connect(re1,0,w1,0);
-    connect(im1,0,w1,1);
+    {
+    auto w0=gr::blocks::wavfile_sink::make("/home/vlad/rrcf.wav",2,19000);
+    auto im0=gr::blocks::complex_to_imag::make();
+    auto re0=gr::blocks::complex_to_real::make();
+    connect(d_agc,0,re0,0);
+    connect(d_agc,0,im0,0);
+    connect(re0,0,w0,0);
+    connect(im0,0,w0,1);
+    }
     #endif
     #if 0
+    {
+    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/mp.wav",2,19000);
+    auto bb = gr::blocks::complex_to_magphase::make();
+    auto mc=gr::blocks::multiply_const_ff::make(1.0/M_PI/2.0);
+    connect(d_agc,0,bb,0);
+    connect(bb,0,w1,0);
+    connect(bb,1,mc,0);
+    connect(mc,0,w1,1);
+    }
+    #endif
+    #if 0
+    {
     auto w2=gr::blocks::wavfile_sink::make("/home/vlad/rrcf_manchester.wav",2,19000);
     auto im2=gr::blocks::complex_to_imag::make();
     auto re2=gr::blocks::complex_to_real::make();
@@ -205,8 +221,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     connect(bpf_manc,0,im2,0);
     connect(re2,0,w2,0);
     connect(im2,0,w2,1);
+    }
     #endif
     #if 0
+    {
     auto w3=gr::blocks::wavfile_sink::make("/home/vlad/raw.wav",2,19000);
     auto im3=gr::blocks::complex_to_imag::make();
     auto re3=gr::blocks::complex_to_real::make();
@@ -214,8 +232,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     connect(d_rsmp,0,im3,0);
     connect(re3,0,w3,0);
     connect(im3,0,w3,1);
+    }
     #endif
     #if 0
+    {
     auto w4=gr::blocks::wavfile_sink::make("/home/vlad/raw4.wav",2,19000.0/8.0);
     auto im4=gr::blocks::complex_to_imag::make();
     auto re4=gr::blocks::complex_to_real::make();
@@ -225,6 +245,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     connect(cl4,0,im4,0);
     connect(re4,0,w4,0);
     connect(im4,0,w4,1);
+    }
     #endif
 }
 
