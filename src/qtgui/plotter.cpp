@@ -748,7 +748,6 @@ bool CPlotter::saveWaterfall(const QString & filename) const
 void CPlotter::setCurrentVfo(int current)
 {
     m_currentVfo = current;
-    updateOverlay();
 }
 
 void    CPlotter::addVfo(vfo::sptr n_vfo)
@@ -2722,7 +2721,7 @@ void CPlotter::drawVfo(QPainter &painter, const int demodFreqX, const int demodL
                     QColor(PLOTTER_FILTER_BOX_COLOR));
 
     painter.setOpacity(1.0);
-    painter.setPen(QColor(is_selected ? PLOTTER_FILTER_LINE_COLOR : PLOTTER_TEXT_COLOR));
+    painter.setPen(QPen(QColor(is_selected ? PLOTTER_FILTER_LINE_COLOR : PLOTTER_TEXT_COLOR), m_DPR));
     painter.drawLine(demodFreqX, br.height(), demodFreqX, h);
     painter.drawText(demodFreqX - br.width() / 2, 0, br.width(), br.height(),
                      Qt::AlignVCenter | Qt::AlignHCenter,
@@ -2872,7 +2871,6 @@ void CPlotter::setDemodRanges(int FLowCmin, int FLowCmax,
     m_FHiCmax=FHiCmax;
     m_symetric=symetric;
     clampDemodParameters();
-    updateOverlay();
 }
 
 void CPlotter::setCenterFreq(quint64 f)

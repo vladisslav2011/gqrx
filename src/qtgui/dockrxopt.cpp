@@ -161,7 +161,9 @@ DockRxOpt::~DockRxOpt()
  */
 void DockRxOpt::setFilterOffset(qint64 freq_hz)
 {
+    ui->filterFreq->blockSignals(true);
     ui->filterFreq->setFrequency(freq_hz);
+    ui->filterFreq->blockSignals(false);
 }
 
 /**
@@ -238,6 +240,7 @@ void DockRxOpt::setFilterParam(int lo, int hi)
 {
     int filter_index = filterIdxFromLoHi(lo, hi);
 
+    ui->filterCombo->blockSignals(true);
     ui->filterCombo->setCurrentIndex(filter_index);
     if (filter_index == FILTER_PRESET_USER)
     {
@@ -246,6 +249,7 @@ void DockRxOpt::setFilterParam(int lo, int hi)
         ui->filterCombo->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
                                      .arg((double)width_f));
     }
+    ui->filterCombo->blockSignals(false);
 }
 
 /**
@@ -254,7 +258,9 @@ void DockRxOpt::setFilterParam(int lo, int hi)
  */
 void DockRxOpt::setCurrentFilter(int index)
 {
+    ui->filterCombo->blockSignals(true);
     ui->filterCombo->setCurrentIndex(index);
+    ui->filterCombo->blockSignals(false);
 }
 
 /**
@@ -269,7 +275,9 @@ int  DockRxOpt::currentFilter() const
 /** Select filter shape */
 void DockRxOpt::setCurrentFilterShape(int index)
 {
+    ui->filterCombo->blockSignals(true);
     ui->filterShapeCombo->setCurrentIndex(index);
+    ui->filterCombo->blockSignals(false);
 }
 
 int  DockRxOpt::currentFilterShape() const
@@ -285,7 +293,9 @@ void DockRxOpt::setCurrentDemod(Modulations::idx demod)
 {
     if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
     {
+        ui->modeSelector->blockSignals(true);
         ui->modeSelector->setCurrentIndex(demod);
+        ui->modeSelector->blockSignals(false);
         updateDemodOptPage(demod);
     }
 }
