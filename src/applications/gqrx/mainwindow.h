@@ -102,8 +102,8 @@ private:
     std::vector<float> d_iqFftData;
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
     float           d_fps;
-    int             d_fftWindowType;
-    bool            d_fftNormalizeEnergy;
+    int             d_fftWindowType{0};
+    bool            d_fftNormalizeEnergy{false};
 
     std::vector<float> d_audioFftData;
     std::vector<float> d_probeFftData;
