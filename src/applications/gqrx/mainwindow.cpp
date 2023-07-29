@@ -2151,6 +2151,7 @@ void MainWindow::iqFftTimeout()
     unsigned int    fftsize;
     unsigned int    i;
     qint64 fft_approx_timestamp;
+    qint64 fft_start=QDateTime::currentMSecsSinceEpoch();
 
     // FIXME: fftsize is a reference
     rx->get_iq_fft_data(d_fftData, fftsize);
@@ -2171,6 +2172,8 @@ void MainWindow::iqFftTimeout()
     }
 
     ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
+    d_fft_duration+=(double(QDateTime::currentMSecsSinceEpoch()-fft_start)-d_fft_duration)*0.1;
+    uiDockFft->setFftLag(d_fft_duration>iq_fft_timer->interval());
 }
 
 void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const

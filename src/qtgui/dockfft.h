@@ -46,6 +46,7 @@ public:
     int setFftSize(int fft_size);
 
     void setSampleRate(float sample_rate);
+    void setFftLag(bool);
 
     void saveSettings(QSettings *settings);
     void readSettings(QSettings *settings);
