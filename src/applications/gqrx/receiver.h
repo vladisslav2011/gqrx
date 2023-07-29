@@ -178,6 +178,7 @@ public:
 
     std::vector<std::string> get_antennas(void) const;
     void        set_antenna(const std::string &antenna);
+    std::string get_antenna() const;
 
     double      set_input_rate(double rate);
     double      get_input_rate(void) const { return d_input_rate; }

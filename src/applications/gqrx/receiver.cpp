@@ -406,6 +406,11 @@ void receiver::set_antenna(const std::string &antenna)
     }
 }
 
+std::string receiver::get_antenna() const
+{
+    return src->get_antenna();
+}
+
 /**
  * @brief Set new input sample rate.
  * @param rate The desired input rate

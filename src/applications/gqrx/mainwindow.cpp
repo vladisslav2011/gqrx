@@ -1618,7 +1618,12 @@ void MainWindow::setLnbLo(double freq_mhz)
 void MainWindow::setAntenna(const QString& antenna)
 {
     qDebug() << "New antenna selected:" << antenna;
-    rx->set_antenna(antenna.toStdString());
+    try{
+        rx->set_antenna(antenna.toStdString());
+    }catch(std::exception &e)
+    {
+        uiDockInputCtl->setAntenna(QString::fromStdString(rx->get_antenna()));
+    }
 }
 
 /**
