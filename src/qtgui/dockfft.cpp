@@ -636,6 +636,11 @@ void DockFft::on_threadsComboBox_currentTextChanged(const QString &text)
     emit wfThreadsChanged(val);
 }
 
+void DockFft::setFftLag(bool l)
+{
+    ui->fftRateLabel->setStyleSheet(l?"background:red;":"");
+}
+
 /** Update RBW and FFT overlab labels */
 void DockFft::updateInfoLabels(void)
 {

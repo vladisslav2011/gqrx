@@ -145,6 +145,7 @@ private:
     std::condition_variable waterfall_background_ready;
     int waterfall_background_threads{0};
     std::thread waterfall_background_thread;
+    double d_fft_duration{0.0};
 
 private:
     void updateHWFrequencyRange(bool ignore_limits);
