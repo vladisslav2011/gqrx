@@ -303,8 +303,8 @@ private:
         any_to_any<gr_complex,std::complex<uint16_t>>::make(),
         any_to_any<gr_complex,std::complex<uint32_t>>::make(),
         any_to_any<gr_complex,std::array<int8_t,40>>::make(),
-        any_to_any<gr_complex,std::array<int8_t,3>>::make(),
-        any_to_any<gr_complex,std::array<int8_t,7>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,24>>::make(),
+        any_to_any<gr_complex,std::array<int8_t,56>>::make(),
         nullptr
     };
     std::vector<any_to_any_base::sptr> convert_from
@@ -319,8 +319,8 @@ private:
         any_to_any<std::complex<uint16_t>,gr_complex>::make(),
         any_to_any<std::complex<uint32_t>,gr_complex>::make(),
         any_to_any<std::array<int8_t,40>,gr_complex>::make(),
-        any_to_any<std::array<int8_t,3>,gr_complex>::make(),
-        any_to_any<std::array<int8_t,7>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,24>,gr_complex>::make(),
+        any_to_any<std::array<int8_t,56>,gr_complex>::make(),
         nullptr
     };
 
