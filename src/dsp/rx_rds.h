@@ -52,6 +52,7 @@
 #include <gnuradio/blocks/message_debug.h>
 #include "dsp/rds/decoder.h"
 #include "dsp/rds/parser.h"
+#include "dsp/clock_recovery.h"
 #include "applications/gqrx/dcontrols.h"
 
 class rx_rds;
@@ -98,7 +99,7 @@ private:
     std::vector<float> d_rrcf_manchester;
     gr::analog::agc_cc::sptr d_agc;
 #if GNURADIO_VERSION < 0x030800
-    gr::digital::clock_recovery_mm_cc::sptr d_sync;
+    clock_recovery_el_cc::sptr d_sync;
     gr::blocks::keep_one_in_n::sptr d_koin;
 #else
     gr::digital::symbol_sync_cc::sptr d_sync;
