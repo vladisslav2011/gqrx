@@ -97,9 +97,6 @@ private:
     std::vector<gr_complex> d_b;
 };
 
-
-
-
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 1; /* Minimum number of output streams. */
@@ -152,7 +149,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_agc = gr::analog::agc_cc::make(2e-3, 0.585 * 1.25, 53 * 1.25);
 
-    d_sync = gr::digital::clock_recovery_mm_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
+    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
@@ -274,7 +271,7 @@ void rx_rds::set_omega_lim(float v)
     //return;
     disconnect(d_agc, 0, d_sync, 0);
     disconnect(d_sync, 0, d_mpsk, 0);
-    d_sync = gr::digital::clock_recovery_mm_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);
+    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);
     connect(d_agc, 0, d_sync, 0);
     connect(d_sync, 0, d_mpsk, 0);
 }
