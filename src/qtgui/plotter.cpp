@@ -2248,22 +2248,23 @@ void CPlotter::drawOverlay()
     }
 
     // draw amplitude values (y axis)
-    for (int i = 0; i < m_VerDivs; i++)
+    for (int i = 0; i <= m_VerDivs; i++)
     {
         qreal y = h - ((double)i * pixperdiv + adjoffset);
         qreal th = metrics.height();
+        qreal th_2 = th / 2;
         qreal shadowOffset = th / 20.0;
-        if (y < h -xAxisHeight)
+        if ((y < h - xAxisHeight) && (y > th_2))
         {
             int dB = mindbadj + dbstepsize * i;
             // Shadow
             painter.setPen(QPen(QColor(Qt::black)));
-            QRectF shadowRect(HOR_MARGIN + shadowOffset, y - th / 2 + shadowOffset,
+            QRectF shadowRect(HOR_MARGIN + shadowOffset, y - th_2 + shadowOffset,
                               m_YAxisWidth - 2 * HOR_MARGIN, th);
             painter.drawText(shadowRect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
             // Foreground
             painter.setPen(QPen(QColor(PLOTTER_TEXT_COLOR)));
-            QRectF textRect(HOR_MARGIN, y - th / 2,
+            QRectF textRect(HOR_MARGIN, y - th_2,
                             m_YAxisWidth - 2 * HOR_MARGIN, th);
             painter.drawText(textRect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
         }
