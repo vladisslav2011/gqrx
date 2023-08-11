@@ -1811,14 +1811,15 @@ void CPlotter::drawOverlay()
 
         // draw amplitude values (y axis)
         painter.setPen(QColor(PLOTTER_TEXT_COLOR));
-        for (int i = 0; i < m_VerDivs; i++)
+        for (int i = 0; i <= m_VerDivs; i++)
         {
             y = h - (int)((float) i * pixperdiv + adjoffset);
             int th = metrics.height();
-            if (y < h -xAxisHeight)
+            qreal th_2 = th / 2.0;
+            if ((y < h -xAxisHeight) && (y > th_2))
             {
                 int dB = mindbadj + dbstepsize * i;
-                rect.setRect(HOR_MARGIN, y - th / 2, m_YAxisWidth - 2 * HOR_MARGIN, th);
+                rect.setRect(HOR_MARGIN, y - th_2, m_YAxisWidth - 2 * HOR_MARGIN, th);
                 painter.drawText(rect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
             }
         }
