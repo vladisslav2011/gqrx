@@ -311,6 +311,7 @@ private:
     qint32      m_FreqUnits;
     int         m_ClickResolution;
     int         m_FilterClickResolution;
+    qint32      m_CumWheelDelta;
 
     int         m_Xzero{};
     int         m_Yzero{};  /*!< Used to measure mouse drag direction. */
