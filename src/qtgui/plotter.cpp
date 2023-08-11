@@ -1741,7 +1741,7 @@ void CPlotter::drawOverlay()
 
         // draw amplitude values (y axis)
         painter.setPen(QColor(PLOTTER_TEXT_COLOR));
-        for (int i = 0; i < m_VerDivs; i++)
+        for (int i = 0; i <= m_VerDivs; i++)
         {
             y = h - (int)((float) i * pixperdiv + adjoffset);
             int th = metrics.height();
