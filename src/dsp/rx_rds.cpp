@@ -125,6 +125,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
+    update_fxff_taps();
 
 #if GNURADIO_VERSION < 0x030900
     const double rate = (double) d_interpolation / (double) d_decimation;
@@ -143,11 +144,12 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
     auto corr=iir_corr::make((d_sample_rate*d_interpolation*104.0*2.0)/(d_decimation*23750.0),0.1);
+    int agc_samp = ((float)d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
-    d_agc = gr::analog::agc_cc::make(2e-3, 0.585 * 1.25, 53 * 1.25);
+    d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
 
     d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
 
@@ -155,26 +157,27 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #else
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
 
-    d_agc = gr::analog::agc_cc::make(2e-3, 0.585, 53);
+    d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp*10, 0);
 
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING, 16, 0.01, 1, 1, 0.1, 1, p_c);
 #endif
 
-    d_mpsk = gr::digital::constellation_receiver_cb::make(p_c, 2*M_PI/200.0, -0.002, 0.002);
+    d_mpsk = gr::digital::constellation_receiver_cb::make(p_c, 2.0*M_PI/200.0, -0.002, 0.002);
 
     d_ddbb = gr::digital::diff_decoder_bb::make(2);
 
     /* connect filter */
     connect(self(), 0, d_fxff, 0);
     connect(d_fxff, 0, d_rsmp, 0);
-    connect(d_rsmp, 0, d_bpf, 0);
+    connect(d_rsmp, 0, d_agc, 0);
+    connect(d_agc, 0, d_bpf, 0);
     if(encorr)
     {
         connect(d_bpf, 0, corr, 0);
-        connect(corr, 0, d_agc, 0);
+        connect(corr, 0, d_sync, 0);
     }else
-        connect(d_bpf, 0, d_agc, 0);
-    connect(d_agc, 0, d_sync, 0);
+        connect(d_bpf, 0, d_sync, 0);
+//    connect(d_agc, 0, d_sync, 0);
     connect(d_sync, 0, d_mpsk, 0);
 
 #if GNURADIO_VERSION < 0x030800
@@ -187,18 +190,20 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     connect(d_ddbb, 0, self(), 0);
     #if 0
     {
-    auto w0=gr::blocks::wavfile_sink::make("/home/vlad/rrcf.wav",2,19000);
+    auto w0=gr::blocks::wavfile_sink::make("/home/vlad/agc.wav",2,19000);
+    auto cl0=gr::digital::costas_loop_cc::make(2.0*M_PI/2000.0,2);
     auto im0=gr::blocks::complex_to_imag::make();
     auto re0=gr::blocks::complex_to_real::make();
-    connect(d_agc,0,re0,0);
-    connect(d_agc,0,im0,0);
+    connect(d_agc,0,cl0,0);
+    connect(cl0,0,re0,0);
+    connect(cl0,0,im0,0);
     connect(re0,0,w0,0);
     connect(im0,0,w0,1);
     }
     #endif
     #if 0
     {
-    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/mp.wav",2,19000);
+    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/agc.wav",2,19000);
     auto bb = gr::blocks::complex_to_magphase::make();
     auto mc=gr::blocks::multiply_const_ff::make(1.0/M_PI/2.0);
     connect(d_agc,0,bb,0);
@@ -222,13 +227,24 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     #endif
     #if 0
     {
-    auto w3=gr::blocks::wavfile_sink::make("/home/vlad/raw.wav",2,19000);
-    auto im3=gr::blocks::complex_to_imag::make();
-    auto re3=gr::blocks::complex_to_real::make();
-    connect(d_rsmp,0,re3,0);
-    connect(d_rsmp,0,im3,0);
-    connect(re3,0,w3,0);
-    connect(im3,0,w3,1);
+    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/bpf.wav",2,19000);
+    auto bb = gr::blocks::complex_to_magphase::make();
+    auto mc=gr::blocks::multiply_const_ff::make(1.0/M_PI/2.0);
+    connect(d_bpf,0,bb,0);
+    connect(bb,0,w1,0);
+    connect(bb,1,mc,0);
+    connect(mc,0,w1,1);
+    }
+    #endif
+    #if 0
+    {
+    auto w1=gr::blocks::wavfile_sink::make("/home/vlad/rsmp.wav",2,19000);
+    auto bb = gr::blocks::complex_to_magphase::make();
+    auto mc=gr::blocks::multiply_const_ff::make(1.0/M_PI/2.0);
+    connect(d_rsmp,0,bb,0);
+    connect(bb,0,w1,0);
+    connect(bb,1,mc,0);
+    connect(mc,0,w1,1);
     }
     #endif
     #if 0
@@ -260,6 +276,7 @@ void rx_rds::trig()
 void rx_rds::update_fxff_taps()
 {
     //lock();
+//    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 2375.0+d_fxff_bw, d_fxff_tw);
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw);
     d_fxff->set_taps(d_fxff_tap);
@@ -268,7 +285,7 @@ void rx_rds::update_fxff_taps()
 
 void rx_rds::set_omega_lim(float v)
 {
-    //return;
+    return;
     disconnect(d_agc, 0, d_sync, 0);
     disconnect(d_sync, 0, d_mpsk, 0);
     d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);

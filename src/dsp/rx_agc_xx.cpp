@@ -551,3 +551,299 @@ void rx_agc_2f::update_buffer(int p)
     }
 
 }
+
+
+
+
+rx_agc_cc_sptr make_rx_agc_cc(int target_level,
+                              int max_gain, int attack, int lookback,
+                              int decay, int hang)
+{
+    return gnuradio::get_initial_sptr(new rx_agc_cc(target_level,
+                                                    max_gain, attack, lookback, decay,
+                                                    hang));
+}
+
+/**
+ * \brief Create receiver AGC object.
+ *
+ * Use make_rx_agc_2f() instead.
+ */
+rx_agc_cc::rx_agc_cc(int target_level,
+                              int max_gain, int attack, int lookback,
+                              int decay, int hang)
+    : gr::sync_block ("rx_agc_2f",
+          gr::io_signature::make(1, 1, sizeof(gr_complex)),
+          gr::io_signature::make(1, 1, sizeof(gr_complex))),
+      d_target_level(target_level),
+      d_max_gain(max_gain),
+      d_attack(attack),
+      d_lookback(lookback),
+      d_decay(decay),
+      d_hang(hang),
+      d_target_mag(1),
+      d_hang_samp(0),
+      d_buf_samples(0),
+      d_buf_size(0),
+      d_max_idx(0),
+      d_buf_p(0),
+      d_hang_counter(0),
+      d_max_gain_mag(1.0),
+      d_current_gain(1.0),
+      d_target_gain(1.0),
+      d_decay_step(1.01),
+      d_attack_step(0.99),
+      d_floor(0.0001)
+{
+    set_parameters(d_target_level, d_max_gain, d_attack, d_lookback, d_decay, d_hang, true);
+    set_history(MAX_SAMPLE_RATE + 1);
+    set_tag_propagation_policy(TPP_DONT);
+}
+
+rx_agc_cc::~rx_agc_cc()
+{
+}
+
+/**
+ * \brief Receiver AGC work method.
+ * \param mooutput_items
+ * \param input_items
+ * \param output_items
+ */
+int rx_agc_cc::work(int noutput_items,
+                    gr_vector_const_void_star &input_items,
+                    gr_vector_void_star &output_items)
+{
+    const gr_complex *in0 = (const gr_complex *) input_items[0];
+    gr_complex *out0 = (gr_complex *) output_items[0];
+
+    std::lock_guard<std::mutex> lock(d_mutex);
+
+    int k;
+    TYPEFLOAT max_out = 0;
+    TYPEFLOAT mag_in = 0;
+    std::vector<gr::tag_t> work_tags;
+    get_tags_in_window(work_tags, 0, 0, noutput_items);
+    for (const auto& tag : work_tags)
+        add_item_tag(0, tag.offset + d_buf_samples, tag.key, tag.value);
+    for (k = 0; k < noutput_items; k++)
+    {
+        int k_hist = k + history() - 1;
+        mag_in = std::abs(in0[k_hist]);
+        gr_complex sample_out0 = in0[k_hist - d_buf_samples];
+
+        d_mag_buf[d_buf_p] = mag_in;
+        update_buffer(d_buf_p);
+        max_out = get_peak();
+
+        int buf_p_next = d_buf_p + 1;
+        if (buf_p_next >= d_buf_size)
+            buf_p_next = 0;
+
+        if (max_out > d_floor)
+        {
+            float new_target = d_target_mag / max_out;
+            if (new_target < d_target_gain)
+            {
+                if (d_current_gain > d_target_gain)
+                    d_hang_counter = d_buf_samples + d_hang_samp;
+                d_target_gain = new_target;
+            }
+            else
+                if (!d_hang_counter)
+                    d_target_gain = new_target;
+        }
+        else
+        {
+            d_target_gain = d_max_gain_mag;
+            d_hang_counter = 0;
+        }
+        if (d_current_gain > d_target_gain)
+        {
+            //attack, decrease gain one step per sample
+            d_current_gain *= d_attack_step;
+        }
+        else
+        {
+            if (d_hang_counter <= 0)
+            {
+                //decay, increase gain one step per sample until we reach d_max_gain
+                if (d_current_gain < d_target_gain)
+                    d_current_gain *= d_decay_step;
+                if (d_current_gain > d_target_gain)
+                    d_current_gain = d_target_gain;
+            }
+        }
+        if (d_hang_counter > 0)
+            d_hang_counter--;
+        if (d_current_gain < MIN_GAIN)
+            d_current_gain = MIN_GAIN;
+        out0[k] = sample_out0 * d_current_gain;
+        d_buf_p = buf_p_next;
+    }
+    #ifdef AGC_DEBUG2
+    static TYPEFLOAT d_prev_dbg = 0.0;
+    if(d_prev_dbg != d_target_gain)
+    {
+        std::cerr<<"------ d_target_gain="<<d_target_gain<<" d_current_gain="<<d_current_gain<<" d_hang_counter="<<d_hang_counter<<  std::endl;
+        d_prev_dbg = d_target_gain;
+    }
+    #endif
+
+    return noutput_items;
+}
+
+/**
+ * \brief Set AGC attack time.
+ * \param decay The new AGC attack time between 20 to 5000 ms.
+ *
+ * Sets length of the delay buffer
+ *
+ */
+void rx_agc_cc::set_attack(int attack)
+{
+    if (attack != d_attack)
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        set_parameters(d_target_level, d_max_gain, attack, d_lookback, d_decay, d_hang);
+    }
+}
+
+/**
+ * \brief Set AGC decay time.
+ * \param decay The new AGC decay time between 20 to 5000 ms.
+ */
+void rx_agc_cc::set_decay(int decay)
+{
+    if (decay != d_decay)
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        set_parameters(d_target_level, d_max_gain, d_attack, d_lookback, decay, d_hang);
+    }
+}
+
+/**
+ * \brief Set AGC hang time between 0 to 5000 ms.
+ * \param hang Time to keep AGC gain at constant level after the peak.
+ */
+void rx_agc_cc::set_hang(int hang)
+{
+    if (hang != d_hang)
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        set_parameters(d_target_level, d_max_gain, d_attack, d_lookback, d_decay, hang);
+    }
+}
+
+void rx_agc_cc::set_parameters(int target_level,
+                              int max_gain, int attack, int lookback,
+                              int decay, int hang, bool force)
+{
+    bool target_level_changed = false;
+    bool max_gain_changed = false;
+    bool attack_changed = false;
+    bool lookback_changed = false;
+    bool decay_changed = false;
+    bool hang_changed = false;
+
+    if (d_target_level != target_level || force)
+    {
+        d_target_level = target_level;
+        d_target_mag = powf(10.f, TYPEFLOAT(d_target_level) / 20.f) * 32767.f / 32768.f;
+        target_level_changed = true;
+    }
+    if (d_max_gain != max_gain || force)
+    {
+        d_max_gain = max_gain;
+        if(d_max_gain < 1)
+            d_max_gain = 1;
+        d_max_gain_mag = pow(10., d_max_gain / 20.0);
+        max_gain_changed = true;
+    }
+    if (d_attack != attack || force)
+    {
+        d_attack = attack;
+        attack_changed = true;
+    }
+    if (d_decay != decay || force)
+    {
+        d_decay = decay;
+        decay_changed = true;
+    }
+    if (d_hang != hang || force)
+    {
+        d_hang = hang;
+        hang_changed = true;
+    }
+    if (attack_changed || lookback_changed)
+    {
+        d_buf_samples = d_attack;
+        int buf_samples = d_buf_samples + d_lookback;
+        int buf_size = 1;
+        for(unsigned int k = 0; k < sizeof(int) * 8; k++)
+        {
+            buf_size *= 2;
+            if(buf_size >= buf_samples)
+                break;
+        }
+        if(d_buf_size != buf_size)
+        {
+            d_buf_size = buf_size;
+            d_mag_buf.clear();
+            d_mag_buf.resize(d_buf_size * 2, 0);
+            d_buf_p = 0;
+            d_max_idx = d_buf_size * 2 - 2;
+         }
+        if (d_buf_p >= d_buf_size)
+            d_buf_p %= d_buf_size;
+    }
+    if (max_gain_changed || attack_changed)
+        d_attack_step = 1.0 / pow(10., std::max(TYPEFLOAT(d_max_gain), - MIN_GAIN_DB) / TYPEFLOAT(d_buf_samples) / 20.f);
+    if (max_gain_changed || decay_changed)
+        d_decay_step = pow(10., TYPEFLOAT(d_max_gain) / TYPEFLOAT(d_decay) / 20.f);
+    if (hang_changed)
+        d_hang_samp = d_hang;
+
+    if (target_level_changed || max_gain_changed)
+        d_floor = pow(10., TYPEFLOAT(d_target_level - d_max_gain) / 20.f);
+    #ifdef AGC_DEBUG
+    std::cerr<<std::endl<<
+        "d_target_mag="<<d_target_mag<<std::endl<<
+        "d_target_level="<<d_target_level<<std::endl<<
+        "d_max_gain="<<d_max_gain<<std::endl<<
+        "d_attack="<<d_attack<<std::endl<<
+        "d_attack_step="<<log10(d_attack_step)*20.0<<std::endl<<
+        "d_decay="<<d_decay<<std::endl<<
+        "d_decay_step="<<log10(d_decay_step)*20.0<<std::endl<<
+        "d_hang="<<d_hang<<std::endl<<
+        "d_hang_samp="<<d_hang_samp<<std::endl<<
+        "d_hang_counter="<<d_hang_counter<<std::endl<<
+        "d_buf_samples="<<d_buf_samples<<std::endl<<
+        "d_buf_size="<<d_buf_size<<std::endl<<
+        "d_current_gain="<<d_current_gain<<std::endl<<
+        "";
+    #endif
+}
+
+float rx_agc_cc::get_peak()
+{
+    return d_mag_buf[d_max_idx];
+}
+
+void rx_agc_cc::update_buffer(int p)
+{
+    int ofs = 0;
+    int base = d_buf_size;
+    while (base > 1)
+    {
+        float max_p = std::max(d_mag_buf[ofs + p], d_mag_buf[ofs + (p ^ 1)]);
+        p = p >> 1;
+        ofs += base;
+        if(d_mag_buf[ofs + p] != max_p)
+            d_mag_buf[ofs + p] = max_p;
+        else
+            break;
+        base = base >> 1;
+    }
+
+}
