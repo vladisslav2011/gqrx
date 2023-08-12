@@ -17,7 +17,7 @@
 #include <sstream>
 #include <stdexcept>
 
-static const int FUDGE = 16;
+static constexpr int FUDGE = 16;
 
 clock_recovery_el_cc::sptr clock_recovery_el_cc::make(
     float omega, float gain_omega, float mu, float gain_mu, float omega_relative_limit)
@@ -28,7 +28,7 @@ clock_recovery_el_cc::sptr clock_recovery_el_cc::make(
 
 clock_recovery_el_cc::clock_recovery_el_cc(
     float omega, float gain_omega, float mu, float gain_mu, float omega_relative_limit)
-    : block("clock_recovery_mm_cc",
+    : block("clock_recovery_el_cc",
             gr::io_signature::make(1, 1, sizeof(gr_complex)),
             gr::io_signature::make2(1, 1, sizeof(gr_complex), sizeof(float))),
       d_mu(mu),
@@ -44,7 +44,7 @@ clock_recovery_el_cc::clock_recovery_el_cc(
 
     set_omega(omega); // also sets min and max omega
     set_relative_rate(1.0/omega);
-    set_history(d_interp.ntaps() + FUDGE + 2*int(omega));
+    set_history(d_interp.ntaps() + 2*(FUDGE + int(omega)));
     enable_update_rate(true); // fixes tag propagation through variable rate block
 }
 
@@ -56,7 +56,7 @@ void clock_recovery_el_cc::forecast(int noutput_items,
     unsigned ninputs = ninput_items_required.size();
     for (unsigned i = 0; i < ninputs; i++)
         ninput_items_required[i] =
-            (int)ceil((noutput_items * d_omega) + d_interp.ntaps()) + FUDGE;
+            (int)ceil((noutput_items * d_omega)) + history();
 }
 
 void clock_recovery_el_cc::set_omega(float omega)
@@ -66,8 +66,9 @@ void clock_recovery_el_cc::set_omega(float omega)
     d_omega_lim = d_omega_relative_limit * omega;
 }
 
-constexpr float mag2(const gr_complex & in)
+inline float mag2(const gr_complex & in)
 {
+    //return std::abs(in);
     return in.real()*in.real()+in.imag()*in.imag();
 }
 
@@ -81,37 +82,29 @@ int clock_recovery_el_cc::general_work(int noutput_items,
 
     int ii = 1;                                          // input index
     int oo = 0;                                          // output index
-    int ni = ninput_items[0] - d_interp.ntaps() - FUDGE; // don't use more input than this
+    int ni = ninput_items[0] - history(); // don't use more input than this
 
     assert(d_mu >= 0.0);
     assert(d_mu <= 1.0);
 
     float mm_val = 0;
     constexpr float dllbw=0.4f;
-    constexpr float dllalfa=0.1f;
+    constexpr float dllalfa=0.2f;
 
     while (oo < noutput_items && ii < ni)
     {
         float e_mu0=d_mu-dllbw;
         float l_mu0=d_mu+dllbw;
-        float e_mu90=d_omega*.5f+d_mu-dllbw;
-        float l_mu90=d_omega*.5f+d_mu+dllbw;
-        int ei0=1;
-        int li0=1;
+        float e_mu90=d_omega*.5f+e_mu0;
+        float l_mu90=d_omega*.5f+l_mu0;
+        int ei0=1+(int)floor(e_mu0);
+        int li0=1+(int)floor(l_mu0);
+        l_mu0 -= floor(l_mu0);
+        e_mu0 -= floor(e_mu0);
         int ei90=1+(int)floor(e_mu90);
         int li90=1+(int)floor(l_mu90);
         l_mu90 -= floor(l_mu90);
         e_mu90 -= floor(e_mu90);
-        if(e_mu0<0.f)
-        {
-            e_mu0+=1.f;
-            ei0=0;
-        }
-        if(l_mu0>1.f)
-        {
-            li0+=1;
-            l_mu0-=1;
-        }
         d_e0acc+=(mag2(d_interp.interpolate(&in[ei0], e_mu0))-d_e0acc)*dllalfa;
         d_e90acc+=(mag2(d_interp.interpolate(&in[ei90], e_mu90))-d_e90acc)*dllalfa;
         d_l0acc+=(mag2(d_interp.interpolate(&in[li0], l_mu0))-d_l0acc)*dllalfa;
@@ -123,6 +116,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         d_omega =
             d_omega_mid + gr::branchless_clip(d_omega - d_omega_mid, d_omega_lim);
 
+        mm_val = gr::branchless_clip(mm_val, d_omega*0.25f);
         d_mu = d_mu + d_omega + d_gain_mu * mm_val;
         ii += (int)floor(d_mu);
         d_mu -= floor(d_mu);

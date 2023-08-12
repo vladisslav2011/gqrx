@@ -44,7 +44,6 @@
 #include <gnuradio/filter/rational_resampler.h>
 #endif
 
-#include <gnuradio/analog/agc_cc.h>
 #include <gnuradio/digital/constellation_receiver_cb.h>
 #include <gnuradio/blocks/keep_one_in_n.h>
 #include <gnuradio/digital/diff_decoder_bb.h>
@@ -54,6 +53,7 @@
 #include "dsp/rds/parser.h"
 #include "dsp/clock_recovery.h"
 #include "applications/gqrx/dcontrols.h"
+#include "dsp/rx_agc_xx.h"
 
 class rx_rds;
 
@@ -74,7 +74,7 @@ public:
     ~rx_rds();
 
     void set_index(int v) {d_index=v;}
-    void set_agc_rate(float v) {d_agc->set_rate(v);}
+    void set_agc_rate(float v) { }
     void set_gain_mu(float v) {d_sync->set_gain_mu(d_gain_mu=v);}
     void set_gain_omega(float v) {d_sync->set_gain_omega(d_gain_omega=v);}
     void trig();
@@ -97,7 +97,7 @@ private:
 
     std::vector<float> d_rrcf;
     std::vector<float> d_rrcf_manchester;
-    gr::analog::agc_cc::sptr d_agc;
+    rx_agc_cc_sptr d_agc;
 #if GNURADIO_VERSION < 0x030800
     clock_recovery_el_cc::sptr d_sync;
     gr::blocks::keep_one_in_n::sptr d_koin;
@@ -115,7 +115,7 @@ private:
     float d_fxff_bw{1000.0f};
     float d_gain_mu{0.175*0.2};
     float d_gain_omega{0.25 * 0.175 * 0.000175};
-    float d_omega_lim{0.00025};
+    float d_omega_lim{0.00040};
 };
 
 
