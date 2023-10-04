@@ -121,6 +121,7 @@ private:
     quint64  d_last_fft_ms;
     float    d_avg_fft_rate;
     bool     d_frame_drop;
+    QTimer   *dxc_timer;
 
     receiver *rx;
 
@@ -224,7 +225,7 @@ private slots:
     void onBookmarkActivated(qint64 freq, const QString& demod, int bandwidth);
 
     /* DXC Spots */
-    void updateClusterSpots();
+    void addClusterSpot();
 
     /* menu and toolbar actions */
     void on_actionDSP_triggered(bool checked);
@@ -261,6 +262,7 @@ private slots:
     void iqFftTimeout();
     void audioFftTimeout();
     void rdsTimeout();
+    void checkDXCSpotTimeout();
 };
 
 #endif // MAINWINDOW_H
