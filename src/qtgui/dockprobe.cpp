@@ -78,6 +78,10 @@ void DockProbe::setCenterOffset(qint64 freq, qint64 ofs)
 
 void DockProbe::updateCenter()
 {
+    if(m_sampleRate==0)
+        return;
+    if(m_decim==0)
+        return;
     qint64 ch=(m_offset*m_decim+m_sampleRate/2)/m_sampleRate;
     qint64 ch_width=m_sampleRate/m_decim;
     ui->spectrum->setCenterFreq(m_center+ch_width*ch);
