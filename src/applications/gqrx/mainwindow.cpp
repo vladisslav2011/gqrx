@@ -2792,7 +2792,7 @@ void MainWindow::setIqFftRate(int fps)
         rx->set_iq_fft_enabled(true);
     }
 
-    if (interval > 9 && iq_fft_timer->isActive())
+    if (interval > 0 && iq_fft_timer->isActive())
         iq_fft_timer->setInterval(interval);
 
     uiDockFft->setWfResolution(ui->plotter->getWfTimeRes());
