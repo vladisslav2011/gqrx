@@ -1010,7 +1010,6 @@ void MainWindow::storeSession()
         remote->saveSettings(m_settings);
 
         int old_current = rx->get_current();
-        int int_val;
         for (int i = 0; i < rx_count; i++)
         {
             if (rx_count <= 1)
@@ -1089,7 +1088,6 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
 {
     bool conv_ok;
     int int_val = 0;
-    double  dbl_val;
     int i = 0;
     qint64 offs = 0;
     c_def::v_union v;
