@@ -2782,8 +2782,14 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
 {
     if(n > 0)
     {
-        iqFftToMag(n,data,tmpbuf);
-        ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
+        if(line==0)
+        {
+            iqFftToMag(n,data,d_realFftData);
+            ui->plotter->drawOneWaterfallLine(line, d_realFftData, n, ts);
+        }else{
+            iqFftToMag(n,data,tmpbuf);
+            ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
+        }
         if((line & 15) == 0)
             emit requestPlotterUpdate();
     }

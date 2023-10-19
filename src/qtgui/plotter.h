@@ -35,7 +35,7 @@ public:
     QSize sizeHint() const override;
 
     //void SetSdrInterface(CSdrInterface* ptr){m_pSdrInterface = ptr;}
-    void draw(); //call to draw new fft data onto screen plot
+    void draw(bool timed=true); //call to draw new fft data onto screen plot
     void setRunningState(bool running) { m_Running = running; }
     void setClickResolution(int clickres) { m_ClickResolution = clickres; }
     void setFilterClickResolution(int clickres) { m_FilterClickResolution = clickres; }
@@ -97,7 +97,10 @@ public:
             m_Span = (qint32)s;
             setFftCenterFreq(m_FftCenter);
         }
-        updateOverlay();
+        if(!m_PlayingIQ || m_Running)
+            updateOverlay();
+        else
+            drawOverlay();
     }
 
     void setHdivDelta(int delta) { m_HdivDelta = delta; }
