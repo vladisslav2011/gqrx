@@ -44,11 +44,15 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
     float omega() const { return d_omega; }
     float gain_mu() const { return d_gain_mu; }
     float gain_omega() const { return d_gain_omega; }
+    float dllbw() const { return d_dllbw; }
+    float dllalfa() const { return d_dllalfa; }
 
     void set_gain_mu(float gain_mu) { d_gain_mu = gain_mu; }
     void set_gain_omega(float gain_omega) { d_gain_omega = gain_omega; }
     void set_mu(float mu) { d_mu = mu; }
     void set_omega(float omega);
+    void set_dllbw(float v) { d_dllbw=v; }
+    void set_dllalfa(float v) { d_dllalfa=v; }
 
 private:
     float d_mu;                   // fractional sample position [0.0, 1.0]
@@ -65,6 +69,15 @@ private:
     float d_e90acc{0.f};
     float d_l0acc{0.f};
     float d_l90acc{0.f};
+    float d_e180acc{0.f};
+    float d_e270acc{0.f};
+    float d_l180acc{0.f};
+    float d_l270acc{0.f};
+    int d_skip{0};
+    float d_corr0{0.0};
+    float d_corr180{0.0};
+    float d_dllbw{1.4f};
+    float d_dllalfa{0.1f};
 
     gr_complex slicer_0deg(gr_complex sample)
     {
