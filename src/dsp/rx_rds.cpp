@@ -97,6 +97,33 @@ private:
     std::vector<gr_complex> d_b;
 };
 
+class soft_bpsk: public gr::digital::constellation_bpsk
+{
+public:
+    typedef boost::shared_ptr<soft_bpsk> sptr;
+
+    // public constructor
+    static sptr make()
+    {
+        return sptr(new soft_bpsk());
+    }
+
+    ~soft_bpsk(){};
+
+    unsigned int decision_maker(const gr_complex* sample) override
+    {
+        constexpr float fv=.61f;
+        acc+=(real(*sample)-acc)*fv;
+        return real(*sample)>acc;
+    }
+
+protected:
+    soft_bpsk(): constellation_bpsk()
+    {
+    };
+	float acc{0.f};
+};
+
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
 static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 1; /* Minimum number of output streams. */
@@ -142,7 +169,8 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
+    //gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
+    gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     auto corr=iir_corr::make((d_sample_rate*d_interpolation*104.0*2.0)/(d_decimation*23750.0),0.1);
     int agc_samp = (d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
