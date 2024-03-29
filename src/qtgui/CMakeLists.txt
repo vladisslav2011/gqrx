@@ -50,6 +50,8 @@ add_source_files(SRCS_LIST
 	nb_options.h
 	plotter.cpp
 	plotter.h
+	plotter2.cpp
+	plotter2.h
 	qtcolorpicker.cpp
 	qtcolorpicker.h
 )

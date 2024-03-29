@@ -38,7 +38,7 @@
 #include <QToolTip>
 #include "plotter2.h"
 
-Q_LOGGING_CATEGORY(plotter, "plotter2")
+Q_LOGGING_CATEGORY(plotter2, "plotter2")
 
 #define CUR_CUT_DELTA 5		//cursor capture delta in pixels
 
@@ -54,7 +54,7 @@ Q_LOGGING_CATEGORY(plotter, "plotter2")
 #define HOR_MARGIN 5
 #define VER_MARGIN 5
 
-int F2B(float f)
+static int F2B(float f)
 {
     int b = (f >= 1.0 ? 255 : (f <= 0.0 ? 0 : (int)floor(f * 256.0)));
     return b;
@@ -63,13 +63,6 @@ int F2B(float f)
 static inline bool val_is_out_of_range(float val, float min, float max)
 {
     return (val < min || val > max);
-}
-
-static inline bool out_of_range(float min, float max)
-{
-    return (val_is_out_of_range(min, FFT_MIN_DB, FFT_MAX_DB) ||
-            val_is_out_of_range(max, FFT_MIN_DB, FFT_MAX_DB) ||
-            max < min + 10.f);
 }
 
 #define STATUS_TIP \
@@ -115,9 +108,9 @@ void CPlotter2::mouseMoveEvent(QMouseEvent* event)
     if (event->buttons() == Qt::NoButton)
     {
                 if (m_TooltipsEnabled)
-                    showToolTip(event, QString("Current demod %1: %2 kHz")
-                                               .arg(m_currentVfo)
-                                               .arg(m_DemodCenterFreq/1.e3, 0, 'f', 3));
+                    showToolTip(event, QString("S: %1 M: %2")
+                                               .arg(0.f, 0, 'f', 3)
+                                               .arg(0.f, 0, 'f', 3));
     }
     setCursor(QCursor(Qt::ArrowCursor));
 }
@@ -168,7 +161,6 @@ void CPlotter2::resizeEvent(QResizeEvent* )
         // if changed, resize pixmaps to new screensize
         m_Size = size();
         m_DPR = devicePixelRatio();
-        fft_plot_height = m_Percent2DScreen * m_Size.height() / 100;
         {
             m_OverlayPixmap = QPixmap(m_Size.width() * m_DPR, m_Size.height() * m_DPR);
             m_OverlayPixmap.setDevicePixelRatio(m_DPR);
@@ -200,16 +192,13 @@ void CPlotter2::draw()
     int     w;
     int     h;
     int     xmin, xmax;
+    QPointF LineBuf[MAX_SCREENSIZE];
 
     if (m_DrawOverlay)
     {
         drawOverlay();
         m_DrawOverlay = false;
     }
-
-
-    if (!m_Running)
-        return;
 
 
     // get/draw the 2D spectrum
@@ -229,7 +218,7 @@ void CPlotter2::draw()
             for (i = 0; i < n; i++)
             {
                 LineBuf[i].setX(i + xmin + 0.5);
-                LineBuf[i].setY(m_fftbuf[i + xmin] + 0.5);
+                LineBuf[i].setY(m_data[i + xmin] + 0.5);
             }
             painter2.setPen(m_PlotColor);
             painter2.drawPolyline(LineBuf, n);
@@ -294,6 +283,7 @@ void CPlotter2::drawOverlay()
         int fLabelTop = xAxisTop + VER_MARGIN;
 
 
+        #if 0
         if (m_CenterLineEnabled)
         {
             x = xFromFreq(m_CenterFreq);
@@ -303,7 +293,7 @@ void CPlotter2::drawOverlay()
                 painter.drawLine(x, 0, x, xAxisTop);
             }
         }
-
+        
         // Frequency grid
         qint64  StartFreq = m_CenterFreq + m_FftCenter - m_Span / 2;
         QString label;
@@ -375,7 +365,7 @@ void CPlotter2::drawOverlay()
                 painter.drawText(rect, Qt::AlignRight|Qt::AlignVCenter, QString::number(dB));
             }
         }
-
+#endif
 
         painter.end();
     }
@@ -388,6 +378,7 @@ void CPlotter2::drawOverlay()
 // Keeps all strings the same fractional length
 void CPlotter2::makeFrequencyStrs()
 {
+#if 0
     qint64  StartFreq = m_StartFreqAdj;
     double  freq;
     int     i,j;
@@ -434,24 +425,22 @@ void CPlotter2::makeFrequencyStrs()
         m_HDivText[i].setNum(freq,'f', max);
         StartFreq += m_FreqPerDiv;
     }
+#endif
 }
 
 
 // Ensure overlay is updated by either scheduling or forcing a redraw
 void CPlotter2::updateOverlay()
 {
-    if (m_Running)
-        m_DrawOverlay = true;
-    else
-        drawOverlay();
+    drawOverlay();
 }
 
 
 void CPlotter2::calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &adjlow, qint64 &step, int& divs)
 {
-    qCDebug(plotter) << "low:" << low;
-    qCDebug(plotter) << "high:" << high;
-    qCDebug(plotter) << "divswanted:" << divswanted;
+    qCDebug(plotter2) << "low:" << low;
+    qCDebug(plotter2) << "high:" << high;
+    qCDebug(plotter2) << "divswanted:" << divswanted;
 
     if (divswanted == 0)
         return;
@@ -479,9 +468,9 @@ void CPlotter2::calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &ad
     if (adjlow < low)
         adjlow += step;
 
-    qCDebug(plotter) << "adjlow:" << adjlow;
-    qCDebug(plotter) << "step:" << step;
-    qCDebug(plotter) << "divs:" << divs;
+    qCDebug(plotter2) << "adjlow:" << adjlow;
+    qCDebug(plotter2) << "step:" << step;
+    qCDebug(plotter2) << "divs:" << divs;
 }
 
 void CPlotter2::showToolTip(QMouseEvent* event, QString toolTipText)
