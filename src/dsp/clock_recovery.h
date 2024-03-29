@@ -40,7 +40,7 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
                      gr_vector_const_void_star& input_items,
                      gr_vector_void_star& output_items) override;
 
-    float mu() const { return d_mu; }
+    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0:-d_corr180; }
     float omega() const { return d_omega; }
     float gain_mu() const { return d_gain_mu; }
     float gain_omega() const { return d_gain_omega; }
@@ -51,6 +51,7 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
     void set_gain_omega(float gain_omega) { d_gain_omega = gain_omega; }
     void set_mu(float mu) { d_mu = mu; }
     void set_omega(float omega);
+    void set_omega_lim(float lim);
     void set_dllbw(float v) { d_dllbw=v; }
     void set_dllalfa(float v) { d_dllalfa=v; }
 
@@ -67,17 +68,21 @@ private:
 
     float d_e0acc{0.f};
     float d_e90acc{0.f};
-    float d_l0acc{0.f};
-    float d_l90acc{0.f};
     float d_e180acc{0.f};
     float d_e270acc{0.f};
+    float d_l0acc{0.f};
+    float d_l90acc{0.f};
     float d_l180acc{0.f};
     float d_l270acc{0.f};
+    float d_c0acc{0.f};
+    float d_c90acc{0.f};
+    float d_c180acc{0.f};
+    float d_c270acc{0.f};
     int d_skip{0};
     float d_corr0{0.0};
     float d_corr180{0.0};
-    float d_dllbw{1.4f};
-    float d_dllalfa{0.1f};
+    float d_dllbw{0.4f};
+    float d_dllalfa{0.2f};
 
     gr_complex slicer_0deg(gr_complex sample)
     {

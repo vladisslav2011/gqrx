@@ -467,6 +467,12 @@ bool vfo_s::set_rds_omega_lim(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_dll_bw(const c_def::v_union & v)
+{
+    d_rds_dll_bw = v;
+    return true;
+}
+
 void vfo_s::restore_settings(vfo_s& from, bool force)
 {
     c_def::v_union v(0);
@@ -547,6 +553,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_rds_fxff_bw(v); set_rds_fxff_bw(v);
     from.get_rds_ecc_max(v); set_rds_ecc_max(v);
     from.get_rds_omega_lim(v); set_rds_omega_lim(v);
+    from.get_rds_dll_bw(v); set_rds_dll_bw(v);
     
     from.get_test(v);set_test(v);
 }
@@ -577,6 +584,7 @@ bool vfo_s::get_rds_rt(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_clock(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_af(c_def::v_union &) const {return false;}
 bool vfo_s::get_rds_errors(c_def::v_union &) const {return false;}
+bool vfo_s::get_rds_cl_freq(c_def::v_union &) const {return false;}
 
 int vfo_s::conf_initializer()
 {
@@ -722,6 +730,7 @@ int vfo_s::conf_initializer()
     getters[C_RDS_CLOCKTIME]=&vfo_s::get_rds_clock;
     getters[C_RDS_ALTFREQ]=&vfo_s::get_rds_af;
     getters[C_RDS_BIT_ERRORS]=&vfo_s::get_rds_errors;
+    getters[C_RDS_CL_FREQ]=&vfo_s::get_rds_cl_freq;
     getters[C_RDS_AGC]=&vfo_s::get_rds_agc;
     setters[C_RDS_AGC]=&vfo_s::set_rds_agc;
     getters[C_RDS_GMU]=&vfo_s::get_rds_gmu;
@@ -736,6 +745,8 @@ int vfo_s::conf_initializer()
     setters[C_RDS_ECC_MAX]=&vfo_s::set_rds_ecc_max;
     getters[C_RDS_OMEGA_LIM]=&vfo_s::get_rds_omega_lim;
     setters[C_RDS_OMEGA_LIM]=&vfo_s::set_rds_omega_lim;
+    getters[C_RDS_DLL_BW]=&vfo_s::get_rds_dll_bw;
+    setters[C_RDS_DLL_BW]=&vfo_s::set_rds_dll_bw;
     return 0;
 }
 

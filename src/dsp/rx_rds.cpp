@@ -30,11 +30,11 @@
 #include <gnuradio/blocks/complex_to_real.h>
 #include <gnuradio/blocks/complex_to_magphase.h>
 #include <gnuradio/blocks/multiply_const_ff.h>
-#include <gnuradio/digital/costas_loop_cc.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
 #include "dsp/rx_rds.h"
+#include <volk/volk.h>
 
 #if GNURADIO_VERSION >= 0x030800
 #include <gnuradio/digital/timing_error_detector_type.h>
@@ -96,6 +96,82 @@ private:
     int d_p;
     std::vector<gr_complex> d_b;
 };
+
+class dbpsk_det_cb: public gr::sync_decimator
+{
+protected:
+    dbpsk_det_cb():
+        gr::sync_decimator ("dbpsk_det_cb",
+        gr::io_signature::make2(2, 2, sizeof(gr_complex),sizeof(uint8_t)),
+        gr::io_signature::make(1, 1, sizeof(uint8_t)),2)
+    {
+//        set_output_multiple(2);
+        set_history(8);
+    }
+public:
+#if GNURADIO_VERSION < 0x030900
+typedef boost::shared_ptr<dbpsk_det_cb> sptr;
+#else
+typedef std::shared_ptr<dbpsk_det_cb> sptr;
+#endif
+    ~dbpsk_det_cb()
+    {
+    }
+
+    static sptr make()
+    {
+        return gnuradio::get_initial_sptr(new dbpsk_det_cb());
+    }
+    int work(int noutput_items,
+             gr_vector_const_void_star &input_items,
+             gr_vector_void_star &output_items) override
+    {
+        const gr_complex *in = (const gr_complex *) input_items[0];
+        const uint8_t *in1 = (const uint8_t *) input_items[1];
+        uint8_t *out = (uint8_t *) output_items[0];
+        for(int k=0;k<noutput_items;k++)
+        {
+            const gr_complex *b=&in[k*2];
+            if(in1[k*2])
+                b++;
+            #if 0
+            constexpr float fv=0.6f;
+            d_iir+=(real(b[0])-d_iir)*fv;
+            int tmp=real(b[1])>d_iir;
+            d_iir+=(real(b[1])-d_iir)*fv;
+            out[k]=d_prev^tmp;
+            d_prev=tmp;
+            #else
+            constexpr float fv=0.2f;
+            float iir=d_iir;
+            float p[4];
+            for(int j=0;j<4;j++)
+            {
+                iir+=(real(b[j])-iir)*fv;
+                p[j]=real(b[j])-iir;
+            }
+            d_iir+=(real(b[0])-d_iir)*fv;
+            d_iir+=(real(b[1])-d_iir)*fv;
+            auto m1_0=p[0]-p[1]-p[2]+p[3];
+            auto m0_0=p[0]-p[1]+p[2]-p[3];
+            int f0=std::abs(m1_0)>std::abs(m0_0);
+            out[k]=f0;
+            #endif
+        }
+        return noutput_items;
+    }
+
+
+private:
+    float d_iir{0.f};
+    int d_prev{0};
+};
+
+
+
+
+
+
 
 class soft_bpsk: public gr::digital::constellation_bpsk
 {
@@ -174,6 +250,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     auto corr=iir_corr::make((d_sample_rate*d_interpolation*104.0*2.0)/(d_decimation*23750.0),0.1);
     int agc_samp = (d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
+    d_costas_loop = gr::digital::costas_loop_cc::make(2.0*M_PI/2000.0,2);
+    //d_costas_loop->set_damping_factor(0.75);
+    d_costas_loop->set_min_freq(-0.005);
+    d_costas_loop->set_max_freq(0.005);
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
@@ -190,7 +270,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING, 16, 0.01, 1, 1, 0.1, 1, p_c);
 #endif
 
-    d_mpsk = gr::digital::constellation_receiver_cb::make(p_c, 2.0*M_PI/200.0, -0.002, 0.002);
+    d_mpsk = gr::digital::constellation_decoder_cb::make(p_c);
 
     d_ddbb = gr::digital::diff_decoder_bb::make(2);
 
@@ -198,14 +278,20 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     connect(self(), 0, d_fxff, 0);
     connect(d_fxff, 0, d_rsmp, 0);
     connect(d_rsmp, 0, d_agc, 0);
+#if 1
     connect(d_agc, 0, d_bpf, 0);
+    connect(d_bpf, 0, d_costas_loop, 0);
+#else
+    connect(d_agc, 0, d_costas_loop, 0);
+#endif
     if(encorr)
     {
-        connect(d_bpf, 0, corr, 0);
+        connect(d_costas_loop, 0, corr, 0);
         connect(corr, 0, d_sync, 0);
     }else
-        connect(d_bpf, 0, d_sync, 0);
+        connect(d_costas_loop, 0, d_sync, 0);
 //    connect(d_agc, 0, d_sync, 0);
+#if 0
     connect(d_sync, 0, d_mpsk, 0);
 
 #if GNURADIO_VERSION < 0x030800
@@ -216,6 +302,12 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     connect(d_ddbb, 0, self(), 0);
+#else
+    auto dm=dbpsk_det_cb::make();
+    connect(d_sync, 0, dm, 0);
+    connect(d_sync, 1, dm, 1);
+    connect(dm, 0, self(), 0);
+#endif
     #if 0
     {
     auto w0=gr::blocks::wavfile_sink::make("/home/vlad/agc.wav",2,19000);
@@ -246,9 +338,13 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     auto im2=gr::blocks::complex_to_imag::make();
     auto re2=gr::blocks::complex_to_real::make();
     auto bpf_manc=gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
+    auto cl2=gr::digital::costas_loop_cc::make(2.0*M_PI/20000.0,2);
+    cl2->set_min_freq(-0.005);
+    cl2->set_max_freq(0.005);
     connect(d_rsmp,0,bpf_manc,0);
-    connect(bpf_manc,0,re2,0);
-    connect(bpf_manc,0,im2,0);
+    connect(bpf_manc,0,cl2,0);
+    connect(cl2,0,re2,0);
+    connect(cl2,0,im2,0);
     connect(re2,0,w2,0);
     connect(im2,0,w2,1);
     }
@@ -256,12 +352,16 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     #if 0
     {
     auto w1=gr::blocks::wavfile_sink::make("/home/vlad/bpf.wav",2,19000);
-    auto bb = gr::blocks::complex_to_magphase::make();
-    auto mc=gr::blocks::multiply_const_ff::make(1.0/M_PI/2.0);
-    connect(d_bpf,0,bb,0);
-    connect(bb,0,w1,0);
-    connect(bb,1,mc,0);
-    connect(mc,0,w1,1);
+    auto im1=gr::blocks::complex_to_imag::make();
+    auto re1=gr::blocks::complex_to_real::make();
+    auto cl1=gr::digital::costas_loop_cc::make(2.0*M_PI/20000.0,2);
+    cl1->set_min_freq(-0.005);
+    cl1->set_max_freq(0.005);
+    connect(d_bpf,0,cl1,0);
+    connect(cl1,0,re1,0);
+    connect(cl1,0,im1,0);
+    connect(re1,0,w1,0);
+    connect(im1,0,w1,1);
     }
     #endif
     #if 0
@@ -299,24 +399,34 @@ void rx_rds::trig()
 {
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
+    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.);
 }
 
 void rx_rds::update_fxff_taps()
 {
     //lock();
-//    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 2375.0+d_fxff_bw, d_fxff_tw);
+    #if 0
+    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw*3., d_fxff_tw);
+    #else
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.0/2.0-d_fxff_bw, 2375.0/2.0+d_fxff_bw, d_fxff_tw);
+    #endif
     d_fxff->set_taps(d_fxff_tap);
     //unlock();
 }
 
 void rx_rds::set_omega_lim(float v)
 {
+    d_sync->set_omega_lim(d_omega_lim=v);
     return;
     disconnect(d_agc, 0, d_sync, 0);
     disconnect(d_sync, 0, d_mpsk, 0);
     d_sync = clock_recovery_el_cc::make((d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);
     connect(d_agc, 0, d_sync, 0);
     connect(d_sync, 0, d_mpsk, 0);
+}
+
+void rx_rds::set_dll_bw(float v)
+{
+    d_sync->set_dllbw(v);
 }
