@@ -47,7 +47,8 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
     for(k=0;k<10;k++)
     {
         uint32_t p=calc_syndrome(b,16)^(1<<k);
-        tmp[p]={0,1};
+        if(tmp[p].w==16)
+            tmp[p]={0,1};
     }
     if(1)
     for(k=0;k<16;k++)
@@ -55,7 +56,8 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
         {
             uint16_t e=(1<<k)^(1<<j);
             uint32_t p=calc_syndrome(b,16)^calc_syndrome(b^e,16);
-            tmp[p]={e,2};
+            if(tmp[p].w==16)
+                tmp[p]={e,2};
         }
     if(1)
     for(j=3;j<6;j++)
@@ -64,7 +66,8 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
         {
             uint16_t e=(((1<<j)-1)<<k)&((1<<16)-1);
             uint32_t p=calc_syndrome(b,16)^calc_syndrome(b^e,16);
-            tmp[p]={e,uint8_t(j)};
+            if(tmp[p].w==16)
+                tmp[p]={e,uint8_t(j)};
         }
     return tmp;
 }
@@ -279,12 +282,12 @@ int decoder_impl::work (int noutput_items,
                 d_curr_errs=process_group(group);
                 d_next_errs=process_group(next_grp);
                 bit_counter=1;
-                if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs))
+                if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs)&&(d_prev_errs<12))
                 {
                     good_group=prev_grp;
                     bit_counter=2;
                     printf("<->\n");
-                }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs))
+                }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs)&&(d_next_errs<12))
                 {
                     good_group=next_grp;
                     bit_counter=0;
@@ -396,13 +399,13 @@ int decoder_impl::work (int noutput_items,
                 }
                 if((bit_errors > 15)&&(d_state==SYNC))
                 {
-                    if(d_counter > 12)
+                    if(d_counter > 512)
                     {
                         d_state=NO_SYNC;
                         d_counter = 0;
                         printf("- NO Sync errors: %d\n",d_curr_errs);
                      }else
-                        d_counter ++;
+                        d_counter +=bit_errors;
                 }
                 if(d_state != SYNC)
                     continue;

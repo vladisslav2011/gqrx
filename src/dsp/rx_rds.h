@@ -44,7 +44,8 @@
 #include <gnuradio/filter/rational_resampler.h>
 #endif
 
-#include <gnuradio/digital/constellation_receiver_cb.h>
+#include <gnuradio/digital/costas_loop_cc.h>
+#include <gnuradio/digital/constellation_decoder_cb.h>
 #include <gnuradio/blocks/keep_one_in_n.h>
 #include <gnuradio/digital/diff_decoder_bb.h>
 #include <gnuradio/blocks/file_sink.h>
@@ -81,6 +82,7 @@ public:
     void set_fxff_bw(float bw) {d_fxff_bw=bw; update_fxff_taps();}
     void set_fxff_tw(float tw) {d_fxff_tw=tw; update_fxff_taps();}
     void set_omega_lim(float v);
+    void set_dll_bw(float v);
 
 private:
     void update_fxff_taps();
@@ -104,8 +106,9 @@ private:
 #else
     gr::digital::symbol_sync_cc::sptr d_sync;
 #endif
-    gr::digital::constellation_receiver_cb::sptr d_mpsk;
+    gr::digital::constellation_decoder_cb::sptr d_mpsk;
     gr::digital::diff_decoder_bb::sptr d_ddbb;
+    gr::digital::costas_loop_cc::sptr d_costas_loop;
 
     double d_sample_rate;
     int d_index;

@@ -810,5 +810,6 @@ void parser_impl::clear()
     changed_value(C_RDS_CLOCKTIME, d_index, "");
     changed_value(C_RDS_ALTFREQ, d_index, "");
     changed_value(C_RDS_BIT_ERRORS, d_index, 0);
+    changed_value(C_RDS_CL_FREQ, d_index, 0.);
     program_identification=0xffffffff;
 }

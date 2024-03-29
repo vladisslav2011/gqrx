@@ -335,6 +335,12 @@ bool wfmrx::get_rds_errors(c_def::v_union &to) const
     return true;
 }
 
+bool wfmrx::get_rds_cl_freq(c_def::v_union &to) const
+{
+    to=0.;
+    return true;
+}
+
 bool wfmrx::set_rds_agc(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_agc(v);
@@ -383,6 +389,17 @@ bool wfmrx::set_rds_omega_lim(const c_def::v_union & v)
     if(d_rds_on)
         lock();
     rds->set_omega_lim(d_rds_omega_lim);
+    if(d_rds_on)
+        unlock();
+    return true;
+}
+
+bool wfmrx::set_rds_dll_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_dll_bw(v);
+    if(d_rds_on)
+        lock();
+    rds->set_dll_bw(d_rds_dll_bw);
     if(d_rds_on)
         unlock();
     return true;
