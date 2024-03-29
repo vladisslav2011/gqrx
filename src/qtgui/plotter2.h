@@ -29,7 +29,7 @@ public:
     QSize sizeHint() const override;
 
     void draw(); //call to draw new fft data onto screen plot
-    void setRunningState(bool running) { m_Running = running; }
+    void setTooltipsEnabled(bool enabled) { m_TooltipsEnabled = enabled; }
 
     void setNewData(float *data, int size);
 
@@ -55,14 +55,17 @@ private:
     void        showToolTip(QMouseEvent* event, QString toolTipText);
 
     float      *m_data{};
+    int         m_dataSize;
     QPixmap     m_2DPixmap;
     QPixmap     m_OverlayPixmap;
+    QColor      m_PlotColor{255,255,255};
     QSize       m_Size;
     qreal       m_DPR{};
     QString     m_HDivText[HORZ_DIVS_MAX+1];
     bool        m_DrawOverlay;
     bool        m_TooltipsEnabled{};  /*!< Tooltips enabled */
     bool        m_InvertScrolling;
+    bool        m_polar{false};
     int         m_CursorCaptureDelta;
     int         m_GrabPosition;
 
@@ -72,6 +75,8 @@ private:
     int         m_FHiCmax;
     bool        m_symetric;
 
+    int         m_XAxisYCenter{};
+    int         m_YAxisWidth{};
     int         m_HorDivs;   /*!< Current number of horizontal divisions. Calculated from width. */
     int         m_VerDivs;   /*!< Current number of vertical divisions. Calculated from height. */
 

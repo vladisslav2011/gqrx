@@ -56,6 +56,7 @@ DockProbe::DockProbe(QWidget *parent) :
     ui->spectrum->setFreqDigits(1);
 
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    ui->plot->setVisible(false);
 }
 
 DockProbe::~DockProbe()
