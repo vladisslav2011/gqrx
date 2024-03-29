@@ -432,6 +432,7 @@ MainWindow::~MainWindow()
 
     if (m_settings)
     {
+        qDebug() << "Saving device string: "<<m_settings->value("input/device","").toString();
         m_settings->setValue("configversion", 3);
         m_settings->setValue("crashed", false);
 
@@ -447,7 +448,20 @@ MainWindow::~MainWindow()
         // save session
         storeSession();
 
+        qDebug() << "Writing configuration to:" << m_settings->fileName();
         m_settings->sync();
+        switch(m_settings->status())
+        {
+        case QSettings::NoError:
+            qDebug() << "Settings are saved successfully";
+        break;
+        case QSettings::AccessError:
+            qDebug() << "Failed to save settings: access violation";
+        break;
+        case QSettings::FormatError:
+            qDebug() << "Failed to save settings: format error";
+        break;
+        }
         delete m_settings;
     }
 
