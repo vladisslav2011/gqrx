@@ -139,7 +139,7 @@ unsigned int decoder_impl::calc_syndrome(unsigned long message,
 	return (lreg & ((1<<plen)-1));	// select the bottom plen bits of reg
 }
 
-int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_chars, uint16_t * loc)
+int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_chars, uint16_t * loc, int * good_grp)
 {
     int ret=0;
     if(offs_chars)
@@ -152,6 +152,8 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     if(loc)
         loc[0]=loc[1]=loc[2]=loc[3]=0;
     uint16_t s;
+    int g1=0;
+    int g2=0;
 
     s=calc_syndrome(grp[0]>>10,16)^(grp[0]&0x3ff);
     const bit_locator & bl=locator[s^offset_word[0]];
@@ -160,6 +162,10 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     if(offs_chars)
         if(bl.w>0)
             offs_chars[0]='x';
+    if(bl.w==1)
+        g1++;
+    if(bl.w==2)
+        g2++;
     ret+=bl.w;
     d_block0errs=bl.w;
 
@@ -170,6 +176,10 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     if(offs_chars)
         if(bl1.w>thr)
             offs_chars[1]='x';
+    if(bl1.w==1)
+        g1++;
+    if(bl1.w==2)
+        g2++;
     ret+=bl1.w;
 
     s=calc_syndrome(grp[2]>>10,16)^(grp[2]&0x3ff);
@@ -182,6 +192,10 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
         if(offs_chars)
             if(bl2.w>thr)
                 offs_chars[2]='x';
+        if(bl2.w==1)
+            g1++;
+        if(bl2.w==2)
+            g2++;
         ret+=bl2.w;
     }else{
         if(offs_chars)
@@ -191,6 +205,10 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
         if(offs_chars)
             if(bl4.w>thr)
                 offs_chars[2]='x';
+        if(bl4.w==1)
+            g1++;
+        if(bl4.w==2)
+            g2++;
         ret+=bl4.w;
     }
 
@@ -201,7 +219,14 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     if(offs_chars)
         if(bl3.w>thr)
             offs_chars[3]='x';
+    if(bl3.w==1)
+        g1++;
+    if(bl3.w==2)
+        g2++;
     ret+=bl3.w;
+
+    if(good_grp)
+        *good_grp=g1*3+g2;
     return ret;
 }
 
@@ -300,19 +325,31 @@ int decoder_impl::work (int noutput_items,
                 uint16_t pi = (next_grp[0]>>10)^locators[0];
                 if(d_block0errs<5)
                 {
-                    constexpr char weights[]={5,2,1,1,1};
+                    constexpr uint8_t weights[]={19,9,5,4,3};
                     d_pi_a[pi].weight+=weights[d_block0errs];
                     d_pi_a[pi].count++;
                     int bit_offset=d_bit_counter-d_pi_a[pi].lastseen;
                     d_pi_a[pi].lastseen=d_bit_counter;
-                    if((d_pi_a[pi].weight>=10)&&(d_block0errs==0)&&((bit_offset+1)%GROUP_SIZE < 3))
+                    /*
+                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<3)&&((bit_offset+1)%GROUP_SIZE < 3))
+                        d_pi_a[pi].weight+=2;
+                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<5)&&(bit_offset%GROUP_SIZE == 0))
                         d_pi_a[pi].weight+=4;
-                    if(d_pi_a[pi].weight<13)
+                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<3)&&(bit_offset%GROUP_SIZE == 0))
+                        d_pi_a[pi].weight+=6;
+                    if((d_pi_a[pi].weight>=22)&&(d_block0errs==0)&&(bit_offset%GROUP_SIZE == 0))
+                        d_pi_a[pi].weight+=15;
+                        */
+                    if((d_pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
+                        d_pi_a[pi].weight+=weights[d_block0errs]>>2;
+                    if((d_pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
+                        d_pi_a[pi].weight+=weights[d_block0errs]>>1;
+                    if(d_pi_a[pi].weight<55)
                     {
                         if(d_pi_a[pi].weight>d_max_weight)
                         {
                             d_max_weight=d_pi_a[pi].weight;
-                            printf("?[%04x] %d %d %d\n",pi,d_pi_a[pi].weight,d_block0errs,d_next_errs);
+                            printf("?[%04x] %d (%d,%d) %d %d\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs);
                             d_matches[pi].push_back(grp_array(next_grp));
                             prev_grp[0]=pi;
                             prev_grp[1]=d_pi_a[pi].weight;
@@ -321,7 +358,7 @@ int decoder_impl::work (int noutput_items,
                             decode_group(prev_grp,d_next_errs);
                         }
                     }else{
-                        printf("+[%04x] %d %d %d!!\n",pi,d_pi_a[pi].weight,d_block0errs,d_next_errs);
+                        printf("+[%04x] %d (%d,%d) %d %d!!\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs);
                         auto & prv=d_matches[pi];
                         for(unsigned k=0;k<prv.size();k++)
                         {
@@ -343,19 +380,23 @@ int decoder_impl::work (int noutput_items,
                         offset_chars[0]='A';
                         decode_group(prev_grp,0);
                         for(int jj=0;jj<65536;jj++)
-                        {
-                            d_pi_a[jj].weight>>=2;
-                            d_pi_a[jj].count>>=2;
-                        }
+                            if(jj==pi)
+                            {
+                                d_pi_a[jj].weight>>=1;
+                                d_pi_a[jj].count>>=1;
+                            }else{
+                                d_pi_a[jj].weight>>=2;
+                                d_pi_a[jj].count>>=2;
+                            }
                         d_pi_bitcnt=0;
-                        d_max_weight>>=2;
-                        //d_state=SYNC;
+                        d_max_weight>>=1;
+                        d_state=SYNC;
                         d_best_pi=pi;
                         bit_counter=1;
                         continue;
                     }
                     d_pi_bitcnt++;
-                    if(d_pi_bitcnt>BLOCK_SIZE*100)
+                    if(d_pi_bitcnt>BLOCK_SIZE*50)
                     {
                         d_pi_bitcnt=0;
                         for(int jj=0;jj<65536;jj++)
@@ -372,7 +413,7 @@ int decoder_impl::work (int noutput_items,
                 if(d_corr)
                     continue;
             }
-            bit_errors=process_group(good_group, ecc_max, offset_chars, locators);
+            bit_errors=process_group(good_group, ecc_max, offset_chars, locators, &good_grp);
             char sync_point='E';
             if(d_state != FORCE_SYNC)
             {
@@ -396,22 +437,34 @@ int decoder_impl::work (int noutput_items,
                         sync_point='N';
                     }
                 }
-                if((bit_errors > 15)&&(d_state==SYNC))
+                if(d_state==SYNC)
                 {
-                    if(d_counter > 512)
+                    if(good_grp>=4)
                     {
-                        d_state=NO_SYNC;
-                        d_counter = 0;
-                        printf("- NO Sync errors: %d\n",d_curr_errs);
-                     }else
-                        d_counter +=bit_errors;
-                }
+                        d_counter>>=2;
+                        //d_counter=0;
+                    }
+                    if(good_grp>=3)
+                    {
+                        d_counter>>=1;
+                    }
+                    if(bit_errors > 15)
+                    {
+                        if(d_counter > 512)
+                        {
+                            d_state=NO_SYNC;
+                            d_counter = 0;
+                            printf("- NO Sync errors: %d\n",d_curr_errs);
+                        }
+                    }                }
+                d_counter +=bit_errors;
                 if(d_state != SYNC)
                     continue;
             }else{
                 d_state = SYNC;
                 offset_chars[0]='F';
                 sync_point='F';
+                d_counter = 0;
             }
 //            if(bit_errors>5)
 //                continue;

@@ -202,6 +202,7 @@ public:
     bool         get_rds_ecc_max(c_def::v_union & v) const { v=d_rds_ecc_max; return true; }
     bool         get_rds_omega_lim(c_def::v_union & v) const { v=d_rds_omega_lim; return true; }
     bool         get_rds_dll_bw(c_def::v_union & v) const { v=d_rds_dll_bw; return true; }
+    bool         get_rds_cl_bw(c_def::v_union & v) const { v=d_rds_cl_bw; return true; }
 
     //setters
     virtual void set_offset(int offset);
@@ -292,6 +293,7 @@ public:
     virtual bool get_rds_af(c_def::v_union &) const;
     virtual bool get_rds_errors(c_def::v_union &) const;
     virtual bool get_rds_cl_freq(c_def::v_union &) const;
+    virtual bool get_rds_phase_snr(c_def::v_union &) const;
     virtual bool set_rds_agc(const c_def::v_union & v);
     virtual bool set_rds_gmu(const c_def::v_union & v);
     virtual bool set_rds_gomega(const c_def::v_union & v);
@@ -300,6 +302,7 @@ public:
     virtual bool set_rds_ecc_max(const c_def::v_union & v);
     virtual bool set_rds_omega_lim(const c_def::v_union & v);
     virtual bool set_rds_dll_bw(const c_def::v_union & v);
+    virtual bool set_rds_cl_bw(const c_def::v_union & v);
 
 public:
     struct comp
@@ -370,14 +373,15 @@ protected:
 
     bool             d_rds_on;
     int              d_testval;
-    float            d_rds_agc{0.002f};
-    float            d_rds_gomega{0.f};
-    float            d_rds_gmu{0.f};
-    float            d_rds_fxff_bw{1000.f};
-    float            d_rds_fxff_tw{500.f};
+    float            d_rds_agc{0.01f};
+    float            d_rds_gomega{-1.6f};
+    float            d_rds_gmu{-0.6f};
+    float            d_rds_fxff_bw{950.f};
+    float            d_rds_fxff_tw{300.f};
     int              d_rds_ecc_max{0};
-    float            d_rds_omega_lim{2.5e-4f};
-    float            d_rds_dll_bw{0.4f};
+    float            d_rds_omega_lim{5.e-4f};
+    float            d_rds_dll_bw{1.8f};
+    float            d_rds_cl_bw{-28.f};
 
 } vfo;
 
