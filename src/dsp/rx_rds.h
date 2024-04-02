@@ -83,6 +83,8 @@ public:
     void set_fxff_tw(float tw) {d_fxff_tw=tw; update_fxff_taps();}
     void set_omega_lim(float v);
     void set_dll_bw(float v);
+    void set_cl_bw(float v);
+    float phase_snr() const;
 
 private:
     void update_fxff_taps();
@@ -109,16 +111,17 @@ private:
     gr::digital::constellation_decoder_cb::sptr d_mpsk;
     gr::digital::diff_decoder_bb::sptr d_ddbb;
     gr::digital::costas_loop_cc::sptr d_costas_loop;
+    gr::basic_block_sptr d_det;
 
     double d_sample_rate;
     int d_index;
-    constexpr static int d_interpolation = 19;
-    constexpr static int d_decimation = 24;
-    float d_fxff_tw{500.0f};
-    float d_fxff_bw{1000.0f};
-    float d_gain_mu{0.175*0.2};
-    float d_gain_omega{0.25 * 0.175 * 0.000175};
-    float d_omega_lim{0.00040};
+    constexpr static int d_interpolation = 1;
+    constexpr static int d_decimation = 1;
+    float d_fxff_tw{300.0f};
+    float d_fxff_bw{950.0f};
+    float d_gain_mu{powf(10.f,-1.4f)};
+    float d_gain_omega{powf(10.f,-4.3f)};
+    float d_omega_lim{0.00050};
 };
 
 

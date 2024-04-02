@@ -85,6 +85,7 @@ public:
     bool get_rds_af(c_def::v_union &) const override;
     bool get_rds_errors(c_def::v_union &) const override;
     bool get_rds_cl_freq(c_def::v_union &) const override;
+    bool get_rds_phase_snr(c_def::v_union &) const override;
     bool set_rds_agc(const c_def::v_union & v) override;
     bool set_rds_gmu(const c_def::v_union & v) override;
     bool set_rds_gomega(const c_def::v_union & v) override;
@@ -93,6 +94,7 @@ public:
     bool set_rds_ecc_max(const c_def::v_union & v) override;
     bool set_rds_omega_lim(const c_def::v_union & v) override;
     bool set_rds_dll_bw(const c_def::v_union & v) override;
+    bool set_rds_cl_bw(const c_def::v_union & v) override;
 
 private:
     void start_rds_decoder();

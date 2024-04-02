@@ -42,8 +42,8 @@ private:
     };
     struct pi_stats
     {
-        char count;
-        char weight;
+        uint8_t count;
+        uint8_t weight;
         unsigned lastseen;
     };
     struct grp_array
@@ -66,7 +66,7 @@ private:
 	static unsigned int calc_syndrome(unsigned long, unsigned char);
 	void decode_group(unsigned *, int);
 	static std::array<bit_locator,1024> build_locator();
-    int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr);
+    int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr, int * good_grp=nullptr);
 
 	int            bit_counter;
 	unsigned long  lastseen_offset_counter, reg;

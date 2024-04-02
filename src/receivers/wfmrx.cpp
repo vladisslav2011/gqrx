@@ -341,6 +341,12 @@ bool wfmrx::get_rds_cl_freq(c_def::v_union &to) const
     return true;
 }
 
+bool wfmrx::get_rds_phase_snr(c_def::v_union &to) const
+{
+    to=rds->phase_snr();
+    return true;
+}
+
 bool wfmrx::set_rds_agc(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_agc(v);
@@ -351,14 +357,14 @@ bool wfmrx::set_rds_agc(const c_def::v_union & v)
 bool wfmrx::set_rds_gmu(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gmu(v);
-    rds->set_gain_mu(powf(10.f, v)*0.175f);
+    rds->set_gain_mu(powf(10.f, v));
     return true;
 }
 
 bool wfmrx::set_rds_gomega(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gomega(v);
-    rds->set_gain_omega(powf(10.f, v)*0.007f);
+    rds->set_gain_omega(powf(10.f, v));
     return true;
 }
 
@@ -386,21 +392,20 @@ bool wfmrx::set_rds_ecc_max(const c_def::v_union & v)
 bool wfmrx::set_rds_omega_lim(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_omega_lim(v);
-    if(d_rds_on)
-        lock();
     rds->set_omega_lim(d_rds_omega_lim);
-    if(d_rds_on)
-        unlock();
     return true;
 }
 
 bool wfmrx::set_rds_dll_bw(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_dll_bw(v);
-    if(d_rds_on)
-        lock();
     rds->set_dll_bw(d_rds_dll_bw);
-    if(d_rds_on)
-        unlock();
+    return true;
+}
+
+bool wfmrx::set_rds_cl_bw(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_cl_bw(v);
+    rds->set_cl_bw(d_rds_cl_bw);
     return true;
 }

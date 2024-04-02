@@ -96,7 +96,6 @@ int clock_recovery_el_cc::general_work(int noutput_items,
     assert(d_mu <= 1.0);
 
     float mm_val = 0;
-    constexpr float corr_alfa=0.001f;
 
     while (oo < noutput_items && ii < ni)
     {
@@ -170,12 +169,10 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         }
         if(out1)
             out1[oo] = d_skip?0:1;
-        if(d_corr0>=d_corr180)
-        {
-            out[oo++] = d_interp.interpolate(&in[ii], d_mu);
-        }else{
-            out[oo++] = d_interp.interpolate(&in[ci180], c_mu180);
-        }
+        gr_complex outval=(d_corr0>=d_corr180)?d_interp.interpolate(&in[ii], d_mu):d_interp.interpolate(&in[ci180], c_mu180);
+        out[oo++]=outval;
+        d_am_i+=(log10f(std::max(std::abs(real(outval)),0.00001f))-d_am_i)*corr_alfa;
+        d_am_q+=(log10f(std::max(std::abs(imag(outval)),0.00001f))-d_am_q)*corr_alfa;
 
         d_omega = d_omega + d_gain_omega * mm_val;
         d_omega =

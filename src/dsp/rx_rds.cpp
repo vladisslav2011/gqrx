@@ -141,7 +141,12 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             d_iir+=(real(b[1])-d_iir)*fv;
             out[k]=d_prev^tmp;
             d_prev=tmp;
-            #else
+            #elif 0
+            auto m1_0=b[0]-b[1]-b[2]+b[3];
+            auto m0_0=b[0]-b[1]+b[2]-b[3];
+            int f0=std::abs(m1_0)>std::abs(m0_0);
+            out[k]=f0;
+           #else
             constexpr float fv=0.2f;
             float iir=d_iir;
             float p[4];
@@ -157,14 +162,27 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             int f0=std::abs(m1_0)>std::abs(m0_0);
             out[k]=f0;
             #endif
+            d_i_mag+=(log10f(std::max(std::abs(real(b[0])),0.0001f))*10.f-d_i_mag)*corr_alfa;
+            d_q_mag+=(log10f(std::max(std::abs(imag(b[0])),0.0001f))*10.f-d_q_mag)*corr_alfa;
+            d_i_mag+=(log10f(std::max(std::abs(real(b[1])),0.0001f))*10.f-d_i_mag)*corr_alfa;
+            d_q_mag+=(log10f(std::max(std::abs(imag(b[1])),0.0001f))*10.f-d_q_mag)*corr_alfa;
         }
         return noutput_items;
     }
 
+    float snr() const
+    {
+        return d_i_mag-d_q_mag;
+    }
+
 
 private:
+    static constexpr float corr_alfa{0.001f};
+
     float d_iir{0.f};
     int d_prev{0};
+    float d_i_mag{0.f};
+    float d_q_mag{0.f};
 };
 
 
@@ -197,7 +215,7 @@ protected:
     soft_bpsk(): constellation_bpsk()
     {
     };
-	float acc{0.f};
+    float acc{0.f};
 };
 
 static const int MIN_IN = 1;  /* Minimum number of input streams. */
@@ -220,14 +238,15 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char))),
       d_sample_rate(sample_rate)
 {
-    if (sample_rate != 240000.0) {
+    constexpr int decim1=8;
+    if (sample_rate < 128000.0) {
         throw std::invalid_argument("RDS sample rate not supported");
     }
 
 //    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
-    d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(10, d_fxff_tap, 57000, d_sample_rate);
+    d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(decim1, d_fxff_tap, 57000, d_sample_rate);
     update_fxff_taps();
 
 #if GNURADIO_VERSION < 0x030900
@@ -239,7 +258,9 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     int n_taps = 151*5;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*10.f), 2375.0*0.95, 1, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0*0.97, 1, n_taps);
+//    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
+//    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
     d_rrcf_manchester = std::vector<float>(n_taps-8);
     for (int n = 0; n < n_taps-8; n++) {
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
@@ -247,19 +268,19 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     //gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
     gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
-    auto corr=iir_corr::make((d_sample_rate*d_interpolation*104.0*2.0)/(d_decimation*23750.0),0.1);
+    auto corr=iir_corr::make(((float)d_sample_rate*d_interpolation*104.f*2.f)/(d_decimation*(2375.f*decim1)),0.1);
     int agc_samp = ((float)d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
-    d_costas_loop = gr::digital::costas_loop_cc::make(2.0*M_PI/2000.0,2);
-    //d_costas_loop->set_damping_factor(0.75);
-    d_costas_loop->set_min_freq(-0.005);
-    d_costas_loop->set_max_freq(0.005);
+    d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
+    //d_costas_loop->set_damping_factor(0.85);
+    d_costas_loop->set_min_freq(-0.0003f*float(decim1));
+    d_costas_loop->set_max_freq(0.0003f*float(decim1));
 #if GNURADIO_VERSION < 0x030800
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
 
-    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
+    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*(2375.f*decim1)), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
@@ -276,20 +297,25 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     /* connect filter */
     connect(self(), 0, d_fxff, 0);
-    connect(d_fxff, 0, d_rsmp, 0);
-    connect(d_rsmp, 0, d_agc, 0);
+    if(d_decimation==d_interpolation)
+    {
+        connect(d_fxff, 0, d_agc, 0);
+    }else{
+        connect(d_fxff, 0, d_rsmp, 0);
+        connect(d_rsmp, 0, d_agc, 0);
+    }
 #if 1
-    connect(d_agc, 0, d_bpf, 0);
-    connect(d_bpf, 0, d_costas_loop, 0);
+    connect(d_agc, 0, d_costas_loop, 0);
+    connect(d_costas_loop, 0, d_bpf, 0);
 #else
     connect(d_agc, 0, d_costas_loop, 0);
 #endif
     if(encorr)
     {
-        connect(d_costas_loop, 0, corr, 0);
+        connect(d_bpf, 0, corr, 0);
         connect(corr, 0, d_sync, 0);
     }else
-        connect(d_costas_loop, 0, d_sync, 0);
+        connect(d_bpf, 0, d_sync, 0);
 //    connect(d_agc, 0, d_sync, 0);
 #if 0
     connect(d_sync, 0, d_mpsk, 0);
@@ -303,10 +329,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     connect(d_ddbb, 0, self(), 0);
 #else
-    auto dm=dbpsk_det_cb::make();
-    connect(d_sync, 0, dm, 0);
-    connect(d_sync, 1, dm, 1);
-    connect(dm, 0, self(), 0);
+    d_det=dbpsk_det_cb::make();
+    connect(d_sync, 0, d_det, 0);
+    connect(d_sync, 1, d_det, 1);
+    connect(d_det, 0, self(), 0);
 #endif
     #if 0
     {
@@ -400,16 +426,17 @@ void rx_rds::trig()
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
     changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
+    changed_value(C_RDS_PHASE_SNR, d_index, phase_snr());
 }
 
 void rx_rds::update_fxff_taps()
 {
     //lock();
     #if 0
-    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw*3., d_fxff_tw);
+    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw+2375.f-1000.f, d_fxff_tw);
     #else
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
-        2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw);
+        2375.f/2.f-std::min(d_fxff_bw,1170.0f), 2375.f/2.f+std::min(d_fxff_bw,1170.0f), d_fxff_tw);
     #endif
     d_fxff->set_taps(d_fxff_tap);
     //unlock();
@@ -418,15 +445,19 @@ void rx_rds::update_fxff_taps()
 void rx_rds::set_omega_lim(float v)
 {
     d_sync->set_omega_lim(d_omega_lim=v);
-    return;
-    disconnect(d_agc, 0, d_sync, 0);
-    disconnect(d_sync, 0, d_mpsk, 0);
-    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*23750.f), d_gain_omega, 0.5, d_gain_mu, d_omega_lim=v);
-    connect(d_agc, 0, d_sync, 0);
-    connect(d_sync, 0, d_mpsk, 0);
 }
 
 void rx_rds::set_dll_bw(float v)
 {
     d_sync->set_dllbw(v);
+}
+
+void rx_rds::set_cl_bw(float v)
+{
+    d_costas_loop->set_loop_bandwidth(powf(10.f,v/10.f));
+}
+
+float rx_rds::phase_snr() const
+{
+    return dynamic_cast<dbpsk_det_cb *>(d_det.get())->snr();
 }
