@@ -147,20 +147,20 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             int f0=std::abs(m1_0)>std::abs(m0_0);
             out[k]=f0;
            #else
-            constexpr float fv=0.2f;
+            constexpr float fv=0.0f;
             float iir=d_iir;
             float p[4];
             for(int j=0;j<4;j++)
             {
-                iir+=(real(b[j])-iir)*fv;
                 p[j]=real(b[j])-iir;
+                iir+=(real(b[j])-iir)*fv;
             }
             d_iir+=(real(b[0])-d_iir)*fv;
             d_iir+=(real(b[1])-d_iir)*fv;
             auto m1_0=p[0]-p[1]-p[2]+p[3];
             auto m0_0=p[0]-p[1]+p[2]-p[3];
-            int f0=std::abs(m1_0)>std::abs(m0_0);
-            out[k]=f0;
+            auto f0=std::abs(m1_0)-std::abs(m0_0);
+            out[k]=f0>0.f;
             #endif
             d_i_mag+=(log10f(std::max(std::abs(real(b[0])),0.0001f))*10.f-d_i_mag)*corr_alfa;
             d_q_mag+=(log10f(std::max(std::abs(imag(b[0])),0.0001f))*10.f-d_q_mag)*corr_alfa;
@@ -258,7 +258,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     int n_taps = 151*5;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0*0.97, 1, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
 //    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
 //    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
     d_rrcf_manchester = std::vector<float>(n_taps-8);
