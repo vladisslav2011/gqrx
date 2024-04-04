@@ -307,6 +307,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_FFT_TIMESPAN, &MainWindow::wfTimeSpanObserver);
     set_observer(C_FFT_RATE, &MainWindow::iqFftRateObserver);
     set_observer(C_FFT_SIZE, &MainWindow::iqFftSizeObserver);
+    set_observer(C_IQ_PROCESS, &MainWindow::iqProcessObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -1719,6 +1720,14 @@ void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
 void MainWindow::frequencyObserver(const c_id id, const c_def::v_union &value)
 {
     setNewFrequency(std::llroundl(double(value)*1e3));
+}
+
+void MainWindow::iqProcessObserver(const c_id id, const c_def::v_union &value)
+{
+    if(bool(value))
+        ui->actionDSP->setIcon(QIcon(":/icons/icons/ff.svg"));
+    else
+        ui->actionDSP->setIcon(QIcon(":/icons/icons/play.svg"));
 }
 
 /**

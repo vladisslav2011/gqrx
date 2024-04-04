@@ -49,6 +49,7 @@ enum c_id
     C_IQ_GOTO_A,
     C_IQ_GOTO_B,
     C_IQ_SAVE_LOC,
+    C_IQ_PROCESS,
 
     C_DXC_ADDRESS,
     C_DXC_PORT,
