@@ -305,6 +305,8 @@ public:
     /* I/Q recording and playback */
     bool        get_buffers_max(c_def::v_union &v) const { v=d_iq_buffers_max; return true;}
     bool        set_buffers_max(const c_def::v_union &);
+    bool        get_iq_process(c_def::v_union &v) const { v=d_iq_process; return true;}
+    bool        set_iq_process(const c_def::v_union &);
     bool        get_iq_repeat(c_def::v_union &v) const { v=d_iq_repeat; return true;}
     bool        set_iq_repeat(const c_def::v_union &);
     status      start_iq_recording(const std::string filename, const file_formats fmt);
@@ -370,6 +372,7 @@ private:
     std::string d_iq_filename;
     uint64_t    d_iq_time_ms;
     int         d_iq_buffers_max;
+    bool        d_iq_process;
     bool        d_iq_repeat;
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */

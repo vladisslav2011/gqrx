@@ -101,6 +101,7 @@ private:
     void goBObserver(c_id, const c_def::v_union&);
     void resetObserver(c_id, const c_def::v_union&);
     void saveObserver(c_id, const c_def::v_union&);
+    void iqProcessObserver(const c_id id, const c_def::v_union &value);
     void refreshDir(void);
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);

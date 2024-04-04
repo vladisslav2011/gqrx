@@ -31,6 +31,7 @@
 #include <QScrollBar>
 #include <QDateTime>
 #include <QShortcut>
+#include <QPushButton>
 
 #include <math.h>
 
@@ -82,6 +83,7 @@ CIqTool::CIqTool(QWidget *parent) :
     set_observer(C_IQ_RESET_SEL,&CIqTool::resetObserver);
     set_observer(C_IQ_SAVE_SEL,&CIqTool::saveObserver);
     set_observer(C_IQ_FINE_STEP,&CIqTool::fineStepObserver);
+    set_observer(C_IQ_PROCESS,&CIqTool::iqProcessObserver);
 }
 
 CIqTool::~CIqTool()
@@ -618,6 +620,14 @@ void CIqTool::saveObserver(c_id, const c_def::v_union &v)
     getAction(C_IQ_SEL_B)->setEnabled(false);
     getAction(C_IQ_SAVE_SEL)->setEnabled(false);
     getAction(C_IQ_RESET_SEL)->setEnabled(false);
+}
+
+void CIqTool::iqProcessObserver(const c_id id, const c_def::v_union &value)
+{
+    if(bool(value))
+        dynamic_cast<QPushButton *>(getWidget(C_IQ_PLAY))->setIcon(QIcon(":/icons/icons/ff.svg"));
+    else
+        dynamic_cast<QPushButton *>(getWidget(C_IQ_PLAY))->setIcon(QIcon(":/icons/icons/play.svg"));
 }
 
 qint64 CIqTool::selectionLength()

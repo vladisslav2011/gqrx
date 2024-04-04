@@ -329,9 +329,13 @@ gr::basic_block_sptr receiver::setup_source(file_formats fmt)
         if (convert_from[fmt]) // Connect through a converter
         {
             tb->connect(input_file, 0, convert_from[fmt], 0);
+            if(d_iq_process)
+                return convert_from[fmt];
             tb->connect(convert_from[fmt], 0, input_throttle, 0);
             b = input_throttle;
         }else{ // No conversion
+            if(d_iq_process)
+                return input_file;
             tb->connect(input_file, 0 ,input_throttle, 0);
             b = input_throttle;
         }
@@ -357,7 +361,11 @@ void receiver::set_output_device(const std::string device)
 
     if (d_active > 0)
     {
-        try {
+        if(d_iq_process)
+        {
+            tb->disconnect(mc0, 0, audio_null_sink0, 0);
+            tb->disconnect(mc1, 0, audio_null_sink1, 0);
+        }else try {
             tb->disconnect(mc0, 0, audio_snk, 0);
             tb->disconnect(mc1, 0, audio_snk, 1);
         } catch(std::exception &x) {
@@ -370,8 +378,14 @@ void receiver::set_output_device(const std::string device)
 
         if (d_active > 0)
         {
-            tb->connect(mc0, 0, audio_snk, 0);
-            tb->connect(mc1, 0, audio_snk, 1);
+            if(d_iq_process)
+            {
+                tb->connect(mc0, 0, audio_null_sink0, 0);
+                tb->connect(mc1, 0, audio_null_sink1, 0);
+            }else{
+                tb->connect(mc0, 0, audio_snk, 0);
+                tb->connect(mc1, 0, audio_snk, 1);
+            }
         }
 
         tb->unlock();
@@ -1619,6 +1633,15 @@ bool receiver::set_buffers_max(const c_def::v_union &v)
     return true;
 }
 
+bool receiver::set_iq_process(const c_def::v_union &v)
+{
+    if(d_iq_process == bool(v))
+        return true;
+    d_iq_process = v;
+    reconnect_all(FILE_FORMAT_LAST, true);
+    return true;
+}
+
 bool receiver::set_iq_repeat(const c_def::v_union &v)
 {
     d_iq_repeat = v;
@@ -1869,8 +1892,14 @@ void receiver::connect_rx(int n)
             tb->connect(add0, 0, mc0, 0);
             tb->connect(add1, 0, mc1, 0);
             std::cerr<<"connect audio_snk "<<d_active<<std::endl;
-            tb->connect(mc0, 0, audio_snk, 0);
-            tb->connect(mc1, 0, audio_snk, 1);
+            if(d_iq_process)
+            {
+                tb->connect(mc0, 0, audio_null_sink0, 0);
+                tb->connect(mc1, 0, audio_null_sink1, 0);
+            }else{
+                tb->connect(mc0, 0, audio_snk, 0);
+                tb->connect(mc1, 0, audio_snk, 1);
+            }
         }
         std::cerr<<"connect_rx d_active > 0 rx="<<n<<" port="<<d_active<<std::endl;
         if(d_use_chan)
@@ -1913,8 +1942,14 @@ void receiver::disconnect_rx(int n)
             tb->disconnect(add0, 0, mc0, 0);
             tb->disconnect(add1, 0, mc1, 0);
             std::cerr<<"disconnect audio_snk "<<d_active<<std::endl;
-            tb->disconnect(mc0, 0, audio_snk, 0);
-            tb->disconnect(mc1, 0, audio_snk, 1);
+            if(d_iq_process)
+            {
+                tb->disconnect(mc0, 0, audio_null_sink0, 0);
+                tb->disconnect(mc1, 0, audio_null_sink1, 0);
+            }else{
+                tb->disconnect(mc0, 0, audio_snk, 0);
+                tb->disconnect(mc1, 0, audio_snk, 1);
+            }
         }
         int rx_port = rx[n]->get_port();
         std::cerr<<"disconnect_rx d_active > 0 get_port="<<rx_port<<std::endl;
@@ -2283,6 +2318,8 @@ int receiver::conf_initializer()
 {
     getters[C_IQ_BUFFERS]=&receiver::get_buffers_max;
     setters[C_IQ_BUFFERS]=&receiver::set_buffers_max;
+    getters[C_IQ_PROCESS]=&receiver::get_iq_process;
+    setters[C_IQ_PROCESS]=&receiver::set_iq_process;
     getters[C_IQ_REPEAT]=&receiver::get_iq_repeat;
     setters[C_IQ_REPEAT]=&receiver::set_iq_repeat;
 

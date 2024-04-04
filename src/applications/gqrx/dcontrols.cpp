@@ -439,6 +439,25 @@ c_def()
     .step(0)
     .readable(0)
     ,
+c_def()
+    .idx(C_IQ_PROCESS)
+    .base(C_IQ_PLAY)
+    .name("process mode")
+    .title("Enable process mode")
+    .title_placement(c_def::grid_placement(PLACE_NONE,0))
+    .placement(c_def::grid_placement(PLACE_NEXT,0,0))
+    .hint("Enable process mode")
+    .g_type(G_MENUCHECKBOX)
+    .dock(D_IQTOOL)
+    .scope(S_RX)
+    .v3_config_group("baseband")
+    .config_key("process")
+    .v_type(V_BOOLEAN)
+    .def(0)
+    .min(0)
+    .max(1)
+    .step(1)
+    ,
 
 
 
