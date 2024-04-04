@@ -24,5 +24,6 @@
     <file>icons/signal.svg</file>
     <file>icons/tangeo-network-idle.svg</file>
     <file>icons/terminal.svg</file>
+    <file>icons/ff.svg</file>
   </qresource>
 </RCC>

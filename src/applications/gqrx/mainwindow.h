@@ -189,6 +189,7 @@ private:
     void modeChangeObserver(const c_id id, const c_def::v_union &value);
     void filterWidthObserver(const c_id id, const c_def::v_union &value);
     void frequencyObserver(const c_id id, const c_def::v_union &value);
+    void iqProcessObserver(const c_id id, const c_def::v_union &value);
 
 private slots:
     void observer_slot(const c_id id, const tag_union value);
