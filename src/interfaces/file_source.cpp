@@ -418,11 +418,15 @@ int file_source::work(int noutput_items,
             d_buffering = true;
         if(d_buffering)
         {
-            //d_reader_ready.wait(guard);
+            d_reader_ready.wait(guard);
+            if(d_wp == d_rp)
+                return 0;
+            #if 0
             //output zeroes while we are buffering
             guard.unlock();
             memset(o, 0, d_itemsize * noutput_items);
             return noutput_items;
+            #endif
         }
         uint64_t bytes_avail = (d_wp >= d_rp) ? (d_wp - d_rp):
                                (&d_buf.data()[d_buf.size()] - d_rp);
