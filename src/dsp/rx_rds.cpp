@@ -29,7 +29,6 @@
 #include <gnuradio/blocks/complex_to_imag.h>
 #include <gnuradio/blocks/complex_to_real.h>
 #include <gnuradio/blocks/complex_to_magphase.h>
-#include <gnuradio/blocks/multiply_const_ff.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
@@ -38,6 +37,9 @@
 
 #if GNURADIO_VERSION >= 0x030800
 #include <gnuradio/digital/timing_error_detector_type.h>
+#include <gnuradio/blocks/multiply_const.h>
+#else
+#include <gnuradio/blocks/multiply_const_ff.h>
 #endif
 
 
@@ -288,7 +290,8 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp*10, 0);
 
-    d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING, 16, 0.01, 1, 1, 0.1, 1, p_c);
+    d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING,
+        (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.01, 1, 1, 0.1, 1, p_c);
 #endif
 
     d_mpsk = gr::digital::constellation_decoder_cb::make(p_c);
@@ -329,10 +332,16 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     connect(d_ddbb, 0, self(), 0);
 #else
+#if GNURADIO_VERSION < 0x030800
     d_det=dbpsk_det_cb::make();
     connect(d_sync, 0, d_det, 0);
     connect(d_sync, 1, d_det, 1);
     connect(d_det, 0, self(), 0);
+#else
+    connect(d_sync, 0, d_mpsk, 0);
+    connect(d_mpsk, 0, d_ddbb, 0);
+    connect(d_ddbb, 0, self(), 0);
+#endif
 #endif
     #if 0
     {
@@ -423,10 +432,14 @@ rx_rds::~rx_rds ()
 
 void rx_rds::trig()
 {
+#if GNURADIO_VERSION < 0x030800
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
     changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.);
     changed_value(C_RDS_PHASE_SNR, d_index, phase_snr());
+#else
+    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.);
+#endif
 }
 
 void rx_rds::update_fxff_taps()
@@ -444,12 +457,16 @@ void rx_rds::update_fxff_taps()
 
 void rx_rds::set_omega_lim(float v)
 {
+#if GNURADIO_VERSION < 0x030800
     d_sync->set_omega_lim(d_omega_lim=v);
+#endif
 }
 
 void rx_rds::set_dll_bw(float v)
 {
+#if GNURADIO_VERSION < 0x030800
     d_sync->set_dllbw(v);
+#endif
 }
 
 void rx_rds::set_cl_bw(float v)
