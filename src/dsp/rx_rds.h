@@ -76,8 +76,13 @@ public:
 
     void set_index(int v) {d_index=v;}
     void set_agc_rate(float v) { }
+#if GNURADIO_VERSION < 0x030800
     void set_gain_mu(float v) {d_sync->set_gain_mu(d_gain_mu=v);}
     void set_gain_omega(float v) {d_sync->set_gain_omega(d_gain_omega=v);}
+#else
+    void set_gain_mu(float v) {}
+    void set_gain_omega(float v) {}
+#endif
     void trig();
     void set_fxff_bw(float bw) {d_fxff_bw=bw; update_fxff_taps();}
     void set_fxff_tw(float tw) {d_fxff_tw=tw; update_fxff_taps();}
