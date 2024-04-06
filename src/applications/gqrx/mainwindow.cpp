@@ -2707,7 +2707,8 @@ void MainWindow::waterfall_background_func()
         {
             //FIXME: Is it better to fill remaining lines with black color?
             emit requestPlotterUpdate();
-            rd->wait();
+            if(rd)
+                rd->wait();
             set_request = MainWindow::WF_NONE;
         }
         if(background_request > MainWindow::WF_EXIT)
