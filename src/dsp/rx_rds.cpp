@@ -291,7 +291,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp*10, 0);
 
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING,
-        (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.0005, 1, 1, 0.1, 1, p_c);
+        (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.01, 1, 1, 0.1, 1, p_c);
 #endif
 
     d_mpsk = gr::digital::constellation_decoder_cb::make(p_c);
