@@ -240,7 +240,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char))),
       d_sample_rate(sample_rate)
 {
-    constexpr int decim1=8;
+    constexpr int decim1=10;
     if (sample_rate < 128000.0) {
         throw std::invalid_argument("RDS sample rate not supported");
     }
@@ -260,7 +260,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     int n_taps = 151*5;
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
 //    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
 //    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
     d_rrcf_manchester = std::vector<float>(n_taps-8);
@@ -268,9 +268,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    //gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
-    gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
-    auto corr=iir_corr::make(((float)d_sample_rate*d_interpolation*104.f*2.f)/(d_decimation*(2375.f*decim1)),0.1);
+    auto corr=iir_corr::make(((float)d_sample_rate*d_interpolation*104.f*2.f)/(d_decimation*2375.f*decim1),0.1);
     int agc_samp = ((float)d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
@@ -278,6 +276,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     d_costas_loop->set_min_freq(-0.0003f*float(decim1));
     d_costas_loop->set_max_freq(0.0003f*float(decim1));
 #if GNURADIO_VERSION < 0x030800
+    gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
@@ -286,12 +285,13 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
+    gr::digital::constellation_sptr p_c = gr::digital::constellation_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf_manchester);
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp*10, 0);
 
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING,
-        (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.01, 1, 1, 0.1, 1, p_c);
+        (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.0005, 1, 1, 0.1, 1, p_c);
 #endif
 
     d_mpsk = gr::digital::constellation_decoder_cb::make(p_c);
@@ -476,5 +476,9 @@ void rx_rds::set_cl_bw(float v)
 
 float rx_rds::phase_snr() const
 {
+#if GNURADIO_VERSION < 0x030800
     return dynamic_cast<dbpsk_det_cb *>(d_det.get())->snr();
+#else
+    return 0;
+#endif
 }
