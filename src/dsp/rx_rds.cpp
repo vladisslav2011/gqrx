@@ -240,7 +240,11 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char))),
       d_sample_rate(sample_rate)
 {
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     constexpr int decim1=10;
+#else
+    constexpr int decim1=10;
+#endif
     if (sample_rate < 128000.0) {
         throw std::invalid_argument("RDS sample rate not supported");
     }
@@ -260,7 +264,11 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #endif
 
     int n_taps = 151*5;
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
+#else
     d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
+#endif
 //    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
 //    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
     d_rrcf_manchester = std::vector<float>(n_taps-8);
@@ -275,7 +283,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     //d_costas_loop->set_damping_factor(0.85);
     d_costas_loop->set_min_freq(-0.0003f*float(decim1));
     d_costas_loop->set_max_freq(0.0003f*float(decim1));
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
@@ -332,7 +340,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     connect(d_ddbb, 0, self(), 0);
 #else
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     d_det=dbpsk_det_cb::make();
     connect(d_sync, 0, d_det, 0);
     connect(d_sync, 1, d_det, 1);
@@ -432,7 +440,7 @@ rx_rds::~rx_rds ()
 
 void rx_rds::trig()
 {
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
     changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
@@ -457,14 +465,14 @@ void rx_rds::update_fxff_taps()
 
 void rx_rds::set_omega_lim(float v)
 {
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     d_sync->set_omega_lim(d_omega_lim=v);
 #endif
 }
 
 void rx_rds::set_dll_bw(float v)
 {
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     d_sync->set_dllbw(v);
 #endif
 }
@@ -476,7 +484,7 @@ void rx_rds::set_cl_bw(float v)
 
 float rx_rds::phase_snr() const
 {
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     return dynamic_cast<dbpsk_det_cb *>(d_det.get())->snr();
 #else
     return 0;

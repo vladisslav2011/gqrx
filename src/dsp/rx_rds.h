@@ -64,6 +64,8 @@ typedef boost::shared_ptr<rx_rds> rx_rds_sptr;
 typedef std::shared_ptr<rx_rds> rx_rds_sptr;
 #endif
 
+#define NEW_RDS 1
+
 
 rx_rds_sptr make_rx_rds(double sample_ratee=240000.0, bool encorr=false);
 
@@ -76,7 +78,7 @@ public:
 
     void set_index(int v) {d_index=v;}
     void set_agc_rate(float v) { }
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     void set_gain_mu(float v) {d_sync->set_gain_mu(d_gain_mu=v);}
     void set_gain_omega(float v) {d_sync->set_gain_omega(d_gain_omega=v);}
 #else
@@ -107,7 +109,7 @@ private:
     std::vector<float> d_rrcf;
     std::vector<float> d_rrcf_manchester;
     rx_agc_cc_sptr d_agc;
-#if GNURADIO_VERSION < 0x030800
+#if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     clock_recovery_el_cc::sptr d_sync;
     gr::blocks::keep_one_in_n::sptr d_koin;
 #else
