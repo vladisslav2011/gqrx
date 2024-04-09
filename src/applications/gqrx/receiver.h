@@ -105,8 +105,6 @@ public:
         FILTER_SHAPE_SHARP = 2   /*!< Sharp: Transition band is TBD of width. */
     };
 
-    static const unsigned int DEFAULT_FFT_SIZE = 8192;
-
     receiver(const std::string input_device="",
              const std::string audio_device="",
              unsigned int decimation=1);
@@ -161,11 +159,11 @@ public:
     status      set_freq_corr(double ppm);
     float       get_signal_pwr() const;
     void        set_iq_fft_size(int newsize);
-    unsigned int iq_fft_size(void) const;
-    void        set_iq_fft_window(int window_type, bool normalize_energy);
-    int         get_iq_fft_data(float* fftPoints);
-    int         get_audio_fft_data(float* fftPoints);
-    unsigned int audio_fft_size(void) const;
+    void        set_iq_fft_window(int window_type);
+    void        get_iq_fft_data(std::complex<float>* fftPoints,
+                                unsigned int &fftsize);
+    void        get_audio_fft_data(std::complex<float>* fftPoints,
+                                   unsigned int &fftsize);
 
     /* Noise blanker */
     status      set_nb_on(int nbid, bool on);
