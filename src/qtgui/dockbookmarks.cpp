@@ -158,20 +158,12 @@ void DockBookmarks::on_tableWidgetTagList_itemChanged(QTableWidgetItem *item)
 
 bool DockBookmarks::eventFilter(QObject* object, QEvent* event)
 {
-    // Since Key_Delete can be (is) used as a global shortcut, override the
-    // shortcut. Accepting a ShortcutOverride causes the event to be delivered
-    // again, but as a KeyPress.
-    if (event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride)
+    if (event->type() == QEvent::KeyPress)
     {
         QKeyEvent* pKeyEvent = static_cast<QKeyEvent *>(event);
-        if (pKeyEvent->key() == Qt::Key_Delete)
+        if (pKeyEvent->key() == Qt::Key_Delete && ui->tableViewFrequencyList->hasFocus())
         {
-            if (event->type() == QEvent::ShortcutOverride) {
-                event->accept();
-            }
-            else {
-                return DeleteSelectedBookmark();
-            }
+            return DeleteSelectedBookmark();
         }
     }
     return QWidget::eventFilter(object, event);

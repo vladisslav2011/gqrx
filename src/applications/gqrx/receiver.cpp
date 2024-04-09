@@ -116,9 +116,9 @@ receiver::receiver(const std::string input_device,
 
     iq_swap = make_iq_swap_cc(false);
     dc_corr = make_dc_corr_cc(d_decim_rate, 1.0);
-    iq_fft = make_rx_fft_c(DEFAULT_FFT_SIZE, d_decim_rate, gr::fft::window::WIN_HANN);
+    iq_fft = make_rx_fft_c(8192u, d_decim_rate, gr::fft::window::WIN_HANN);
 
-    audio_fft = make_rx_fft_f(DEFAULT_FFT_SIZE, d_audio_rate, gr::fft::window::WIN_HANN);
+    audio_fft = make_rx_fft_f(8192u, d_audio_rate, gr::fft::window::WIN_HANN);
     audio_gain0 = gr::blocks::multiply_const_ff::make(0);
     audio_gain1 = gr::blocks::multiply_const_ff::make(0);
     set_af_gain(DEFAULT_AUDIO_GAIN);
@@ -740,31 +740,21 @@ void receiver::set_iq_fft_size(int newsize)
     iq_fft->set_fft_size(newsize);
 }
 
-unsigned int receiver::iq_fft_size() const
+void receiver::set_iq_fft_window(int window_type)
 {
-    return iq_fft->fft_size();
-}
-
-void receiver::set_iq_fft_window(int window_type, bool normalize_energy)
-{
-    iq_fft->set_window_type(window_type, normalize_energy);
+    iq_fft->set_window_type(window_type);
 }
 
 /** Get latest baseband FFT data. */
-int receiver::get_iq_fft_data(float* fftPoints)
+void receiver::get_iq_fft_data(std::complex<float>* fftPoints, unsigned int &fftsize)
 {
-    return iq_fft->get_fft_data(fftPoints);
-}
-
-unsigned int receiver::audio_fft_size() const
-{
-    return audio_fft->fft_size();
+    iq_fft->get_fft_data(fftPoints, fftsize);
 }
 
 /** Get latest audio FFT data. */
-int receiver::get_audio_fft_data(float* fftPoints)
+void receiver::get_audio_fft_data(std::complex<float>* fftPoints, unsigned int &fftsize)
 {
-    return audio_fft->get_fft_data(fftPoints);
+    audio_fft->get_fft_data(fftPoints, fftsize);
 }
 
 receiver::status receiver::set_nb_on(int nbid, bool on)

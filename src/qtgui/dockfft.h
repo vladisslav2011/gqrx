@@ -45,9 +45,6 @@ public:
     int fftSize();
     int setFftSize(int fft_size);
 
-    quint64 wfSpan();
-    quint64 setWfSpan(quint64 fft_size);
-
     void setSampleRate(float sample_rate);
 
     void saveSettings(QSettings *settings);
@@ -57,13 +54,9 @@ signals:
     void fftSizeChanged(int size);                 /*! FFT size changed. */
     void fftRateChanged(int fps);                  /*! FFT rate changed. */
     void fftWindowChanged(int window);             /*! FFT window type changed */
-    void displayDbmChanged(int state);             /*! Whether to show dBm/Hz.*/
     void wfSpanChanged(quint64 span_ms);           /*! Waterfall span changed. */
     void fftSplitChanged(int pct);                 /*! Split between pandapter and waterfall changed. */
     void fftZoomChanged(float level);              /*! Zoom level slider changed. */
-    void waterfallModeChanged(int value);          /*! Waterfall mode (max/avg) changed. */
-    void plotModeChanged(int value);               /*! 2D plot mode (max/avg/filled) changed. */
-    void plotScaleChanged(int value, bool useHz);  /*! 2D plot scale (FS/V/DBM) or (RBW/Hz) changed. */
     void fftAvgChanged(float gain);                /*! FFT video filter gain has changed. */
     void pandapterRangeChanged(float min, float max);
     void waterfallRangeChanged(float min, float max);
@@ -72,11 +65,9 @@ signals:
     void gotoDemodFreq(void);                      /*! Center FFT around demodulator frequency. */
     void fftColorChanged(const QColor &);          /*! FFT color has changed. */
     void fftFillToggled(bool fill);                /*! Toggle filling area under FFT plot. */
-    void fftMaxHoldToggled(bool enable);           /*! Toggle max hold in FFT area. */
-    void fftMinHoldToggled(bool enable);           /*! Toggle min hold in FFT area. */
-    void peakDetectToggled(bool enabled);          /*! Enable peak detection in FFT plot */
+    void fftPeakHoldToggled(bool enable);          /*! Toggle peak hold in FFT area. */
+    void peakDetectionToggled(bool enabled);       /*! Enable peak detection in FFT plot */
     void bandPlanChanged(bool enabled);            /*! Toggle Band Plan at bottom of FFT area. */
-    void markersChanged(bool enabled);             /*! Toggle markers and on-plot controls. */
     void wfColormapChanged(const QString &cmap);
 
 public slots:
@@ -84,8 +75,6 @@ public slots:
     void setWaterfallRange(float min, float max);
     void setWfResolution(quint64 msec_per_line);
     void setZoomLevel(float level);
-    void setMarkersEnabled(bool enable);
-    void setActualFrameRate(float rate, bool dropping);
 
 private slots:
     void on_fftSizeComboBox_currentIndexChanged(int index);
@@ -95,23 +84,17 @@ private slots:
     void on_fftSplitSlider_valueChanged(int value);
     void on_fftAvgSlider_valueChanged(int value);
     void on_fftZoomSlider_valueChanged(int level);
-    void on_plotModeBox_currentIndexChanged(int index);
-    void on_plotScaleBox_currentIndexChanged(int index);
-    void on_plotPerBox_currentIndexChanged(int index);
-    void on_wfModeBox_currentIndexChanged(int index);
-    void on_plotRangeSlider_valuesChanged(int min, int max);
+    void on_pandRangeSlider_valuesChanged(int min, int max);
     void on_wfRangeSlider_valuesChanged(int min, int max);
     void on_resetButton_clicked(void);
     void on_centerButton_clicked(void);
     void on_demodButton_clicked(void);
     void on_colorPicker_colorChanged(const QColor &);
-    void on_fillCheckBox_stateChanged(int state);
-    void on_maxHoldCheckBox_stateChanged(int state);
-    void on_minHoldCheckBox_stateChanged(int state);
-    void on_peakDetectCheckBox_stateChanged(int state);
-    void on_lockCheckBox_stateChanged(int state);
-    void on_bandPlanCheckBox_stateChanged(int state);
-    void on_markersCheckBox_stateChanged(int state);
+    void on_fillButton_toggled(bool checked);
+    void on_peakHoldButton_toggled(bool checked);
+    void on_peakDetectionButton_toggled(bool checked);
+    void on_lockButton_toggled(bool checked);
+    void on_bandPlanCheckbox_stateChanged(int state);
     void on_cmapComboBox_currentIndexChanged(int index);
 
 private:
@@ -123,8 +106,6 @@ private:
 //    float         m_minimumFftDb;
     float         m_sample_rate;
     bool          m_pand_last_modified; /* Flag to indicate which slider was changed last */
-    float         m_actual_frame_rate;
-    bool          m_frame_dropping;
 };
 
 #endif // DOCKFFT_H
