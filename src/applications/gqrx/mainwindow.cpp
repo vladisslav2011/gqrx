@@ -1566,6 +1566,13 @@ void MainWindow::stopAudioStreaming()
     rx->stop_udp_streaming();
 }
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 8, 0)
+namespace Qt
+{
+    constexpr const char * ISODateWithMs = "yyyy-MM-ddTHH:mm:ss.zzz[Z|[+|-]HH:mm]";
+}
+#endif
+
 /** Start I/Q recording. */
 void MainWindow::startIqRecording(const QString& recdir, const QString& format)
 {
