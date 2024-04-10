@@ -1,3 +1,6 @@
+     FIXED: Qt5.5 and GNU Radio 3.7 compatibility
+   REMOVED: New plotter as it does not play well with IQ redraw mode
+
 
     2.17.5: Released April 18, 2024
 
