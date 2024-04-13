@@ -57,7 +57,13 @@ public:
         FORMAT_DOUBLE,
         FORMAT_VORBIS = 0x0060,
     };
-
+    struct timestamp_source
+    {
+        virtual uint64_t get()
+        {
+            return time(nullptr) * 1000llu;
+        }
+    };
 private:
     //! WAV file header information.
     struct wav_header_info {
@@ -114,6 +120,7 @@ private:
     int d_max_gap_samp;
     sql_action d_prev_action;
     int d_prev_roffset;
+    timestamp_source * d_ts_src{nullptr};
 
     /*!
      * \brief If any file changes have occurred, update now. This is called
@@ -184,6 +191,10 @@ public:
     int get_min_time();
     int get_max_gap();
     bool is_active() { return !! d_fp; }
+    void set_timestamp_source(timestamp_source * value)
+    {
+        d_ts_src = value;
+    }
 private:
     bool open_unlocked(const char* filename);
     int  open_new_unlocked();

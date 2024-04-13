@@ -262,8 +262,9 @@ int wavfile_sink_gqrx::open_new()
 int wavfile_sink_gqrx::open_new_unlocked()
 {
     // FIXME: option to use local time
+    QDateTime ts = d_ts_src ? QDateTime::fromMSecsSinceEpoch(d_ts_src->get()).toUTC() : QDateTime::currentDateTime().toUTC();
     // use toUTC() function compatible with older versions of Qt.
-    QString file_name = QDateTime::currentDateTime().toUTC().toString("gqrx_yyyyMMdd_hhmmss");
+    QString file_name = ts.toString("gqrx_yyyyMMdd_hhmmss");
     QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
     if (open_unlocked(filename.toStdString().data()))
     {
@@ -476,7 +477,7 @@ void wavfile_sink_gqrx::set_sample_rate(unsigned int sample_rate)
     std::unique_lock<std::mutex> guard(d_mutex);
     d_h.sample_rate = sample_rate;
     d_min_time_samp = d_min_time_ms * d_h.sample_rate / 1000;
-    d_min_time_samp = d_min_time_ms * d_h.sample_rate / 1000;
+    d_max_gap_samp = d_max_gap_ms * d_h.sample_rate / 1000;
     set_history(1 + sample_rate * (SQL_REC_MIN_TIME + SQL_REC_MAX_GAP));
 }
 

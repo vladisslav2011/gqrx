@@ -95,6 +95,7 @@ public:
     void set_audio_rec_sql_triggered(bool enabled) override;
     void set_audio_rec_min_time(const int time_ms) override;
     void set_audio_rec_max_gap(const int time_ms) override;
+    void set_timestamp_source(wavfile_sink_gqrx::timestamp_source * value){ wav_sink->set_timestamp_source(value); }
 
     /* UDP  streaming */
     bool         set_udp_host(const std::string &host) override;
