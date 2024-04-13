@@ -214,6 +214,7 @@ void receiver::set_input_device(const std::string device)
 
     tb->disconnect_all();
     iq_src.reset();
+    d_iq_ts.set_file_source(nullptr);
     for (auto& rxc : rx)
         rxc->connected(false);
 
@@ -284,6 +285,7 @@ void receiver::set_input_file(const std::string name, const int sample_rate,
 
     //set_demod(d_demod, fmt, true);
     input_file->set_save_progress_cb(d_save_progress);
+    d_iq_ts.set_file_source(input_file);
     reconnect_all(fmt, true);
     set_input_rate(sample_rate);
 
@@ -2124,6 +2126,7 @@ void receiver::connect_rx(int n)
     if (rx[n]->connected())
         return;
     std::cerr<<"connect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
+    rx[n]->set_timestamp_source(&d_iq_ts);
     if (rx[n]->get_demod() != Modulations::MODE_OFF)
     {
         if (d_active == 0)

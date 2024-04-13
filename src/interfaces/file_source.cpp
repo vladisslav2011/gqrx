@@ -494,7 +494,6 @@ int file_source::work(int noutput_items,
 
 uint64_t file_source::tell()
 {
-    std::unique_lock<std::mutex> guard(d_mutex);
     return d_length_items - d_items_remaining;
 }
 
@@ -507,13 +506,11 @@ int file_source::get_buffer_usage()
 
 uint64_t file_source::get_timestamp_ms()
 {
-    std::unique_lock<std::mutex> guard(d_mutex);
     return d_time_ms + (d_length_items - d_items_remaining) * 1000 / d_sample_rate;
 }
 
 uint64_t file_source::get_items_remaining()
 {
-    std::unique_lock<std::mutex> guard(d_mutex);
     return d_items_remaining;
 }
 

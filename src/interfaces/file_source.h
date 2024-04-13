@@ -55,7 +55,7 @@ private:
     size_t d_itemsize;
     uint64_t d_start_offset_items;
     uint64_t d_length_items;
-    uint64_t d_items_remaining;
+    std::atomic<uint64_t> d_items_remaining;
     FILE* d_fp;
     FILE* d_new_fp;
     bool d_repeat;

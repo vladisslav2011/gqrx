@@ -160,6 +160,23 @@ public:
     };
     typedef std::shared_ptr<fft_reader> fft_reader_sptr;
 
+    struct iqfile_timestamp_source:wavfile_sink_gqrx::timestamp_source
+    {
+        uint64_t get() override
+        {
+            if(iqfile)
+                return iqfile->get_timestamp_ms();
+            else
+                return time(nullptr) * 1000llu;
+        }
+        void set_file_source(file_source::sptr value)
+        {
+            iqfile = value;
+        }
+        private:
+            file_source::sptr iqfile;
+    };
+
     receiver(const std::string input_device="",
              const std::string audio_device="",
              unsigned int decimation=1);
@@ -431,6 +448,7 @@ private:
     bool        d_mute;             /*!< Enable audio mute. */
     file_formats d_iq_fmt;
     file_formats d_last_format;
+    iqfile_timestamp_source d_iq_ts;
 
     std::string input_devstr;       /*!< Current input device string. */
     std::string output_devstr;      /*!< Current output device string. */
