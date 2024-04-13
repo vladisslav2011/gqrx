@@ -52,7 +52,7 @@ jobs:
             libqt6svgwidgets6 \
             libgl-dev
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
       - name: Configure
         run: |
           mkdir build
