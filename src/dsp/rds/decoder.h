@@ -31,9 +31,9 @@ public:
 #else
 	typedef std::shared_ptr<decoder> sptr;
 #endif
-	static sptr make(bool corr=false,bool log=false, bool debug=false);
+	static sptr make(bool log=false, bool debug=false);
 	virtual void set_ecc_max(int n) = 0;
-	virtual void reset_corr() = 0;
+	virtual void reset() = 0;
 };
 
 } // namespace rds

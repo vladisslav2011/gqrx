@@ -246,6 +246,7 @@ void wfmrx::start_rds_decoder()
         rds->trig();
     };
     unlock();
+    rds_decoder->reset();
     rds_parser->reset();
 }
 
@@ -261,7 +262,6 @@ void wfmrx::stop_rds_decoder()
     rds_parser->send_extra=nullptr;
     unlock();
     rds_parser->clear();
-    rds_decoder->reset_corr();
 }
 
 bool wfmrx::set_wfm_raw(const c_def::v_union & v)

@@ -28,9 +28,9 @@ namespace rds {
 class decoder_impl : public decoder
 {
 public:
-	decoder_impl(bool corr, bool log, bool debug);
+	decoder_impl(bool log, bool debug);
 	void set_ecc_max(int n) {d_ecc_max = n;}
-	void reset_corr();
+	void reset();
 
 private:
     constexpr static int BLOCK_SIZE{26};
@@ -67,14 +67,17 @@ private:
 	void decode_group(unsigned *, int);
 	static std::array<bit_locator,1024> build_locator();
     int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr, int * good_grp=nullptr);
+    int pi_detect();
+	void reset_corr();
 
+    static constexpr int n_group{4*1};
 	int            bit_counter;
 	unsigned long  lastseen_offset_counter, reg;
 	unsigned int   block_bit_counter;
 	unsigned int   wrong_blocks_counter;
 	unsigned int   blocks_counter;
 	unsigned int   group_good_blocks_counter;
-	unsigned int   groups[4*3];
+	unsigned int   groups[n_group*3];
 	unsigned int  *prev_grp;
 	unsigned int  *group;
 	unsigned int  *next_grp;
@@ -88,7 +91,6 @@ private:
 	unsigned char  block_number;
 	enum { NO_SYNC, SYNC, FORCE_SYNC } d_state;
 	static const std::array<bit_locator,1024> locator;
-	bool           d_corr{false};
 	uint16_t       d_prev_pi{0};
 	int            d_pi_cnt{0};
 	int            d_counter{0};
@@ -103,6 +105,7 @@ private:
     int            d_block0errs{0};
     std::map<uint16_t,std::vector<grp_array>> d_matches{};
     int            d_best_pi{-1};
+    float          d_weight{0.f};
 
 };
 

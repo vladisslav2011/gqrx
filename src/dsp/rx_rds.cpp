@@ -105,7 +105,7 @@ protected:
     dbpsk_det_cb():
         gr::sync_decimator ("dbpsk_det_cb",
         gr::io_signature::make2(2, 2, sizeof(gr_complex),sizeof(uint8_t)),
-        gr::io_signature::make(1, 1, sizeof(uint8_t)),2)
+        gr::io_signature::make(1, 1, sizeof(float)),2)
     {
 //        set_output_multiple(2);
         set_history(8);
@@ -130,7 +130,7 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
     {
         const gr_complex *in = (const gr_complex *) input_items[0];
         const uint8_t *in1 = (const uint8_t *) input_items[1];
-        uint8_t *out = (uint8_t *) output_items[0];
+        float * out = (float *) output_items[0];
         for(int k=0;k<noutput_items;k++)
         {
             const gr_complex *b=&in[k*2];
@@ -146,7 +146,7 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             #elif 0
             auto m1_0=b[0]-b[1]-b[2]+b[3];
             auto m0_0=b[0]-b[1]+b[2]-b[3];
-            int f0=std::abs(m1_0)>std::abs(m0_0);
+            auto f0=std::abs(m1_0)-std::abs(m0_0);
             out[k]=f0;
            #else
             constexpr float fv=0.0f;
@@ -162,7 +162,7 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             auto m1_0=p[0]-p[1]-p[2]+p[3];
             auto m0_0=p[0]-p[1]+p[2]-p[3];
             auto f0=std::abs(m1_0)-std::abs(m0_0);
-            out[k]=f0>0.f;
+            out[k]=f0;
             #endif
             d_i_mag+=(log10f(std::max(std::abs(real(b[0])),0.0001f))*10.f-d_i_mag)*corr_alfa;
             d_q_mag+=(log10f(std::max(std::abs(imag(b[0])),0.0001f))*10.f-d_q_mag)*corr_alfa;
@@ -237,7 +237,7 @@ rx_rds_sptr make_rx_rds(double sample_rate, bool encorr)
 rx_rds::rx_rds(double sample_rate, bool encorr)
     : gr::hier_block2 ("rx_rds",
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (float)),
-                      gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (char))),
+                      gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
       d_sample_rate(sample_rate)
 {
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS

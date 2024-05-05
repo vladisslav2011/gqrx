@@ -73,25 +73,25 @@ std::array<decoder_impl::bit_locator,1024> decoder_impl::build_locator()
 }
 
 decoder::sptr
-decoder::make(bool corr, bool log, bool debug) {
-  return gnuradio::get_initial_sptr(new decoder_impl(corr, log, debug));
+decoder::make(bool log, bool debug) {
+  return gnuradio::get_initial_sptr(new decoder_impl(log, debug));
 }
 
-decoder_impl::decoder_impl(bool corr, bool log, bool debug)
+decoder_impl::decoder_impl(bool log, bool debug)
 	: gr::sync_block ("gr_rds_decoder",
-			gr::io_signature::make (1, 1, sizeof(char)),
+			gr::io_signature::make (1, 1, sizeof(float)),
 			gr::io_signature::make (0, 0, 0)),
 	log(log),
-	debug(debug),
-	d_corr(corr)
+	debug(debug)
 {
 	bit_counter=0;
 	set_output_multiple(GROUP_SIZE);  // 1 RDS datagroup = 104 bits
+	set_history(1+BLOCK_SIZE*n_group+1);
 	message_port_register_out(pmt::mp("out"));
 	enter_no_sync();
 	prev_grp=&groups[0];
-	group=&groups[4];
-	next_grp=&groups[8];
+	group=&groups[n_group];
+	next_grp=&groups[n_group*2];
 }
 
 decoder_impl::~decoder_impl() {
@@ -158,7 +158,7 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
 
     s=calc_syndrome(grp[0]>>10,16)^(grp[0]&0x3ff);
     const bit_locator & bl=locator[s^offset_word[0]];
-    if(loc)
+    if(loc && (bl.l!=0xffff))
         loc[0]=bl.l;
     if(offs_chars)
         if(bl.w>0)
@@ -172,7 +172,7 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
 
     s=calc_syndrome(grp[1]>>10,16)^(grp[1]&0x3ff);
     const bit_locator & bl1=locator[s^offset_word[1]];
-    if(loc)
+    if(loc && (bl.l!=0xffff))
         loc[1]=bl1.l;
     if(offs_chars)
         if(bl1.w>thr)
@@ -188,7 +188,7 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     const bit_locator & bl4=locator[s^offset_word[4]];
     if(bl2.w<bl4.w)
     {
-        if(loc)
+        if(loc && (bl.l!=0xffff))
             loc[2]=bl2.l;
         if(offs_chars)
             if(bl2.w>thr)
@@ -201,7 +201,7 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     }else{
         if(offs_chars)
             offs_chars[2]='c';
-        if(loc)
+        if(loc && (bl.l!=0xffff))
             loc[2]=bl4.l;
         if(offs_chars)
             if(bl4.w>thr)
@@ -215,7 +215,7 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
 
     s=calc_syndrome(grp[3]>>10,16)^(grp[3]&0x3ff);
     const bit_locator & bl3=locator[s^offset_word[3]];
-    if(loc)
+    if(loc && (bl.l!=0xffff))
         loc[3]=bl3.l;
     if(offs_chars)
         if(bl3.w>thr)
@@ -265,7 +265,8 @@ int decoder_impl::work (int noutput_items,
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
 {
-    const bool *in = (const bool *) input_items[0];
+    const float *in = (const float *) input_items[0];
+    in += n_group*BLOCK_SIZE+1;
     (void) output_items;
 
 /*    dout << "RDS data decoder at work: input_items = "
@@ -282,18 +283,29 @@ int decoder_impl::work (int noutput_items,
 /* the synchronization process is described in Annex C, page 66 of the standard */
     while (i<noutput_items) {
         std::swap(group,prev_grp);
-        std::memcpy(group,next_grp,sizeof(group[0])*4);
-        group[0]=((group[0]<<1)|(group[1]>>25))&((1<<26)-1);
-        group[1]=((group[1]<<1)|(group[2]>>25))&((1<<26)-1);
-        group[2]=((group[2]<<1)|(group[3]>>25))&((1<<26)-1);
-//        group[3]=((group[3]<<1)|(group[4]>>25))&((1<<26)-1);
-//        group[4]=((group[4]<<1)|in[i])&((1<<26)-1);
-        group[3]=((group[3]<<1)|in[i])&((1<<26)-1);
+        std::memcpy(group,next_grp,sizeof(group[0])*n_group);
+        d_weight -= std::abs(in[i-n_group*BLOCK_SIZE-1]);
+        d_weight += std::abs(in[i]);
+        int sample=in[i]>0.f;
+        for(int j=0;j<n_group-1;j++)
+            group[j]=((group[j]<<1)|(group[j+1]>>25))&((1<<26)-1);
+        group[n_group-1]=((group[n_group-1]<<1)|sample)&((1<<26)-1);
         std::swap(group,next_grp);
-    	unsigned int  *good_group=group;
+        unsigned int  *good_group=group;
         ++i;
         ++bit_counter;
         ++d_bit_counter;
+        int pi=pi_detect();
+        if(pi!=-1)
+        {
+            if((d_state!=SYNC)||(d_best_pi!=pi)||(bit_counter%GROUP_SIZE != 0))
+            {
+                d_state=SYNC;
+                d_counter=0;
+                d_best_pi=pi;
+                bit_counter=0;
+            }
+        }
         if(bit_counter>=GROUP_SIZE+1)
         {
             uint16_t locators[5]={0,0,0,0,0};
@@ -304,115 +316,23 @@ int decoder_impl::work (int noutput_items,
             {
                 //handle +/- 1 bit shifts
                 d_prev_errs=process_group(prev_grp);
+                uint16_t prev_pi=prev_grp[0];
                 d_curr_errs=process_group(group);
                 d_next_errs=process_group(next_grp);
+                uint16_t next_pi=next_grp[0];
                 bit_counter=1;
-                if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs)&&(d_prev_errs<12))
+                if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs)&&(d_prev_errs<12)&&(prev_pi==d_best_pi))
                 {
                     good_group=prev_grp;
                     bit_counter=2;
                     printf("<->\n");
-                }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs)&&(d_next_errs<12))
+                }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs)&&(d_next_errs<12)&&(next_pi==d_best_pi))
                 {
                     good_group=next_grp;
                     bit_counter=0;
                     printf("<+>\n");
                 }/*else if((curr_errs<prev_errs)&&(curr_errs<next_errs))*/
-                 reset_corr();
-            }else{
-                d_prev_errs=d_curr_errs;
-                d_curr_errs=d_next_errs;
-                d_next_errs=process_group(next_grp, ecc_max, offset_chars, locators);
-                uint16_t pi = (next_grp[0]>>10)^locators[0];
-                if(d_block0errs<5)
-                {
-                    constexpr uint8_t weights[]={19,9,5,4,3};
-                    d_pi_a[pi].weight+=weights[d_block0errs];
-                    d_pi_a[pi].count++;
-                    int bit_offset=d_bit_counter-d_pi_a[pi].lastseen;
-                    d_pi_a[pi].lastseen=d_bit_counter;
-                    /*
-                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<3)&&((bit_offset+1)%GROUP_SIZE < 3))
-                        d_pi_a[pi].weight+=2;
-                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<5)&&(bit_offset%GROUP_SIZE == 0))
-                        d_pi_a[pi].weight+=4;
-                    if((d_pi_a[pi].weight>=22)&&(d_block0errs<3)&&(bit_offset%GROUP_SIZE == 0))
-                        d_pi_a[pi].weight+=6;
-                    if((d_pi_a[pi].weight>=22)&&(d_block0errs==0)&&(bit_offset%GROUP_SIZE == 0))
-                        d_pi_a[pi].weight+=15;
-                        */
-                    if((d_pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
-                        d_pi_a[pi].weight+=weights[d_block0errs]>>2;
-                    if((d_pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
-                        d_pi_a[pi].weight+=weights[d_block0errs]>>1;
-                    if(d_pi_a[pi].weight<55)
-                    {
-                        if(d_pi_a[pi].weight>d_max_weight)
-                        {
-                            d_max_weight=d_pi_a[pi].weight;
-                            printf("?[%04x] %d (%d,%d) %d %d\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs);
-                            d_matches[pi].push_back(grp_array(next_grp));
-                            prev_grp[0]=pi;
-                            prev_grp[1]=d_pi_a[pi].weight;
-                            offset_chars[0]='?';
-                            offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
-                            decode_group(prev_grp,d_next_errs);
-                        }
-                    }else{
-                        printf("+[%04x] %d (%d,%d) %d %d!!\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs);
-                        auto & prv=d_matches[pi];
-                        for(unsigned k=0;k<prv.size();k++)
-                        {
-                            std::memcpy(prev_grp,prv[k].data,sizeof(prv[k].data));
-                            d_prev_errs=process_group(prev_grp, ecc_max, offset_chars, locators);
-                            prev_grp[0]=pi;
-                            prev_grp[1]=(prev_grp[1]>>10)^locators[1];
-                            prev_grp[2]=(prev_grp[2]>>10)^locators[2];
-                            prev_grp[3]=(prev_grp[3]>>10)^locators[3];
-                            offset_chars[0]='A';
-                            decode_group(prev_grp,0);
-                        }
-                        d_matches.clear();
-                        d_next_errs=process_group(next_grp, ecc_max, offset_chars, locators);
-                        prev_grp[0]=pi;
-                        prev_grp[1]=(next_grp[1]>>10)^locators[1];
-                        prev_grp[2]=(next_grp[2]>>10)^locators[2];
-                        prev_grp[3]=(next_grp[3]>>10)^locators[3];
-                        offset_chars[0]='A';
-                        decode_group(prev_grp,0);
-                        for(int jj=0;jj<65536;jj++)
-                            if(jj==pi)
-                            {
-                                d_pi_a[jj].weight>>=1;
-                                d_pi_a[jj].count>>=1;
-                            }else{
-                                d_pi_a[jj].weight>>=2;
-                                d_pi_a[jj].count>>=2;
-                            }
-                        d_pi_bitcnt=0;
-                        d_max_weight>>=1;
-                        d_state=SYNC;
-                        d_best_pi=pi;
-                        bit_counter=1;
-                        continue;
-                    }
-                    d_pi_bitcnt++;
-                    if(d_pi_bitcnt>BLOCK_SIZE*50)
-                    {
-                        d_pi_bitcnt=0;
-                        for(int jj=0;jj<65536;jj++)
-                        {
-                            if(d_pi_a[jj].weight>0)
-                                d_pi_a[jj].weight--;
-                            if(d_pi_a[jj].count>0)
-                                d_pi_a[jj].count--;
-                        }
-                        d_max_weight--;
-                        std::cout<<"d_pi_bitcnt--\n";
-                    }
-                }
-                if(d_corr)
-                    continue;
+                 //reset_corr();
             }
             bit_errors=process_group(good_group, ecc_max, offset_chars, locators, &good_grp);
             char sync_point='E';
@@ -451,13 +371,14 @@ int decoder_impl::work (int noutput_items,
                     }
                     if(bit_errors > 15)
                     {
-                        if(d_counter > 512)
+                        if(d_counter > 512*8)
                         {
                             d_state=NO_SYNC;
+                            printf("- NO Sync errors: %d, %d\n",d_curr_errs,d_counter);
                             d_counter = 0;
-                            printf("- NO Sync errors: %d\n",d_curr_errs);
                         }
-                    }                }
+                    }
+                }
                 d_counter +=bit_errors;
                 if(d_state != SYNC)
                     continue;
@@ -480,114 +401,99 @@ int decoder_impl::work (int noutput_items,
     }
     decode_group(group, 127);
     return noutput_items;
+}
 
-    while (i<noutput_items) {
-        reg=(reg<<1)|in[i];		// reg contains the last 26 rds bits
-        switch (d_state) {
-            case NO_SYNC:
-                reg_syndrome = calc_syndrome(reg,BLOCK_SIZE);
-                for (j=0;j<5;j++) {
-                    if (reg_syndrome==syndrome[j]) {
-                        if (!presync) {
-                            lastseen_offset=j;
-                            lastseen_offset_counter=bit_counter;
-                            presync=true;
-                        }
-                        else {
-                            bit_distance=bit_counter-lastseen_offset_counter;
-                            if (offset_pos[lastseen_offset]>=offset_pos[j])
-                                block_distance=offset_pos[j]+4-offset_pos[lastseen_offset];
-                            else
-                                block_distance=offset_pos[j]-offset_pos[lastseen_offset];
-                            if ((block_distance*BLOCK_SIZE)!=bit_distance) presync=false;
-                            else {
-                                lout << "@@@@@ Sync State Detected" << std::endl;
-                                enter_sync(j);
-                            }
-                        }
-                    break; //syndrome found, no more cycles
-                    }
+int decoder_impl::pi_detect()
+{
+    uint16_t locators[5]={0,0,0,0,0};
+    d_prev_errs=d_curr_errs;
+    d_curr_errs=d_next_errs;
+    d_next_errs=process_group(next_grp, d_ecc_max, offset_chars, locators);
+    uint16_t pi = (next_grp[0]>>10)^locators[0];
+    if(d_block0errs<5)
+    {
+        constexpr uint8_t weights[]={19,9,5,4,3};
+        d_pi_a[pi].weight+=weights[d_block0errs];
+        d_pi_a[pi].count++;
+        int bit_offset=d_bit_counter-d_pi_a[pi].lastseen;
+        d_pi_a[pi].lastseen=d_bit_counter;
+        if((d_pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
+            d_pi_a[pi].weight+=weights[d_block0errs]>>2;
+        if((d_pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
+            d_pi_a[pi].weight+=weights[d_block0errs]>>1;
+        if(d_pi_a[pi].weight<55)
+        {
+            if(d_pi_a[pi].weight>d_max_weight)
+            {
+                d_max_weight=d_pi_a[pi].weight;
+                printf("?[%04x] %d (%d,%d) %d %d %6.2f\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs,d_weight/(n_group*BLOCK_SIZE));
+                d_matches[pi].push_back(grp_array(next_grp));
+                prev_grp[0]=pi;
+                prev_grp[1]=d_pi_a[pi].weight;
+                offset_chars[0]='?';
+                offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
+                //decode_group(prev_grp,d_next_errs);
+            }
+        }else{
+            if((d_state==NO_SYNC)||(d_best_pi!=pi))
+            {
+                printf("+[%04x] %d (%d,%d) %d %d %6.2f!!\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs,d_weight/(n_group*BLOCK_SIZE));
+                auto & prv=d_matches[pi];
+                for(unsigned k=0;k<prv.size();k++)
+                {
+                    std::memcpy(prev_grp,prv[k].data,sizeof(prv[k].data));
+                    d_prev_errs=process_group(prev_grp, d_ecc_max, offset_chars, locators);
+                    prev_grp[0]=pi;
+                    prev_grp[1]=(prev_grp[1]>>10)^locators[1];
+                    prev_grp[2]=(prev_grp[2]>>10)^locators[2];
+                    prev_grp[3]=(prev_grp[3]>>10)^locators[3];
+                    offset_chars[0]='A';
+                    decode_group(prev_grp,0);
                 }
-            break;
-            case SYNC:
-/* wait until 26 bits enter the buffer */
-                if (block_bit_counter<25) block_bit_counter++;
-                else {
-                    good_block=false;
-                    dataword=(reg>>10) & 0xffff;
-                    block_calculated_crc=calc_syndrome(dataword,16);
-                    checkword=reg & 0x3ff;
-/* manage special case of C or C' offset word */
-                    if (block_number==2) {
-                        block_received_crc=checkword^offset_word[block_number];
-                        if (block_received_crc==block_calculated_crc) {
-                            good_block=true;
-                            offset_char = 'C';
-                        } else {
-                            block_received_crc=checkword^offset_word[4];
-                            if (block_received_crc==block_calculated_crc) {
-                                good_block=true;
-                                offset_char = 'c';  // C' (C-Tag)
-                            } else {
-                                wrong_blocks_counter++;
-                                good_block=false;
-                            }
-                        }
-                    }
-                    else {
-                        block_received_crc=checkword^offset_word[block_number];
-                        if (block_received_crc==block_calculated_crc) {
-                            good_block=true;
-                            if (block_number==0) offset_char = 'A';
-                            else if (block_number==1) offset_char = 'B';
-                            else if (block_number==3) offset_char = 'D';
-                        } else {
-                            wrong_blocks_counter++;
-                            good_block=false;
-                        }
-                    }
-/* done checking CRC */
-                    if (block_number==0 && good_block) {
-                        group_assembly_started=true;
-                        group_good_blocks_counter=1;
-                    }
-                    if (group_assembly_started) {
-                        if (!good_block) group_assembly_started=false;
-                        else {
-                            group[block_number]=dataword;
-                            offset_chars[block_number] = offset_char;
-                            group_good_blocks_counter++;
-                        }
-//                        if (group_good_blocks_counter==5) decode_group(group);
-                    }
-                    block_bit_counter=0;
-                    block_number=(block_number+1) % 4;
-                    blocks_counter++;
-/* 1187.5 bps / 104 bits = 11.4 groups/sec, or 45.7 blocks/sec */
-                    if (blocks_counter==50) {
-                        if (wrong_blocks_counter>35) {
-                            lout << "@@@@@ Lost Sync (Got " << wrong_blocks_counter
-                                << " bad blocks on " << blocks_counter
-                                << " total)" << std::endl;
-                            enter_no_sync();
-                        } else {
-                            lout << "@@@@@ Still Sync-ed (Got " << wrong_blocks_counter
-                                << " bad blocks on " << blocks_counter
-                                << " total)" << std::endl;
-                        }
-                        blocks_counter=0;
-                        wrong_blocks_counter=0;
-                    }
+                d_next_errs=process_group(next_grp, d_ecc_max, offset_chars, locators);
+                prev_grp[0]=pi;
+                prev_grp[1]=(next_grp[1]>>10)^locators[1];
+                prev_grp[2]=(next_grp[2]>>10)^locators[2];
+                prev_grp[3]=(next_grp[3]>>10)^locators[3];
+                offset_chars[0]='A';
+                decode_group(prev_grp,0);
+            }
+            d_matches.clear();
+            for(int jj=0;jj<65536;jj++)
+                if(jj==pi)
+                {
+                    d_pi_a[jj].weight>>=1;
+                    d_pi_a[jj].count>>=1;
+                }else{
+                    d_pi_a[jj].weight>>=2;
+                    d_pi_a[jj].count>>=2;
                 }
-            break;
-            default:
-                d_state=NO_SYNC;
-            break;
+            d_pi_bitcnt=0;
+            d_max_weight>>=1;
+            return pi;
         }
-        i++;
-        bit_counter++;
+        d_pi_bitcnt++;
+        if(d_pi_bitcnt>BLOCK_SIZE*50)
+        {
+            d_pi_bitcnt=0;
+            for(int jj=0;jj<65536;jj++)
+            {
+                if(d_pi_a[jj].weight>0)
+                    d_pi_a[jj].weight--;
+                if(d_pi_a[jj].count>0)
+                    d_pi_a[jj].count--;
+            }
+            d_max_weight--;
+            std::cout<<"d_pi_bitcnt--\n";
+        }
     }
-    return noutput_items;
+    return -1;
+}
+
+void decoder_impl::reset()
+{
+    reset_corr();
+    d_state = NO_SYNC;
 }
 
 void decoder_impl::reset_corr()
