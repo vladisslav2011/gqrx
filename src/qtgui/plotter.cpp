@@ -368,7 +368,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             tt.setMSecsSinceEpoch(ts);
 
             showToolTip(event, QString("%1\n%2 kHz")
-                                       .arg(tt.toString("yyyy.MM.dd hh:mm:ss.zzz"))
+                                       .arg(tt.toUTC().toString("yyyy.MM.dd hh:mm:ss.zzz"))
                                        .arg(freq/1.e3, 0, 'f', 3));
         }
     }
