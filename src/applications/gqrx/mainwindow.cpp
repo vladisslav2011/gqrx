@@ -586,6 +586,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     }
 
     QString indev = m_settings->value("input/device", "").toString();
+    qDebug() << "Selected device string: "<<m_settings->value("input/device","").toString();
     if (!indev.isEmpty())
     {
         try
@@ -2542,6 +2543,7 @@ void MainWindow::stopIqPlayback()
 
     // restore original input device
     auto indev = m_settings->value("input/device", "").toString();
+    qDebug() << "Restored device string: "<<m_settings->value("input/device","").toString();
     rx->set_input_device(indev.toStdString());
 
     // restore sample rate

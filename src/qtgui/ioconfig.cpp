@@ -195,6 +195,7 @@ void CIoConfig::saveConfig()
 
     // input settings
     m_settings->setValue("input/device", ui->inDevEdit->text());  // "OK" button disabled if empty
+    qDebug() << "[ioconfig] Selected device string: "<<m_settings->value("input/device","").toString();
 
     qint64 value = (qint64)(ui->bwSpinBox->value()*1.e6);
     if (value)
@@ -615,6 +616,7 @@ void CIoConfig::updateDecimations(void)
 void CIoConfig::updateInDev(const QSettings *settings, const std::map<QString, QVariant> &devList)
 {
     QString indev = settings->value("input/device", "").toString();
+    qDebug() << "[ioconfig] Selected device string: "<<m_settings->value("input/device","").toString();
     bool cfgmatch = false; //flag to indicate that device from config was found
 
     // insert the device list in device combo box
