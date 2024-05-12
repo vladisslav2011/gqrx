@@ -219,18 +219,18 @@ bpsk_phase_sync_cc::~bpsk_phase_sync_cc()
 {
 }
 
-float bpsk_phase_sync_cc::estimate(float phase, float incr, const gr_complex * buf)
+float bpsk_phase_sync_cc::estimate(float phase, float incr, int len, const gr_complex * buf)
 {
-    return estimate(std::polar(1.f,phase),std::polar(1.f,incr),buf);
+    return estimate(std::polar(1.f,phase),std::polar(1.f,incr),len,buf);
 }
 
-float bpsk_phase_sync_cc::estimate(gr_complex phase, gr_complex incr, const gr_complex * buf)
+float bpsk_phase_sync_cc::estimate(gr_complex phase, gr_complex incr, int len, const gr_complex * buf)
 {
     float i_acc=0.f;
     float q_acc=0.f;
     set_phase(phase);
     set_incr(incr);
-    for(int k=0;k<d_size;k++)
+    for(int k=0;k<len;k++)
     {
         gr_complex x=rotate(buf[k]);
         i_acc+=std::abs(real(x));
@@ -250,9 +250,9 @@ int bpsk_phase_sync_cc::work(int noutput_items,
     int k=0;
     while(k<noutput_items)
     {
-        float prompt=estimate(phase,incr,&in[k]);
-        float early=estimate(phase,incr*d_early,&in[k]);
-        float late=estimate(phase,incr*d_late,&in[k]);
+        float prompt=estimate(phase,incr,d_size,&in[k]);
+        float early=estimate(phase,incr*d_early,d_size,&in[k]);
+        float late=estimate(phase,incr*d_late,d_size,&in[k]);
         float dd=(log10f(late)-log10f(early));
         if(prompt>powf(10.f,0.02f))//in sync
         //if(1)
@@ -284,10 +284,10 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             const float step=M_PI*0.2/double(d_size);
             for(int j=-NN;j<=NN;j++)
             {
-                e0=estimate(p0,float(j)*step,&in[k]);
-                e90=estimate(p90,float(j)*step,&in[k]);
-                e45=estimate(p45,float(j)*step,&in[k]);
-                e_45=estimate(p_45,float(j)*step,&in[k]);
+                e0=estimate(p0,float(j)*step,d_size,&in[k]);
+                e90=estimate(p90,float(j)*step,d_size,&in[k]);
+                e45=estimate(p45,float(j)*step,d_size,&in[k]);
+                e_45=estimate(p_45,float(j)*step,d_size,&in[k]);
                 float de=std::max(std::max(e0,e90),std::max(e45,e_45))-std::min(std::min(e0,e90),std::min(e45,e_45));
                 if(de>beste)
                 {
@@ -299,10 +299,10 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             #else
             float start_inc=0;
             #endif
-            e0=estimate(p0,start_inc,&in[k]);
-            e90=estimate(p90,start_inc,&in[k]);
-            e45=estimate(p45,start_inc,&in[k]);
-            e_45=estimate(p_45,start_inc,&in[k]);
+            e0=estimate(p0,start_inc,d_size,&in[k]);
+            e90=estimate(p90,start_inc,d_size,&in[k]);
+            e45=estimate(p45,start_inc,d_size,&in[k]);
+            e_45=estimate(p_45,start_inc,d_size,&in[k]);
             float a1=0.f;
             float a2=0.f;
             float ea1=0.f;
@@ -341,7 +341,7 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             while(a2-a1>search_lim)
             {
                 pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,&in[k]);
+                em=estimate(pm,start_inc,d_size,&in[k]);
                 if(ea1>ea2)
                 {
                     ea2=em;
@@ -358,14 +358,14 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                 pf=a2;
             }
             a1=pf-d_coarse_incr_bw+start_inc*d_size;
-            ea1=estimate(a1,start_inc,&in[k+d_size]);
+            ea1=estimate(a1,start_inc,d_size,&in[k+d_size]);
             a2=pf+d_coarse_incr_bw+start_inc*d_size;
-            ea2=estimate(a2,start_inc,&in[k+d_size]);
+            ea2=estimate(a2,start_inc,d_size,&in[k+d_size]);
             //second block phase search to estimate the frequency
             while(a2-a1>search_lim)
             {
                 pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,&in[k+d_size]);
+                em=estimate(pm,start_inc,d_size,&in[k+d_size]);
                 if(ea1>ea2)
                 {
                     ea2=em;
@@ -396,10 +396,10 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             const gr_complex p90=std::polar(1.f,float(M_PI*0.5))*phase;
             const gr_complex p45=std::polar(1.f,float(M_PI*0.25))*phase;
             const gr_complex p_45=std::polar(1.f,float(-M_PI*0.25))*phase;
-            const float e0=estimate(p0,gr_complex(1.f,0),&in[k]);
-            const float e90=estimate(p90,gr_complex(1.f,0),&in[k]);
-            const float e45=estimate(p45,gr_complex(1.f,0),&in[k]);
-            const float e_45=estimate(p_45,gr_complex(1.f,0),&in[k]);
+            const float e0=estimate(p0,gr_complex(1.f,0),d_size,&in[k]);
+            const float e90=estimate(p90,gr_complex(1.f,0),d_size,&in[k]);
+            const float e45=estimate(p45,gr_complex(1.f,0),d_size,&in[k]);
+            const float e_45=estimate(p_45,gr_complex(1.f,0),d_size,&in[k]);
             gr_complex a1;
             gr_complex a2;
             float ea1;
@@ -441,7 +441,7 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             {
                 pm=a1+a2;
                 pm/=std::abs(pm);
-                em=estimate(pm,0,&in[k]);
+                em=estimate(pm,0,d_size,&in[k]);
                 if(ea1>ea2)
                 {
                     ea2=em;
@@ -460,9 +460,9 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                 pf=a2;
             }
             a1=pf*std::polar(1.f,-d_coarse_incr_bw);
-            ea1=estimate(a1,0,&in[k+d_size]);
+            ea1=estimate(a1,0,d_size,&in[k+d_size]);
             a2=pf*std::polar(1.f,d_coarse_incr_bw);
-            ea2=estimate(a2,0,&in[k+d_size]);
+            ea2=estimate(a2,0,d_size,&in[k+d_size]);
             //second block phase search to estimate the frequency
             while(std::abs(a2-a1)>d_scaled_bw)
             {
