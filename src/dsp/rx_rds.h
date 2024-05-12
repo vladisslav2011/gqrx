@@ -118,6 +118,7 @@ private:
     gr::digital::constellation_decoder_cb::sptr d_mpsk;
     gr::digital::diff_decoder_bb::sptr d_ddbb;
     gr::digital::costas_loop_cc::sptr d_costas_loop;
+    bpsk_phase_sync_cc::sptr d_bpsk_sync;
     gr::basic_block_sptr d_det;
 
     double d_sample_rate;

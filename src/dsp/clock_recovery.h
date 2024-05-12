@@ -102,4 +102,58 @@ private:
 
 };
 
+#include <gnuradio/sync_block.h>
+
+class bpsk_phase_sync_cc : public gr::sync_block
+{
+public:
+#if GNURADIO_VERSION < 0x030900
+typedef boost::shared_ptr<bpsk_phase_sync_cc> sptr;
+#else
+typedef std::shared_ptr<bpsk_phase_sync_cc> sptr;
+#endif
+    static sptr make(int block_size=16, float bw=0.1, float thr=0.1);
+    bpsk_phase_sync_cc(int block_size, float bw, float thr);
+    ~bpsk_phase_sync_cc() override;
+
+    int work(int noutput_items,
+             gr_vector_const_void_star &input_items,
+             gr_vector_void_star &output_items) override;
+
+    float bw() const { return d_bw; }
+    float thr() const { return d_threshold; }
+
+    void set_bw(float bw);
+    void set_thr(float thr) { d_threshold = thr; }
+    float get_frequency() const { return std::arg(d_incr)*float(d_size)*0.5f/float(M_PI); }
+
+private:
+    float estimate(float phase, float incr, const gr_complex * buf);
+    float estimate(gr_complex phase, gr_complex incr, const gr_complex * buf);
+    gr_complex rotate(gr_complex in);
+    void rotateN(gr_complex * out, const gr_complex * in,int n);
+    void set_phase(gr_complex in)
+    {
+        d_phase=in/std::abs(in);
+        d_rot_n=0;
+    }
+    void set_incr(gr_complex in)
+    {
+        d_incr=in/std::abs(in);
+    }
+
+    gr_complex d_phase{1.f,0.f};
+    gr_complex d_incr{1.f,0.f};
+    int d_rot_n;
+
+    int d_size;
+    float d_coarse_incr_bw{M_PI*0.25};
+    float d_bw;
+    float d_scaled_bw;
+    float d_threshold;
+    gr_complex d_early;
+    gr_complex d_late;
+    std::vector<gr_complex> d_buf;
+};
+
 #endif /* INCLUDED_CLOCK_RECOVERY_H */

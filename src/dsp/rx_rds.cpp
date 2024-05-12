@@ -281,8 +281,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
     //d_costas_loop->set_damping_factor(0.85);
-    d_costas_loop->set_min_freq(-0.0003f*float(decim1));
-    d_costas_loop->set_max_freq(0.0003f*float(decim1));
+    const float costas_lock=0.0003f*float(decim1)*float(d_decimation)/float(d_interpolation);
+    d_costas_loop->set_min_freq(-costas_lock);
+    d_costas_loop->set_max_freq(costas_lock);
+    d_bpsk_sync=bpsk_phase_sync_cc::make(104*4, 0.3, 0.5);
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
@@ -316,8 +318,10 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         connect(d_rsmp, 0, d_agc, 0);
     }
 #if 1
-    connect(d_agc, 0, d_costas_loop, 0);
-    connect(d_costas_loop, 0, d_bpf, 0);
+    //connect(d_agc, 0, d_costas_loop, 0);
+    //connect(d_costas_loop, 0, d_bpf, 0);
+    connect(d_agc, 0, d_bpsk_sync, 0);
+    connect(d_bpsk_sync, 0, d_bpf, 0);
 #else
     connect(d_agc, 0, d_costas_loop, 0);
 #endif
@@ -443,7 +447,8 @@ void rx_rds::trig()
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
-    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
+//    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
+    changed_value(C_RDS_CL_FREQ, d_index, d_bpsk_sync->get_frequency());
     changed_value(C_RDS_PHASE_SNR, d_index, phase_snr());
 #else
     changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.);
@@ -480,6 +485,7 @@ void rx_rds::set_dll_bw(float v)
 void rx_rds::set_cl_bw(float v)
 {
     d_costas_loop->set_loop_bandwidth(powf(10.f,v/10.f));
+    d_bpsk_sync->set_bw(powf(10.f,(v+10.f)/10.f));
 }
 
 float rx_rds::phase_snr() const
