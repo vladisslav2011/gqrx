@@ -197,6 +197,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
 
 
 #include <volk/volk.h>
+#define test_extra 128*8*3
 
 bpsk_phase_sync_cc::sptr bpsk_phase_sync_cc::make(int block_size, float bw, float thr)
 {
@@ -210,7 +211,7 @@ bpsk_phase_sync_cc::bpsk_phase_sync_cc(int block_size, float bw, float thr): syn
     d_size=block_size;
     set_bw(bw);
     d_threshold=thr;
-    set_history(1+d_size);
+    set_history(1+test_extra);
     set_output_multiple(d_size);
     d_buf.resize(d_size);
 }
@@ -239,6 +240,48 @@ float bpsk_phase_sync_cc::estimate(gr_complex phase, gr_complex incr, int len, c
     return std::max(i_acc,0.00001f)/std::max(q_acc,0.00001f);
 }
 
+gr_complex bpsk_phase_sync_cc::sum2(gr_complex incr, int len, const gr_complex * buf)
+{
+    gr_complex acc=0;
+    gr_complex ph_acc{1.f,0};
+    if(incr==ph_acc)
+        for(int k=0;k<len;k++)
+        {
+            const gr_complex m=buf[k];
+            acc+=m*(m/std::abs(m));
+        }
+    else
+        for(int k=0;k<len;k++)
+        {
+            const gr_complex m=buf[k]*ph_acc;
+            ph_acc*=incr;
+            acc+=m*(m/std::abs(m));
+        }
+    return acc;
+}
+
+float bpsk_phase_sync_cc::incr_estim(int block, int len, gr_complex incr, const gr_complex * buf)
+{
+    int n=len/block;
+    gr_complex a=sum2(gr_complex(1.f,0),block,&buf[0]);
+    float acc=0.f;
+    float sc=1.f/float(block)*0.5f/float(n);
+    float maga=0.f;
+    for(int k=1;k<n;k++)
+    {
+        maga+=std::abs(a);
+        gr_complex b=sum2(incr,block,&buf[k*block]);
+        acc+=std::arg(b)*sc-std::arg(a)*sc;
+        a=b;
+    }
+    printf("maga=%8.8f i=%8.8f\n",double(maga),double(acc));
+    if(std::isfinite(acc))
+        return acc;
+    return 0.f;
+}
+
+
+
 int bpsk_phase_sync_cc::work(int noutput_items,
             gr_vector_const_void_star &input_items,
             gr_vector_void_star &output_items)
@@ -250,15 +293,16 @@ int bpsk_phase_sync_cc::work(int noutput_items,
     int k=0;
     while(k<noutput_items)
     {
-        float prompt=estimate(phase,incr,d_size,&in[k]);
         float early=estimate(phase,incr*d_early,d_size,&in[k]);
         float late=estimate(phase,incr*d_late,d_size,&in[k]);
+        float test=estimate(phase,incr,d_size+test_extra,&in[k]);
+        float prompt=estimate(phase,incr,d_size,&in[k]);
         float dd=(log10f(late)-log10f(early));
-        if(prompt>powf(10.f,0.02f))//in sync
+        if(std::max(prompt,test)>1.f)//in sync
         //if(1)
         {
             d_phase=phase;
-            d_incr=incr;
+            //d_incr=incr;
             d_incr=incr*std::polar(1.f,d_scaled_bw*dd);
             d_incr/=std::abs(d_incr);
             rotateN(&out[k],&in[k],d_size);
@@ -266,7 +310,6 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             //d_phase*=std::polar(1.f,d_bw*dd);
             k+=d_size;
         }else{
-            printf("desync: %8.3f %8.3f %8.3f\n",log10(early)*10.,log10(prompt)*10.,log10(late)*10.);
             #if 1
             //4 point coarse initial phase estimation search
             //TODO: switch to 3 point search?
@@ -277,11 +320,11 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             const float p45=float(M_PI*0.25)+p0;
             const float p_45=float(-M_PI*0.25)+p0;
             float e0,e90,e45,e_45;
-            #if 0
+            #if 1
             float beste=0.f;
             int bestj=0;
-            constexpr int NN=20;
-            const float step=M_PI*0.2/double(d_size);
+            const float step=0.5f/float(d_size);
+            const int NN=std::floor(0.005f/step);
             for(int j=-NN;j<=NN;j++)
             {
                 e0=estimate(p0,float(j)*step,d_size,&in[k]);
@@ -294,10 +337,19 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                     beste=de;
                     bestj=j;
                 }
+                //printf("de[%8.8f]=%8.8f\n",double(float(j)*step),double(de));
             }
             float start_inc=float(bestj)*step;
+            printf("desync: %8.3f %d %8.3f\n",double(beste),bestj,log10(prompt)*10.);
             #else
-            float start_inc=0;
+            float start_inc=-incr_estim(32,d_size,gr_complex(1.f),in);
+            //start_inc=-incr_estim(16,d_size,std::polar(1.f,start_inc),in);
+            incr_estim(32,d_size,std::polar(1.f,0.f),&in[2]);
+            incr_estim(32,d_size,std::polar(1.f,0.f),&in[4]);
+            incr_estim(32,d_size,std::polar(1.f,0.f),&in[6]);
+            start_inc=0.005;
+            incr_estim(32,d_size,std::polar(1.f,start_inc),&in[6]);
+            printf("desync: %8.3f %8.3f %8.3f %8.8f\n",log10(early)*10.,log10(prompt)*10.,log10(late)*10., double(start_inc));
             #endif
             e0=estimate(p0,start_inc,d_size,&in[k]);
             e90=estimate(p90,start_inc,d_size,&in[k]);
@@ -384,12 +436,15 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                 pm=a2;
             }
             float found_incr=(pm-pf)/float(d_size);
+            pf+=0.5f*start_inc;
             pf-=0.5f*found_incr;
             d_phase=std::polar(1.f,pf);
-            d_incr=std::polar(1.f,found_incr+start_inc);
-            rotateN(&out[k],&in[k],d_size);
+            d_incr=std::polar(1.f,found_incr);
+            printf("desync: %8.8f\n", double(found_incr));
+            rotateN(&out[k],&in[k],std::min(noutput_items-k,d_size));
             k+=d_size;
-            #else
+            #endif
+            #if 0
             //4 point coarse initial phase estimation search
             //TODO: switch to 3 point search?
             const gr_complex p0=phase;
@@ -529,7 +584,7 @@ void bpsk_phase_sync_cc::set_bw(float bw)
     d_scaled_bw=d_bw/float(d_size);
 //    d_early=std::polar(1.f,-d_scaled_bw);
 //    d_late=std::polar(1.f,d_scaled_bw);
-    d_early=std::polar(1.f,-0.7f/float(d_size));
-    d_late= std::polar(1.f, 0.7f/float(d_size));
-    printf("bpsk_phase_sync_cc::set_bw %8.8f => %8.8f %8.8f %8.8f\n",bw,d_scaled_bw,imag(d_early),imag(d_late));
+    d_early=std::polar(1.f,-0.6f/float(d_size));
+    d_late= std::polar(1.f, 0.6f/float(d_size));
+//    printf("bpsk_phase_sync_cc::set_bw %8.8f => %8.8f %8.8f %8.8f\n",bw,d_scaled_bw,imag(d_early),imag(d_late));
 }

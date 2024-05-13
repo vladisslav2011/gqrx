@@ -284,7 +284,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
     const float costas_lock=0.0003f*float(decim1)*float(d_decimation)/float(d_interpolation);
     d_costas_loop->set_min_freq(-costas_lock);
     d_costas_loop->set_max_freq(costas_lock);
-    d_bpsk_sync=bpsk_phase_sync_cc::make(104*4, 0.3, 0.5);
+    d_bpsk_sync=bpsk_phase_sync_cc::make(128*8*4, 0.3, 0.5);
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);

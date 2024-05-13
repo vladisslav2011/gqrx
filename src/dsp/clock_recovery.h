@@ -125,13 +125,16 @@ typedef std::shared_ptr<bpsk_phase_sync_cc> sptr;
 
     void set_bw(float bw);
     void set_thr(float thr) { d_threshold = thr; }
-    float get_frequency() const { return std::arg(d_incr)*float(d_size)*0.5f/float(M_PI); }
+//    float get_frequency() const { return std::arg(d_incr)*float(d_size)*0.5f/float(M_PI); }
+    float get_frequency() const { return std::arg(d_incr); }
 
 private:
     float estimate(float phase, float incr, int len, const gr_complex * buf);
     float estimate(gr_complex phase, gr_complex incr, int len, const gr_complex * buf);
     gr_complex rotate(gr_complex in);
     void rotateN(gr_complex * out, const gr_complex * in,int n);
+    gr_complex sum2(gr_complex incr, int len, const gr_complex * buf);
+    float incr_estim(int block, int len, gr_complex incr, const gr_complex * buf);
     void set_phase(gr_complex in)
     {
         d_phase=in/std::abs(in);
