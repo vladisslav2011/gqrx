@@ -40,7 +40,8 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
                      gr_vector_const_void_star& input_items,
                      gr_vector_void_star& output_items) override;
 
-    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0*10.f:-d_corr180*10.f; }
+    float mu() const { return (d_corr0-d_corr180)*10.f; }
+//    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0*10.f:-d_corr180*10.f; }
 //    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?(d_am_i-d_am_q)*10.f:(d_am_q-d_am_i)*10.f; }
     float omega() const { return d_omega; }
     float gain_mu() const { return d_gain_mu; }
@@ -133,8 +134,6 @@ private:
     float estimate(gr_complex phase, gr_complex incr, int len, const gr_complex * buf);
     gr_complex rotate(gr_complex in);
     void rotateN(gr_complex * out, const gr_complex * in,int n);
-    gr_complex sum2(gr_complex incr, int len, const gr_complex * buf);
-    float incr_estim(int block, int len, gr_complex incr, const gr_complex * buf);
     void set_phase(gr_complex in)
     {
         d_phase=in/std::abs(in);

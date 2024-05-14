@@ -240,47 +240,6 @@ float bpsk_phase_sync_cc::estimate(gr_complex phase, gr_complex incr, int len, c
     return std::max(i_acc,0.00001f)/std::max(q_acc,0.00001f);
 }
 
-gr_complex bpsk_phase_sync_cc::sum2(gr_complex incr, int len, const gr_complex * buf)
-{
-    gr_complex acc=0;
-    gr_complex ph_acc{1.f,0};
-    if(incr==ph_acc)
-        for(int k=0;k<len;k++)
-        {
-            const gr_complex m=buf[k];
-            acc+=m*(m/std::abs(m));
-        }
-    else
-        for(int k=0;k<len;k++)
-        {
-            const gr_complex m=buf[k]*ph_acc;
-            ph_acc*=incr;
-            acc+=m*(m/std::abs(m));
-        }
-    return acc;
-}
-
-float bpsk_phase_sync_cc::incr_estim(int block, int len, gr_complex incr, const gr_complex * buf)
-{
-    int n=len/block;
-    gr_complex a=sum2(gr_complex(1.f,0),block,&buf[0]);
-    float acc=0.f;
-    float sc=1.f/float(block)*0.5f/float(n);
-    float maga=0.f;
-    for(int k=1;k<n;k++)
-    {
-        maga+=std::abs(a);
-        gr_complex b=sum2(incr,block,&buf[k*block]);
-        acc+=std::arg(b)*sc-std::arg(a)*sc;
-        a=b;
-    }
-    printf("maga=%8.8f i=%8.8f\n",double(maga),double(acc));
-    if(std::isfinite(acc))
-        return acc;
-    return 0.f;
-}
-
-
 
 int bpsk_phase_sync_cc::work(int noutput_items,
             gr_vector_const_void_star &input_items,
@@ -313,24 +272,24 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             #if 1
             //4 point coarse initial phase estimation search
             //TODO: switch to 3 point search?
-            const float search_lim=0.1f/float(d_size);
+            const float search_lim=d_scaled_bw*.5f;
+            const int s_size=d_size*2;
             const float p0=std::arg(phase);
             const float p90=float(M_PI*0.5)+p0;
             const float p_90=float(-M_PI*0.5)+p0;
             const float p45=float(M_PI*0.25)+p0;
             const float p_45=float(-M_PI*0.25)+p0;
             float e0,e90,e45,e_45;
-            #if 1
             float beste=0.f;
             int bestj=0;
-            const float step=0.5f/float(d_size);
+            const float step=0.5f/float(s_size);
             const int NN=std::floor(0.005f/step);
             for(int j=-NN;j<=NN;j++)
             {
-                e0=estimate(p0,float(j)*step,d_size,&in[k]);
-                e90=estimate(p90,float(j)*step,d_size,&in[k]);
-                e45=estimate(p45,float(j)*step,d_size,&in[k]);
-                e_45=estimate(p_45,float(j)*step,d_size,&in[k]);
+                e0=estimate(p0,float(j)*step,s_size,&in[k]);
+                e90=estimate(p90,float(j)*step,s_size,&in[k]);
+                e45=estimate(p45,float(j)*step,s_size,&in[k]);
+                e_45=estimate(p_45,float(j)*step,s_size,&in[k]);
                 float de=std::max(std::max(e0,e90),std::max(e45,e_45))-std::min(std::min(e0,e90),std::min(e45,e_45));
                 if(de>beste)
                 {
@@ -340,21 +299,11 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                 //printf("de[%8.8f]=%8.8f\n",double(float(j)*step),double(de));
             }
             float start_inc=float(bestj)*step;
-            printf("desync: %8.3f %d %8.3f\n",double(beste),bestj,log10(prompt)*10.);
-            #else
-            float start_inc=-incr_estim(32,d_size,gr_complex(1.f),in);
-            //start_inc=-incr_estim(16,d_size,std::polar(1.f,start_inc),in);
-            incr_estim(32,d_size,std::polar(1.f,0.f),&in[2]);
-            incr_estim(32,d_size,std::polar(1.f,0.f),&in[4]);
-            incr_estim(32,d_size,std::polar(1.f,0.f),&in[6]);
-            start_inc=0.005;
-            incr_estim(32,d_size,std::polar(1.f,start_inc),&in[6]);
-            printf("desync: %8.3f %8.3f %8.3f %8.8f\n",log10(early)*10.,log10(prompt)*10.,log10(late)*10., double(start_inc));
-            #endif
-            e0=estimate(p0,start_inc,d_size,&in[k]);
-            e90=estimate(p90,start_inc,d_size,&in[k]);
-            e45=estimate(p45,start_inc,d_size,&in[k]);
-            e_45=estimate(p_45,start_inc,d_size,&in[k]);
+            //printf("desync: %8.3f %d %8.3f\n",double(beste),bestj,log10(prompt)*10.);
+            e0=estimate(p0,start_inc,s_size,&in[k]);
+            e90=estimate(p90,start_inc,s_size,&in[k]);
+            e45=estimate(p45,start_inc,s_size,&in[k]);
+            e_45=estimate(p_45,start_inc,s_size,&in[k]);
             float a1=0.f;
             float a2=0.f;
             float ea1=0.f;
@@ -393,7 +342,8 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             while(a2-a1>search_lim)
             {
                 pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,d_size,&in[k]);
+                em=estimate(pm,start_inc,s_size,&in[k]);
+                //printf("pm=%8.8f em=%8.8f\n",double(pm),double(em));
                 if(ea1>ea2)
                 {
                     ea2=em;
@@ -410,14 +360,15 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                 pf=a2;
             }
             a1=pf-d_coarse_incr_bw+start_inc*d_size;
-            ea1=estimate(a1,start_inc,d_size,&in[k+d_size]);
             a2=pf+d_coarse_incr_bw+start_inc*d_size;
-            ea2=estimate(a2,start_inc,d_size,&in[k+d_size]);
+            ea1=estimate(a1,start_inc,s_size,&in[k+d_size]);
+            ea2=estimate(a2,start_inc,s_size,&in[k+d_size]);
             //second block phase search to estimate the frequency
             while(a2-a1>search_lim)
             {
                 pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,d_size,&in[k+d_size]);
+                em=estimate(pm,start_inc,s_size,&in[k+d_size]);
+                //printf("incr=%8.8f em=%8.8f\n",double(pm-pf)/double(d_size),double(em));
                 if(ea1>ea2)
                 {
                     ea2=em;
@@ -438,9 +389,16 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             float found_incr=(pm-pf)/float(d_size);
             pf+=0.5f*start_inc;
             pf-=0.5f*found_incr;
-            d_phase=std::polar(1.f,pf);
-            d_incr=std::polar(1.f,found_incr);
-            printf("desync: %8.8f\n", double(found_incr));
+            float newtest=estimate(pf,found_incr,d_size+test_extra,&in[k]);
+            if(newtest>test)
+            {
+                d_phase=std::polar(1.f,pf);
+                d_incr=std::polar(1.f,found_incr);
+                //printf("desync: %8.8f\n", double(found_incr));
+            }else{
+                d_phase=phase;
+                d_incr=incr;
+            }
             rotateN(&out[k],&in[k],std::min(noutput_items-k,d_size));
             k+=d_size;
             #endif
