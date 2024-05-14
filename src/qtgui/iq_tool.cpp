@@ -448,6 +448,11 @@ void CIqTool::extractDirObserver(c_id, const c_def::v_union &)
         extractDir->setPath(newdir);
         extractDir->cd(newdir);
         getAction(C_IQ_SAVE_LOC)->setText("Save to "+extractDir->path());
+        getAction(C_IQ_SAVE_SEL)->setEnabled(false);
+        if(sel_A * double(rec_len) >= 1.0)
+            getAction(C_IQ_SAVE_SEL)->setEnabled(true);
+        else if(!QFileInfo::exists(extractDir->path()+"/"+current_file))
+            getAction(C_IQ_SAVE_SEL)->setEnabled(true);
     }
 }
 
@@ -475,6 +480,7 @@ void CIqTool::updateSliderStylesheet(qint64 save_progress)
         getAction(C_IQ_SEL_A)->setEnabled(true);
         getAction(C_IQ_SEL_B)->setEnabled(true);
         getAction(C_IQ_RESET_SEL)->setEnabled(true);
+        getAction(C_IQ_SAVE_LOC)->setEnabled(true);
         return;
     }
     getAction(C_IQ_GOTO_A)->setEnabled(true);
@@ -505,8 +511,6 @@ void CIqTool::updateSliderStylesheet(qint64 save_progress)
     {
         getAction(C_IQ_SEL_A)->setEnabled(true);
         getAction(C_IQ_SEL_B)->setEnabled(true);
-        if(sel_A * double(rec_len) >= 1.0)
-            getAction(C_IQ_SAVE_SEL)->setEnabled(true);
         getAction(C_IQ_RESET_SEL)->setEnabled(true);
     }
     if(save_progress>0)
@@ -560,6 +564,8 @@ void CIqTool::updateSliderStylesheet(qint64 save_progress)
             .arg(selLen-0.000001)
             );
         if(sel_A * double(rec_len) >= 1.0)
+            getAction(C_IQ_SAVE_SEL)->setEnabled(true);
+        else if(!QFileInfo::exists(extractDir->path()+"/"+current_file))
             getAction(C_IQ_SAVE_SEL)->setEnabled(true);
     }
 }
@@ -620,6 +626,7 @@ void CIqTool::saveObserver(c_id, const c_def::v_union &v)
     getAction(C_IQ_SEL_B)->setEnabled(false);
     getAction(C_IQ_SAVE_SEL)->setEnabled(false);
     getAction(C_IQ_RESET_SEL)->setEnabled(false);
+    getAction(C_IQ_SAVE_LOC)->setEnabled(false);
 }
 
 void CIqTool::iqProcessObserver(const c_id id, const c_def::v_union &value)
