@@ -46,8 +46,6 @@ wfmrx::wfmrx(double quad_rate, float audio_rate)
     /* create rds blocks but dont connect them */
     rds = make_rx_rds((double)WFM_PREF_QUAD_RATE);
     rds_decoder = gr::rds::decoder::make();
-    rds_c = make_rx_rds(WFM_PREF_QUAD_RATE, true);
-    rds_decoder_c = gr::rds::decoder::make(1);
     rds_parser = gr::rds::parser::make(0, 0, 0);
 
     connect(ddc, 0, iq_resamp, 0);
@@ -238,9 +236,6 @@ void wfmrx::start_rds_decoder()
     connect(demod_fm, 0, rds, 0);
     connect(rds, 0, rds_decoder, 0);
     msg_connect(rds_decoder, "out", rds_parser, "in");
-    //connect(demod_fm, 0, rds_c, 0);
-    //connect(rds_c, 0, rds_decoder_c, 0);
-    //msg_connect(rds_decoder_c, "out", rds_parser, "in");
     rds_parser->send_extra=[=]()
     {
         rds->trig();
@@ -256,9 +251,6 @@ void wfmrx::stop_rds_decoder()
     disconnect(demod_fm, 0, rds, 0);
     disconnect(rds, 0, rds_decoder, 0);
     msg_disconnect(rds_decoder, "out", rds_parser, "in");
-    //disconnect(demod_fm, 0, rds_c, 0);
-    //disconnect(rds_c, 0, rds_decoder_c, 0);
-    //msg_disconnect(rds_decoder_c, "out", rds_parser, "in");
     rds_parser->send_extra=nullptr;
     unlock();
     rds_parser->clear();

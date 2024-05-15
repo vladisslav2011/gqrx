@@ -112,8 +112,6 @@ private:
     rx_rds_sptr               rds;       /*!< RDS decoder */
     gr::rds::decoder::sptr    rds_decoder;
     gr::rds::parser::sptr     rds_parser;
-    rx_rds_sptr               rds_c;       /*!< RDS decoder */
-    gr::rds::decoder::sptr    rds_decoder_c;
 };
 
 #endif // WFMRX_H
