@@ -106,7 +106,7 @@ protected:
     dbpsk_det_cb():
         gr::sync_decimator ("dbpsk_det_cb",
         gr::io_signature::make2(2, 2, sizeof(gr_complex),sizeof(uint8_t)),
-        gr::io_signature::make(1, 1, sizeof(float)),2)
+        gr::io_signature::make(1, 3, sizeof(float)),2)
     {
 //        set_output_multiple(2);
         set_history(8);
@@ -137,38 +137,45 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
             const gr_complex *b=&in[k*2];
             if(in1[k*2])
                 b++;
-            #if 0
-            constexpr float fv=0.6f;
-            d_iir+=(real(b[0])-d_iir)*fv;
-            int tmp=real(b[1])>d_iir;
-            d_iir+=(real(b[1])-d_iir)*fv;
-            out[k]=d_prev^tmp;
-            d_prev=tmp;
-            #elif 0
-            auto m1_0=b[0]-b[1]-b[2]+b[3];
-            auto m0_0=b[0]-b[1]+b[2]-b[3];
-            auto f0=std::abs(m1_0)-std::abs(m0_0);
-            out[k]=f0;
-           #else
-            constexpr float fv=0.0f;
-            float iir=d_iir;
             float p[4];
             for(int j=0;j<4;j++)
-            {
-                p[j]=real(b[j])-iir;
-                iir+=(real(b[j])-iir)*fv;
-            }
-            d_iir+=(real(b[0])-d_iir)*fv;
-            d_iir+=(real(b[1])-d_iir)*fv;
+                p[j]=real(b[j]);
             auto m1_0=p[0]-p[1]-p[2]+p[3];
             auto m0_0=p[0]-p[1]+p[2]-p[3];
             auto f0=std::abs(m1_0)-std::abs(m0_0);
             out[k]=f0;
-            #endif
             d_i_mag+=(log10f(std::max(std::abs(real(b[0])),0.0001f))*10.f-d_i_mag)*corr_alfa;
             d_q_mag+=(log10f(std::max(std::abs(imag(b[0])),0.0001f))*10.f-d_q_mag)*corr_alfa;
             d_i_mag+=(log10f(std::max(std::abs(real(b[1])),0.0001f))*10.f-d_i_mag)*corr_alfa;
             d_q_mag+=(log10f(std::max(std::abs(imag(b[1])),0.0001f))*10.f-d_q_mag)*corr_alfa;
+        }
+        if(output_items.size()==1)
+            return noutput_items;
+        out = (float *) output_items[1];
+        for(int k=0;k<noutput_items;k++)
+        {
+            const gr_complex *b=&in[k*2];
+            float p[4];
+            for(int j=0;j<4;j++)
+                p[j]=real(b[j]);
+            auto m1_0=p[0]-p[1]-p[2]+p[3];
+            auto m0_0=p[0]-p[1]+p[2]-p[3];
+            auto f0=std::abs(m1_0)-std::abs(m0_0);
+            out[k]=f0;
+        }
+        if(output_items.size()==2)
+            return noutput_items;
+        out = (float *) output_items[2];
+        for(int k=0;k<noutput_items;k++)
+        {
+            const gr_complex *b=&in[k*2+1];
+            float p[4];
+            for(int j=0;j<4;j++)
+                p[j]=real(b[j]);
+            auto m1_0=p[0]-p[1]-p[2]+p[3];
+            auto m0_0=p[0]-p[1]+p[2]-p[3];
+            auto f0=std::abs(m1_0)-std::abs(m0_0);
+            out[k]=f0;
         }
         return noutput_items;
     }
@@ -182,8 +189,6 @@ typedef std::shared_ptr<dbpsk_det_cb> sptr;
 private:
     static constexpr float corr_alfa{0.001f};
 
-    float d_iir{0.f};
-    int d_prev{0};
     float d_i_mag{0.f};
     float d_q_mag{0.f};
 };
