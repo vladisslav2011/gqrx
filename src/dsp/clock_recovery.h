@@ -127,11 +127,12 @@ typedef std::shared_ptr<bpsk_phase_sync_cc> sptr;
     void set_bw(float bw);
     void set_thr(float thr) { d_threshold = thr; }
 //    float get_frequency() const { return std::arg(d_incr)*float(d_size)*0.5f/float(M_PI); }
-    float get_frequency() const { return std::arg(d_incr); }
+    float get_frequency() const { return std::arg(d_freq); }
 
 private:
     float estimate(float phase, float incr, int len, const gr_complex * buf);
     float estimate(gr_complex phase, gr_complex incr, int len, const gr_complex * buf);
+    bool phase_incr_oneshot(float & phase, float & incr, int size, const gr_complex * buf);
     gr_complex rotate(gr_complex in);
     void rotateN(gr_complex * out, const gr_complex * in,int n);
     void set_phase(gr_complex in)
@@ -155,6 +156,7 @@ private:
     float d_threshold;
     gr_complex d_early;
     gr_complex d_late;
+    gr_complex d_freq{1.f,0.f};
     std::vector<gr_complex> d_buf;
 };
 

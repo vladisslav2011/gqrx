@@ -42,6 +42,7 @@
 #include <gnuradio/blocks/multiply_const_ff.h>
 #endif
 
+#define USE_BPSK_PHASE_SYNC
 
 class iir_corr : public gr::sync_block
 {
@@ -318,10 +319,13 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         connect(d_rsmp, 0, d_agc, 0);
     }
 #if 1
-    //connect(d_agc, 0, d_costas_loop, 0);
-    //connect(d_costas_loop, 0, d_bpf, 0);
+    #ifdef USE_BPSK_PHASE_SYNC
     connect(d_agc, 0, d_bpsk_sync, 0);
     connect(d_bpsk_sync, 0, d_bpf, 0);
+    #else
+    connect(d_agc, 0, d_costas_loop, 0);
+    connect(d_costas_loop, 0, d_bpf, 0);
+    #endif
 #else
     connect(d_agc, 0, d_costas_loop, 0);
 #endif
@@ -447,8 +451,11 @@ void rx_rds::trig()
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
     changed_value(C_RDS_CR_OMEGA, d_index, d_sync->omega());
     changed_value(C_RDS_CR_MU, d_index, d_sync->mu());
-//    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
+    #ifdef USE_BPSK_PHASE_SYNC
     changed_value(C_RDS_CL_FREQ, d_index, d_bpsk_sync->get_frequency());
+    #else
+    changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.f);
+    #endif
     changed_value(C_RDS_PHASE_SNR, d_index, phase_snr());
 #else
     changed_value(C_RDS_CL_FREQ, d_index, d_costas_loop->get_frequency()*1000.);
@@ -458,12 +465,11 @@ void rx_rds::trig()
 void rx_rds::update_fxff_taps()
 {
     //lock();
-    #if 0
-    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw+2375.f-1000.f, d_fxff_tw);
-    #else
-    d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
-        2375.f/2.f-std::min(d_fxff_bw,1170.0f), 2375.f/2.f+std::min(d_fxff_bw,1170.0f), d_fxff_tw);
-    #endif
+    if(d_fxff_bw>1170.f)
+        d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw, d_fxff_tw);
+    else
+        d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
+            2375.f/2.f-std::min(d_fxff_bw,1170.0f), 2375.f/2.f+std::min(d_fxff_bw,1170.0f), d_fxff_tw);
     d_fxff->set_taps(d_fxff_tap);
     //unlock();
 }

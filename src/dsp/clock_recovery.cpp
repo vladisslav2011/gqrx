@@ -211,7 +211,7 @@ bpsk_phase_sync_cc::bpsk_phase_sync_cc(int block_size, float bw, float thr): syn
     d_size=block_size;
     set_bw(bw);
     d_threshold=thr;
-    set_history(1+test_extra);
+    set_history(1+std::max(test_extra,d_size));
     set_output_multiple(d_size);
     d_buf.resize(d_size);
 }
@@ -240,6 +240,275 @@ float bpsk_phase_sync_cc::estimate(gr_complex phase, gr_complex incr, int len, c
     return std::max(i_acc,0.00001f)/std::max(q_acc,0.00001f);
 }
 
+template<typename T> T max3(const T &a, const T &b, const T &c)
+{
+    return std::max(a,std::max(b,c));
+}
+
+bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int size, const gr_complex * buf)
+{
+    #if 1
+    //4 point coarse initial phase estimation search
+    //TODO: switch to 3 point search?
+    const float search_lim=d_scaled_bw;
+    const int s_size=size;
+    const float p0=phase;
+    const float p90=float(M_PI*0.5)+p0;
+    const float p_90=float(-M_PI*0.5)+p0;
+    const float p45=float(M_PI*0.25)+p0;
+    const float p_45=float(-M_PI*0.25)+p0;
+    float e0,e90,e45,e_45;
+    float beste=0.f;
+    int bestj=0;
+    const float step=0.5f/float(s_size);
+    const int NN=std::floor(0.005f/step);
+    for(int j=-NN;j<=NN;j++)
+    {
+        e0=estimate(p0,float(j)*step,s_size,buf);
+        e90=estimate(p90,float(j)*step,s_size,buf);
+        e45=estimate(p45,float(j)*step,s_size,buf);
+        e_45=estimate(p_45,float(j)*step,s_size,buf);
+        float de=std::max(std::max(e0,e90),std::max(e45,e_45))-std::min(std::min(e0,e90),std::min(e45,e_45));
+        if(de>beste)
+        {
+            beste=de;
+            bestj=j;
+        }
+        //printf("de[%8.8f]=%8.8f\n",double(float(j)*step),double(de));
+    }
+    float start_inc=float(bestj)*step;
+    //printf("desync: %8.3f %d %8.3f\n",double(beste),bestj,log10(prompt)*10.);
+    e0=estimate(p0,start_inc,s_size,buf);
+    e90=estimate(p90,start_inc,s_size,buf);
+    e45=estimate(p45,start_inc,s_size,buf);
+    e_45=estimate(p_45,start_inc,s_size,buf);
+    float a1=0.f;
+    float a2=0.f;
+    float ea1=0.f;
+    float ea2=0.f;
+    float pm,em;
+    float pf;
+    if(std::min(e_45,e0)>std::max(e90,e45))
+    {
+        a1=p_45;
+        a2=p0;
+        ea1=e_45;
+        ea2=e0;
+    }else
+    if(std::min(e45,e0)>std::max(e90,e_45))
+    {
+        a1=p0;
+        a2=p45;
+        ea1=e0;
+        ea2=e45;
+    }else
+    if(std::min(e45,e90)>std::max(e0,e_45))
+    {
+        a1=p45;
+        a2=p90;
+        ea1=e45;
+        ea2=e90;
+    }else
+    //if(std::min(e_45,e90)>std::max(e0,e45))
+    {
+        a1=p_90;
+        a2=p_45;
+        ea1=e90;
+        ea2=e_45;
+    }
+    #if 0
+    if(e0>max3(e90,e45,e_45))
+    {
+        a1=p_45;
+        a2=p45;
+        ea1=e_45;
+        ea2=e45;
+        printf("j=%d\n",bestj);
+    }else
+    if(e90>max3(e0,e45,e_45))
+    {
+        a1=p45;
+        a2=p_45;
+        ea1=e45;
+        ea2=e_45;
+    }else
+    if(e45>max3(e90,e0,e_45))
+    {
+        a1=p_45;
+        a2=p45;
+        ea1=e_45;
+        ea2=e45;
+    }else
+//    if(e_45>max3(e90,e45,e0))
+    {
+        a1=p_90;
+        a2=p0;
+        ea1=e90;
+        ea2=e0;
+    }
+    #endif
+    //fine binary search of initial phase estimation
+    while(a2-a1>search_lim)
+    {
+        pm=0.5f*(a1+a2);
+        em=estimate(pm,start_inc,s_size,buf);
+        //printf("pm=%8.8f em=%8.8f\n",double(pm),double(em));
+        if(ea1>ea2)
+        {
+            ea2=em;
+            a2=pm;
+        }else{
+            ea1=em;
+            a1=pm;
+        }
+    }
+    if(ea1>ea2)
+    {
+        pf=a1;
+    }else{
+        pf=a2;
+    }
+    a1=pf-d_coarse_incr_bw+start_inc*d_size;
+    a2=pf+d_coarse_incr_bw+start_inc*d_size;
+    ea1=estimate(a1,start_inc,s_size,&buf[d_size]);
+    ea2=estimate(a2,start_inc,s_size,&buf[d_size]);
+    //second block phase search to estimate the frequency
+    while(a2-a1>search_lim)
+    {
+        pm=0.5f*(a1+a2);
+        em=estimate(pm,start_inc,s_size,&buf[d_size]);
+        //printf("incr=%8.8f em=%8.8f\n",double(pm-pf)/double(d_size),double(em));
+        if(ea1>ea2)
+        {
+            ea2=em;
+            a2=pm;
+        }else{
+            ea1=em;
+            a1=pm;
+        }
+    }
+    if(ea1>ea2)
+    {
+        em=ea1;
+        pm=a1;
+    }else{
+        em=ea2;
+        pm=a2;
+    }
+    float found_incr=(pm-pf)/float(d_size);
+    pf+=0.5f*start_inc;
+    pf-=0.5f*found_incr;
+    phase=pf;
+    incr=found_incr;
+    #endif
+    #if 0
+    //4 point coarse initial phase estimation search
+    //TODO: switch to 3 point search?
+    const gr_complex p0=phase;
+    const gr_complex p90=std::polar(1.f,float(M_PI*0.5))*phase;
+    const gr_complex p45=std::polar(1.f,float(M_PI*0.25))*phase;
+    const gr_complex p_45=std::polar(1.f,float(-M_PI*0.25))*phase;
+    const float e0=estimate(p0,gr_complex(1.f,0),d_size,&in[k]);
+    const float e90=estimate(p90,gr_complex(1.f,0),d_size,&in[k]);
+    const float e45=estimate(p45,gr_complex(1.f,0),d_size,&in[k]);
+    const float e_45=estimate(p_45,gr_complex(1.f,0),d_size,&in[k]);
+    gr_complex a1;
+    gr_complex a2;
+    float ea1;
+    float ea2;
+    gr_complex pm;
+    float em;
+    gr_complex pf;
+    if(std::min(e_45,e0)>std::max(e90,e45))
+    {
+        a1=p_45;
+        a2=p0;
+        ea1=e_45;
+        ea2=e0;
+    }else
+    if(std::min(e45,e0)>std::max(e90,e_45))
+    {
+        a1=p0;
+        a2=p45;
+        ea1=e0;
+        ea2=e45;
+    }else
+    if(std::min(e45,e90)>std::max(e0,e_45))
+    {
+        a1=p45;
+        a2=p90;
+        ea1=e45;
+        ea2=e90;
+    }else
+    //if(std::min(e_45,e90)>std::max(e0,e45))
+    {
+        a1=std::polar(1.f,float(-M_PI*0.5))*phase;
+        a2=p_45;
+        ea1=e90;
+        ea2=e_45;
+    }
+    //fine binary search of initial phase estimation
+    int nn=0;
+    while(std::abs(a2-a1)>d_scaled_bw)
+    {
+        pm=a1+a2;
+        pm/=std::abs(pm);
+        em=estimate(pm,0,d_size,&in[k]);
+        if(ea1>ea2)
+        {
+            ea2=em;
+            a2=pm;
+        }else{
+            ea1=em;
+            a1=pm;
+        }
+        nn++;
+    }
+    printf("nn=%d\n",nn);
+    if(ea1>ea2)
+    {
+        pf=a1;
+    }else{
+        pf=a2;
+    }
+    a1=pf*std::polar(1.f,-d_coarse_incr_bw);
+    ea1=estimate(a1,0,d_size,&in[k+d_size]);
+    a2=pf*std::polar(1.f,d_coarse_incr_bw);
+    ea2=estimate(a2,0,d_size,&in[k+d_size]);
+    //second block phase search to estimate the frequency
+    while(std::abs(a2-a1)>d_scaled_bw)
+    {
+        pm=a1+a2;
+        pm/=std::abs(pm);
+        em=estimate(pm,0,&in[k+d_size]);
+        if(ea1>ea2)
+        {
+            ea2=em;
+            a2=pm;
+        }else{
+            ea1=em;
+            a1=pm;
+        }
+    }
+    if(ea1>ea2)
+    {
+        em=ea1;
+        pm=a1;
+    }else{
+        em=ea2;
+        pm=a2;
+    }
+    float found_incr=std::arg(pm)-std::arg(pf);
+    found_incr/=float(d_size);
+    pf*=std::polar(1.f,-0.5f*found_incr);
+    d_phase=pf;
+    d_incr=std::polar(1.f,found_incr);
+    rotateN(&out[k],&in[k],d_size);
+    k+=d_size;
+    #endif
+    return true;
+}
+
 
 int bpsk_phase_sync_cc::work(int noutput_items,
             gr_vector_const_void_star &input_items,
@@ -247,267 +516,44 @@ int bpsk_phase_sync_cc::work(int noutput_items,
 {
     const gr_complex* in = (const gr_complex*)input_items[0];
     gr_complex* out = (gr_complex*)output_items[0];
-    gr_complex phase=d_phase;
-    gr_complex incr=d_incr;
     int k=0;
     while(k<noutput_items)
     {
-        float early=estimate(phase,incr*d_early,d_size,&in[k]);
-        float late=estimate(phase,incr*d_late,d_size,&in[k]);
+        gr_complex phase=d_phase;
+        gr_complex incr=d_incr;
+        float early=estimate(phase,incr*d_early,d_size*2.f,&in[k]);
+        float late=estimate(phase,incr*d_late,d_size*2.f,&in[k]);
         float test=estimate(phase,incr,d_size+test_extra,&in[k]);
         float prompt=estimate(phase,incr,d_size,&in[k]);
         float dd=(log10f(late)-log10f(early));
+        float e_phase=std::arg(phase),e_incr=std::arg(incr);
         if(std::max(prompt,test)>1.f)//in sync
-        //if(1)
+//        if(0)
         {
-            d_phase=phase;
+            //phase_incr_oneshot(e_phase,e_incr,d_size,&in[k]);
             //d_incr=incr;
+            d_phase=phase;//*std::polar(1.f,d_scaled_bw*dd);
             d_incr=incr*std::polar(1.f,d_scaled_bw*dd);
             d_incr/=std::abs(d_incr);
-            rotateN(&out[k],&in[k],d_size);
             //float dd=late-early;
             //d_phase*=std::polar(1.f,d_bw*dd);
-            k+=d_size;
+//            printf("ok: %8.8f %8.8f\n", double(std::arg(d_phase)-e_phase),double(std::arg(d_incr)-e_incr));
         }else{
-            #if 1
-            //4 point coarse initial phase estimation search
-            //TODO: switch to 3 point search?
-            const float search_lim=d_scaled_bw*.5f;
-            const int s_size=d_size*2;
-            const float p0=std::arg(phase);
-            const float p90=float(M_PI*0.5)+p0;
-            const float p_90=float(-M_PI*0.5)+p0;
-            const float p45=float(M_PI*0.25)+p0;
-            const float p_45=float(-M_PI*0.25)+p0;
-            float e0,e90,e45,e_45;
-            float beste=0.f;
-            int bestj=0;
-            const float step=0.5f/float(s_size);
-            const int NN=std::floor(0.005f/step);
-            for(int j=-NN;j<=NN;j++)
+            if(phase_incr_oneshot(e_phase,e_incr,d_size,&in[k]))
             {
-                e0=estimate(p0,float(j)*step,s_size,&in[k]);
-                e90=estimate(p90,float(j)*step,s_size,&in[k]);
-                e45=estimate(p45,float(j)*step,s_size,&in[k]);
-                e_45=estimate(p_45,float(j)*step,s_size,&in[k]);
-                float de=std::max(std::max(e0,e90),std::max(e45,e_45))-std::min(std::min(e0,e90),std::min(e45,e_45));
-                if(de>beste)
+                float newtest=estimate(e_phase,e_incr,d_size+test_extra,&in[k]);
+                if(newtest>test)
                 {
-                    beste=de;
-                    bestj=j;
-                }
-                //printf("de[%8.8f]=%8.8f\n",double(float(j)*step),double(de));
-            }
-            float start_inc=float(bestj)*step;
-            //printf("desync: %8.3f %d %8.3f\n",double(beste),bestj,log10(prompt)*10.);
-            e0=estimate(p0,start_inc,s_size,&in[k]);
-            e90=estimate(p90,start_inc,s_size,&in[k]);
-            e45=estimate(p45,start_inc,s_size,&in[k]);
-            e_45=estimate(p_45,start_inc,s_size,&in[k]);
-            float a1=0.f;
-            float a2=0.f;
-            float ea1=0.f;
-            float ea2=0.f;
-            float pm,em;
-            float pf;
-            if(std::min(e_45,e0)>std::max(e90,e45))
-            {
-                a1=p_45;
-                a2=p0;
-                ea1=e_45;
-                ea2=e0;
-            }else
-            if(std::min(e45,e0)>std::max(e90,e_45))
-            {
-                a1=p0;
-                a2=p45;
-                ea1=e0;
-                ea2=e45;
-            }else
-            if(std::min(e45,e90)>std::max(e0,e_45))
-            {
-                a1=p45;
-                a2=p90;
-                ea1=e45;
-                ea2=e90;
-            }else
-            //if(std::min(e_45,e90)>std::max(e0,e45))
-            {
-                a1=p_90;
-                a2=p_45;
-                ea1=e90;
-                ea2=e_45;
-            }
-            //fine binary search of initial phase estimation
-            while(a2-a1>search_lim)
-            {
-                pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,s_size,&in[k]);
-                //printf("pm=%8.8f em=%8.8f\n",double(pm),double(em));
-                if(ea1>ea2)
-                {
-                    ea2=em;
-                    a2=pm;
-                }else{
-                    ea1=em;
-                    a1=pm;
+                    printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
+                    d_phase=std::polar(1.f,e_phase);
+                    d_incr=std::polar(1.f,e_incr);
                 }
             }
-            if(ea1>ea2)
-            {
-                pf=a1;
-            }else{
-                pf=a2;
-            }
-            a1=pf-d_coarse_incr_bw+start_inc*d_size;
-            a2=pf+d_coarse_incr_bw+start_inc*d_size;
-            ea1=estimate(a1,start_inc,s_size,&in[k+d_size]);
-            ea2=estimate(a2,start_inc,s_size,&in[k+d_size]);
-            //second block phase search to estimate the frequency
-            while(a2-a1>search_lim)
-            {
-                pm=0.5f*(a1+a2);
-                em=estimate(pm,start_inc,s_size,&in[k+d_size]);
-                //printf("incr=%8.8f em=%8.8f\n",double(pm-pf)/double(d_size),double(em));
-                if(ea1>ea2)
-                {
-                    ea2=em;
-                    a2=pm;
-                }else{
-                    ea1=em;
-                    a1=pm;
-                }
-            }
-            if(ea1>ea2)
-            {
-                em=ea1;
-                pm=a1;
-            }else{
-                em=ea2;
-                pm=a2;
-            }
-            float found_incr=(pm-pf)/float(d_size);
-            pf+=0.5f*start_inc;
-            pf-=0.5f*found_incr;
-            float newtest=estimate(pf,found_incr,d_size+test_extra,&in[k]);
-            if(newtest>test)
-            {
-                d_phase=std::polar(1.f,pf);
-                d_incr=std::polar(1.f,found_incr);
-                //printf("desync: %8.8f\n", double(found_incr));
-            }else{
-                d_phase=phase;
-                d_incr=incr;
-            }
-            rotateN(&out[k],&in[k],std::min(noutput_items-k,d_size));
-            k+=d_size;
-            #endif
-            #if 0
-            //4 point coarse initial phase estimation search
-            //TODO: switch to 3 point search?
-            const gr_complex p0=phase;
-            const gr_complex p90=std::polar(1.f,float(M_PI*0.5))*phase;
-            const gr_complex p45=std::polar(1.f,float(M_PI*0.25))*phase;
-            const gr_complex p_45=std::polar(1.f,float(-M_PI*0.25))*phase;
-            const float e0=estimate(p0,gr_complex(1.f,0),d_size,&in[k]);
-            const float e90=estimate(p90,gr_complex(1.f,0),d_size,&in[k]);
-            const float e45=estimate(p45,gr_complex(1.f,0),d_size,&in[k]);
-            const float e_45=estimate(p_45,gr_complex(1.f,0),d_size,&in[k]);
-            gr_complex a1;
-            gr_complex a2;
-            float ea1;
-            float ea2;
-            gr_complex pm;
-            float em;
-            gr_complex pf;
-            if(std::min(e_45,e0)>std::max(e90,e45))
-            {
-                a1=p_45;
-                a2=p0;
-                ea1=e_45;
-                ea2=e0;
-            }else
-            if(std::min(e45,e0)>std::max(e90,e_45))
-            {
-                a1=p0;
-                a2=p45;
-                ea1=e0;
-                ea2=e45;
-            }else
-            if(std::min(e45,e90)>std::max(e0,e_45))
-            {
-                a1=p45;
-                a2=p90;
-                ea1=e45;
-                ea2=e90;
-            }else
-            //if(std::min(e_45,e90)>std::max(e0,e45))
-            {
-                a1=std::polar(1.f,float(-M_PI*0.5))*phase;
-                a2=p_45;
-                ea1=e90;
-                ea2=e_45;
-            }
-            //fine binary search of initial phase estimation
-            int nn=0;
-            while(std::abs(a2-a1)>d_scaled_bw)
-            {
-                pm=a1+a2;
-                pm/=std::abs(pm);
-                em=estimate(pm,0,d_size,&in[k]);
-                if(ea1>ea2)
-                {
-                    ea2=em;
-                    a2=pm;
-                }else{
-                    ea1=em;
-                    a1=pm;
-                }
-                nn++;
-            }
-            printf("nn=%d\n",nn);
-            if(ea1>ea2)
-            {
-                pf=a1;
-            }else{
-                pf=a2;
-            }
-            a1=pf*std::polar(1.f,-d_coarse_incr_bw);
-            ea1=estimate(a1,0,d_size,&in[k+d_size]);
-            a2=pf*std::polar(1.f,d_coarse_incr_bw);
-            ea2=estimate(a2,0,d_size,&in[k+d_size]);
-            //second block phase search to estimate the frequency
-            while(std::abs(a2-a1)>d_scaled_bw)
-            {
-                pm=a1+a2;
-                pm/=std::abs(pm);
-                em=estimate(pm,0,&in[k+d_size]);
-                if(ea1>ea2)
-                {
-                    ea2=em;
-                    a2=pm;
-                }else{
-                    ea1=em;
-                    a1=pm;
-                }
-            }
-            if(ea1>ea2)
-            {
-                em=ea1;
-                pm=a1;
-            }else{
-                em=ea2;
-                pm=a2;
-            }
-            float found_incr=std::arg(pm)-std::arg(pf);
-            found_incr/=float(d_size);
-            pf*=std::polar(1.f,-0.5f*found_incr);
-            d_phase=pf;
-            d_incr=std::polar(1.f,found_incr);
-            rotateN(&out[k],&in[k],d_size);
-            k+=d_size;
-            #endif
         }
+        d_freq=d_incr;
+        const int remaining=std::min(noutput_items-k,d_size);
+        rotateN(&out[k],&in[k],remaining);
+        k+=remaining;
     }
     return noutput_items;
 }
