@@ -683,8 +683,9 @@ void parser_impl::parse(pmt::pmt_t pdu) {
 	offset_chars[1] = bytes[9];
 	offset_chars[2] = bytes[10];
 	offset_chars[3] = bytes[11];
-    d_bit_errors = bytes[12];
-    if(d_bit_errors >= 127)
+	if(offset_chars[0]!='?')
+        d_bit_errors = bytes[12];
+    if(bytes[12] >= 127)
         return;
 
     unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
