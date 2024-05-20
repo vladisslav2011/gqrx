@@ -20,6 +20,7 @@
 #include "dsp/rds/decoder.h"
 #include <atomic>
 #include <vector>
+#include <array>
 #include <map>
 
 namespace gr {

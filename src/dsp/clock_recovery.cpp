@@ -19,6 +19,7 @@
 
 static constexpr int FUDGE = 16;
 static constexpr int s_size = 104;
+//#define ONESHOT_CR_EL
 
 clock_recovery_el_cc::sptr clock_recovery_el_cc::make(
     float omega, float gain_omega, float mu, float gain_mu, float omega_relative_limit)
@@ -45,7 +46,11 @@ clock_recovery_el_cc::clock_recovery_el_cc(
 
     set_omega(omega); // also sets min and max omega
     set_relative_rate(1.f/omega);
+    #ifdef ONESHOT_CR_EL
     set_history(d_interp.ntaps() + s_size+2*(FUDGE + int(omega)));
+    #else
+    set_history(d_interp.ntaps() + 2*(FUDGE + int(omega)));
+    #endif
     set_output_multiple(s_size);
     enable_update_rate(true); // fixes tag propagation through variable rate block
 }
@@ -115,7 +120,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
     assert(d_mu <= 1.0);
 
     float mm_val = 0;
-    #if 0
+    #ifdef ONESHOT_CR_EL
     d_c0acc=estimate(d_mu,d_omega,s_size,in);
     d_c90acc=estimate(d_omega*.5f+d_mu,d_omega,s_size,in);
     d_c180acc=estimate(d_omega+d_mu,d_omega,s_size,in);
