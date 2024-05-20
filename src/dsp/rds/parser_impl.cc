@@ -715,7 +715,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         if(program_identification<=0xffff)
             pistring << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << program_identification;
         if(good_block0)
-            if(d_best_errors >= d_bit_errors)
+            if((d_best_errors >= d_bit_errors)||(d_best_pi != pistring.str()))
             {
                 d_best_errors = d_bit_errors;
                 d_best_pi = pistring.str();
