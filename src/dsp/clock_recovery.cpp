@@ -18,6 +18,7 @@
 #include <stdexcept>
 
 static constexpr int FUDGE = 16;
+static constexpr int s_size = 104;
 
 clock_recovery_el_cc::sptr clock_recovery_el_cc::make(
     float omega, float gain_omega, float mu, float gain_mu, float omega_relative_limit)
@@ -44,7 +45,8 @@ clock_recovery_el_cc::clock_recovery_el_cc(
 
     set_omega(omega); // also sets min and max omega
     set_relative_rate(1.f/omega);
-    set_history(d_interp.ntaps() + 2*(FUDGE + int(omega)));
+    set_history(d_interp.ntaps() + s_size+2*(FUDGE + int(omega)));
+    set_output_multiple(s_size);
     enable_update_rate(true); // fixes tag propagation through variable rate block
 }
 
@@ -79,6 +81,23 @@ inline float mag2(const gr_complex & in)
     return in.real()*in.real()+in.imag()*in.imag();
 }
 
+float clock_recovery_el_cc::estimate(float mu, float omega, int n, const gr_complex * buf)
+{
+    int oo=0;
+    int ii=1;
+    float acc=0.f;
+    while(oo<n)
+    {
+        ii += (int)floorf(mu);
+        mu -= floorf(mu);
+        if(oo)
+            acc+=mag2(d_interp.interpolate(&buf[ii], mu));
+        mu = mu + omega;
+        oo++;
+    }
+    return acc/float(n);
+}
+
 int clock_recovery_el_cc::general_work(int noutput_items,
                                             gr_vector_int& ninput_items,
                                             gr_vector_const_void_star& input_items,
@@ -96,36 +115,71 @@ int clock_recovery_el_cc::general_work(int noutput_items,
     assert(d_mu <= 1.0);
 
     float mm_val = 0;
+    #if 0
+    d_c0acc=estimate(d_mu,d_omega,s_size,in);
+    d_c90acc=estimate(d_omega*.5f+d_mu,d_omega,s_size,in);
+    d_c180acc=estimate(d_omega+d_mu,d_omega,s_size,in);
+    d_c270acc=estimate(d_omega*1.5f+d_mu,d_omega,s_size,in);
+    d_corr0=((d_c0acc==0.f)||(d_c90acc==0.f))?0.f:log10f(d_c0acc)-log10f(d_c90acc);
+    d_corr180=((d_c180acc==0.f)||(d_c270acc==0.f))?0.f:log10f(d_c180acc)-log10f(d_c270acc);
+    if(d_corr0>=d_corr180)
+    {
+        d_e90acc=estimate(d_omega*.5f+d_mu-d_dllbw,d_omega,s_size,in);
+        d_l90acc=estimate(d_omega*.5f+d_mu+d_dllbw,d_omega,s_size,in);
+        mm_val=d_e90acc-d_l90acc;
+    }else{
+        d_e270acc=estimate(d_omega*1.5f+d_mu-d_dllbw,d_omega,s_size,in);
+        d_l270acc=estimate(d_omega*1.5f+d_mu+d_dllbw,d_omega,s_size,in);
+        mm_val=(d_e270acc-d_l270acc)*0.5f;
+    }
+    while (oo < s_size && ii < ni)
+    {
+        float c_mu180=d_omega+d_mu;
+        int ci180=ii+(int)floorf(c_mu180);
+        c_mu180 -= floorf(c_mu180);
+    
+        if(out1)
+            out1[oo] = (oo&1)^1;
+        gr_complex outval=(d_corr0>=d_corr180)?d_interp.interpolate(&in[ii], d_mu):d_interp.interpolate(&in[ci180], c_mu180);
+        out[oo++]=outval;
+        d_mu = d_mu + d_omega;
+        ii += (int)floorf(d_mu);
+        d_mu -= floorf(d_mu);
+
+        if (ii < 1) // clamp it.  This should only happen with bogus input
+            ii = 1;
+    }
+    d_omega = d_omega + d_gain_omega * mm_val;
+    d_omega =
+        d_omega_mid + gr::branchless_clip(d_omega - d_omega_mid, d_omega_lim);
+
+    d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega*0.25f);
+    ii += (int)floorf(d_mu);
+    d_mu -= floorf(d_mu);
+    if (ii > 1)
+    {
+        assert(ii - 1<= ninput_items[0]);
+        consume_each(ii-1);
+    }
+    #else
 
     while (oo < noutput_items && ii < ni)
     {
-        float e_mu0=d_mu-d_dllbw;
-        float l_mu0=d_mu+d_dllbw;
-        float e_mu90=d_omega*.5f+e_mu0;
-        float l_mu90=d_omega*.5f+l_mu0;
+        float e_mu90=d_omega*.5f+d_mu-d_dllbw;
+        float l_mu90=d_omega*.5f+d_mu+d_dllbw;
         float c_mu90=d_omega*.5f+d_mu;
-        float e_mu180=d_omega+e_mu0;
-        float l_mu180=d_omega+l_mu0;
         float c_mu180=d_omega+d_mu;
-        float e_mu270=d_omega*1.5f+e_mu0;
-        float l_mu270=d_omega*1.5f+l_mu0;
+        float e_mu270=d_omega*1.5f+d_mu-d_dllbw;
+        float l_mu270=d_omega*1.5f+d_mu+d_dllbw;
         float c_mu270=d_omega*1.5f+d_mu;
 
-        int ei0=ii+(int)floorf(e_mu0);
-        int li0=ii+(int)floorf(l_mu0);
-        l_mu0 -= floorf(l_mu0);
-        e_mu0 -= floorf(e_mu0);
         int ei90=ii+(int)floorf(e_mu90);
         int li90=ii+(int)floorf(l_mu90);
         int ci90=ii+(int)floorf(c_mu90);
         l_mu90 -= floorf(l_mu90);
         e_mu90 -= floorf(e_mu90);
         c_mu90 -= floorf(c_mu90);
-        int ei180=ii+(int)floorf(e_mu180);
-        int li180=ii+(int)floorf(l_mu180);
         int ci180=ii+(int)floorf(c_mu180);
-        l_mu180 -= floorf(l_mu180);
-        e_mu180 -= floorf(e_mu180);
         c_mu180 -= floorf(c_mu180);
         int ei270=ii+(int)floorf(e_mu270);
         int li270=ii+(int)floorf(l_mu270);
@@ -143,28 +197,17 @@ int clock_recovery_el_cc::general_work(int noutput_items,
             d_c180acc+=(mag2(d_interp.interpolate(&in[ci180], c_mu180))-d_c180acc)*d_dllalfa;
             d_c270acc+=(mag2(d_interp.interpolate(&in[ci270], c_mu270))-d_c270acc)*d_dllalfa;
 
-            d_e0acc+=(mag2(d_interp.interpolate(&in[ei0], e_mu0))-d_e0acc)*d_dllalfa;
             d_e90acc+=(mag2(d_interp.interpolate(&in[ei90], e_mu90))-d_e90acc)*d_dllalfa;
-            d_l0acc+=(mag2(d_interp.interpolate(&in[li0], l_mu0))-d_l0acc)*d_dllalfa;
             d_l90acc+=(mag2(d_interp.interpolate(&in[li90], l_mu90))-d_l90acc)*d_dllalfa;
 
-            d_e180acc+=(mag2(d_interp.interpolate(&in[ei180], e_mu180))-d_e180acc)*d_dllalfa;
             d_e270acc+=(mag2(d_interp.interpolate(&in[ei270], e_mu270))-d_e270acc)*d_dllalfa;
-            d_l180acc+=(mag2(d_interp.interpolate(&in[li180], l_mu180))-d_l180acc)*d_dllalfa;
             d_l270acc+=(mag2(d_interp.interpolate(&in[li270], l_mu270))-d_l270acc)*d_dllalfa;
             d_corr0+=((d_c0acc==0.f)||(d_c90acc==0.f))?0.f:(log10f(d_c0acc)-log10f(d_c90acc)-d_corr0)*corr_alfa;
             d_corr180+=((d_c180acc==0.f)||(d_c270acc==0.f))?0.f:(log10f(d_c180acc)-log10f(d_c270acc)-d_corr180)*corr_alfa;
-            #if 0
-            if(d_corr0>=d_corr180)
-                mm_val=(d_l0acc-d_l90acc)-(d_e0acc-d_e90acc);
-            else
-                mm_val=(d_l180acc-d_l270acc)-(d_e180acc-d_e270acc);
-            #else
             if(d_corr0>=d_corr180)
                 mm_val=d_e90acc-d_l90acc;
             else
                 mm_val=(d_e270acc-d_l270acc)*0.5f;
-            #endif
             d_skip=1;
         }
         if(out1)
@@ -191,6 +234,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         assert(ii - 1<= ninput_items[0]);
         consume_each(ii-1);
     }
+    #endif
 
     return oo;
 }
@@ -211,7 +255,7 @@ bpsk_phase_sync_cc::bpsk_phase_sync_cc(int block_size, float bw, float thr): syn
     d_size=block_size;
     set_bw(bw);
     d_threshold=thr;
-    set_history(1+std::max(test_extra,d_size));
+    set_history(1+std::max(test_extra,d_size*2));
     set_output_multiple(d_size);
     d_buf.resize(d_size);
 }
@@ -539,12 +583,12 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             //d_phase*=std::polar(1.f,d_bw*dd);
 //            printf("ok: %8.8f %8.8f\n", double(std::arg(d_phase)-e_phase),double(std::arg(d_incr)-e_incr));
         }else{
-            if(phase_incr_oneshot(e_phase,e_incr,d_size,&in[k]))
+            if(phase_incr_oneshot(e_phase,e_incr,d_size*2,&in[k]))
             {
                 float newtest=estimate(e_phase,e_incr,d_size+test_extra,&in[k]);
                 if(newtest>test)
                 {
-                    printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
+                    //printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
                     d_phase=std::polar(1.f,e_phase);
                     d_incr=std::polar(1.f,e_incr);
                 }

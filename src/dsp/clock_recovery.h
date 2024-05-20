@@ -40,8 +40,8 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
                      gr_vector_const_void_star& input_items,
                      gr_vector_void_star& output_items) override;
 
-    float mu() const { return (d_corr0-d_corr180)*10.f; }
-//    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0*10.f:-d_corr180*10.f; }
+//    float mu() const { return (d_corr0-d_corr180)*10.f; }
+    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0*10.f:-d_corr180*10.f; }
 //    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?(d_am_i-d_am_q)*10.f:(d_am_q-d_am_i)*10.f; }
     float omega() const { return d_omega; }
     float gain_mu() const { return d_gain_mu; }
@@ -58,6 +58,7 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
     void set_dllalfa(float v) { d_dllalfa=v; }
 
 private:
+    float estimate(float mu, float omega, int n, const gr_complex * buf);
     static constexpr float corr_alfa{0.001f};
 
     float d_mu;                   // fractional sample position [0.0, 1.0]
@@ -70,13 +71,9 @@ private:
 
     gr::filter::mmse_fir_interpolator_cc d_interp;
 
-    float d_e0acc{0.f};
     float d_e90acc{0.f};
-    float d_e180acc{0.f};
     float d_e270acc{0.f};
-    float d_l0acc{0.f};
     float d_l90acc{0.f};
-    float d_l180acc{0.f};
     float d_l270acc{0.f};
     float d_c0acc{0.f};
     float d_c90acc{0.f};
@@ -89,17 +86,6 @@ private:
     float d_dllalfa{0.2f};
     float d_am_i{0.f};
     float d_am_q{0.f};
-
-    gr_complex slicer_0deg(gr_complex sample)
-    {
-        float real = 0.0f, imag = 0.0f;
-
-        if (sample.real() > 0.0f)
-            real = 1.0f;
-        if (sample.imag() > 0.0f)
-            imag = 1.0f;
-        return gr_complex(real, imag);
-    }
 
 };
 

@@ -273,15 +273,29 @@ int decoder_impl::work (int noutput_items,
         << noutput_items << ", /104 = "
         << noutput_items / 104 << std::endl;
 */
-    int i=0,j;
-    unsigned long bit_distance, block_distance;
-    unsigned int block_calculated_crc, block_received_crc, checkword,dataword;
-    unsigned int reg_syndrome;
-    unsigned char offset_char('x');  // x = error while decoding the word offset
+    int i=0;
     int ecc_max = d_ecc_max;
 
 /* the synchronization process is described in Annex C, page 66 of the standard */
     while (i<noutput_items) {
+        if(in[i]==0.f)
+        {
+            i++;
+            continue;
+        }
+        d_accum[d_acc_p+GROUP_SIZE]=d_accum[d_acc_p]+=(in[i]-d_accum[d_acc_p])*d_acc_alfa;
+        d_acc_p++;
+        d_acc_p%=GROUP_SIZE;
+        for(int k=0;k<104;k++)
+        {
+            int sample=d_accum[d_acc_p+k]>0.f;
+            for(int j=0;j<n_group-1;j++)
+                d_acc_groups[j]=((d_acc_groups[j]<<1)|(d_acc_groups[j+1]>>25))&((1<<26)-1);
+            d_acc_groups[n_group-1]=((d_acc_groups[n_group-1]<<1)|sample)&((1<<26)-1);
+        }
+        if(d_acc_cnt<d_acc_lim)
+            d_acc_cnt++;
+        
         std::swap(group,prev_grp);
         std::memcpy(group,next_grp,sizeof(group[0])*n_group);
         d_weight -= std::abs(in[i-n_group*BLOCK_SIZE-1]);
@@ -295,7 +309,10 @@ int decoder_impl::work (int noutput_items,
         ++i;
         ++bit_counter;
         ++d_bit_counter;
-        int pi=pi_detect();
+        int pi=pi_detect(next_grp,false);
+        if(d_acc_cnt==d_acc_lim)
+            if(pi==-1)
+                pi=pi_detect(d_acc_groups,true);
         if(pi!=-1)
         {
             if((d_state!=SYNC)||(d_best_pi!=pi)||(bit_counter%GROUP_SIZE != 0))
@@ -403,73 +420,89 @@ int decoder_impl::work (int noutput_items,
     return noutput_items;
 }
 
-int decoder_impl::pi_detect()
+int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
 {
     uint16_t locators[5]={0,0,0,0,0};
+    uint32_t tmp_grp[4];
     d_prev_errs=d_curr_errs;
     d_curr_errs=d_next_errs;
-    d_next_errs=process_group(next_grp, d_ecc_max, offset_chars, locators);
-    uint16_t pi = (next_grp[0]>>10)^locators[0];
+    d_next_errs=process_group(p_grp, d_ecc_max, offset_chars, locators);
+    pi_stats       *pi_a=corr?d_pi_b:d_pi_a;
+    uint16_t pi = (p_grp[0]>>10)^locators[0];
     if(d_block0errs<5)
     {
         constexpr uint8_t weights[]={19,9,5,4,3};
-        d_pi_a[pi].weight+=weights[d_block0errs];
-        d_pi_a[pi].count++;
-        int bit_offset=d_bit_counter-d_pi_a[pi].lastseen;
-        d_pi_a[pi].lastseen=d_bit_counter;
-        if((d_pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
-            d_pi_a[pi].weight+=weights[d_block0errs]>>2;
-        if((d_pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
-            d_pi_a[pi].weight+=weights[d_block0errs]>>1;
-        if(d_pi_a[pi].weight<55)
+        pi_a[pi].weight+=weights[d_block0errs];
+        pi_a[pi].count++;
+        int bit_offset=d_bit_counter-pi_a[pi].lastseen;
+        pi_a[pi].lastseen=d_bit_counter;
+        if((pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
+            pi_a[pi].weight+=weights[d_block0errs]>>2;
+        if((pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
+            pi_a[pi].weight+=weights[d_block0errs]>>1;
+        if(pi_a[pi].weight<55)
         {
-            if(d_pi_a[pi].weight>d_max_weight)
+            if(pi_a[pi].weight>d_max_weight)
             {
-                d_max_weight=d_pi_a[pi].weight;
-                printf("?[%04x] %d (%d,%d) %d %d %6.2f\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs,d_weight/(n_group*BLOCK_SIZE));
-                d_matches[pi].push_back(grp_array(next_grp));
-                prev_grp[0]=pi;
-                prev_grp[1]=d_pi_a[pi].weight;
+                d_max_weight=pi_a[pi].weight;
+                printf("%c[%04x] %d (%d,%d) %d %d %6.2f\n",corr?':':'?',pi,((bit_offset+1)%GROUP_SIZE < 3),pi_a[pi].weight,pi_a[pi].count,d_block0errs,d_next_errs,double(d_weight/(n_group*BLOCK_SIZE)));
+                if(!corr)
+                    d_matches[pi].push_back(grp_array(p_grp));
+                tmp_grp[0]=pi;
+                tmp_grp[1]=pi_a[pi].weight;
                 offset_chars[0]='?';
                 offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
-                //decode_group(prev_grp,d_next_errs);
+                decode_group(tmp_grp,d_next_errs);
             }
         }else{
             if((d_state==NO_SYNC)||(d_best_pi!=pi))
             {
-                printf("+[%04x] %d (%d,%d) %d %d %6.2f!!\n",pi,((bit_offset+1)%GROUP_SIZE < 3),d_pi_a[pi].weight,d_pi_a[pi].count,d_block0errs,d_next_errs,d_weight/(n_group*BLOCK_SIZE));
-                auto & prv=d_matches[pi];
-                for(unsigned k=0;k<prv.size();k++)
+                printf("%c[%04x] %d (%d,%d) %d %d %6.2f!!\n",corr?'>':'+',pi,((bit_offset+1)%GROUP_SIZE < 3),pi_a[pi].weight,pi_a[pi].count,d_block0errs,d_next_errs,double(d_weight/(n_group*BLOCK_SIZE)));
+                if(!corr)
                 {
-                    std::memcpy(prev_grp,prv[k].data,sizeof(prv[k].data));
-                    d_prev_errs=process_group(prev_grp, d_ecc_max, offset_chars, locators);
-                    prev_grp[0]=pi;
-                    prev_grp[1]=(prev_grp[1]>>10)^locators[1];
-                    prev_grp[2]=(prev_grp[2]>>10)^locators[2];
-                    prev_grp[3]=(prev_grp[3]>>10)^locators[3];
-                    offset_chars[0]='A';
-                    decode_group(prev_grp,0);
+                    auto & prv=d_matches[pi];
+                    for(unsigned k=0;k<prv.size();k++)
+                    {
+                        std::memcpy(prev_grp,prv[k].data,sizeof(prv[k].data));
+                        d_prev_errs=process_group(prev_grp, d_ecc_max, offset_chars, locators);
+                        tmp_grp[0]=pi;
+                        tmp_grp[1]=(tmp_grp[1]>>10)^locators[1];
+                        tmp_grp[2]=(tmp_grp[2]>>10)^locators[2];
+                        tmp_grp[3]=(tmp_grp[3]>>10)^locators[3];
+                        offset_chars[0]='A';
+                        decode_group(tmp_grp,0);
+                    }
                 }
-                d_next_errs=process_group(next_grp, d_ecc_max, offset_chars, locators);
-                prev_grp[0]=pi;
-                prev_grp[1]=(next_grp[1]>>10)^locators[1];
-                prev_grp[2]=(next_grp[2]>>10)^locators[2];
-                prev_grp[3]=(next_grp[3]>>10)^locators[3];
+                d_next_errs=process_group(p_grp, d_ecc_max, offset_chars, locators);
+                tmp_grp[0]=pi;
+                tmp_grp[1]=(tmp_grp[1]>>10)^locators[1];
+                tmp_grp[2]=(tmp_grp[2]>>10)^locators[2];
+                tmp_grp[3]=(tmp_grp[3]>>10)^locators[3];
                 offset_chars[0]='A';
-                decode_group(prev_grp,0);
+                if(corr)
+                    offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
+                decode_group(tmp_grp,0);
+                for(int jj=0;jj<65536;jj++)
+                {
+                    d_pi_b[jj].weight=0;
+                    d_pi_b[jj].count=0;
+                }
             }
-            d_matches.clear();
+            if(!corr)
+                d_matches.clear();
             for(int jj=0;jj<65536;jj++)
                 if(jj==pi)
                 {
-                    d_pi_a[jj].weight>>=1;
-                    d_pi_a[jj].count>>=1;
+                    pi_a[jj].weight>>=1;
+                    pi_a[jj].count>>=1;
                 }else{
-                    d_pi_a[jj].weight>>=2;
-                    d_pi_a[jj].count>>=2;
+                    pi_a[jj].weight>>=2;
+                    pi_a[jj].count>>=2;
                 }
             d_pi_bitcnt=0;
             d_max_weight>>=1;
+            memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
+            d_acc_cnt=0;
             return pi;
         }
         d_pi_bitcnt++;
@@ -478,10 +511,10 @@ int decoder_impl::pi_detect()
             d_pi_bitcnt=0;
             for(int jj=0;jj<65536;jj++)
             {
-                if(d_pi_a[jj].weight>0)
-                    d_pi_a[jj].weight--;
-                if(d_pi_a[jj].count>0)
-                    d_pi_a[jj].count--;
+                if(pi_a[jj].weight>0)
+                    pi_a[jj].weight--;
+                if(pi_a[jj].count>0)
+                    pi_a[jj].count--;
             }
             d_max_weight--;
             std::cout<<"d_pi_bitcnt--\n";
@@ -498,7 +531,9 @@ void decoder_impl::reset()
 
 void decoder_impl::reset_corr()
 {
-    std::memset(d_pi_a,0,sizeof(d_pi_a));
+    std::memset(d_pi_stats,0,sizeof(d_pi_stats));
+    memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
+    d_acc_cnt=0;
     d_bit_counter=0;
     d_max_weight=0;
     d_best_pi=-1;

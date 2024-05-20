@@ -67,7 +67,7 @@ private:
 	void decode_group(unsigned *, int);
 	static std::array<bit_locator,1024> build_locator();
     int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr, int * good_grp=nullptr);
-    int pi_detect();
+    int pi_detect(uint32_t * p_grp, bool corr);
 	void reset_corr();
 
     static constexpr int n_group{4*1};
@@ -95,7 +95,9 @@ private:
 	int            d_pi_cnt{0};
 	int            d_counter{0};
 	std::atomic<int> d_ecc_max{0};
-	pi_stats       d_pi_a[65536]{};
+	pi_stats       d_pi_stats[65536*2]{};
+	pi_stats       *d_pi_a{&d_pi_stats[0]};
+	pi_stats       *d_pi_b{&d_pi_stats[65536]};
 	int            d_bit_counter;
 	int            d_pi_bitcnt{0};
 	char           d_max_weight{0};
@@ -106,6 +108,12 @@ private:
     std::map<uint16_t,std::vector<grp_array>> d_matches{};
     int            d_best_pi{-1};
     float          d_weight{0.f};
+    std::array<float,GROUP_SIZE*2> d_accum{0.f};
+    unsigned int   d_acc_groups[4];
+    int            d_acc_p;
+    float          d_acc_alfa{0.2};
+    int            d_acc_cnt{0};
+    static constexpr int d_acc_lim{104*4};
 
 };
 
