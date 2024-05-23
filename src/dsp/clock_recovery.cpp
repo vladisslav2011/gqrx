@@ -17,7 +17,8 @@
 #include <sstream>
 #include <stdexcept>
 
-static constexpr int FUDGE = 16;
+static constexpr int N_SAMPLE = 10;
+static constexpr int FUDGE = N_SAMPLE+3;
 static constexpr int s_size = 104;
 //#define ONESHOT_CR_EL
 
@@ -46,12 +47,28 @@ clock_recovery_el_cc::clock_recovery_el_cc(
 
     set_omega(omega); // also sets min and max omega
     set_relative_rate(1.f/omega);
+    pp[0].omega_scale=0.f;
+    pp[0].omega_add=0.f;
+    pp[1].omega_scale=0.5f;
+    pp[1].omega_add=0.f;
+    pp[2].omega_scale=1.0f;
+    pp[2].omega_add=0.f;
+    pp[3].omega_scale=1.5f;
+    pp[3].omega_add=0.f;
+    pp[4].omega_scale=0.5f;
+    pp[4].omega_add=-d_dllbw;
+    pp[5].omega_scale=0.5f;
+    pp[5].omega_add=d_dllbw;
+    pp[6].omega_scale=1.5f;
+    pp[6].omega_add=-d_dllbw;
+    pp[7].omega_scale=1.5f;
+    pp[7].omega_add=d_dllbw;
     #ifdef ONESHOT_CR_EL
-    set_history(d_interp.ntaps() + s_size+2*(FUDGE + int(omega)));
-    #else
-    set_history(d_interp.ntaps() + 2*(FUDGE + int(omega)));
-    #endif
+    set_history(d_interp.ntaps() + (s_size+FUDGE)*int(omega));
     set_output_multiple(s_size);
+    #else
+    set_history(d_interp.ntaps() + FUDGE*int(omega));
+    #endif
     enable_update_rate(true); // fixes tag propagation through variable rate block
 }
 
@@ -89,13 +106,13 @@ inline float mag2(const gr_complex & in)
 float clock_recovery_el_cc::estimate(float mu, float omega, int n, const gr_complex * buf)
 {
     int oo=0;
-    int ii=1;
+    int ii=0;
     float acc=0.f;
     while(oo<n)
     {
         ii += (int)floorf(mu);
         mu -= floorf(mu);
-        if(oo)
+        if(!(oo&1))
             acc+=mag2(d_interp.interpolate(&buf[ii], mu));
         mu = mu + omega;
         oo++;
@@ -121,38 +138,56 @@ int clock_recovery_el_cc::general_work(int noutput_items,
 
     float mm_val = 0;
     #ifdef ONESHOT_CR_EL
-    d_c0acc=estimate(d_mu,d_omega,s_size,in);
-    d_c90acc=estimate(d_omega*.5f+d_mu,d_omega,s_size,in);
-    d_c180acc=estimate(d_omega+d_mu,d_omega,s_size,in);
-    d_c270acc=estimate(d_omega*1.5f+d_mu,d_omega,s_size,in);
-    d_corr0=((d_c0acc==0.f)||(d_c90acc==0.f))?0.f:log10f(d_c0acc)-log10f(d_c90acc);
-    d_corr180=((d_c180acc==0.f)||(d_c270acc==0.f))?0.f:log10f(d_c180acc)-log10f(d_c270acc);
-    if(d_corr0>=d_corr180)
+    int dm=ceilf(d_omega_mid*.5f);
+    float corr_max=-1.f;
+    int corr_k=0;
+    bool corr180=false;
+    float mu;
+    float dllbw=d_dllbw/s_size;
+    for(int k=-dm;k<=dm;k++)
     {
-        d_e90acc=estimate(d_omega*.5f+d_mu-d_dllbw,d_omega,s_size,in);
-        d_l90acc=estimate(d_omega*.5f+d_mu+d_dllbw,d_omega,s_size,in);
-        mm_val=d_e90acc-d_l90acc;
-    }else{
-        d_e270acc=estimate(d_omega*1.5f+d_mu-d_dllbw,d_omega,s_size,in);
-        d_l270acc=estimate(d_omega*1.5f+d_mu+d_dllbw,d_omega,s_size,in);
+        mu=d_mu+k;
+        d_c0acc=estimate(mu,d_omega_mid,s_size,&in[ii]);
+        d_c90acc=estimate(mu+d_omega_mid*.5f,d_omega_mid,s_size,&in[ii]);
+        d_c180acc=estimate(mu+d_omega_mid,d_omega_mid,s_size,&in[ii]);
+        d_c270acc=estimate(mu+d_omega_mid*1.5f,d_omega_mid,s_size,&in[ii]);
+        d_corr0=((d_c0acc==0.f)||(d_c90acc==0.f))?0.f:log10f(d_c0acc)-log10f(d_c90acc);
+        d_corr180=((d_c180acc==0.f)||(d_c270acc==0.f))?0.f:log10f(d_c180acc)-log10f(d_c270acc);
+        if(std::max(d_corr0,d_corr180)>corr_max)
+        {
+            corr_max=std::max(d_corr0,d_corr180);
+            corr_k=k;
+            corr180=d_corr0<d_corr180;
+        }
+    }
+    d_mu+=corr_k;
+    printf("corr_k=%d %8.2f\n",corr_k,corr_max);
+    if(corr180)
+    {
+        d_e270acc=estimate(d_omega*1.5f+d_mu-dllbw,d_omega,s_size,&in[ii]);
+        d_l270acc=estimate(d_omega*1.5f+d_mu+dllbw,d_omega,s_size,&in[ii]);
         mm_val=(d_e270acc-d_l270acc)*0.5f;
+    }else{
+        d_e90acc=estimate(d_omega*.5f+d_mu-dllbw,d_omega,s_size,&in[ii]);
+        d_l90acc=estimate(d_omega*.5f+d_mu+dllbw,d_omega,s_size,&in[ii]);
+        mm_val=d_e90acc-d_l90acc;
     }
     while (oo < s_size && ii < ni)
     {
-        float c_mu180=d_omega+d_mu;
-        int ci180=ii+(int)floorf(c_mu180);
-        c_mu180 -= floorf(c_mu180);
-    
-        if(out1)
-            out1[oo] = (oo&1)^1;
-        gr_complex outval=(d_corr0>=d_corr180)?d_interp.interpolate(&in[ii], d_mu):d_interp.interpolate(&in[ci180], c_mu180);
-        out[oo++]=outval;
-        d_mu = d_mu + d_omega;
         ii += (int)floorf(d_mu);
         d_mu -= floorf(d_mu);
 
         if (ii < 1) // clamp it.  This should only happen with bogus input
             ii = 1;
+        float c_mu180=d_omega+d_mu;
+        int ci180=ii+(int)floorf(c_mu180);
+        c_mu180 -= floorf(c_mu180);
+    
+        if(out1)
+            out1[oo] = d_skip^(d_corr0>=d_corr180);
+        gr_complex outval=d_interp.interpolate(&in[ii], d_mu);
+        out[oo++]=outval;
+        d_mu = d_mu + d_omega;
     }
     d_omega = d_omega + d_gain_omega * mm_val;
     d_omega =
@@ -167,60 +202,47 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         consume_each(ii-1);
     }
     #else
-
+    
+    pp[4].omega_add=-d_dllbw;
+    pp[5].omega_add=d_dllbw;
+    pp[6].omega_add=-d_dllbw;
+    pp[7].omega_add=d_dllbw;
     while (oo < noutput_items && ii < ni)
     {
-        float e_mu90=d_omega*.5f+d_mu-d_dllbw;
-        float l_mu90=d_omega*.5f+d_mu+d_dllbw;
-        float c_mu90=d_omega*.5f+d_mu;
-        float c_mu180=d_omega+d_mu;
-        float e_mu270=d_omega*1.5f+d_mu-d_dllbw;
-        float l_mu270=d_omega*1.5f+d_mu+d_dllbw;
-        float c_mu270=d_omega*1.5f+d_mu;
-
-        int ei90=ii+(int)floorf(e_mu90);
-        int li90=ii+(int)floorf(l_mu90);
-        int ci90=ii+(int)floorf(c_mu90);
-        l_mu90 -= floorf(l_mu90);
-        e_mu90 -= floorf(e_mu90);
-        c_mu90 -= floorf(c_mu90);
-        int ci180=ii+(int)floorf(c_mu180);
-        c_mu180 -= floorf(c_mu180);
-        int ei270=ii+(int)floorf(e_mu270);
-        int li270=ii+(int)floorf(l_mu270);
-        int ci270=ii+(int)floorf(c_mu270);
-        l_mu270 -= floorf(l_mu270);
-        e_mu270 -= floorf(e_mu270);
-        c_mu270 -= floorf(c_mu270);
+        for(int k=0;k<8;k++)
+        {
+            pp[k].mu=d_mu+d_omega*pp[k].omega_scale+pp[k].omega_add;
+            pp[k].i=ii+(int)floorf(pp[k].mu);
+            pp[k].i-=floorf(pp[k].mu);
+        }
         if(d_skip)
         {
             d_skip=0;
             mm_val=0.f;
         }else{
-            d_c0acc+=(mag2(d_interp.interpolate(&in[ii], d_mu))-d_c0acc)*d_dllalfa;
-            d_c90acc+=(mag2(d_interp.interpolate(&in[ci90], c_mu90))-d_c90acc)*d_dllalfa;
-            d_c180acc+=(mag2(d_interp.interpolate(&in[ci180], c_mu180))-d_c180acc)*d_dllalfa;
-            d_c270acc+=(mag2(d_interp.interpolate(&in[ci270], c_mu270))-d_c270acc)*d_dllalfa;
+            for(int k=0;k<8;k++)
+                pp[k].acc+=(estimate(pp[k].mu,d_omega,N_SAMPLE,&in[pp[k].i])-pp[k].acc)*d_dllalfa;
 
-            d_e90acc+=(mag2(d_interp.interpolate(&in[ei90], e_mu90))-d_e90acc)*d_dllalfa;
-            d_l90acc+=(mag2(d_interp.interpolate(&in[li90], l_mu90))-d_l90acc)*d_dllalfa;
-
-            d_e270acc+=(mag2(d_interp.interpolate(&in[ei270], e_mu270))-d_e270acc)*d_dllalfa;
-            d_l270acc+=(mag2(d_interp.interpolate(&in[li270], l_mu270))-d_l270acc)*d_dllalfa;
-            d_corr0+=((d_c0acc==0.f)||(d_c90acc==0.f))?0.f:(log10f(d_c0acc)-log10f(d_c90acc)-d_corr0)*corr_alfa;
-            d_corr180+=((d_c180acc==0.f)||(d_c270acc==0.f))?0.f:(log10f(d_c180acc)-log10f(d_c270acc)-d_corr180)*corr_alfa;
+            d_corr0+=((pp[0].acc==0.f)||(pp[1].acc==0.f))?0.f:(log10f(pp[0].acc)-log10f(pp[1].acc)-d_corr0)*corr_alfa;
+            d_corr180+=((pp[2].acc==0.f)||(pp[3].acc==0.f))?0.f:(log10f(pp[2].acc)-log10f(pp[3].acc)-d_corr180)*corr_alfa;
             if(d_corr0>=d_corr180)
-                mm_val=d_e90acc-d_l90acc;
+                mm_val=pp[4].acc-pp[5].acc;
             else
-                mm_val=(d_e270acc-d_l270acc)*0.5f;
+                mm_val=(pp[6].acc-pp[7].acc)*0.5f;
             d_skip=1;
         }
         if(out1)
-            out1[oo] = d_skip?0:1;
-        gr_complex outval=(d_corr0>=d_corr180)?d_interp.interpolate(&in[ii], d_mu):d_interp.interpolate(&in[ci180], c_mu180);
+        {
+            if(std::abs(d_corr0-d_corr180)>corr_flip_threshold)
+            {
+                if(d_offs!=(d_corr0>=d_corr180))
+                    printf("Flip !\n");
+                d_offs=(d_corr0>=d_corr180);
+            }
+            out1[oo] = d_skip^d_offs;
+        }
+        gr_complex outval=d_interp.interpolate(&in[ii], d_mu);
         out[oo++]=outval;
-        d_am_i+=(log10f(std::max(std::abs(real(outval)),0.00001f))-d_am_i)*corr_alfa;
-        d_am_q+=(log10f(std::max(std::abs(imag(outval)),0.00001f))-d_am_q)*corr_alfa;
 
         d_omega = d_omega + d_gain_omega * mm_val;
         d_omega =

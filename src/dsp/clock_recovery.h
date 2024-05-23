@@ -41,8 +41,7 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
                      gr_vector_void_star& output_items) override;
 
 //    float mu() const { return (d_corr0-d_corr180)*10.f; }
-    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?d_corr0*10.f:-d_corr180*10.f; }
-//    float mu() const { return (std::abs(d_corr0)>std::abs(d_corr180))?(d_am_i-d_am_q)*10.f:(d_am_q-d_am_i)*10.f; }
+    float mu() const { return (d_corr0>d_corr180)?d_corr0*10.f:-d_corr180*10.f; }
     float omega() const { return d_omega; }
     float gain_mu() const { return d_gain_mu; }
     float gain_omega() const { return d_gain_omega; }
@@ -60,6 +59,7 @@ typedef std::shared_ptr<clock_recovery_el_cc> sptr;
 private:
     float estimate(float mu, float omega, int n, const gr_complex * buf);
     static constexpr float corr_alfa{0.001f};
+    static constexpr float corr_flip_threshold{0.01f};
 
     float d_mu;                   // fractional sample position [0.0, 1.0]
     float d_omega;                // nominal frequency
@@ -71,22 +71,22 @@ private:
 
     gr::filter::mmse_fir_interpolator_cc d_interp;
 
-    float d_e90acc{0.f};
-    float d_e270acc{0.f};
-    float d_l90acc{0.f};
-    float d_l270acc{0.f};
-    float d_c0acc{0.f};
-    float d_c90acc{0.f};
-    float d_c180acc{0.f};
-    float d_c270acc{0.f};
+    struct i_point
+    {
+        float mu;
+        int i;
+        float omega_scale;
+        float omega_add;
+        float acc;
+    };
+    i_point pp[8]{};
+    float d_acc[8]{0.f};
     int d_skip{0};
     float d_corr0{0.0};
     float d_corr180{0.0};
     float d_dllbw{0.4f};
     float d_dllalfa{0.2f};
-    float d_am_i{0.f};
-    float d_am_q{0.f};
-
+    bool  d_offs{false};
 };
 
 #include <gnuradio/sync_block.h>
