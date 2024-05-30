@@ -2171,7 +2171,8 @@ void MainWindow::seekIqFile(qint64 seek_pos)
 
 void MainWindow::saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms)
 {
-    std::string name=makeIQFilename(recdir,fmt,QDateTime::fromMSecsSinceEpoch(from_ms)).toStdString();
+    auto rectime=QDateTime::fromMSecsSinceEpoch(from_ms).toUTC();
+    std::string name=makeIQFilename(recdir,fmt,rectime).toStdString();
     rx->save_file_range_ts(from_ms,len_ms,name);
 }
 
