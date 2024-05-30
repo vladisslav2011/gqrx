@@ -343,13 +343,7 @@ gr::basic_block_sptr receiver::setup_source(file_formats fmt)
         return b;
     }
 
-    if (d_decim >= 2)
-    {
-        tb->connect(b, 0, input_decim, 0);
-        return input_decim;
-    }
-    else
-        return b;
+    return b;
 }
 
 /**
@@ -449,8 +443,10 @@ double receiver::set_input_rate(double rate)
         d_input_rate = rate;
     }
 
-
-    d_decim_rate = d_input_rate / (double)d_decim;
+    if(d_last_format == FILE_FORMAT_NONE)
+        d_decim_rate = d_input_rate / (double)d_decim;
+    else
+        d_decim_rate = d_input_rate;
     dc_corr->set_sample_rate(d_decim_rate);
     configure_channelizer(false);
     iq_fft->set_quad_rate(d_decim_rate);
