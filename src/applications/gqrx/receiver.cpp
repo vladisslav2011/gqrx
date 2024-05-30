@@ -342,13 +342,7 @@ gr::basic_block_sptr receiver::setup_source(file_formats fmt)
         return b;
     }
 
-    if (d_decim >= 2)
-    {
-        tb->connect(b, 0, input_decim, 0);
-        return input_decim;
-    }
-    else
-        return b;
+    return b;
 }
 
 /**
