@@ -341,7 +341,7 @@ jobs:
           libfftw3f-3.dll \
           libfftw3f_threads-3.dll \
           libFLAC.dll \
-          libfmt.dll \
+          libfmt-11.dll \
           libfreetype-6.dll \
           libgcc_s_seh-1.dll \
           libglib-2.0-0.dll \
