@@ -67,13 +67,13 @@ typedef std::shared_ptr<rx_rds> rx_rds_sptr;
 #define NEW_RDS 1
 
 
-rx_rds_sptr make_rx_rds(double sample_ratee=240000.0, bool encorr=false);
+rx_rds_sptr make_rx_rds(double sample_ratee=240000.0);
 
 class rx_rds : public gr::hier_block2, public conf_notifier
 {
 
 public:
-    rx_rds(double sample_rat, bool encorr);
+    rx_rds(double sample_rate);
     ~rx_rds();
 
     void set_index(int v) {d_index=v;}

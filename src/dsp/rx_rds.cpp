@@ -44,62 +44,6 @@
 
 #define USE_BPSK_PHASE_SYNC
 
-class iir_corr : public gr::sync_block
-{
-protected:
-    iir_corr(int period, double alfa):
-        gr::sync_block ("iir_corr",
-        gr::io_signature::make(1, 1, sizeof(gr_complex)),
-        gr::io_signature::make(1, 1, sizeof(gr_complex))),
-        d_alfa(alfa),
-        d_ialfa(1.0-alfa),
-        d_period(period),
-        d_p(0),
-        d_b(d_period)
-    {
-        for(int k=0;k<d_period;k++)
-            d_b[k]=0.0;
-    }
-
-public:
-#if GNURADIO_VERSION < 0x030900
-typedef boost::shared_ptr<iir_corr> sptr;
-#else
-typedef std::shared_ptr<iir_corr> sptr;
-#endif
-    ~iir_corr()
-    {
-    }
-
-    int work(int noutput_items,
-             gr_vector_const_void_star &input_items,
-             gr_vector_void_star &output_items) override
-    {
-        const gr_complex *in = (const gr_complex *) input_items[0];
-        gr_complex *out = (gr_complex *) output_items[0];
-        for(int k=0;k<noutput_items;k++)
-        {
-            out[k]=d_b[d_p]=d_b[d_p]*d_ialfa+in[k]*d_alfa;
-            d_p++;
-            if(d_p>=d_period)
-                d_p=0;
-        }
-        return noutput_items;
-    }
-
-    static sptr make(int period, double alfa)
-    {
-        return gnuradio::get_initial_sptr(new iir_corr(period,alfa));
-    }
-
-private:
-    gr_complex      d_alfa;
-    gr_complex      d_ialfa;
-    int             d_period;
-    int d_p;
-    std::vector<gr_complex> d_b;
-};
-
 class dbpsk_det_cb: public gr::sync_decimator
 {
 protected:
@@ -235,12 +179,12 @@ static const int MAX_OUT = 1; /* Maximum number of output streams. */
  * Create a new instance of rx_rds and return
  * a shared_ptr. This is effectively the public constructor.
  */
-rx_rds_sptr make_rx_rds(double sample_rate, bool encorr)
+rx_rds_sptr make_rx_rds(double sample_rate)
 {
-    return gnuradio::get_initial_sptr(new rx_rds(sample_rate, encorr));
+    return gnuradio::get_initial_sptr(new rx_rds(sample_rate));
 }
 
-rx_rds::rx_rds(double sample_rate, bool encorr)
+rx_rds::rx_rds(double sample_rate)
     : gr::hier_block2 ("rx_rds",
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof (float)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof (float))),
@@ -282,7 +226,6 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    auto corr=iir_corr::make(((float)d_sample_rate*d_interpolation*104.f*2.f)/(d_decimation*2375.f*decim1),0.1);
     int agc_samp = ((float)d_sample_rate*d_interpolation*0.8f)/(d_decimation*23750.f);
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
@@ -334,12 +277,7 @@ rx_rds::rx_rds(double sample_rate, bool encorr)
 #else
     connect(d_agc, 0, d_costas_loop, 0);
 #endif
-    if(encorr)
-    {
-        connect(d_bpf, 0, corr, 0);
-        connect(corr, 0, d_sync, 0);
-    }else
-        connect(d_bpf, 0, d_sync, 0);
+    connect(d_bpf, 0, d_sync, 0);
 //    connect(d_agc, 0, d_sync, 0);
 #if 0
     connect(d_sync, 0, d_mpsk, 0);
