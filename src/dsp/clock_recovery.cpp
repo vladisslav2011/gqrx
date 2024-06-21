@@ -592,10 +592,10 @@ int bpsk_phase_sync_cc::work(int noutput_items,
     {
         gr_complex phase=d_phase;
         gr_complex incr=d_incr;
-        float early=estimate(phase,incr*d_early,d_size*2.f,&in[k]);
-        float late=estimate(phase,incr*d_late,d_size*2.f,&in[k]);
-        float test=estimate(phase,incr,d_size+test_extra,&in[k]);
-        float prompt=estimate(phase,incr,d_size,&in[k]);
+        float early=estimate(phase,incr*d_early,d_size*2,&in[k]);
+        float late=estimate(phase,incr*d_late,d_size*2,&in[k]);
+        float test=estimate(phase,incr,d_size*2+test_extra,&in[k]);
+        float prompt=estimate(phase,incr,d_size*2,&in[k]);
         float dd=(log10f(late)-log10f(early));
         float e_phase=std::arg(phase),e_incr=std::arg(incr);
         if(std::max(prompt,test)>1.f)//in sync
@@ -612,7 +612,7 @@ int bpsk_phase_sync_cc::work(int noutput_items,
         }else{
             if(phase_incr_oneshot(e_phase,e_incr,d_size*2,&in[k]))
             {
-                float newtest=estimate(e_phase,e_incr,d_size+test_extra,&in[k]);
+                float newtest=estimate(e_phase,e_incr,d_size*2+test_extra,&in[k]);
                 if(newtest>test)
                 {
                     //printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
