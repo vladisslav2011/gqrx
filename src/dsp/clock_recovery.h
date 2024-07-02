@@ -85,7 +85,7 @@ private:
     float d_corr0{0.0};
     float d_corr180{0.0};
     float d_dllbw{0.4f};
-    float d_dllalfa{0.2f};
+    float d_dllalfa{0.1f};
     bool  d_offs{false};
 };
 

@@ -282,10 +282,12 @@ int decoder_impl::work (int noutput_items,
         if(in[i]==0.f)
         {
             i++;
-            if(in[i]!=0.f)
-            memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
-            d_acc_cnt=0;
-            continue;
+            if(i<noutput_items && in[i]!=0.f)
+            {
+                memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
+                d_acc_cnt=0;
+            }else
+                continue;
         }
         d_accum[d_acc_p+GROUP_SIZE]=d_accum[d_acc_p]+=(in[i]-d_accum[d_acc_p])*d_acc_alfa;
         d_acc_p++;
@@ -320,20 +322,22 @@ int decoder_impl::work (int noutput_items,
         if(d_acc_cnt==d_acc_lim)
         {
             d_acc_cnt-=GROUP_SIZE;
-            int maxerrs=26;
-            int det_pi=-1;
-            for(int k=0;k<104;k++)
+            for(int k=0;k<GROUP_SIZE;k++)
             {
-                pi_detect(d_acc_groups,true);
+                int acc_pi=pi_detect(d_acc_groups,true);
+/*                if(acc_pi!=-1)
+                {
+                    memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
+                    d_acc_cnt=0;
+                    printf("acc_pi=%04x\n",acc_pi);
+                    break;
+                }*/
                 int sample=d_accum[d_acc_p+k]>0.f;
                 for(int j=0;j<n_group-1;j++)
                     d_acc_groups[j]=((d_acc_groups[j]<<1)|(d_acc_groups[j+1]>>25))&((1<<26)-1);
                 d_acc_groups[n_group-1]=((d_acc_groups[n_group-1]<<1)|sample)&((1<<26)-1);
             }
         }
-        if(d_acc_cnt==d_acc_lim)
-//            if(pi==-1)
-                /*pi=*/pi_detect(d_acc_groups,true);
         if(pi!=-1)
         {
             if((d_state!=SYNC)||(d_best_pi!=pi)||(bit_counter%GROUP_SIZE != 0))
@@ -452,7 +456,9 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
     uint16_t pi = (p_grp[0]>>10)^locators[0];
     if(d_block0errs<5)
     {
-        constexpr uint8_t weights[]={19,9,5,4,3};
+        static const uint8_t weights_corr[]={19,9,1,1,0};
+        static const uint8_t weights_def[]={19,9,5,4,3};
+        const uint8_t *weights=corr?weights_corr:weights_def;
         pi_a[pi].weight+=weights[d_block0errs];
         pi_a[pi].count++;
         int bit_offset=d_bit_counter-pi_a[pi].lastseen;
@@ -500,9 +506,9 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
                 }
                 errs=process_group(p_grp, d_ecc_max, offset_chars, locators);
                 tmp_grp[0]=pi;
-                tmp_grp[1]=(tmp_grp[1]>>10)^locators[1];
-                tmp_grp[2]=(tmp_grp[2]>>10)^locators[2];
-                tmp_grp[3]=(tmp_grp[3]>>10)^locators[3];
+                tmp_grp[1]=(p_grp[1]>>10)^locators[1];
+                tmp_grp[2]=(p_grp[2]>>10)^locators[2];
+                tmp_grp[3]=(p_grp[3]>>10)^locators[3];
                 offset_chars[0]='A';
                 if(corr)
                     offset_chars[1]=offset_chars[2]=offset_chars[3]='x';

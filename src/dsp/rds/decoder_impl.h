@@ -112,7 +112,7 @@ private:
     std::array<float,GROUP_SIZE*2> d_accum{0.f};
     unsigned int   d_acc_groups[4];
     int            d_acc_p{0};
-    float          d_acc_alfa{0.2};
+    float          d_acc_alfa{0.1};
     int            d_acc_cnt{0};
     static constexpr int d_acc_lim{104*4};
 

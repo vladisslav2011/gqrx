@@ -221,10 +221,13 @@ int clock_recovery_el_cc::general_work(int noutput_items,
             mm_val=0.f;
         }else{
             for(int k=0;k<8;k++)
-                pp[k].acc+=(estimate(pp[k].mu,d_omega,N_SAMPLE,&in[pp[k].i])-pp[k].acc)*d_dllalfa;
+                pp[k].acc+=(std::max(estimate(pp[k].mu,d_omega,N_SAMPLE,&in[pp[k].i]),1e-7f)-pp[k].acc)*d_dllalfa;
+                //pp[k].acc=std::max(estimate(pp[k].mu,d_omega,N_SAMPLE,&in[pp[k].i]),1e-7f);
 
-            d_corr0+=((pp[0].acc==0.f)||(pp[1].acc==0.f))?0.f:(log10f(pp[0].acc)-log10f(pp[1].acc)-d_corr0)*corr_alfa;
-            d_corr180+=((pp[2].acc==0.f)||(pp[3].acc==0.f))?0.f:(log10f(pp[2].acc)-log10f(pp[3].acc)-d_corr180)*corr_alfa;
+            float corr0=log10f(pp[0].acc/pp[1].acc);
+            float corr180=log10f(pp[2].acc/pp[3].acc);
+            d_corr0+=(corr0-d_corr0)*corr_alfa;
+            d_corr180+=(corr180-d_corr180)*corr_alfa;
             if(d_corr0>=d_corr180)
                 mm_val=pp[4].acc-pp[5].acc;
             else
@@ -248,7 +251,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         d_omega =
             d_omega_mid + gr::branchless_clip(d_omega - d_omega_mid, d_omega_lim);
 
-        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega*0.25f);
+        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega_mid*0.05f);
         ii += (int)floorf(d_mu);
         d_mu -= floorf(d_mu);
 
@@ -332,7 +335,7 @@ bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int siz
     float beste=0.f;
     int bestj=0;
     const float step=0.5f/float(s_size);
-    const int NN=std::floor(0.005f/step);
+    const int NN=std::floor(0.006f/step);
     for(int j=-NN;j<=NN;j++)
     {
         e0=estimate(p0,float(j)*step,s_size,buf);
