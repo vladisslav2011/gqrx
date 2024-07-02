@@ -95,10 +95,10 @@ void parser_impl::send_message(long msgtype, std::string msgtext) {
             =std::string((msgtext.at(0)=='1')?"TP ":"")
             +std::string((msgtext.at(1)=='1')?"TA ":"")
             +std::string((msgtext.at(2)=='1')?"Music ":"Speech ")
-            +std::string((msgtext.at(3)=='1')?"Mono ":"Stereo ")
+            +std::string((msgtext.at(3)=='1')?"Stereo ":"Mono ")
             +std::string((msgtext.at(4)=='1')?"AH ":"")
             +std::string((msgtext.at(5)=='1')?"CMP ":"")
-            +std::string((msgtext.at(6)=='1')?"stPTY ":"")
+            +std::string((msgtext.at(6)=='1')?"":"stPTY ")
             ;
         changed_value(C_RDS_FLAGS, d_index, msgtext);
         break;
@@ -142,16 +142,16 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 	/* see page 41, table 9 of the standard */
 	switch (segment_address) {
 		case 0:
-			mono_stereo=decoder_control_bit;
+			static_pty=decoder_control_bit;
 		break;
 		case 1:
-			artificial_head=decoder_control_bit;
-		break;
-		case 2:
 			compressed=decoder_control_bit;
 		break;
+		case 2:
+			artificial_head=decoder_control_bit;
+		break;
 		case 3:
-			static_pty=decoder_control_bit;
+			mono_stereo=decoder_control_bit;
 		break;
 		default:
 		break;
