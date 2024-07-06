@@ -3671,7 +3671,7 @@ c_def()
     .v_type(V_DOUBLE)
     .def(5.0e-4)
     .min(1e-5)
-    .max(1e-3)
+    .max(8e-3)
     .step(1e-5)
     .frac_digits(5)
     ,
