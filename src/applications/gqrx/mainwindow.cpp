@@ -1585,7 +1585,6 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
     remote->setMode(mode_idx);
     remote->setPassband(flo, fhi);
 
-    d_have_audio = (mode_idx != Modulations::MODE_OFF);
 
     //Update demod-specific GUI widgets to keep shared options in sync
     auto defs=c_def::all();
@@ -1602,19 +1601,15 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
             set_gui(id, v, true);
         }
     }
-    d_have_audio = (mode_idx != Modulations::MODE_OFF);
-    switch (mode_idx)
+    d_have_audio = Modulations::has_audio(mode_idx);
+    if(Modulations::has_RDS(mode_idx))
+        /* Broadcast FM */
+        uiDockRDS->setEnabled();
+    else
     {
-        case Modulations::MODE_WFM_MONO:
-        case Modulations::MODE_WFM_STEREO:
-        case Modulations::MODE_WFM_STEREO_OIRT:
-            /* Broadcast FM */
-            uiDockRDS->setEnabled();
-            break;
-        default:
-            uiDockRDS->setDisabled();
-            rx->set_value(C_RDS_ON, false);
-            set_gui(C_RDS_ON, false);
+        uiDockRDS->setDisabled();
+        rx->set_value(C_RDS_ON, false);
+        set_gui(C_RDS_ON, false);
     }
 }
 
@@ -1626,35 +1621,17 @@ void MainWindow::modeObserver(const c_id id, const c_def::v_union &value)
     const Modulations::idx mode_old = Modulations::idx(int(tmp));
     if(mode_old != mode_idx)
     {
-
-        switch (mode_idx)
+        if(!Modulations::has_audio(mode_idx))
         {
-            case Modulations::MODE_OFF:
-                /* Spectrum analyzer only */
-                //TODO: check if demod has audio/debug stream output???
-                rx->set_value(C_AUDIO_REC, false);
-                set_gui(C_AUDIO_REC, false);
-                //TODO:check for NFM here
-                if (dec_afsk1200 != nullptr)
-                {
-                    dec_afsk1200->close();
-                }
-                break;
-            case Modulations::MODE_AM:
-            case Modulations::MODE_AM_SYNC:
-            case Modulations::MODE_USB:
-            case Modulations::MODE_LSB:
-            case Modulations::MODE_CWL:
-            case Modulations::MODE_CWU:
-            case Modulations::MODE_NFM:
-            case Modulations::MODE_NFMPLL:
-            case Modulations::MODE_WFM_MONO:
-            case Modulations::MODE_WFM_STEREO:
-            case Modulations::MODE_WFM_STEREO_OIRT:
-                break;
-            default:
-                qDebug() << "Unsupported mode selection (can't happen!): " << mode_idx;
-                break;
+            /* Spectrum analyzer only */
+            //TODO: check if demod has audio/debug stream output???
+            rx->set_value(C_AUDIO_REC, false);
+            set_gui(C_AUDIO_REC, false);
+            //TODO:check for NFM here
+            if (dec_afsk1200 != nullptr)
+            {
+                dec_afsk1200->close();
+            }
         }
     }
 }
