@@ -1563,75 +1563,11 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
     ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, hiMax == -loMin);
-    switch (mode_idx) {
-
-    case Modulations::MODE_OFF:
-        /* Spectrum analyzer only */
-        click_res = 1000;
-        break;
-
-    case Modulations::MODE_RAW:
-        /* Raw I/Q; max 96 ksps*/
-        uiDockAudio->setFftRange(-std::min(24000, audio_rate / 2), std::min(24000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_AM:
-        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_AM_SYNC:
-        uiDockAudio->setFftRange(0, std::min(6000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_NFM:
-        uiDockAudio->setFftRange(0, std::min(5000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_NFMPLL:
-        uiDockAudio->setFftRange(0, 5000);
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_WFM_MONO:
-    case Modulations::MODE_WFM_STEREO:
-    case Modulations::MODE_WFM_STEREO_OIRT:
-        /* Broadcast FM */
-        uiDockAudio->setFftRange(0, std::min(24000, audio_rate / 2));
-        click_res = 1000;
-        break;
-
-    case Modulations::MODE_LSB:
-        /* LSB */
-        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_USB:
-        /* USB */
-        uiDockAudio->setFftRange(0, std::min(3000, audio_rate / 2));
-        click_res = 100;
-        break;
-
-    case Modulations::MODE_CWL:
-        /* CW-L */
-        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
-        click_res = 10;
-        break;
-
-    case Modulations::MODE_CWU:
-        /* CW-U */
-        uiDockAudio->setFftRange(0, std::min(1500, audio_rate / 2));
-        click_res = 10;
-        break;
-
-    default:
-        click_res = 100;
-        break;
-    }
+    click_res = Modulations::modes[int(mode_idx)].click_res;
+    uiDockAudio->setFftRange(
+        std::max(Modulations::modes[int(mode_idx)].fft_lo, -audio_rate / 2),
+        std::min(Modulations::modes[int(mode_idx)].fft_hi, audio_rate / 2)
+        );
 
     qDebug() << "Filter preset for mode" << mode_idx << "LO:" << flo << "HI:" << fhi;
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
