@@ -174,7 +174,7 @@ public:
     static int FindFilterPreset(idx mode_index, int lo, int hi);
     static void GetFilterRanges(idx iModulationIndex, int& lowMin, int& lowMax, int& highMin, int& highMax);
     static bool IsFilterSymmetric(idx iModulationIndex);
-    static bool UpdateFilterRange(idx iModulationIndex, int& low, int& high);
+    static void UpdateFilterRange(idx iModulationIndex, int& low, int& high);
     static bool UpdateTw(const int low, const int high, int& tw);
     static filter_shape FilterShapeFromTw(const int low, const int high, const int tw);
     static int TwFromFilterShape(const int low, const int high, const filter_shape shape);

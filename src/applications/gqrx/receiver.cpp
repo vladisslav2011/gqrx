@@ -1313,10 +1313,11 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
 {
     status ret = STATUS_OK;
     rx_chain rxc = get_rxc(demod);
+    Modulations::idx old_demod = get_demod();
     if (rxc != receiver::rx_chain(STATUS_ERROR))
     {
         receiver_base_cf_sptr old_rx = rx[(old_idx == -1) ? d_current : old_idx];
-        rx_chain old_rxc=get_rxc(get_demod());
+        rx_chain old_rxc=get_rxc(old_demod);
         // RX demod chain
         if (old_idx == -1)
         {
@@ -1326,35 +1327,27 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             background_rx();
             disconnect_rx();
         }
-        switch (rxc)
+        if (old_rxc != rxc)
         {
-        case RX_CHAIN_NBRX:
-        case RX_CHAIN_NONE:
-            if (old_rxc != rxc)
+            double rx_rate = d_use_chan ? d_decim_rate / chan->decim() : d_decim_rate;
+            switch (rxc)
             {
+            case RX_CHAIN_NBRX:
+            case RX_CHAIN_NONE:
                 rx[d_current].reset();
-                if(d_use_chan)
-                    rx[d_current] = make_nbrx(d_decim_rate / chan->decim(), d_audio_rate);
-                else
-                    rx[d_current] = make_nbrx(d_decim_rate, d_audio_rate);
+                rx[d_current] = make_nbrx(rx_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
-            }
-            break;
+                break;
 
-        case RX_CHAIN_WFMRX:
-            if (old_rxc != rxc)
-            {
+            case RX_CHAIN_WFMRX:
                 rx[d_current].reset();
-                if(d_use_chan)
-                    rx[d_current] = make_wfmrx(d_decim_rate / chan->decim(), d_audio_rate);
-                else
-                    rx[d_current] = make_wfmrx(d_decim_rate, d_audio_rate);
+                rx[d_current] = make_wfmrx(rx_rate, d_audio_rate);
                 rx[d_current]->set_index(d_current);
-            }
-            break;
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
         }
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
         tb->connect(iq_src, 0, rx[d_current], 0);
@@ -1387,6 +1380,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         // End temporary workaronud
         connect_rx();
         foreground_rx();
+        changed_value(C_MODE_CHANGED, d_current, int(demod));
     }else
         return STATUS_ERROR;
     return ret;
@@ -1394,12 +1388,12 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
 
 void receiver::set_demod_and_update_filter(receiver_base_cf_sptr old_rx, receiver_base_cf_sptr new_rx, Modulations::idx demod)
 {
-    Modulations::idx old_demod=old_rx->get_demod();
-    int     flo=0, fhi=0;
-    Modulations::filter_shape filter_shape;
+    Modulations::idx old_demod = old_rx->get_demod();
+    int     flo=0, fhi=0, new_flo=0, new_fhi=0;
+    Modulations::filter_shape filter_shape=Modulations::FILTER_SHAPE_COUNT, new_filter_shape=Modulations::FILTER_SHAPE_COUNT;
     old_rx->get_filter(flo, fhi, filter_shape);
+    new_rx->get_filter(new_flo, new_fhi, new_filter_shape);
     int     filter_preset=Modulations::FindFilterPreset(old_demod,flo,fhi);
-    bool changed = false;
 
     if (filter_preset == FILTER_PRESET_USER)
     {
@@ -1412,15 +1406,13 @@ void receiver::set_demod_and_update_filter(receiver_base_cf_sptr old_rx, receive
             std::swap(flo, fhi);
             flo = -flo;
             fhi = -fhi;
-            changed =true;
         }
-        changed |= Modulations::UpdateFilterRange(demod, flo, fhi);
+        Modulations::UpdateFilterRange(demod, flo, fhi);
     }else
-        changed = Modulations::GetFilterPreset(demod, filter_preset, flo, fhi);
+        Modulations::GetFilterPreset(demod, filter_preset, flo, fhi);
     new_rx->set_demod(demod);
-    if(changed)
+    if( (flo!=new_flo)||(fhi!=new_fhi)||(filter_shape!=new_filter_shape))
         new_rx->set_filter(flo, fhi, filter_shape);
-    changed_value(C_MODE_CHANGED, d_current, int(old_demod));
 }
 
 receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
@@ -1428,13 +1420,15 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
     status ret = STATUS_OK;
     if(old_idx == -1)
     {
-        if (rx[d_current]->get_demod() == demod)
+        Modulations::idx old_demod = rx[d_current]->get_demod();
+        if (old_demod == demod)
             return ret;
-        if(get_rxc(rx[d_current]->get_demod()) == get_rxc(demod))
+        if(get_rxc(old_demod) == get_rxc(demod))
         {
             rx[d_current]->lock();
             set_demod_and_update_filter(rx[d_current], rx[d_current], demod);
             rx[d_current]->unlock();
+            changed_value(C_MODE_CHANGED, d_current, int(demod));
             return ret;
         }
     }
