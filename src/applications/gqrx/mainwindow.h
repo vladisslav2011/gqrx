@@ -109,6 +109,7 @@ private:
     float          *d_realFftData;
     float          *d_iirFftData;
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
+    int             d_tuning_step{0};
 
     bool d_have_audio;  /*!< Whether we have audio (i.e. not with demod_off. */
 
@@ -208,6 +209,7 @@ private slots:
     void ignoreLimitsObserver(c_id, const c_def::v_union & ignore_limits);
     void freqCtrlResetObserver(c_id, const c_def::v_union &);
     void invertScrollingObserver(c_id, const c_def::v_union &);
+    void tuningStepObserver(c_id, const c_def::v_union &);
     void autoBookmarksObserver(c_id, const c_def::v_union &);
     void updateDemodGUIRanges(const Modulations::idx mode_idx);
     void setPassband(int bandwidth);
