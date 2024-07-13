@@ -1290,9 +1290,8 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         // RX demod chain
         if (old_idx == -1)
         {
-            if (old_rxc != rxc)
-                if (old_rxc == Modulations::RX_CHAIN_WFMRX)
-                    set_value(C_RDS_ON, false);
+            if (Modulations::has_RDS(old_demod) && !Modulations::has_RDS(demod))
+                set_value(C_RDS_ON, false);
             background_rx();
             disconnect_rx();
         }
@@ -1318,7 +1317,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
                 if(bool(tmp))
                     rx[d_current]->continue_audio_recording(old_rx);
             }
-            if (demod == Modulations::MODE_OFF)
+            if (!Modulations::has_audio(demod))
             {
                 c_def::v_union tmp;
                 rx[d_current]->get_audio_rec(tmp);
@@ -1829,7 +1828,7 @@ void receiver::connect_rx(int n)
         return;
     std::cerr<<"connect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
     rx[n]->set_timestamp_source(&d_iq_ts);
-    if (rx[n]->get_demod() != Modulations::MODE_OFF)
+    if (Modulations::has_audio(rx[n]->get_demod()))
     {
         if (d_active == 0)
         {
@@ -1878,7 +1877,7 @@ void receiver::disconnect_rx()
 void receiver::disconnect_rx(int n)
 {
     std::cerr<<"disconnect_rx "<<n<<" active "<<d_active<<" demod "<<rx[n]->get_demod()<<std::endl;
-    if (rx[n]->get_demod() != Modulations::MODE_OFF)
+    if (Modulations::has_audio(rx[n]->get_demod()))
     {
         d_active--;
         if (d_active == 0)
@@ -1942,7 +1941,7 @@ void receiver::disconnect_rx(int n)
 void receiver::background_rx()
 {
     std::cerr<<"background_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
-    if (rx[d_current]->get_demod() != Modulations::MODE_OFF)
+    if (Modulations::has_audio(rx[d_current]->get_demod()))
     {
         tb->disconnect(rx[d_current], 0, audio_fft, 0);
         if (d_sniffer_active)
@@ -1956,7 +1955,7 @@ void receiver::background_rx()
 void receiver::foreground_rx()
 {
     std::cerr<<"foreground_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
-    if (rx[d_current]->get_demod() != Modulations::MODE_OFF)
+    if (Modulations::has_audio(rx[d_current]->get_demod()))
     {
         tb->connect(rx[d_current], 0, audio_fft, 0);
         if (d_sniffer_active)
