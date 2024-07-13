@@ -311,6 +311,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_FFT_RATE, &MainWindow::iqFftRateObserver);
     set_observer(C_FFT_SIZE, &MainWindow::iqFftSizeObserver);
     set_observer(C_IQ_PROCESS, &MainWindow::iqProcessObserver);
+    set_observer(C_TUNING_STEP, &MainWindow::tuningStepObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -1534,6 +1535,16 @@ void MainWindow::invertScrollingObserver(c_id, const c_def::v_union & enabled)
     uiDockProbe->setInvertScrolling(enabled);
 }
 
+/** Tuning step override */
+void MainWindow::tuningStepObserver(c_id, const c_def::v_union & v)
+{
+    d_tuning_step = v;
+    ui->plotter->setClickResolution(
+        (d_tuning_step == 0) ?
+        Modulations::modes[int(rx->get_demod())].click_res :
+        d_tuning_step);
+}
+
 /** Automatic demodulators */
 void MainWindow::autoBookmarksObserver(c_id, const c_def::v_union & v)
 {
@@ -1568,7 +1579,7 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
 
     qDebug() << "Filter preset for mode" << mode_idx << "LO:" << flo << "HI:" << fhi;
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
-    ui->plotter->setClickResolution(click_res);
+    ui->plotter->setClickResolution((d_tuning_step == 0)?click_res:d_tuning_step);
     ui->plotter->setFilterClickResolution(click_res);
 
     remote->setMode(mode_idx);
