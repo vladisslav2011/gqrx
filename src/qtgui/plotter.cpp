@@ -928,8 +928,8 @@ void CPlotter::wheelEvent(QWheelEvent * event)
     else if (event->modifiers() & Qt::ControlModifier)
     {
         // filter width
-        m_DemodLowCutFreq -= numSteps * m_ClickResolution;
-        m_DemodHiCutFreq += numSteps * m_ClickResolution;
+        m_DemodLowCutFreq -= numSteps * m_FilterClickResolution;
+        m_DemodHiCutFreq += numSteps * m_FilterClickResolution;
         clampDemodParameters();
         emit newFilterFreq(m_DemodLowCutFreq, m_DemodHiCutFreq);
     }
@@ -937,8 +937,8 @@ void CPlotter::wheelEvent(QWheelEvent * event)
     else if (event->modifiers() & Qt::ShiftModifier)
     {
         // filter shift
-        m_DemodLowCutFreq += numSteps * m_ClickResolution;
-        m_DemodHiCutFreq += numSteps * m_ClickResolution;
+        m_DemodLowCutFreq += numSteps * m_FilterClickResolution;
+        m_DemodHiCutFreq += numSteps * m_FilterClickResolution;
         clampDemodParameters();
         emit newFilterFreq(m_DemodLowCutFreq, m_DemodHiCutFreq);
     }
