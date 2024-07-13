@@ -87,6 +87,7 @@ enum c_id
     C_WF_COLORMAP,
     C_WF_BG_THREADS,
     C_ENABLE_BANDPLAN,
+    C_TUNING_STEP,
 
     C_LNB_LO,
     C_IQ_AGC,
