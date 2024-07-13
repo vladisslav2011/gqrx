@@ -210,3 +210,37 @@ int Modulations::TwFromFilterShape(const int low, const int high, const Modulati
 
     return trans_width;
 }
+
+Modulations::rx_chain Modulations::get_rxc(Modulations::idx demod)
+{
+    switch (demod)
+    {
+    case MODE_OFF:
+        return RX_CHAIN_NONE;
+        break;
+
+    case MODE_RAW:
+    case MODE_AM:
+    case MODE_AM_SYNC:
+    case MODE_NFM:
+    case MODE_NFMPLL:
+    case MODE_LSB:
+    case MODE_USB:
+    case MODE_CWL:
+    case MODE_CWU:
+        return RX_CHAIN_NBRX;
+        break;
+
+    case MODE_WFM_MONO:
+    case MODE_WFM_STEREO:
+    case MODE_WFM_STEREO_OIRT:
+        return RX_CHAIN_WFMRX;
+        break;
+
+    default:
+        return rx_chain(-1);
+        break;
+    }
+}
+
+

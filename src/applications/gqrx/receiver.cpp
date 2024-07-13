@@ -36,8 +36,7 @@
 #include "dsp/correct_iq_cc.h"
 #include "dsp/filter/fir_decim.h"
 #include "dsp/rx_fft.h"
-#include "receivers/nbrx.h"
-#include "receivers/wfmrx.h"
+#include "receivers/demod_factory.h"
 
 #ifdef WITH_PULSEAUDIO
 #include "pulseaudio/pa_sink.h"
@@ -1277,52 +1276,20 @@ bool receiver::get_global_mute(c_def::v_union & v) const
     return true;
 }
 
-receiver::rx_chain receiver::get_rxc(Modulations::idx demod) const
-{
-    switch (demod)
-    {
-    case Modulations::MODE_OFF:
-        return RX_CHAIN_NONE;
-        break;
-
-    case Modulations::MODE_RAW:
-    case Modulations::MODE_AM:
-    case Modulations::MODE_AM_SYNC:
-    case Modulations::MODE_NFM:
-    case Modulations::MODE_NFMPLL:
-    case Modulations::MODE_LSB:
-    case Modulations::MODE_USB:
-    case Modulations::MODE_CWL:
-    case Modulations::MODE_CWU:
-        return RX_CHAIN_NBRX;
-        break;
-
-    case Modulations::MODE_WFM_MONO:
-    case Modulations::MODE_WFM_STEREO:
-    case Modulations::MODE_WFM_STEREO_OIRT:
-        return RX_CHAIN_WFMRX;
-        break;
-
-    default:
-        return receiver::rx_chain(STATUS_ERROR);
-        break;
-    }
-}
-
 receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
 {
     status ret = STATUS_OK;
-    rx_chain rxc = get_rxc(demod);
+    Modulations::rx_chain rxc = Modulations::get_rxc(demod);
     Modulations::idx old_demod = get_demod();
-    if (rxc != receiver::rx_chain(STATUS_ERROR))
+    if (rxc != Modulations::rx_chain(STATUS_ERROR))
     {
         receiver_base_cf_sptr old_rx = rx[(old_idx == -1) ? d_current : old_idx];
-        rx_chain old_rxc=get_rxc(old_demod);
+        Modulations::rx_chain old_rxc = Modulations::get_rxc(old_demod);
         // RX demod chain
         if (old_idx == -1)
         {
             if (old_rxc != rxc)
-                if (old_rxc == RX_CHAIN_WFMRX)
+                if (old_rxc == Modulations::RX_CHAIN_WFMRX)
                     set_value(C_RDS_ON, false);
             background_rx();
             disconnect_rx();
@@ -1330,24 +1297,9 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         if (old_rxc != rxc)
         {
             double rx_rate = d_use_chan ? d_decim_rate / chan->decim() : d_decim_rate;
-            switch (rxc)
-            {
-            case RX_CHAIN_NBRX:
-            case RX_CHAIN_NONE:
-                rx[d_current].reset();
-                rx[d_current] = make_nbrx(rx_rate, d_audio_rate);
-                rx[d_current]->set_index(d_current);
-                break;
-
-            case RX_CHAIN_WFMRX:
-                rx[d_current].reset();
-                rx[d_current] = make_wfmrx(rx_rate, d_audio_rate);
-                rx[d_current]->set_index(d_current);
-                break;
-
-            default:
-                break;
-            }
+            rx[d_current].reset();
+            rx[d_current] = Demod_Factory::make(demod, rx_rate, d_audio_rate);
+            rx[d_current]->set_index(d_current);
         }
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
         tb->connect(iq_src, 0, rx[d_current], 0);
@@ -1423,7 +1375,7 @@ receiver::status receiver::set_demod(Modulations::idx demod, int old_idx)
         Modulations::idx old_demod = rx[d_current]->get_demod();
         if (old_demod == demod)
             return ret;
-        if(get_rxc(old_demod) == get_rxc(demod))
+        if(Modulations::get_rxc(old_demod) == Modulations::get_rxc(demod))
         {
             rx[d_current]->lock();
             set_demod_and_update_filter(rx[d_current], rx[d_current], demod);
