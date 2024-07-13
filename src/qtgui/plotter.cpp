@@ -617,6 +617,12 @@ void    CPlotter::getLockedVfos(std::vector<vfo::sptr> &to)
         if (cvfo->get_freq_lock())
             to.push_back(cvfo);
 }
+void    CPlotter::blockUpdates(bool state)
+{
+    blockedUpdates = state;
+    if(!state)
+        drawOverlay();
+}
 
 /** Get waterfall time resolution in milleconds / line. */
 quint64 CPlotter::getWfTimeRes() const
@@ -1549,6 +1555,8 @@ void CPlotter::setWaterfallRange(float min, float max)
 // does not need to be recreated every fft data update.
 void CPlotter::drawOverlay()
 {
+    if (blockedUpdates)
+        return;
     if (!m_OverlayPixmap.isNull())
     {
 

@@ -147,6 +147,7 @@ public:
     void    removeVfo(vfo::sptr n_vfo);
     void    clearVfos();
     void    getLockedVfos(std::vector<vfo::sptr> &to);
+    void    blockUpdates(bool);
 
 signals:
     void newDemodFreq(qint64 freq, qint64 delta); /* delta is the offset from the center */
@@ -361,6 +362,7 @@ private:
     qint64 old_stopFreq{-1};
     qint32 old_FFTSize{-1};
     float  old_SampleFreq{-1.0};
+    bool   blockedUpdates{false};
 
 };
 

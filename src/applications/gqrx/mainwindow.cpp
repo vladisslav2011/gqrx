@@ -3320,12 +3320,14 @@ void MainWindow::rxSpinBox_valueChanged(int i)
 {
     if (i == rx->get_current())
         return;
+    ui->plotter->blockUpdates(true);
     ui->plotter->addVfo(rx->get_current_vfo());
     int n = rx->select_rx(i);
     ui->plotter->removeVfo(rx->get_current_vfo());
     if (n == receiver::STATUS_OK)
         loadRxToGUI();
     ui->plotter->setCurrentVfo(i);
+    ui->plotter->blockUpdates(false);
 }
 
 void MainWindow::on_plotter_selectVfo(int i)
