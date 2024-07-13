@@ -1721,6 +1721,11 @@ void MainWindow::modeChangeObserver(const c_id id, const c_def::v_union &value)
     rx->get_value(C_MODE, tmp);
     const Modulations::idx mode_idx = Modulations::idx(int(tmp));
     updateDemodGUIRanges(mode_idx);
+    int     flo=0, fhi=0;
+    Modulations::filter_shape filter_shape;
+    rx->get_filter(flo, fhi, filter_shape);
+    set_gui(C_FILTER_LO,flo,true);
+    set_gui(C_FILTER_HI,fhi,true);
 }
 
 void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
