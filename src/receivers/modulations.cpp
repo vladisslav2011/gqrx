@@ -117,9 +117,8 @@ bool Modulations::IsFilterSymmetric(Modulations::idx iModulationIndex)
     return (-modes[iModulationIndex].ranges.lo.min == modes[iModulationIndex].ranges.hi.max);
 }
 
-bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high)
+void Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high)
 {
-    bool updated = false;
     if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
     #if 0
@@ -133,26 +132,13 @@ bool Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
         }
     #endif
     if (low < modes[iModulationIndex].ranges.lo.min)
-    {
         low = modes[iModulationIndex].ranges.lo.min;
-        updated = true;
-    }
     if (low > modes[iModulationIndex].ranges.lo.max)
-    {
         low = modes[iModulationIndex].ranges.lo.max;
-        updated = true;
-    }
     if (high < modes[iModulationIndex].ranges.hi.min)
-    {
         high = modes[iModulationIndex].ranges.hi.min;
-        updated = true;
-    }
     if (high > modes[iModulationIndex].ranges.hi.max)
-    {
         high = modes[iModulationIndex].ranges.hi.max;
-        updated = true;
-    }
-    return updated;
 }
 
 Modulations::idx Modulations::ConvertFromOld(int old)
