@@ -87,13 +87,6 @@ public:
         STATUS_ERROR = -1  /*!< There was an error. */
     };
 
-    /** Supported receiver types. */
-    enum rx_chain {
-        RX_CHAIN_NONE  = 0,   /*!< No receiver, just spectrum analyzer. */
-        RX_CHAIN_NBRX  = 1,   /*!< Narrow band receiver (AM, FM, SSB). */
-        RX_CHAIN_WFMRX = 2    /*!< Wide band FM receiver (for broadcast). */
-    };
-
     /** Filter shape (convenience wrappers for "transition width"). */
     typedef Modulations::filter_shape filter_shape;
 
@@ -285,7 +278,6 @@ public:
     bool        get_global_mute(c_def::v_union &) const;
     void        updateAudioVolume();
     /* Demod */
-    rx_chain    get_rxc(Modulations::idx demod) const;
     status      set_demod_locked(Modulations::idx demod, int old_idx = -1);
     status      set_demod(Modulations::idx demod, int old_idx = -1);
     void        set_demod_and_update_filter(receiver_base_cf_sptr old_rx, receiver_base_cf_sptr new_rx, Modulations::idx demod);

@@ -44,6 +44,12 @@ public:
         FILTER_SHAPE_SHARP = 2,   /*!< Sharp: Transition band is TBD of width. */
         FILTER_SHAPE_COUNT = 3
     };
+    /** Supported receiver types. */
+    enum rx_chain {
+        RX_CHAIN_NONE  = 0,   /*!< No receiver, just spectrum analyzer. */
+        RX_CHAIN_NBRX  = 1,   /*!< Narrow band receiver (AM, FM, SSB). */
+        RX_CHAIN_WFMRX = 2    /*!< Wide band FM receiver (for broadcast). */
+    };
     /**
      * Mode selector entries.
      *
@@ -207,6 +213,7 @@ public:
     static bool UpdateTw(const int low, const int high, int& tw);
     static filter_shape FilterShapeFromTw(const int low, const int high, const int tw);
     static int TwFromFilterShape(const int low, const int high, const filter_shape shape);
+    static rx_chain get_rxc(idx demod);
 };
 
 #endif // MODULATIONS_H
