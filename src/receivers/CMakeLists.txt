@@ -12,4 +12,5 @@ add_source_files(SRCS_LIST
 	modulations.cpp
 	vfo.h
 	vfo.cpp
+	demod_factory.h
 )
