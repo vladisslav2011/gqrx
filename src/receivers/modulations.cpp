@@ -237,6 +237,10 @@ Modulations::rx_chain Modulations::get_rxc(Modulations::idx demod)
         return RX_CHAIN_WFMRX;
         break;
 
+    case MODE_NB_REJECTOR:
+        return RX_CHAIN_REJECTOR;
+        break;
+
     default:
         return rx_chain(-1);
         break;

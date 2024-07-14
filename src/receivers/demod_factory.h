@@ -26,6 +26,7 @@
 #include "modulations.h"
 #include "nbrx.h"
 #include "wfmrx.h"
+#include "nbrej.h"
 
 class Demod_Factory
 {
@@ -40,6 +41,8 @@ public:
             return make_nbrx(quad_rate, audio_rate);
         case Modulations::RX_CHAIN_WFMRX:
             return make_wfmrx(quad_rate, audio_rate);
+        case Modulations::RX_CHAIN_REJECTOR:
+            return nbrej::make(quad_rate, audio_rate);
         default:
             return nullptr;
         }
