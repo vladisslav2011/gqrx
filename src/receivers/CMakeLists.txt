@@ -13,4 +13,6 @@ add_source_files(SRCS_LIST
 	vfo.h
 	vfo.cpp
 	demod_factory.h
+	nbrej.cpp
+	nbrej.h
 )

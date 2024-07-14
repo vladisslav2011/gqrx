@@ -33,7 +33,8 @@ static const int MAX_IN = 1;  /* Maximum number of input streams. */
 static const int MIN_OUT = 2; /* Minimum number of output streams. */
 static const int MAX_OUT = 2; /* Maximum number of output streams. */
 
-receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate)
+receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate,
+    std::vector<receiver_base_cf_sptr> & rxes)
     : gr::hier_block2 (src_name,
                       gr::io_signature::make (MIN_IN, MAX_IN, sizeof(gr_complex)),
                       gr::io_signature::make (MIN_OUT, MAX_OUT, sizeof(float))),
@@ -45,7 +46,9 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
       d_ddc_decim(1),
       d_audio_rate(audio_rate),
       d_center_freq(145500000.0),
-      d_pref_quad_rate(pref_quad_rate)
+      d_pref_quad_rate(pref_quad_rate),
+      d_rxes(rxes),
+      d_rejector_count(0)
 {
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
     d_quad_rate = d_decim_rate / d_ddc_decim;
@@ -75,6 +78,10 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     connect(agc, 3, self(), 1);
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
                                     std::placeholders::_2));
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() == Modulations::MODE_NB_REJECTOR)
+            d_rejector_count++;
+    d_rejectors.resize(0);
 }
 
 receiver_base_cf::~receiver_base_cf()
@@ -144,11 +151,13 @@ void receiver_base_cf::set_center_freq(double center_freq)
     wav_sink->set_center_freq(center_freq);
 }
 
-void receiver_base_cf::set_offset(int offset)
+bool receiver_base_cf::set_offset(int offset, bool locked)
 {
-    vfo_s::set_offset(offset);
+    vfo_s::set_offset(offset, locked);
     ddc->set_center_freq(offset);
     wav_sink->set_offset(offset);
+    update_rejectors(locked);
+    return false;
 }
 
 void receiver_base_cf::set_port(int port)
@@ -396,6 +405,110 @@ void receiver_base_cf::restore_settings(receiver_base_cf& from)
 
     set_center_freq(from.d_center_freq);
 }
+
+void receiver_base_cf::update_rejectors(bool locked)
+{
+    if(!d_rejector_count)
+        return;
+    bool needs_lock=false;
+    if(!locked)
+        for(size_t k=0;k<d_rxes.size();k++)
+            if(d_rxes[k] && d_rxes[k]->get_demod() == Modulations::MODE_NB_REJECTOR)
+            {
+                if(std::abs(d_rxes[k]->get_offset() - get_offset()) * 2 < get_pref_quad_rate())
+                    needs_lock |= find_rejector(d_rxes[k].get()) == -1;
+                else
+                    needs_lock |= find_rejector(d_rxes[k].get()) != -1;
+            }
+    if(needs_lock)
+        lock();
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() == Modulations::MODE_NB_REJECTOR)
+        {
+            if(std::abs(d_rxes[k]->get_offset() - get_offset()) * 2 < get_pref_quad_rate())
+                update_rejector(d_rxes[k].get());
+            else
+                remove_rejector(d_rxes[k].get());
+        }
+    if(needs_lock)
+        unlock();
+}
+
+int receiver_base_cf::find_rejector(receiver_base_cf * rej)
+{
+    size_t k;
+    for(k=0;k<d_rejectors.size();k++)
+        if(d_rejectors[k].controller == rej)
+            break;
+    if(k==d_rejectors.size())
+        return -1;
+    else
+        return k;
+}
+
+void receiver_base_cf::update_rejector(receiver_base_cf * rej)
+{
+    size_t k;
+    for(k=0;k<d_rejectors.size();k++)
+        if(d_rejectors[k].controller == rej)
+            break;
+    if(k==d_rejectors.size())
+    {
+        d_rejectors.push_back({rej,rx_rejector_cc::make(d_quad_rate,
+            rej->get_offset()-get_offset(),rej->get_filter_high()-rej->get_filter_low(),0.0002)});
+        if(k==0)
+        {
+            disconnect(ddc,0,iq_resamp,0);
+            connect(ddc,0,d_rejectors[k].rejector,0);
+            connect(d_rejectors[k].rejector,0,iq_resamp,0);
+        }else{
+            disconnect(d_rejectors[k-1].rejector,0,iq_resamp,0);
+            connect(d_rejectors[k-1].rejector,0,d_rejectors[k].rejector,0);
+            connect(d_rejectors[k].rejector,0,iq_resamp,0);
+        }
+    }else{
+        d_rejectors[k].rejector->set_offset(rej->get_offset()-get_offset());
+        d_rejectors[k].rejector->set_sample_rate(d_quad_rate);
+        d_rejectors[k].rejector->set_bw(rej->get_filter_high()-rej->get_filter_low());
+    }
+}
+void receiver_base_cf::remove_rejector(receiver_base_cf * rej)
+{
+    size_t k;
+    for(k=0;k<d_rejectors.size();k++)
+        if(d_rejectors[k].controller == rej)
+            break;
+    if(k == d_rejectors.size())
+        return;
+    if(k == 0)
+        disconnect(ddc,0,d_rejectors[k].rejector,0);
+    else
+        disconnect(d_rejectors[k-1].rejector,0,d_rejectors[k].rejector,0);
+    if(k == d_rejectors.size()-1)
+        disconnect(d_rejectors[k].rejector,0,iq_resamp,0);
+    else
+        disconnect(d_rejectors[k].rejector,0,d_rejectors[k+1].rejector,0);
+    if(d_rejectors.size()==1)
+    {
+        connect(ddc,0,iq_resamp,0);
+    }else{
+        if(k == 0)
+            connect(ddc,0,d_rejectors[k+1].rejector,0);
+        else if(k == d_rejectors.size()-1)
+            connect(d_rejectors[k-1].rejector,0,iq_resamp,0);
+        else
+            connect(d_rejectors[k-1].rejector,0,d_rejectors[k+1].rejector,0);
+    }
+    if(d_rejectors.size()==1)
+    {
+        d_rejectors.resize(0);
+        return;
+    }
+    for(;k<d_rejectors.size()-1;k++)
+        d_rejectors[k]=d_rejectors[k+1];
+    d_rejectors.pop_back();
+}
+
 
 bool receiver_base_cf::set_dedicated_audio_sink(const c_def::v_union & v)
 {

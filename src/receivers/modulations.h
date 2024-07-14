@@ -46,9 +46,10 @@ public:
     };
     /** Supported receiver types. */
     enum rx_chain {
-        RX_CHAIN_NONE  = 0,   /*!< No receiver, just spectrum analyzer. */
-        RX_CHAIN_NBRX  = 1,   /*!< Narrow band receiver (AM, FM, SSB). */
-        RX_CHAIN_WFMRX = 2    /*!< Wide band FM receiver (for broadcast). */
+        RX_CHAIN_NONE  = 0,    /*!< No receiver, just spectrum analyzer. */
+        RX_CHAIN_NBRX  = 1,    /*!< Narrow band receiver (AM, FM, SSB). */
+        RX_CHAIN_WFMRX = 2,    /*!< Wide band FM receiver (for broadcast). */
+        RX_CHAIN_REJECTOR = 3, /*!< Narrow band rejector. */
     };
     /**
      * Mode selector entries.
@@ -71,7 +72,8 @@ public:
         MODE_WFM_MONO   = 10, /*!< Broadcast FM (mono). */
         MODE_WFM_STEREO = 11, /*!< Broadcast FM (stereo). */
         MODE_WFM_STEREO_OIRT = 12, /*!< Broadcast FM (stereo oirt). */
-        MODE_COUNT       = 13
+        MODE_NB_REJECTOR = 13,/*!< Narowband interference rejector. */
+        MODE_COUNT       = 14
     };
     enum rxopt_mode_group {
         GRP_OFF=0,
@@ -214,6 +216,13 @@ public:
             1,1,0,0,0,0,
             {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO_OIRT
             {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_STEREO_OIRT
+        },
+        {GRP_OFF,"Shift+R","NB rejector",
+            1,
+            -24000,24000,
+            0,0,0,0,0,0,
+            {{-200, 200}, {-25, 25}, {-1, 1}},  // MODE_NB_REJECTOR
+            {{-120000, -1}, { 1,120000}},  // MODE_NB_REJECTOR
         },
     };
 

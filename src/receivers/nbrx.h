@@ -41,7 +41,7 @@ typedef std::shared_ptr<nbrx> nbrx_sptr;
 #endif
 
 /*! \brief Public constructor of nbrx_sptr. */
-nbrx_sptr make_nbrx(double quad_rate, float audio_rate);
+nbrx_sptr make_nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
 
 /*! \brief Narrow band analog receiver
  *  \ingroup RX
@@ -51,7 +51,7 @@ nbrx_sptr make_nbrx(double quad_rate, float audio_rate);
 class nbrx : public receiver_base_cf
 {
 public:
-    nbrx(double quad_rate, float audio_rate);
+    nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
     virtual ~nbrx() { };
 
     bool start() override;
@@ -59,7 +59,7 @@ public:
 
     void set_filter(int low, int high, Modulations::filter_shape shape) override;
     bool set_filter_shape(const c_def::v_union &) override;
-    void set_offset(int offset) override;
+    bool set_offset(int offset, bool locked) override;
     bool set_cw_offset(const c_def::v_union &) override;
 
     void set_audio_rate(int audio_rate) override;
