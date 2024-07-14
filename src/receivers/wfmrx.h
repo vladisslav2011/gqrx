@@ -43,7 +43,7 @@ typedef std::shared_ptr<wfmrx> wfmrx_sptr;
 #endif
 
 /*! \brief Public constructor of wfm_rx. */
-wfmrx_sptr make_wfmrx(double quad_rate, float audio_rate);
+wfmrx_sptr make_wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
 
 /*! \brief Wide band FM receiver.
  *  \ingroup RX
@@ -54,7 +54,7 @@ class wfmrx : public receiver_base_cf
 {
 
 public:
-    wfmrx(double quad_rate, float audio_rate);
+    wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
     ~wfmrx();
 
     bool start() override;

@@ -26,13 +26,13 @@
 #include "receivers/nbrx.h"
 
 
-nbrx_sptr make_nbrx(double quad_rate, float audio_rate)
+nbrx_sptr make_nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
 {
-    return gnuradio::get_initial_sptr(new nbrx(quad_rate, audio_rate));
+    return gnuradio::get_initial_sptr(new nbrx(quad_rate, audio_rate, rxes));
 }
 
-nbrx::nbrx(double quad_rate, float audio_rate)
-    : receiver_base_cf("NBRX", NB_PREF_QUAD_RATE, quad_rate, audio_rate),
+nbrx::nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
+    : receiver_base_cf("NBRX", NB_PREF_QUAD_RATE, quad_rate, audio_rate, rxes),
       d_running(false)
 {
 
@@ -194,11 +194,11 @@ bool nbrx::set_cw_offset(const c_def::v_union & v)
     return true;
 }
 
-void nbrx::set_offset(int offset)
+bool nbrx::set_offset(int offset, bool locked)
 {
     if(offset==get_offset())
-        return;
-    vfo_s::set_offset(offset);
+        return false;
+    vfo_s::set_offset(offset, locked);
     switch (d_demod)
     {
     case Modulations::MODE_CWL:
@@ -211,6 +211,8 @@ void nbrx::set_offset(int offset)
         ddc->set_center_freq(offset);
     }
     wav_sink->set_offset(offset);
+    update_rejectors(locked);
+    return false;
 }
 
 bool nbrx::set_nb1_on(const c_def::v_union & v)

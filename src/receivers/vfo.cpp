@@ -25,9 +25,10 @@
 #include <iostream>
 #include <iomanip>
 
-void vfo_s::set_offset(int offset)
+bool vfo_s::set_offset(int offset, bool locked)
 {
     d_offset = offset;
+    return false;
 }
 
 bool vfo_s::set_filter_low(const c_def::v_union & v)

@@ -47,7 +47,7 @@ Q_LOGGING_CATEGORY(plotter, "plotter")
 #define FFT_MIN_DB     -160.f
 #define FFT_MAX_DB      0.f
 
-#define FILTER_WIDTH_MIN_HZ 200
+#define FILTER_WIDTH_MIN_HZ 2
 
 // Colors of type QRgb in 0xAARRGGBB format (unsigned int)
 #define PLOTTER_BGD_COLOR           0xFF1F1D1D
@@ -210,7 +210,7 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             }
             if (!m_vfos.empty())
             {
-                m_lookup_vfo->set_offset(freqFromX(pt.x()) - m_CenterFreq);
+                m_lookup_vfo->set_offset(freqFromX(pt.x()) - m_CenterFreq, false);
                 m_vfos_lb = m_vfos.lower_bound(m_lookup_vfo);
                 if (m_vfos_lb == m_vfos.end())
                     m_vfos_ub = --m_vfos_lb;

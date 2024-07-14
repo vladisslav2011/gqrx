@@ -53,4 +53,6 @@ add_source_files(SRCS_LIST
 	rx_squelch.h
 	rx_rnnoise.cpp
 	rx_rnnoise.h
+	rx_rejector.cpp
+	rx_rejector.h
 )

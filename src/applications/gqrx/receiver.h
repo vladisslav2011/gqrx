@@ -233,8 +233,8 @@ public:
     vfo::sptr   find_vfo(int64_t freq);
     std::vector<vfo::sptr> get_vfos();
 
-    status      set_filter_offset(double offset_hz);
-    status      set_filter_offset(int rx_index, double offset_hz);
+    status      set_filter_offset(double offset_hz, bool locked=true);
+    status      set_filter_offset(int rx_index, double offset_hz, bool locked=true);
     double      get_filter_offset(void) const;
     bool        set_freq_lock_all(const c_def::v_union & v);
 
