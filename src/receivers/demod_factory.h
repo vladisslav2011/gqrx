@@ -26,20 +26,23 @@
 #include "modulations.h"
 #include "nbrx.h"
 #include "wfmrx.h"
+#include "nbrej.h"
 
 class Demod_Factory
 {
 public:
-    static receiver_base_cf_sptr make(Modulations::idx demod, double quad_rate, float audio_rate)
+    static receiver_base_cf_sptr make(Modulations::idx demod, double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
     {
         Modulations::rx_chain rxc = Modulations::get_rxc(demod);
         switch (rxc)
         {
         case Modulations::RX_CHAIN_NBRX:
         case Modulations::RX_CHAIN_NONE:
-            return make_nbrx(quad_rate, audio_rate);
+            return make_nbrx(quad_rate, audio_rate, rxes);
         case Modulations::RX_CHAIN_WFMRX:
-            return make_wfmrx(quad_rate, audio_rate);
+            return make_wfmrx(quad_rate, audio_rate, rxes);
+        case Modulations::RX_CHAIN_REJECTOR:
+            return nbrej::make(quad_rate, audio_rate, rxes);
         default:
             return nullptr;
         }
