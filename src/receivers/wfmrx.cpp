@@ -26,13 +26,13 @@
 #include <QDebug>
 #include "receivers/wfmrx.h"
 
-wfmrx_sptr make_wfmrx(double quad_rate, float audio_rate)
+wfmrx_sptr make_wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
 {
-    return gnuradio::get_initial_sptr(new wfmrx(quad_rate, audio_rate));
+    return gnuradio::get_initial_sptr(new wfmrx(quad_rate, audio_rate, rxes));
 }
 
-wfmrx::wfmrx(double quad_rate, float audio_rate)
-    : receiver_base_cf("WFMRX", WFM_PREF_QUAD_RATE, quad_rate, audio_rate),
+wfmrx::wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
+    : receiver_base_cf("WFMRX", WFM_PREF_QUAD_RATE, quad_rate, audio_rate, rxes),
       d_running(false)
 {
 

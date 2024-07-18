@@ -30,6 +30,7 @@
 #include "dsp/rx_agc_xx.h"
 #include "dsp/rx_rnnoise.h"
 #include "dsp/rx_squelch.h"
+#include "dsp/rx_rejector.h"
 #include "dsp/downconverter.h"
 #include "interfaces/wav_sink.h"
 #include "interfaces/udp_sink_f.h"
@@ -75,7 +76,8 @@ public:
     /*! \brief Public constructor.
      *  \param src_name Descriptive name used in the constructor of gr::hier_block2
      */
-    receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate);
+    receiver_base_cf(std::string src_name, float pref_quad_rate, double quad_rate, int audio_rate,
+        std::vector<receiver_base_cf_sptr> & rxes);
     virtual ~receiver_base_cf();
 
     virtual bool start() = 0;
@@ -83,8 +85,9 @@ public:
 
     virtual void set_quad_rate(double quad_rate);
     virtual void set_center_freq(double center_freq);
-    void set_offset(int offset) override;
+    bool set_offset(int offset, bool locked) override;
     virtual  void set_audio_rate(int audio_rate);
+    float get_pref_quad_rate() const { return d_pref_quad_rate; }
 
     void set_port(int port);
     int  get_port() const { return d_port; }
@@ -139,7 +142,17 @@ public:
     /* Dedicated audio sink */
     bool set_dedicated_audio_sink(const c_def::v_union &) override;
 
+    void update_rejectors(bool);
+    int find_rejector(receiver_base_cf * rej);
+    void update_rejector(receiver_base_cf * rej);
+    void remove_rejector(receiver_base_cf * rej);
+
 protected:
+    struct rejector
+    {
+        receiver_base_cf * controller;
+        rx_rejector_cc::sptr rejector;
+    };
     bool         d_connected;
     int          d_port;
     double       d_decim_rate;   /*!< Quadrature rate (before down-conversion) */
@@ -160,6 +173,10 @@ protected:
     gr::basic_block_sptr      audio_snk;  /*!< Dedicated audio sink. */
     rx_rnnoise_f_sptr         audio_rnnoise;
     gr::basic_block_sptr      output;
+    std::vector<receiver_base_cf_sptr> & d_rxes;
+    std::vector<struct rejector> d_rejectors;
+public:
+    int                       d_rejector_count;
 private:
     static void rec_event(receiver_base_cf * self, std::string filename, bool is_running);
 

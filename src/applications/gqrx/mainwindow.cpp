@@ -1304,7 +1304,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
         {
             center_freq = d_hw_freq + d_lnb_lo;
             // set RX filter
-            rx->set_filter_offset((double)new_offset);
+            rx->set_filter_offset((double)new_offset, false);
 
             // update RF freq label and channel filter offset
             rx_freq = center_freq + new_offset;
@@ -1339,7 +1339,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
                     del_list.insert(cvfo->get_index());
                 else
                 {
-                    rx->set_filter_offset(cvfo->get_index(), new_offset);
+                    rx->set_filter_offset(cvfo->get_index(), new_offset, false);
                     ui->plotter->addVfo(cvfo);
                 }
             }
@@ -1397,7 +1397,7 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
                     old_vfo->get_sql_level(old_sql);
                     old_vfo->restore_settings(bm, false);
                     old_vfo->set_sql_level(old_sql);
-                    old_vfo->set_offset(bm.frequency - center_freq);
+                    old_vfo->set_offset(bm.frequency - center_freq, false);
                     old_vfo->set_freq_lock(true);
                     ui->plotter->addVfo(old_vfo);
                     rx->select_rx(current);
@@ -1474,7 +1474,7 @@ void MainWindow::lnbLoObserver(c_id, const c_def::v_union &v)
  */
 void MainWindow::setFilterOffset(qint64 freq_hz)
 {
-    rx->set_filter_offset((double) freq_hz);
+    rx->set_filter_offset((double) freq_hz, false);
 
     updateFrequencyRange();
 
@@ -2816,7 +2816,7 @@ void MainWindow::on_plotter_newDemodFreq(qint64 freq, qint64 delta)
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
     {
-        rx->set_filter_offset((double) delta);
+        rx->set_filter_offset((double) delta, false);
         updateFrequencyRange();
     }
 
@@ -2830,7 +2830,7 @@ void MainWindow::on_plotter_newDemodFreqLoad(qint64 freq, qint64 delta)
     // set RX filter
     if (delta != qint64(rx->get_filter_offset()))
     {
-        rx->set_filter_offset((double) delta);
+        rx->set_filter_offset((double) delta, false);
         updateFrequencyRange();
     }
 
@@ -3032,7 +3032,7 @@ void MainWindow::onBookmarkActivated(BookmarkInfo & bm)
     old_vfo->get_sql_level(old_sql);
     rx->get_current_vfo()->restore_settings(bm, false);
     old_vfo->set_sql_level(old_sql);
-    old_vfo->set_offset(old_offset);
+    old_vfo->set_offset(old_offset, false);
     old_vfo->set_freq_lock(true);
     loadRxToGUI();
 }

@@ -205,7 +205,7 @@ public:
     bool         get_rds_cl_bw(c_def::v_union & v) const { v=d_rds_cl_bw; return true; }
 
     //setters
-    virtual void set_offset(int offset);
+    virtual bool set_offset(int offset, bool locked);
     /* Filter parameter */
     virtual bool set_filter_low(const c_def::v_union &);
     virtual bool set_filter_high(const c_def::v_union &);

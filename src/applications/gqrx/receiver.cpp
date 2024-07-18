@@ -114,7 +114,7 @@ receiver::receiver(const std::string input_device,
     rx.reserve(RX_MAX);
     rx.clear();
     d_current = 0;
-    rx.push_back(make_nbrx(d_decim_rate, d_audio_rate));
+    rx.push_back(Demod_Factory::make(Modulations::MODE_OFF, d_decim_rate, d_audio_rate, rx));
     rx[d_current]->set_index(d_current);
 
     input_file = file_source::make(sizeof(gr_complex),get_zero_file().c_str(),0,0,0,1);
@@ -785,7 +785,7 @@ int receiver::add_rx()
     if (d_current >= 0)
         background_rx();
     //TODO: implement virtual receiver_base::sptr receiver_base::copy(int new_index)
-    rx.push_back(make_nbrx(d_decim_rate / (d_use_chan ? chan->decim() : 1.0), d_audio_rate));
+    rx.push_back(Demod_Factory::make(Modulations::MODE_OFF, d_decim_rate / (d_use_chan ? chan->decim() : 1.0), d_audio_rate, rx));
     int old = d_current;
     d_current = rx.size() - 1;
     rx[d_current]->set_index(d_current);
@@ -927,20 +927,24 @@ std::vector<vfo::sptr> receiver::get_vfos()
  *
  * @sa get_filter_offset()
  */
-receiver::status receiver::set_filter_offset(double offset_hz)
+receiver::status receiver::set_filter_offset(double offset_hz, bool locked)
 {
-    set_filter_offset(d_current, offset_hz);
+    set_filter_offset(d_current, offset_hz, locked);
     return STATUS_OK;
 }
 
-receiver::status receiver::set_filter_offset(int rx_index, double offset_hz)
+receiver::status receiver::set_filter_offset(int rx_index, double offset_hz, bool locked)
 {
     if(d_use_chan)
     {
         int channel = std::roundf(offset_hz * double(chan->decim() * chan->osr()) / double(d_decim_rate));
         chan->map_output(rx[rx_index]->get_port(), channel);
     }
-    rx[rx_index]->set_offset(offset_hz);
+    if(rx[rx_index]->set_offset(offset_hz, locked))
+    {
+        tb->lock();
+        tb->unlock();
+    }
     update_agc_panning_auto(rx_index);
     return STATUS_OK;
 }
@@ -1264,7 +1268,7 @@ bool receiver::set_global_mute(const c_def::v_union & v)
 
 void receiver::updateAudioVolume()
 {
-    float mul_k = get_rx_count() ? 1.f / float(get_rx_count()) : 1.f;
+    float mul_k = d_active ? 1.f / float(d_active) : 1.f;
     mc0->set_k(mul_k);
     mc1->set_k(mul_k);
 }
@@ -1297,7 +1301,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         {
             double rx_rate = d_use_chan ? d_decim_rate / chan->decim() : d_decim_rate;
             rx[d_current].reset();
-            rx[d_current] = Demod_Factory::make(demod, rx_rate, d_audio_rate);
+            rx[d_current] = Demod_Factory::make(demod, rx_rate, d_audio_rate, rx);
             rx[d_current]->set_index(d_current);
         }
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
@@ -1306,7 +1310,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         if (old_rx.get() != rx[d_current].get())
         {
             rx[d_current]->restore_settings(*old_rx.get());
-            rx[d_current]->set_offset(old_rx->get_offset());
+            rx[d_current]->set_offset(old_rx->get_offset(), true);
             // Recorders
             if (old_idx == -1)
             {

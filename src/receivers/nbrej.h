@@ -40,18 +40,18 @@ public:
     typedef std::shared_ptr<nbrej> sptr;
 #endif
 /*! \brief Public constructor of nbrx_sptr. */
-    static sptr make(double quad_rate, float audio_rate);
-    nbrej(double quad_rate, float audio_rate);
-    virtual ~nbrej() { };
+    static sptr make(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
+    nbrej(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes);
+    virtual ~nbrej();
 
     bool start() override { return true; }
     bool stop() override { return true; }
-    bool         set_demod(const c_def::v_union &v) override { return vfo_s::set_demod(v);}
+    bool         set_demod(const c_def::v_union &v) override { return vfo_s::set_demod(Modulations::MODE_NB_REJECTOR);}
     bool set_iq_flt_size(const c_def::v_union &v) override { return vfo_s::set_iq_flt_size(v);}
     void set_quad_rate(double quad_rate) override {}
     void set_audio_rate(int audio_rate) override {}
     void set_filter(int low, int high, Modulations::filter_shape shape) override;
-    void set_offset(int offset) override;
+    bool set_offset(int offset, bool locked) override;
 
 #if 0
     bool set_tracking_pll_bw(const c_def::v_union &) override;

@@ -23,28 +23,69 @@
 #include "receivers/nbrej.h"
 
 
-nbrej::sptr nbrej::make(double quad_rate, float audio_rate)
+nbrej::sptr nbrej::make(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
 {
-    return gnuradio::get_initial_sptr(new nbrej(quad_rate, audio_rate));
+    return gnuradio::get_initial_sptr(new nbrej(quad_rate, audio_rate, rxes));
 }
 
-nbrej::nbrej(double quad_rate, float audio_rate)
-    : receiver_base_cf("NBREJ", NB_PREF_QUAD_RATE, quad_rate, audio_rate)
+nbrej::nbrej(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
+    : receiver_base_cf("NBREJ", NB_PREF_QUAD_RATE, quad_rate, audio_rate, rxes)
 {
+    set_demod(Modulations::MODE_NB_REJECTOR);
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() != Modulations::MODE_NB_REJECTOR)
+            d_rxes[k]->d_rejector_count++;
+}
+
+nbrej::~nbrej()
+{
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() != Modulations::MODE_NB_REJECTOR)
+        {
+            if(std::abs(d_rxes[k]->get_offset() - get_offset()) * 2 < d_rxes[k]->get_pref_quad_rate())
+               d_rxes[k]->remove_rejector(this);
+            d_rxes[k]->d_rejector_count--;
+        }
 }
 
 void nbrej::set_filter(int low, int high, Modulations::filter_shape shape)
 {
+    int offset=get_offset();
     receiver_base_cf::set_filter(low, high, shape);
-    //TODO: set PLL locking range on all slaves here
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() != Modulations::MODE_NB_REJECTOR)
+            if(std::abs(d_rxes[k]->get_offset() - offset) * 2 < d_rxes[k]->get_pref_quad_rate())
+               d_rxes[k]->update_rejector(this);
 }
 
-void nbrej::set_offset(int offset)
+bool nbrej::set_offset(int offset, bool locked)
 {
-    if(offset==get_offset())
-        return;
-    vfo_s::set_offset(offset);
-    //TODO: update PLL locking range on all slaves here
+    int old_offset=get_offset();
+    if(offset==old_offset)
+        return false;
+    vfo_s::set_offset(offset, locked);
+    bool needslock = false;
+    size_t k = 0;
+    if(!locked)
+        for(k=0;k<d_rxes.size();k++)
+            if(d_rxes[k] && d_rxes[k]->get_demod() != Modulations::MODE_NB_REJECTOR)
+            {
+                if(std::abs(d_rxes[k]->get_offset() - offset) * 2 < d_rxes[k]->get_pref_quad_rate())
+                    needslock |= d_rxes[k]->find_rejector(this) == -1;
+                else if(std::abs(d_rxes[k]->get_offset() - old_offset) * 2 < d_rxes[k]->get_pref_quad_rate())
+                    needslock |= d_rxes[k]->find_rejector(this) != -1;
+                if(needslock)
+                    break;
+            }
+    for(size_t t=0;t<d_rxes.size();t++)
+        if(d_rxes[t] && d_rxes[t]->get_demod() != Modulations::MODE_NB_REJECTOR)
+        {
+            if(std::abs(d_rxes[t]->get_offset() - offset) * 2 < d_rxes[t]->get_pref_quad_rate())
+                d_rxes[t]->update_rejector(this);
+            else if(std::abs(d_rxes[t]->get_offset() - old_offset) * 2 < d_rxes[t]->get_pref_quad_rate())
+                d_rxes[t]->remove_rejector(this);
+        }
+    return needslock;
 }
 
 #if 0
