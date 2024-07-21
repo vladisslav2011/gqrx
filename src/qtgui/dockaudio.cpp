@@ -65,6 +65,8 @@ DockAudio::DockAudio(QWidget *parent) :
     set_observer(C_AUDIO_FFT_WF_MAX_DB,&DockAudio::audioFFTWfMaxObserver);
     set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTWfMinObserver);
     set_observer(C_AUDIO_FFT_RANGE_LOCKED,&DockAudio::audioFFTLockObserver);
+    set_observer(C_AUDIO_FFT_ZOOM,&DockAudio::audioFFTZoomObserver);
+    set_observer(C_AUDIO_FFT_CENTER,&DockAudio::audioFFTCenterObserver);
     set_observer(C_AUDIO_REC_SQUELCH_TRIGGERED,&DockAudio::audioRecSquelchTriggeredObserver);
     set_observer(C_GLOBAL_MUTE,&DockAudio::globalMuteObserver);
     set_observer(C_AUDIO_UDP_STREAMING,&DockAudio::audioStreamObserver);
@@ -91,6 +93,8 @@ void DockAudio::setFftRange(quint64 minf, quint64 maxf)
         ui->audioSpectrum->setFftCenterFreq(fc);
         ui->audioSpectrum->setSpanFreq(span);
         ui->audioSpectrum->setCenterFreq(0);
+        changed_gui(C_AUDIO_FFT_ZOOM, float(ui->audioSpectrum->getSampleRate())/float(span), false);
+        changed_gui(C_AUDIO_FFT_CENTER, int64_t(fc), false);
     }
 }
 
@@ -270,6 +274,16 @@ void DockAudio::on_audioSpectrum_pandapterRangeChanged(float min, float max)
     }
 }
 
+void DockAudio::on_audioSpectrum_newZoomLevel(float z)
+{
+    changed_gui(C_AUDIO_FFT_ZOOM, z, false);
+}
+
+void DockAudio::on_audioSpectrum_newFftCenterFreq(qint64 c)
+{
+    changed_gui(C_AUDIO_FFT_CENTER, c, false);
+}
+
 void DockAudio::audioFFTWfMinObserver(const c_id id, const c_def::v_union &value)
 {
     c_def::v_union max(0);
@@ -294,6 +308,19 @@ void DockAudio::audioFFTLockObserver(const c_id id, const c_def::v_union &value)
         set_observer(C_AUDIO_FFT_WF_MAX_DB,&DockAudio::audioFFTWfMaxObserver);
         set_observer(C_AUDIO_FFT_WF_MIN_DB,&DockAudio::audioFFTWfMinObserver);
     }
+}
+
+void DockAudio::audioFFTZoomObserver(const c_id id, const c_def::v_union &value)
+{
+    ui->audioSpectrum->blockSignals(true);
+    ui->audioSpectrum->zoomOnXAxis(value);
+    ui->audioSpectrum->blockSignals(false);
+}
+
+void DockAudio::audioFFTCenterObserver(const c_id id, const c_def::v_union &value)
+{
+    ui->audioSpectrum->setFftCenterFreq(value);
+    ui->audioSpectrum->updateOverlay();
 }
 
 void DockAudio::audioRecSquelchTriggeredObserver(const c_id id, const c_def::v_union &value)
