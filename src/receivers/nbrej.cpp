@@ -58,6 +58,13 @@ void nbrej::set_filter(int low, int high, Modulations::filter_shape shape)
                d_rxes[k]->update_rejector(this);
 }
 
+bool nbrej::set_filter_shape(const c_def::v_union & v)
+{
+    receiver_base_cf::set_filter_shape(v);
+    set_filter(d_filter_low, d_filter_high, Modulations::FilterShapeFromTw(d_filter_low, d_filter_high, d_filter_tw));
+    return true;
+}
+
 bool nbrej::set_offset(int offset, bool locked)
 {
     int old_offset=get_offset();

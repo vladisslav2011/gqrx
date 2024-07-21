@@ -992,9 +992,12 @@ bool receiver::set_freq_lock_all(const c_def::v_union & v)
 
 receiver::status receiver::set_filter(int low, int high, filter_shape shape)
 {
+    Modulations::idx demod = rx[d_current]->get_demod();
+    Modulations::UpdateFilterRange(demod, low, high);
+#if 0
     if ((low >= high) || (std::abs(high-low) < RX_FILTER_MIN_WIDTH))
         return STATUS_ERROR;
-
+#endif
     rx[d_current]->set_filter(low, high, shape);
     return STATUS_OK;
 }
