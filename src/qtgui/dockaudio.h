@@ -83,6 +83,8 @@ private:
     void audioFFTWfMinObserver(const c_id id, const c_def::v_union &value);
     void audioFFTWfMaxObserver(const c_id id, const c_def::v_union &value);
     void audioFFTLockObserver(const c_id id, const c_def::v_union &value);
+    void audioFFTZoomObserver(const c_id id, const c_def::v_union &value);
+    void audioFFTCenterObserver(const c_id id, const c_def::v_union &value);
     void audioRecSquelchTriggeredObserver(const c_id id, const c_def::v_union &value);
     void globalMuteObserver(const c_id id, const c_def::v_union &value);
     void audioStreamObserver(const c_id id, const c_def::v_union &value);
@@ -97,6 +99,8 @@ private:
 
 private slots:
     void on_audioSpectrum_pandapterRangeChanged(float,float);
+    void on_audioSpectrum_newZoomLevel(float);
+    void on_audioSpectrum_newFftCenterFreq(qint64);
 
 private:
     Ui::DockAudio *ui;

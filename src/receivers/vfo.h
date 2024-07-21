@@ -187,6 +187,10 @@ public:
     bool         get_audio_dev(c_def::v_union & v) const { v=d_audio_dev; return true; }
     bool         get_dedicated_audio_sink(c_def::v_union & v) const { v=d_dedicated_audio_sink; return true; }
 
+    /* GUI */
+    bool         get_fft_center(c_def::v_union & v) const { v=d_fft_center; return true; }
+    bool         get_fft_zoom(c_def::v_union & v) const { v=d_fft_zoom; return true; }
+
     //setters
     virtual bool set_offset(int offset, bool locked);
     /* Filter parameter */
@@ -270,6 +274,9 @@ public:
     virtual bool get_rds_rt(c_def::v_union &) const;
     virtual bool get_rds_clock(c_def::v_union &) const;
     virtual bool get_rds_af(c_def::v_union &) const;
+    /* GUI */
+    virtual bool set_fft_center(const c_def::v_union & v);
+    virtual bool set_fft_zoom(const c_def::v_union & v);
 
 public:
     struct comp
@@ -338,6 +345,9 @@ protected:
     bool             d_rds_on;
     int              d_testval;
 
+    /* GUI */
+    double           d_fft_zoom{1.};
+    int              d_fft_center{0};
 } vfo;
 
 
