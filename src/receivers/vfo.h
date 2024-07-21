@@ -203,6 +203,9 @@ public:
     bool         get_rds_omega_lim(c_def::v_union & v) const { v=d_rds_omega_lim; return true; }
     bool         get_rds_dll_bw(c_def::v_union & v) const { v=d_rds_dll_bw; return true; }
     bool         get_rds_cl_bw(c_def::v_union & v) const { v=d_rds_cl_bw; return true; }
+    /* GUI */
+    bool         get_fft_center(c_def::v_union & v) const { v=d_fft_center; return true; }
+    bool         get_fft_zoom(c_def::v_union & v) const { v=d_fft_zoom; return true; }
 
     //setters
     virtual bool set_offset(int offset, bool locked);
@@ -303,6 +306,9 @@ public:
     virtual bool set_rds_omega_lim(const c_def::v_union & v);
     virtual bool set_rds_dll_bw(const c_def::v_union & v);
     virtual bool set_rds_cl_bw(const c_def::v_union & v);
+    /* GUI */
+    virtual bool set_fft_center(const c_def::v_union & v);
+    virtual bool set_fft_zoom(const c_def::v_union & v);
 
 public:
     struct comp
@@ -382,7 +388,9 @@ protected:
     float            d_rds_omega_lim{5.e-4f};
     float            d_rds_dll_bw{1.8f};
     float            d_rds_cl_bw{-28.f};
-
+    /* GUI */
+    double           d_fft_zoom{1.};
+    int              d_fft_center{0};
 } vfo;
 
 

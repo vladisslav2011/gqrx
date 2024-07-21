@@ -870,6 +870,7 @@ void CPlotter::zoomStepX(float step, int x)
     	new_FftCenter = m_FftCenter + (fixed_hz - wouldbe_hz);
     }
     setFftCenterFreq(new_FftCenter);
+    emit newFftCenterFreq(new_FftCenter);
     setSpanFreq(new_span);
 
     float factor = (float)m_SampleFreq / (float)m_Span;
@@ -1984,6 +1985,7 @@ void CPlotter::updateOverlay()
 void CPlotter::resetHorizontalZoom(void)
 {
     setFftCenterFreq(0);
+    emit newFftCenterFreq(0);
     setSpanFreq((qint32)m_SampleFreq);
     emit newZoomLevel(1.0);
 }
@@ -1992,6 +1994,7 @@ void CPlotter::resetHorizontalZoom(void)
 void CPlotter::moveToCenterFreq()
 {
     setFftCenterFreq(0);
+    emit newFftCenterFreq(0);
     updateOverlay();
     m_PeakHoldValid = false;
 }
@@ -2000,6 +2003,7 @@ void CPlotter::moveToCenterFreq()
 void CPlotter::moveToDemodFreq()
 {
     setFftCenterFreq(m_DemodCenterFreq-m_CenterFreq);
+    emit newFftCenterFreq(m_DemodCenterFreq-m_CenterFreq);
     updateOverlay();
 
     m_PeakHoldValid = false;

@@ -522,6 +522,16 @@ void MainWindow::add_control(const c_id id)
 {
 }
 
+void MainWindow::disableObservers()
+{
+    disconnect(this,SIGNAL(observer_signal(const c_id, const tag_union)), this, SLOT(observer_slot(const c_id, const tag_union)));
+}
+
+void MainWindow::enableObservers()
+{
+    connect(this,SIGNAL(observer_signal(const c_id, const tag_union)), this, SLOT(observer_slot(const c_id, const tag_union)), Qt::QueuedConnection);
+}
+
 void MainWindow::observer_slot(const c_id id, const c_def::v_union value)
 {
     set_gui(id, value, true);
@@ -1114,6 +1124,7 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
     ui->plotter->setCurrentVfo(0);
     ui->plotter->clearVfos();
     QString grp = (ver >= 4) ? QString("rx%1").arg(i) : "receiver";
+    disableObservers();
     while (1)
     {
 
@@ -1157,6 +1168,7 @@ void MainWindow::readRXSettings(int ver, double actual_rate)
             break;
         rx->add_rx();
     }
+    enableObservers();
     if (ver >= 4)
         int_val = m_settings->value("gui/current_rx", 0).toInt(&conv_ok);
     else
@@ -1566,16 +1578,11 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
 {
     int click_res=100;
     int     flo=0, fhi=0, loMin, loMax, hiMin,hiMax;
-    int     audio_rate = rx->get_audio_rate();
     Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     Modulations::GetFilterRanges(mode_idx, loMin, loMax, hiMin, hiMax);
     ui->plotter->setDemodRanges(loMin, loMax, hiMin, hiMax, hiMax == -loMin);
     click_res = Modulations::modes[int(mode_idx)].click_res;
-    uiDockAudio->setFftRange(
-        std::max(Modulations::modes[int(mode_idx)].fft_lo, -audio_rate / 2),
-        std::min(Modulations::modes[int(mode_idx)].fft_hi, audio_rate / 2)
-        );
 
     qDebug() << "Filter preset for mode" << mode_idx << "LO:" << flo << "HI:" << fhi;
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
@@ -1593,7 +1600,7 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
         const auto & def=defs[j];
         if(!def.readable())
             continue;
-        if((def.scope()==S_VFO)&&(def.demodgroup()==Modulations::modes[mode_idx].group))
+        if((def.demod_specific())&&(def.scope()==S_VFO)&&(def.demodgroup()==Modulations::modes[mode_idx].group))
         {
             const c_id id=c_id(j);
             c_def::v_union v(c_def::all()[id].def());
@@ -1643,10 +1650,15 @@ void MainWindow::modeChangeObserver(const c_id id, const c_def::v_union &value)
     const Modulations::idx mode_idx = Modulations::idx(int(tmp));
     updateDemodGUIRanges(mode_idx);
     int     flo=0, fhi=0;
+    int     audio_rate = rx->get_audio_rate();
     Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
     set_gui(C_FILTER_LO,flo,true);
     set_gui(C_FILTER_HI,fhi,true);
+    uiDockAudio->setFftRange(
+        std::max(Modulations::modes[int(mode_idx)].fft_lo, -audio_rate / 2),
+        std::min(Modulations::modes[int(mode_idx)].fft_hi, audio_rate / 2)
+        );
 }
 
 void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
@@ -3358,7 +3370,7 @@ void MainWindow::loadRxToGUI()
         const auto & def=defs[j];
         if(!def.readable())
             continue;
-        if(def.scope()==S_VFO)
+        if((def.scope()==S_VFO)&& ! (def.demod_specific()))
         {
             const c_id id=c_id(j);
             c_def::v_union v(c_def::all()[id].def());
