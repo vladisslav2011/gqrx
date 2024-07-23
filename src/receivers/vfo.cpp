@@ -46,7 +46,10 @@ bool vfo_s::set_filter_high(const c_def::v_union & v)
 bool vfo_s::set_filter_shape(const c_def::v_union & v)
 {
     d_filter_shape = Modulations::filter_shape(int(v));
+    // Allow asymmetric filters (Shift+Wheel)
+    #if 0
     Modulations::UpdateFilterRange(d_demod, d_filter_low, d_filter_high);
+    #endif
     d_filter_tw = Modulations::TwFromFilterShape(d_filter_low, d_filter_high, d_filter_shape);
     return true;
 }
