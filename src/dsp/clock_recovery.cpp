@@ -595,11 +595,14 @@ int bpsk_phase_sync_cc::work(int noutput_items,
     {
         gr_complex phase=d_phase;
         gr_complex incr=d_incr;
-        float early=estimate(phase,incr*d_early,d_size*2,&in[k]);
-        float late=estimate(phase,incr*d_late,d_size*2,&in[k]);
+        gr_complex early_c = std::polar(1.f,-.3f);
+        gr_complex late_c = std::polar(1.f,.3f);
+        float early=estimate(phase*early_c,incr,d_size*2,&in[k]);
+        float late=estimate(phase*late_c,incr,d_size*2,&in[k]);
         float test=estimate(phase,incr,d_size*2+test_extra,&in[k]);
         float prompt=estimate(phase,incr,d_size*2,&in[k]);
-        float dd=(log10f(late)-log10f(early));
+        //  float dd=(log10f(late)-log10f(early));
+        float dd=(late-early)/std::max(late,early);
         float e_phase=std::arg(phase),e_incr=std::arg(incr);
         if(std::max(prompt,test)>1.f)//in sync
 //        if(0)
@@ -609,7 +612,6 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             d_phase=phase;//*std::polar(1.f,d_scaled_bw*dd);
             d_incr=incr*std::polar(1.f,d_scaled_bw*dd);
             d_incr/=std::abs(d_incr);
-            //float dd=late-early;
             //d_phase*=std::polar(1.f,d_bw*dd);
 //            printf("ok: %8.8f %8.8f\n", double(std::arg(d_phase)-e_phase),double(std::arg(d_incr)-e_incr));
         }else{
