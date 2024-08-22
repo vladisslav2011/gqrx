@@ -69,44 +69,14 @@ wavfile_sink_gqrx::wavfile_sink_gqrx(const char* filename,
       d_prev_action(ACT_NONE),
       d_prev_roffset(0)
 {
-    int bits_per_sample = 16;
-
     if (n_channels > s_max_channels)
         throw std::runtime_error("Number of channels greater than " +
                                  std::to_string(s_max_channels) + " not supported.");
 
     d_h.sample_rate = sample_rate;
     d_h.nchans = n_channels;
-    d_h.format = format;
-    d_h.subformat = subformat;
-    switch (subformat) {
-    case FORMAT_PCM_S8:
-        bits_per_sample = 8;
-        break;
-    case FORMAT_PCM_16:
-        bits_per_sample = 16;
-        break;
-    case FORMAT_PCM_24:
-        bits_per_sample = 24;
-        break;
-    case FORMAT_PCM_32:
-        bits_per_sample = 32;
-        break;
-    case FORMAT_PCM_U8:
-        bits_per_sample = 8;
-        break;
-    case FORMAT_FLOAT:
-        bits_per_sample = 32;
-        break;
-    case FORMAT_DOUBLE:
-        bits_per_sample = 64;
-        break;
-    case FORMAT_VORBIS:
-        bits_per_sample = 32;
-        break;
-    }
-    set_bits_per_sample_unlocked(bits_per_sample);
-    d_h.bytes_per_sample = d_bytes_per_sample_new;
+    set_format_unlocked(format, subformat);
+    set_compression(0.5f);
 
     set_max_noutput_items(s_items_size);
     d_buffer.resize(s_items_size * d_h.nchans);
@@ -241,12 +211,38 @@ bool wavfile_sink_gqrx::open_unlocked(const char* filename)
                 break;
             }
             break;
+        case FORMAT_RAW:
+            switch (d_h.subformat) {
+            case FORMAT_PCM_S8:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_S8);
+                break;
+            case FORMAT_PCM_U8:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_U8);
+                break;
+            case FORMAT_PCM_16:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_16);
+                break;
+            case FORMAT_PCM_24:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_24);
+                break;
+            case FORMAT_PCM_32:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_32);
+                break;
+            case FORMAT_FLOAT:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_FLOAT);
+                break;
+            case FORMAT_DOUBLE:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_DOUBLE);
+                break;
+            }
+            break;
         }
         if (!(d_new_fp = sf_open(filename, SFM_WRITE, &sfinfo))) {
             std::cerr << "sf_open failed: " << filename << " "
                              << strerror(errno)<<std::endl;
             return false;
         }
+        sf_command(d_new_fp, SFC_SET_COMPRESSION_LEVEL, &d_h.compression, sizeof(d_h.compression));
     }
     d_updated = true;
 
@@ -265,7 +261,14 @@ int wavfile_sink_gqrx::open_new_unlocked()
     QDateTime ts = d_ts_src ? QDateTime::fromMSecsSinceEpoch(d_ts_src->get()).toUTC() : QDateTime::currentDateTime().toUTC();
     // use toUTC() function compatible with older versions of Qt.
     QString file_name = ts.toString("gqrx_yyyyMMdd_hhmmss");
-    QString filename = QString("%1/%2_%3.wav").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset));
+    QString filename;
+    if(d_h.format == FORMAT_RAW)
+        filename = QString("%1/%2_%3_%4%5").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset))
+        .arg(d_h.sample_rate)
+        .arg(fmt_suffix(d_h.format, d_h.subformat));
+    else
+        filename = QString("%1/%2_%3%4").arg(QString(d_rec_dir.data())).arg(file_name).arg(qint64(d_center_freq + d_offset))
+        .arg(fmt_suffix(d_h.format, d_h.subformat));
     if (open_unlocked(filename.toStdString().data()))
     {
         if (d_rec_event)
@@ -466,6 +469,52 @@ void wavfile_sink_gqrx::set_bits_per_sample_unlocked(int bits_per_sample)
     d_bytes_per_sample_new = bits_per_sample / 8;
 }
 
+void wavfile_sink_gqrx::set_format(int fmt, int sub)
+{
+    std::unique_lock<std::mutex> guard(d_mutex);
+    set_format_unlocked(fmt, sub);
+}
+
+void wavfile_sink_gqrx::set_format_unlocked(int fmt, int sub)
+{
+    int bits_per_sample = 16;
+    d_h.format = fmt;
+    d_h.subformat = sub;
+    switch (sub) {
+    case FORMAT_PCM_S8:
+        bits_per_sample = 8;
+        break;
+    case FORMAT_PCM_16:
+        bits_per_sample = 16;
+        break;
+    case FORMAT_PCM_24:
+        bits_per_sample = 24;
+        break;
+    case FORMAT_PCM_32:
+        bits_per_sample = 32;
+        break;
+    case FORMAT_PCM_U8:
+        bits_per_sample = 8;
+        break;
+    case FORMAT_FLOAT:
+        bits_per_sample = 32;
+        break;
+    case FORMAT_DOUBLE:
+        bits_per_sample = 64;
+        break;
+    case FORMAT_VORBIS:
+        bits_per_sample = 32;
+        break;
+    }
+    set_bits_per_sample_unlocked(bits_per_sample);
+    d_h.bytes_per_sample = d_bytes_per_sample_new;
+}
+
+void wavfile_sink_gqrx::set_compression(float val)
+{
+    d_h.compression = (double)val;
+}
+
 void wavfile_sink_gqrx::set_append(bool append)
 {
     std::unique_lock<std::mutex> guard(d_mutex);
@@ -530,4 +579,39 @@ int wavfile_sink_gqrx::get_min_time()
 int wavfile_sink_gqrx::get_max_gap()
 {
     return d_max_gap_ms;
+}
+
+const char * wavfile_sink_gqrx::fmt_suffix(
+    const int fmt,
+    const int sub)
+{
+    switch(fmt)
+    {
+    case FORMAT_WAV:
+        return ".wav";
+    case FORMAT_RF64:
+        return ".wav";
+    case FORMAT_RAW:
+        switch(sub)
+        {
+        case FORMAT_PCM_S8:
+            return "_8.raw";
+        case FORMAT_PCM_U8:
+            return "_u8.raw";
+        case FORMAT_PCM_16:
+            return "_16.raw";
+        case FORMAT_PCM_32:
+            return "_32.raw";
+        case FORMAT_FLOAT:
+            return "_fc.raw";
+        default:
+            return "_fc.raw";
+        }
+    case FORMAT_FLAC:
+        return ".flac";
+    case FORMAT_OGG:
+        return ".ogg";
+    default:
+        return ".wav";
+    }
 }

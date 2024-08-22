@@ -2410,6 +2410,71 @@ c_def()
     .readable(0)
     ,
 c_def()
+    .idx(C_AUDIO_REC_FORMAT)
+    .name("recording_format")
+    .title("Format")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT,1,2))
+    .tab("Recording")
+    .g_type(G_COMBO)
+    .dock(D_AUDIO)
+    .window(W_CHILD)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rec_fmt")
+    .v_type(V_INT)
+    .def(0x010000|2)
+    .min(0x010000|1)
+    .max(0x220000|7)
+    .step(1)
+    .presets((c_def::v_preset[])
+    {
+//        {"00","WAV 8s",0x010000|1},
+        {"WAV16","WAV 16",0x010000|2},
+        {"WAV24","WAV 24",0x010000|3},
+        {"WAV32","WAV 32",0x010000|4},
+        {"WAV8","WAV 8u",0x010000|5},
+        {"WAVF","WAV FLOAT",0x010000|6},
+        {"WAVD","WAV DOUBLE",0x010000|7},
+        {"RAW8S","RAW 8",0x040000|1},
+        {"RAW8","RAW 8u",0x040000|5},
+        {"RAW16","RAW 16",0x040000|2},
+        {"RAW32","RAW 32",0x040000|4},
+        {"RAWF","RAW FLOAT",0x040000|6},
+        {"FLAC8","FLAC 8",0x170000|1},
+        {"FLAC16","FLAC 16",0x170000|2},
+        {"FLAC24","FLAC 24",0x170000|3},
+        {"OGG","OGG",0x200000|0x0060},
+//        {"15","RF64 8s",0x220000|1},
+        {"RF64_16","RF64 16",0x220000|2},
+        {"RF64_24","RF64 24",0x220000|3},
+        {"RF64_32","RF64 32",0x220000|4},
+        {"RF64F","RF64 FLOAT",0x220000|5},
+        {"RF64_8","RF64 8u",0x220000|6},
+        {"RF64D","RF64 DOUBLE",0x220000|7},
+    })
+    ,
+c_def()
+    .idx(C_AUDIO_REC_COMPRESSION)
+    .name("recording_compression")
+    .title("Compression level")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT,1,2))
+    .tab("Recording")
+    .g_type(G_DOUBLESPINBOX)
+    .dock(D_AUDIO)
+    .window(W_CHILD)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rec_compression")
+    .v_type(V_DOUBLE)
+    .def(0.5)
+    .min(0.0)
+    .max(1.0)
+    .step(0.1)
+    .frac_digits(2)
+    ,
+c_def()
     .idx(C_AUDIO_UDP_HOST)
     .name("udp_host")
     .title("UDP host")
