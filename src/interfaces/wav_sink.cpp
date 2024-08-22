@@ -255,7 +255,7 @@ int wavfile_sink_gqrx::open_new()
 int wavfile_sink_gqrx::open_new_unlocked()
 {
     // FIXME: option to use local time
-    QDateTime ts = d_ts_src ? QDateTime::fromMSecsSinceEpoch(d_ts_src->get()) : QDateTime::currentDateTime().toUTC();
+    QDateTime ts = d_ts_src ? QDateTime::fromMSecsSinceEpoch(d_ts_src->get()).toUTC() : QDateTime::currentDateTime().toUTC();
     // use toUTC() function compatible with older versions of Qt.
     QString file_name = ts.toString("gqrx_yyyyMMdd_hhmmss");
     QString filename;
