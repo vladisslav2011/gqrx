@@ -88,6 +88,8 @@ public:
         d_rec_sql_triggered(false),
         d_rec_min_time(0),
         d_rec_max_gap(0),
+        d_rec_format(0x010000|2),
+        d_rec_compression(0.5f),
         d_udp_host("127.0.0.1"),
         d_udp_port(7355),
         d_udp_stereo(false),
@@ -183,6 +185,8 @@ public:
     bool         get_audio_rec_sql_triggered(c_def::v_union & v) const { v=d_rec_sql_triggered; return true; }
     bool         get_audio_rec_min_time(c_def::v_union & v) const { v=d_rec_min_time; return true; }
     bool         get_audio_rec_max_gap(c_def::v_union & v) const { v=d_rec_max_gap; return true; }
+    bool         get_audio_rec_format(c_def::v_union & v) const { v=d_rec_format; return true; }
+    bool         get_audio_rec_compression(c_def::v_union & v) const { v=d_rec_compression; return true; }
     virtual bool get_audio_rec(c_def::v_union &) const;
     virtual bool get_audio_rec_filename(c_def::v_union &) const;
     /* UDP streaming */
@@ -268,6 +272,8 @@ public:
     virtual bool set_audio_rec_min_time(const c_def::v_union &);
     virtual bool set_audio_rec_max_gap(const c_def::v_union &);
     virtual bool set_audio_rec(const c_def::v_union &);
+    virtual bool set_audio_rec_format(const c_def::v_union &);
+    virtual bool set_audio_rec_compression(const c_def::v_union &);
 
     /* UDP streaming */
     virtual bool set_udp_host(const c_def::v_union &);
@@ -368,6 +374,8 @@ protected:
     bool             d_rec_sql_triggered;
     int              d_rec_min_time;
     int              d_rec_max_gap;
+    int              d_rec_format;
+    float            d_rec_compression;
 
     std::string      d_udp_host;
     int              d_udp_port;

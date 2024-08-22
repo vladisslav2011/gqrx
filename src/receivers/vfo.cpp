@@ -392,6 +392,18 @@ bool vfo_s::set_audio_rec(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_audio_rec_format(const c_def::v_union & v)
+{
+    d_rec_format = v;
+    return true;
+}
+
+bool vfo_s::set_audio_rec_compression(const c_def::v_union & v)
+{
+    d_rec_compression = v;
+    return true;
+}
+
 /* UDP streaming */
 bool vfo_s::set_udp_host(const c_def::v_union & v)
 {
@@ -528,6 +540,10 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
         set_audio_rec_max_gap(v);
     from.get_audio_rec_sql_triggered(v);
     set_audio_rec_sql_triggered(v);
+    from.get_audio_rec_format(v);
+    set_audio_rec_format(v);
+    from.get_audio_rec_compression(v);
+    set_audio_rec_compression(v);
 
     from.get_audio_dev(v);
     set_audio_dev(v);
@@ -665,6 +681,10 @@ int vfo_s::conf_initializer()
     setters[C_AUDIO_REC]=&vfo_s::set_audio_rec;
     getters[C_AUDIO_REC]=&vfo_s::get_audio_rec;
     getters[C_AUDIO_REC_FILENAME]=&vfo_s::get_audio_rec_filename;
+    setters[C_AUDIO_REC_FORMAT]=&vfo_s::set_audio_rec_format;
+    getters[C_AUDIO_REC_FORMAT]=&vfo_s::get_audio_rec_format;
+    setters[C_AUDIO_REC_COMPRESSION]=&vfo_s::set_audio_rec_compression;
+    getters[C_AUDIO_REC_COMPRESSION]=&vfo_s::get_audio_rec_compression;
     // AGC parameters
     setters[C_AGC_ON]=&vfo_s::set_agc_on;
     getters[C_AGC_ON]=&vfo_s::get_agc_on;

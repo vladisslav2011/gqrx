@@ -45,6 +45,7 @@ public:
         FORMAT_FLAC = 0x170000,
         FORMAT_OGG = 0x200000,
         FORMAT_RF64 = 0x220000,
+        FORMAT_RAW  = 0x040000,
     };
 
     enum wavfile_subformat_t {
@@ -85,6 +86,9 @@ private:
 
         //! sndfile format
         int subformat;
+
+        //! compression ratio
+        double compression;
     };
 
 
@@ -141,6 +145,7 @@ private:
      * other methods.
      */
     void close_wav();
+    static const char * fmt_suffix(const int fmt, const int sub);
 
 protected:
     bool stop() override;
@@ -173,6 +178,8 @@ public:
 
     void set_sample_rate(unsigned int sample_rate);
     void set_bits_per_sample(int bits_per_sample);
+    void set_format(int fmt, int sub);
+    void set_compression(float val);
 
     void set_append(bool append);
 
@@ -199,6 +206,7 @@ private:
     bool open_unlocked(const char* filename);
     int  open_new_unlocked();
     void writeout(const int offset, const int writecount, const int n_in_chans, float** in);
+    void set_format_unlocked(int fmt, int sub);
 };
 
 #endif /* GQRX_WAVFILE_SINK_C_H */
