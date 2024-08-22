@@ -213,6 +213,20 @@ bool receiver_base_cf::set_audio_rec_max_gap(const c_def::v_union & v)
     return true;
 }
 
+bool receiver_base_cf::set_audio_rec_format(const c_def::v_union & v)
+{
+    vfo_s::set_audio_rec_format(v);
+    wav_sink->set_format(int64_t(v)&0xffff0000, int64_t(v)&0xffff);
+    return true;
+}
+
+bool receiver_base_cf::set_audio_rec_compression(const c_def::v_union & v)
+{
+    vfo_s::set_audio_rec_compression(v);
+    wav_sink->set_compression(v);
+    return true;
+}
+
 float receiver_base_cf::get_signal_level()
 {
     return meter->get_level_db();
