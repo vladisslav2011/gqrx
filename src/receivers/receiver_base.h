@@ -98,6 +98,8 @@ public:
     bool set_audio_rec_min_time(const c_def::v_union &) override;
     bool set_audio_rec_max_gap(const c_def::v_union &) override;
     bool set_audio_rec(const c_def::v_union &) override;
+    bool set_audio_rec_format(const c_def::v_union &) override;
+    bool set_audio_rec_compression(const c_def::v_union &) override;
     bool get_audio_rec(c_def::v_union &) const override;
     bool get_audio_rec_filename(c_def::v_union &) const override;
     void set_timestamp_source(wavfile_sink_gqrx::timestamp_source * value){ wav_sink->set_timestamp_source(value); }
