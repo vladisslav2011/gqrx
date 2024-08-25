@@ -91,7 +91,14 @@ public:
     bool set_pll_bw(const c_def::v_union &) override;
 
 private:
+
+    void update_filter();
+
     bool   d_running;          /*!< Whether receiver is running or not. */
+    int d_fxff_decim{1};
+    int old_filter_low{0};
+    int old_filter_high{0};
+    bool d_wb_rec{0};
 
     rx_filter_sptr            filter;  /*!< Non-translating bandpass filter.*/
 
@@ -104,6 +111,9 @@ private:
     rx_demod_amsync_sptr      demod_amsync;   /*!< AM-Sync demodulator. */
     resampler_ff_sptr         audio_rr0;  /*!< Audio resampler. */
     resampler_ff_sptr         audio_rr1;  /*!< Audio resampler. */
+    gr::filter::freq_xlating_fir_filter_ccf::sptr fxff;
+    std::vector<float> d_fxff_taps;
+    gr::blocks::complex_to_float::sptr  rec_raw;  /*!< Raw I/Q passthrough for recorder. */
 
     gr::basic_block_sptr      demod;    // dummy pointer used for simplifying reconf
 };

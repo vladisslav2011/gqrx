@@ -24,6 +24,7 @@
 #include <iostream>
 #include <QDebug>
 #include "receivers/nbrx.h"
+#include <gnuradio/filter/firdes.h>
 
 
 nbrx_sptr make_nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr> & rxes)
@@ -61,12 +62,17 @@ nbrx::nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr
         audio_rr1 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
     }
 
+    rec_raw = gr::blocks::complex_to_float::make(1);
+    fxff = gr::filter::freq_xlating_fir_filter_ccf::make(d_fxff_decim, {1}, 0.0, d_decim_rate);
+    connect_default();
     demod = demod_raw;
     connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, nb, 0);
     connect(nb, 0, filter, 0);
     connect(filter, 0, meter, 0);
     connect(filter, 0, sql, 0);
+    old_filter_low=d_filter_low;
+    old_filter_high=d_filter_high;
 }
 
 bool nbrx::start()
@@ -159,16 +165,141 @@ void nbrx::set_audio_rate(int audio_rate)
 void nbrx::set_filter(int low, int high, Modulations::filter_shape shape)
 {
     receiver_base_cf::set_filter(low, high, shape);
+    update_filter();
+}
+
+void nbrx::update_filter()
+{
+    int oldbw = std::max(old_filter_high, -old_filter_low);
+    int newbw = std::max(d_filter_high, -d_filter_low);
+    old_filter_low=d_filter_low;
+    old_filter_high=d_filter_high;
     if(d_demod!=Modulations::MODE_OFF)
         filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
+    //REC_raw
+    if(d_demod == Modulations::MODE_RAW)
+    {
+        printf("bw %d => %d\n",oldbw,newbw);
+        double corr_bw=std::min(double(newbw),d_decim_rate/2.-1.);
+        double corr_tw=std::min(double(d_filter_tw),d_decim_rate/2.-1.);
+        if((!d_wb_rec)&&(newbw>NB_PREF_QUAD_RATE/2))
+        {
+            printf("nbrx::update_filter connect %d %f %d=>%d %d\n",d_connected,d_decim_rate,oldbw,newbw,d_filter_tw);
+            d_fxff_decim = std::max(1,int(std::floor(d_decim_rate / ((newbw + d_filter_tw) * 2))));
+            if(d_connected && d_running)
+                lock();
+            disconnect(agc, 0, wav_sink, 0);
+            disconnect(agc, 1, wav_sink, 1);
+            set_audio_rec_sql_triggered(0);
+            set_audio_rec(0);
+            wav_sink->set_sample_rate(d_decim_rate / d_fxff_decim);
+            wav_sink->set_history(1);
+            d_fxff_taps=gr::filter::firdes::low_pass_2(1.0, d_decim_rate,
+                    corr_bw,
+                    corr_tw, 53.0,
+#if GNURADIO_VERSION < 0x030900
+                    gr::filter::firdes::WIN_BLACKMAN_HARRIS
+#else
+                    gr::fft::window::WIN_BLACKMAN_HARRIS
+#endif
+                );
+            fxff = gr::filter::freq_xlating_fir_filter_ccf::make(d_fxff_decim,d_fxff_taps, d_offset, d_decim_rate);
+            connect(self(),0,fxff,0);
+            connect(fxff,0,rec_raw,0);
+            connect(rec_raw, 0, wav_sink, 0);
+            connect(rec_raw, 1, wav_sink, 1);
+            d_wb_rec=1;
+            if(d_connected && d_running)
+                unlock();
+        }
+        if((d_wb_rec)&&(newbw<=NB_PREF_QUAD_RATE/2))
+        {
+            printf("nbrx::update_filter disconnect\n");
+            if(d_connected)
+                lock();
+            disconnect(self(),0,fxff,0);
+            disconnect(fxff,0,rec_raw,0);
+            disconnect(rec_raw, 0, wav_sink, 0);
+            disconnect(rec_raw, 1, wav_sink, 1);
+            wav_sink->set_sample_rate(d_audio_rate);
+            connect(agc, 0, wav_sink, 0);
+            connect(agc, 1, wav_sink, 1);
+            d_wb_rec=0;
+            if(d_connected)
+                unlock();
+        }
+        if(d_wb_rec&&(newbw>NB_PREF_QUAD_RATE/2))
+        {
+            int new_fxff_decim = std::max(1,int(std::floor(d_decim_rate / ((newbw + d_filter_tw) * 2))));
+            if(d_fxff_decim != new_fxff_decim)
+            {
+                printf("nbrx::update_filter reconnect\n");
+                if(d_connected)
+                    lock();
+                disconnect(self(),0,fxff,0);
+                disconnect(fxff,0,rec_raw,0);
+                disconnect(rec_raw, 0, wav_sink, 0);
+                disconnect(rec_raw, 1, wav_sink, 1);
+                wav_sink->set_sample_rate(d_decim_rate / new_fxff_decim);
+                wav_sink->set_history(1);
+                d_fxff_taps=gr::filter::firdes::low_pass_2(1.0, d_decim_rate,
+                        corr_bw,
+                        corr_tw, 53.0,
+    #if GNURADIO_VERSION < 0x030900
+                        gr::filter::firdes::WIN_BLACKMAN_HARRIS
+    #else
+                        gr::fft::window::WIN_BLACKMAN_HARRIS
+    #endif
+                    );
+                fxff = gr::filter::freq_xlating_fir_filter_ccf::make(new_fxff_decim,
+                    d_fxff_taps, d_offset, d_decim_rate);
+                connect(self(),0,fxff,0);
+                connect(fxff,0,rec_raw,0);
+                connect(rec_raw, 0, wav_sink, 0);
+                connect(rec_raw, 1, wav_sink, 1);
+                if(d_connected)
+                    unlock();
+                printf("d_fxff_decim %d => %d\n",d_fxff_decim,new_fxff_decim);
+                d_fxff_decim = new_fxff_decim;
+            }else{
+                d_fxff_taps=gr::filter::firdes::low_pass_2(1.0, d_decim_rate,
+                        corr_bw,
+                        corr_tw, 53.0,
+    #if GNURADIO_VERSION < 0x030900
+                        gr::filter::firdes::WIN_BLACKMAN_HARRIS
+    #else
+                        gr::fft::window::WIN_BLACKMAN_HARRIS
+    #endif
+                    );
+                fxff->set_taps(d_fxff_taps);
+                printf("nbrx::update_filter configure\n");
+            }
+        }
+    }else{
+        if(d_wb_rec)
+        {
+            printf("nbrx::update_filter demod change disconnect\n");
+            if(d_connected)
+                lock();
+            disconnect(self(),0,fxff,0);
+            disconnect(fxff,0,rec_raw,0);
+            disconnect(rec_raw, 0, wav_sink, 0);
+            disconnect(rec_raw, 1, wav_sink, 1);
+            wav_sink->set_sample_rate(d_audio_rate);
+            connect(agc, 0, wav_sink, 0);
+            connect(agc, 1, wav_sink, 1);
+            d_wb_rec=0;
+            if(d_connected)
+                unlock();
+        }
+    }
 }
 
 bool nbrx::set_filter_shape(const c_def::v_union & v)
 {
     receiver_base_cf::set_filter_shape(v);
     filter_adjust();
-    if(d_demod!=Modulations::MODE_OFF)
-        filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
+    update_filter();
     return true;
 }
 
@@ -211,6 +342,7 @@ bool nbrx::set_offset(int offset, bool locked)
         ddc->set_center_freq(offset);
     }
     wav_sink->set_offset(offset);
+    fxff->set_center_freq(offset);// REC_RAW
     update_rejectors(locked);
     return false;
 }
@@ -391,6 +523,7 @@ bool nbrx::set_demod(const c_def::v_union & v)
         ddc->set_center_freq(get_offset());
         filter->set_cw_offset(0);
     }
+    update_filter();
     return true;
 }
 
