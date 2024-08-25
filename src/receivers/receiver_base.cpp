@@ -53,7 +53,6 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     d_ddc_decim = std::max(1, (int)(d_decim_rate / TARGET_QUAD_RATE));
     d_quad_rate = d_decim_rate / d_ddc_decim;
     ddc = make_downconverter_cc(d_ddc_decim, 0.0, d_decim_rate);
-    connect(self(), 0, ddc, 0);
 
     iq_resamp = make_resampler_cc((double)d_pref_quad_rate/d_quad_rate);
     agc = make_rx_agc_2f(d_audio_rate, d_agc_on, d_agc_target_level,
@@ -68,14 +67,6 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     audio_rnnoise =  make_rx_rnnoise_f(audio_rate);
 
     output = audio_rnnoise;
-    connect(audio_rnnoise, 0, agc, 0);
-    connect(audio_rnnoise, 1, agc, 1);
-    connect(agc, 0, wav_sink, 0);
-    connect(agc, 1, wav_sink, 1);
-    connect(agc, 0, audio_udp_sink, 0);
-    connect(agc, 1, audio_udp_sink, 1);
-    connect(agc, 2, self(), 0);
-    connect(agc, 3, self(), 1);
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
                                     std::placeholders::_2));
     for(size_t k=0;k<d_rxes.size();k++)
@@ -89,6 +80,19 @@ receiver_base_cf::~receiver_base_cf()
     //Prevent segfault
     if (wav_sink)
         wav_sink->set_rec_event_handler(nullptr);
+}
+
+void receiver_base_cf::connect_default()
+{
+    connect(self(), 0, ddc, 0);
+    connect(audio_rnnoise, 0, agc, 0);
+    connect(audio_rnnoise, 1, agc, 1);
+    connect(agc, 0, wav_sink, 0);
+    connect(agc, 1, wav_sink, 1);
+    connect(agc, 0, audio_udp_sink, 0);
+    connect(agc, 1, audio_udp_sink, 1);
+    connect(agc, 2, self(), 0);
+    connect(agc, 3, self(), 1);
 }
 
 bool receiver_base_cf::set_demod(const c_def::v_union & v)
