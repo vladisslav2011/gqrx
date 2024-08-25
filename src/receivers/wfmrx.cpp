@@ -48,6 +48,7 @@ wfmrx::wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sp
     rds_decoder = gr::rds::decoder::make();
     rds_parser = gr::rds::parser::make(0, 0, 0);
 
+    connect_default();
     connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, filter, 0);
     connect(filter, 0, meter, 0);

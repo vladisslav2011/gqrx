@@ -155,6 +155,9 @@ protected:
         receiver_base_cf * controller;
         rx_rejector_cc::sptr rejector;
     };
+
+    void connect_default();
+
     bool         d_connected;
     int          d_port;
     double       d_decim_rate;   /*!< Quadrature rate (before down-conversion) */
