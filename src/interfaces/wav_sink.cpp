@@ -213,6 +213,9 @@ bool wavfile_sink_gqrx::open_unlocked(const char* filename)
             break;
         case FORMAT_RAW:
             switch (d_h.subformat) {
+            case FORMAT_PCM_S8:
+                sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_S8);
+                break;
             case FORMAT_PCM_U8:
                 sfinfo.format = (SF_FORMAT_RAW | SF_FORMAT_PCM_U8);
                 break;
