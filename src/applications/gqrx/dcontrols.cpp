@@ -3852,6 +3852,25 @@ c_def()
     .writable(false)
     .event(true)
     ,
+c_def()
+    .idx(C_RDS_CL_LIM)
+    .name("RDS_CL_LIM")
+    .title("CL LIM")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("Costas loop phase increment relative limit")
+    .g_type(G_DOUBLESPINBOX)
+    .dock(D_RDS)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rds_cl_lim")
+    .v_type(V_DOUBLE)
+    .def(.0001)
+    .min(.00001)
+    .max(.005)
+    .step(.00001)
+    .frac_digits(5)
+    ,
 };
 
 std::array<std::function<void (const int, const c_def::v_union &)>, C_COUNT> conf_base::observers{};

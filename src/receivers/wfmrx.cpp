@@ -402,3 +402,10 @@ bool wfmrx::set_rds_cl_bw(const c_def::v_union & v)
     rds->set_cl_bw(d_rds_cl_bw);
     return true;
 }
+
+bool wfmrx::set_rds_cl_lim(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_cl_lim(v);
+    rds->set_cl_lim(d_rds_cl_lim);
+    return true;
+}

@@ -495,6 +495,12 @@ bool vfo_s::set_rds_cl_bw(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_rds_cl_lim(const c_def::v_union & v)
+{
+    d_rds_cl_lim = v;
+    return true;
+}
+
 bool vfo_s::set_fft_center(const c_def::v_union & v)
 {
     d_fft_center = v;
@@ -593,6 +599,7 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_rds_omega_lim(v); set_rds_omega_lim(v);
     from.get_rds_dll_bw(v); set_rds_dll_bw(v);
     from.get_rds_cl_bw(v); set_rds_cl_bw(v);
+    from.get_rds_cl_lim(v); set_rds_cl_lim(v);
     from.get_fft_center(v);set_fft_center(v);
     from.get_fft_zoom(v);set_fft_zoom(v);
     
@@ -796,6 +803,8 @@ int vfo_s::conf_initializer()
     setters[C_RDS_DLL_BW]=&vfo_s::set_rds_dll_bw;
     getters[C_RDS_CL_BW]=&vfo_s::get_rds_cl_bw;
     setters[C_RDS_CL_BW]=&vfo_s::set_rds_cl_bw;
+    getters[C_RDS_CL_LIM]=&vfo_s::get_rds_cl_lim;
+    setters[C_RDS_CL_LIM]=&vfo_s::set_rds_cl_lim;
     /* GUI */
     getters[C_AUDIO_FFT_CENTER]=&vfo_s::get_fft_center;
     setters[C_AUDIO_FFT_CENTER]=&vfo_s::set_fft_center;

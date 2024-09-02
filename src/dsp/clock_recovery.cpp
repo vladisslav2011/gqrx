@@ -335,7 +335,7 @@ bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int siz
     float beste=0.f;
     int bestj=0;
     const float step=0.5f/float(s_size);
-    const int NN=std::floor(0.006f/step);
+    const int NN=std::floor(d_lim/step);
     for(int j=-NN;j<=NN;j++)
     {
         e0=estimate(p0,float(j)*step,s_size,buf);
@@ -658,6 +658,12 @@ void bpsk_phase_sync_cc::rotateN(gr_complex * out, const gr_complex * in,int n)
         volk_32fc_s32fc_x2_rotator_32fc(out, in, d_incr, &d_phase, n);
 #endif
 }
+
+void bpsk_phase_sync_cc::set_lim(float lim)
+{
+    d_lim=lim;
+}
+
 void bpsk_phase_sync_cc::set_bw(float bw)
 {
     d_bw = bw;

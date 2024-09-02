@@ -91,6 +91,7 @@ public:
     void set_omega_lim(float v);
     void set_dll_bw(float v);
     void set_cl_bw(float v);
+    void set_cl_lim(float v);
     float phase_snr() const;
 
 private:

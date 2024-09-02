@@ -95,6 +95,7 @@ public:
     bool set_rds_omega_lim(const c_def::v_union & v) override;
     bool set_rds_dll_bw(const c_def::v_union & v) override;
     bool set_rds_cl_bw(const c_def::v_union & v) override;
+    bool set_rds_cl_lim(const c_def::v_union & v) override;
 
 private:
     void start_rds_decoder();

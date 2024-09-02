@@ -107,9 +107,11 @@ typedef std::shared_ptr<bpsk_phase_sync_cc> sptr;
              gr_vector_const_void_star &input_items,
              gr_vector_void_star &output_items) override;
 
+    float lim() const { return d_lim; }
     float bw() const { return d_bw; }
     float thr() const { return d_threshold; }
 
+    void set_lim(float lim);
     void set_bw(float bw);
     void set_thr(float thr) { d_threshold = thr; }
 //    float get_frequency() const { return std::arg(d_incr)*float(d_size)*0.5f/float(M_PI); }
@@ -138,6 +140,7 @@ private:
     int d_size;
     float d_coarse_incr_bw{M_PI*0.25};
     float d_bw;
+    float d_lim;
     float d_scaled_bw;
     float d_threshold;
     gr_complex d_early;

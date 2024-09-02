@@ -437,6 +437,12 @@ void rx_rds::set_cl_bw(float v)
     d_bpsk_sync->set_bw(powf(10.f,(v+10.f)/10.f));
 }
 
+void rx_rds::set_cl_lim(float v)
+{
+    //d_costas_loop->set_loop_bandwidth(powf(10.f,v/10.f));
+    d_bpsk_sync->set_lim(v);
+}
+
 float rx_rds::phase_snr() const
 {
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS

@@ -234,6 +234,7 @@ enum c_id
     C_RDS_DLL_BW,
     C_RDS_CL_BW,
     C_RDS_PHASE_SNR,
+    C_RDS_CL_LIM,
 
     C_COUNT
 };
