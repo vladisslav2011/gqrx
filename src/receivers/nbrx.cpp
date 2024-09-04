@@ -261,6 +261,7 @@ void nbrx::update_filter()
                     unlock();
                 printf("d_fxff_decim %d => %d\n",d_fxff_decim,new_fxff_decim);
                 d_fxff_decim = new_fxff_decim;
+		        changed_value(C_RAWIQ_RATE, d_index, int64_t(d_decim_rate/d_fxff_decim));
             }else{
                 d_fxff_taps=gr::filter::firdes::low_pass_2(1.0, d_decim_rate,
                         corr_bw,
