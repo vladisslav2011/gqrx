@@ -195,7 +195,7 @@ enum c_id
     C_AM_DCR,
     C_CW_OFFSET,
     C_DEMOD_OFF_DUMMY,
-    C_RAWIQ_DUMMY,
+    C_RAWIQ_RATE,
     C_SSB_DUMMY,
     C_WFM_DEEMPH,
     C_WFM_RAW,
