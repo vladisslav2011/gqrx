@@ -439,8 +439,9 @@ void rx_rds::set_cl_bw(float v)
 
 void rx_rds::set_cl_lim(float v)
 {
-    //d_costas_loop->set_loop_bandwidth(powf(10.f,v/10.f));
     d_bpsk_sync->set_lim(v);
+    d_costas_loop->set_min_freq(-v);
+    d_costas_loop->set_max_freq(v);
 }
 
 float rx_rds::phase_snr() const
