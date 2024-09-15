@@ -271,7 +271,8 @@ int clock_recovery_el_cc::general_work(int noutput_items,
 
 
 #include <volk/volk.h>
-#define test_extra 128*8*3
+#define test_extra 1.5
+#define block_mul 2.0
 
 bpsk_phase_sync_cc::sptr bpsk_phase_sync_cc::make(int block_size, float bw, float thr)
 {
@@ -285,9 +286,8 @@ bpsk_phase_sync_cc::bpsk_phase_sync_cc(int block_size, float bw, float thr): syn
     d_size=block_size;
     set_bw(bw);
     d_threshold=thr;
-    set_history(1+std::max(test_extra,d_size*2));
+    set_history(1+d_size*(block_mul+test_extra));
     set_output_multiple(d_size);
-    d_buf.resize(d_size);
 }
 
 bpsk_phase_sync_cc::~bpsk_phase_sync_cc()
@@ -334,7 +334,7 @@ bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int siz
     float e0,e90,e45,e_45;
     float beste=0.f;
     int bestj=0;
-    const float step=0.5f/float(s_size);
+    const float step=float(M_PI*0.25)/float(s_size);
     const int NN=std::floor(d_lim/step);
     for(int j=-NN;j<=NN;j++)
     {
@@ -597,12 +597,12 @@ int bpsk_phase_sync_cc::work(int noutput_items,
         gr_complex incr=d_incr;
         gr_complex early_c = std::polar(1.f,-.3f);
         gr_complex late_c = std::polar(1.f,.3f);
-        float early=estimate(phase*early_c,incr,d_size*2,&in[k]);
-        float late=estimate(phase*late_c,incr,d_size*2,&in[k]);
-        float test=estimate(phase,incr,d_size*2+test_extra,&in[k]);
-        float prompt=estimate(phase,incr,d_size*2,&in[k]);
+        float early=estimate(phase*early_c,incr,d_size*block_mul,&in[k]);
+        float late=estimate(phase*late_c,incr,d_size*block_mul,&in[k]);
+        float test=estimate(phase,incr,d_size*(block_mul+test_extra),&in[k]);
+        float prompt=estimate(phase,incr,d_size*block_mul,&in[k]);
         //  float dd=(log10f(late)-log10f(early));
-        float dd=(late-early)/std::max(late,early);
+        float dd=(late-early)/(late+early);
         float e_phase=std::arg(phase),e_incr=std::arg(incr);
         if(std::max(prompt,test)>1.f)//in sync
 //        if(0)
@@ -615,9 +615,9 @@ int bpsk_phase_sync_cc::work(int noutput_items,
             //d_phase*=std::polar(1.f,d_bw*dd);
 //            printf("ok: %8.8f %8.8f\n", double(std::arg(d_phase)-e_phase),double(std::arg(d_incr)-e_incr));
         }else{
-            if(phase_incr_oneshot(e_phase,e_incr,d_size*2,&in[k]))
+            if(phase_incr_oneshot(e_phase,e_incr,d_size*block_mul,&in[k]))
             {
-                float newtest=estimate(e_phase,e_incr,d_size*2+test_extra,&in[k]);
+                float newtest=estimate(e_phase,e_incr,d_size*(block_mul+test_extra),&in[k]);
                 if(newtest>test)
                 {
                     //printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));

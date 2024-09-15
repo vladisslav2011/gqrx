@@ -146,7 +146,6 @@ private:
     gr_complex d_early;
     gr_complex d_late;
     gr_complex d_freq{1.f,0.f};
-    std::vector<gr_complex> d_buf;
 };
 
 #endif /* INCLUDED_CLOCK_RECOVERY_H */
