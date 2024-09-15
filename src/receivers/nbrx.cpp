@@ -315,6 +315,7 @@ void nbrx::update_filter()
 bool nbrx::set_filter_shape(const c_def::v_union & v)
 {
     receiver_base_cf::set_filter_shape(v);
+    filter_adjust();
     update_filter();
     return true;
 }
@@ -524,6 +525,7 @@ bool nbrx::set_demod(const c_def::v_union & v)
         }
     }
     receiver_base_cf::set_demod(v);
+    filter_adjust();
     switch (d_demod)
     {
     case Modulations::MODE_CWL:

@@ -147,6 +147,7 @@ void wfmrx::set_filter(int low, int high, Modulations::filter_shape shape)
 bool wfmrx::set_filter_shape(const c_def::v_union & v)
 {
     receiver_base_cf::set_filter_shape(v);
+    filter_adjust();
     if(d_demod!=Modulations::MODE_OFF)
         filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
     return true;
