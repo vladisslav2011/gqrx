@@ -473,9 +473,9 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
         int threshold=55;
         if(pi_a[pi].weight<threshold)
         {
-            if(pi_a[pi].weight>d_max_weight)
+            if(pi_a[pi].weight>d_max_weight[corr])
             {
-                d_max_weight=pi_a[pi].weight;
+                d_max_weight[corr]=pi_a[pi].weight;
                 printf("%c[%04x] %d (%d,%d) %d %d %6.2f\n",corr?':':'?',pi,((bit_offset+1)%GROUP_SIZE < 3),pi_a[pi].weight,pi_a[pi].count,d_block0errs,errs,double(d_weight));
                 if(!corr)
                     d_matches[pi].push_back(grp_array(p_grp));
@@ -531,16 +531,16 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
                     pi_a[jj].weight>>=2;
                     pi_a[jj].count>>=2;
                 }
-            d_pi_bitcnt=0;
-            d_max_weight>>=1;
+            d_pi_bitcnt[corr]=0;
+            d_max_weight[corr]>>=1;
             //memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
             //d_acc_cnt=0;
             return pi;
         }
-        d_pi_bitcnt++;
-        if(d_pi_bitcnt>BLOCK_SIZE*50)
+        d_pi_bitcnt[corr]++;
+        if(d_pi_bitcnt[corr]>BLOCK_SIZE*(18+corr*4))
         {
-            d_pi_bitcnt=0;
+            d_pi_bitcnt[corr]=0;
             for(int jj=0;jj<65536;jj++)
             {
                 if(pi_a[jj].weight>0)
@@ -548,7 +548,7 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
                 if(pi_a[jj].count>0)
                     pi_a[jj].count--;
             }
-            d_max_weight--;
+            d_max_weight[corr]--;
             std::cout<<"d_pi_bitcnt--\n";
         }
     }
@@ -567,8 +567,8 @@ void decoder_impl::reset_corr()
     memset(d_accum.data(),0,d_accum.size()*sizeof(d_accum[0]));
     d_acc_cnt=0;
     d_bit_counter=0;
-    d_max_weight=0;
+    d_max_weight[0]=d_max_weight[1]=0;
     d_best_pi=-1;
-    d_pi_bitcnt=0;
+    d_pi_bitcnt[0]=d_pi_bitcnt[1]=0;
     d_matches.clear();
 }

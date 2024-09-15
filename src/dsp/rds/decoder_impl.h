@@ -100,8 +100,8 @@ private:
 	pi_stats       *d_pi_a{&d_pi_stats[0]};
 	pi_stats       *d_pi_b{&d_pi_stats[65536]};
 	int            d_bit_counter;
-	int            d_pi_bitcnt{0};
-	char           d_max_weight{0};
+	int            d_pi_bitcnt[2]{0};
+	char           d_max_weight[2]{0};
     int            d_prev_errs{0};
     int            d_curr_errs{0};
     int            d_next_errs{0};
