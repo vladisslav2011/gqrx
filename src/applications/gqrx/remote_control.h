@@ -116,7 +116,6 @@ signals:
     void gainChanged(QString name, double value);
     void dspChanged(bool value);
     void newRDSmode(bool value);
-    void rdsStateChanged(bool state);
 
 private slots:
     void acceptConnection();
@@ -171,7 +170,6 @@ private:
     QString     cmd_AOS();
     QString     cmd_LOS();
     QString     cmd_lnb_lo(QStringList cmdlist);
-    QString     cmd_set_rds(QStringList cmdlist);
     QString     cmd_rds_station();
     QString     cmd_rds_radiotext();
     QString     cmd_dump_state() const;
