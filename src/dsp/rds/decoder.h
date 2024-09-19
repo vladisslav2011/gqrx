@@ -26,6 +26,20 @@ namespace rds {
 class RDS_API decoder : virtual public gr::sync_block
 {
 public:
+    enum
+    {
+        INTEGRATE_PI_NC=0,
+        INTEGRATE_PI_COH,
+        INTEGRATE_PI_NC_COH,
+    };
+    enum
+    {
+        INTEGRATE_PS_OFF=0,
+        INTEGRATE_PS_2,
+        INTEGRATE_PS_3,
+        INTEGRATE_PS_23,
+    };
+public:
 #if GNURADIO_VERSION < 0x030900
 	typedef boost::shared_ptr<decoder> sptr;
 #else
@@ -34,6 +48,9 @@ public:
 	static sptr make(bool log=false, bool debug=false);
 	virtual void set_ecc_max(int n) = 0;
 	virtual void reset() = 0;
+	virtual void set_integrate_pi(unsigned) = 0;
+	virtual void set_integrate_ps(unsigned) = 0;
+	virtual void set_integrate_ps_dist(unsigned) = 0;
 };
 
 } // namespace rds

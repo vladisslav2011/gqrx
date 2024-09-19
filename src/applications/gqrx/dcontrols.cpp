@@ -3857,7 +3857,7 @@ c_def()
 c_def()
     .idx(C_RDS_CL_LIM)
     .name("RDS_CL_LIM")
-    .title("CL LIM")
+    .title("CL LIM/Search dist")
     .title_placement(c_def::grid_placement(PLACE_NEXT,0))
     .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
     .hint("Costas loop phase increment relative limit")
@@ -3872,6 +3872,81 @@ c_def()
     .max(.005)
     .step(.00001)
     .frac_digits(5)
+    ,
+c_def()
+    .idx(C_RDS_INTEGR_PS_DIST)
+    .name("RDS_INTEGR_PS_DIST")
+    .title("PS search distance")
+    .title_placement(c_def::grid_placement(PLACE_NONE,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("PS/RT integration search distance")
+    .g_type(G_COMBO)
+    .dock(D_RDS)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rds_integr_ps_dist")
+    .v_type(V_INT)
+    .def(256)
+    .min(8)
+    .max(256)
+    .presets((c_def::v_preset[])
+    {
+        {"8","8",8},
+        {"16","16",16},
+        {"32","32",32},
+        {"64","64",64},
+        {"128","128",128},
+        {"256","256",256},
+    })
+    ,
+c_def()
+    .idx(C_RDS_INTEGR_PI)
+    .name("RDS_INTEGR_PI")
+    .title("Integrate PI/PS")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("PI integration mode")
+    .g_type(G_COMBO)
+    .dock(D_RDS)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rds_integr_pi")
+    .v_type(V_INT)
+    .def(2)
+    .min(0)
+    .max(2)
+    .step(1)
+    .presets((c_def::v_preset[])
+    {
+        {"0","Semicoherent",0},
+        {"1","Coherent",1},
+        {"2","Both",2},
+    })
+    ,
+c_def()
+    .idx(C_RDS_INTEGR_PS)
+    .name("RDS_INTEGR_PS")
+    .title("Integrate PS")
+    .title_placement(c_def::grid_placement(PLACE_NONE,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("PS integration mode")
+    .g_type(G_COMBO)
+    .dock(D_RDS)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("rds_integr_ps")
+    .v_type(V_INT)
+    .def(2)
+    .min(0)
+    .max(2)
+    .step(1)
+    .presets((c_def::v_preset[])
+    {
+        {"0","OFF",0},
+        {"2","x2",1},
+        {"3","x3",2},
+        {"23","x2/x3",3},
+    })
     ,
 };
 

@@ -23,6 +23,8 @@
 #include <array>
 #include <map>
 
+#define PS_SEARCH_MAX 256
+
 namespace gr {
 namespace rds {
 
@@ -32,6 +34,9 @@ public:
 	decoder_impl(bool log, bool debug);
 	void set_ecc_max(int n) {d_ecc_max = n;}
 	void reset();
+	void set_integrate_pi(unsigned mode) {d_integrate_pi = mode;}
+	void set_integrate_ps(unsigned mode) {d_integrate_ps = mode;}
+	void set_integrate_ps_dist(unsigned dist) {d_integrate_ps_dist = dist;}
 
 private:
     constexpr static int BLOCK_SIZE{26};
@@ -107,6 +112,8 @@ private:
     int            d_next_errs{0};
     int            d_block0errs{0};
     std::map<uint16_t,std::vector<grp_array>> d_matches{};
+    unsigned       d_valid_bits{0};
+    uint8_t        d_used_list[PS_SEARCH_MAX]{0};
     int            d_best_pi{-1};
     float          d_weight{0.f};
     std::array<float,GROUP_SIZE*2> d_accum{0.f};
@@ -115,6 +122,9 @@ private:
     float          d_acc_alfa{0.1};
     int            d_acc_cnt{0};
     static constexpr int d_acc_lim{104*4};
+    unsigned       d_integrate_pi{INTEGRATE_PI_NC_COH};
+    unsigned       d_integrate_ps{INTEGRATE_PS_23};
+    unsigned       d_integrate_ps_dist{PS_SEARCH_MAX};
 
 };
 

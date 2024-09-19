@@ -208,6 +208,9 @@ public:
     bool         get_rds_dll_bw(c_def::v_union & v) const { v=d_rds_dll_bw; return true; }
     bool         get_rds_cl_bw(c_def::v_union & v) const { v=d_rds_cl_bw; return true; }
     bool         get_rds_cl_lim(c_def::v_union & v) const { v=d_rds_cl_lim; return true; }
+    bool         get_rds_integrate_pi(c_def::v_union & v) const { v=int64_t(d_rds_integrate_pi); return true; }
+    bool         get_rds_integrate_ps(c_def::v_union & v) const { v=int64_t(d_rds_integrate_ps); return true; }
+    bool         get_rds_integrate_ps_dist(c_def::v_union & v) const { v=int64_t(d_rds_integrate_ps_dist); return true; }
     /* GUI */
     bool         get_fft_center(c_def::v_union & v) const { v=d_fft_center; return true; }
     bool         get_fft_zoom(c_def::v_union & v) const { v=d_fft_zoom; return true; }
@@ -314,6 +317,9 @@ public:
     virtual bool set_rds_dll_bw(const c_def::v_union & v);
     virtual bool set_rds_cl_bw(const c_def::v_union & v);
     virtual bool set_rds_cl_lim(const c_def::v_union & v);
+    virtual bool set_rds_integrate_pi(const c_def::v_union & v);
+    virtual bool set_rds_integrate_ps(const c_def::v_union & v);
+    virtual bool set_rds_integrate_ps_dist(const c_def::v_union & v);
     /* GUI */
     virtual bool set_fft_center(const c_def::v_union & v);
     virtual bool set_fft_zoom(const c_def::v_union & v);
@@ -399,6 +405,9 @@ protected:
     float            d_rds_dll_bw{1.8f};
     float            d_rds_cl_bw{-28.f};
     float            d_rds_cl_lim{0.0001};
+    unsigned         d_rds_integrate_pi{2};
+    unsigned         d_rds_integrate_ps{2};
+    unsigned         d_rds_integrate_ps_dist{256};
     /* GUI */
     double           d_fft_zoom{1.};
     int              d_fft_center{0};

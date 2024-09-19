@@ -410,3 +410,25 @@ bool wfmrx::set_rds_cl_lim(const c_def::v_union & v)
     rds->set_cl_lim(d_rds_cl_lim);
     return true;
 }
+
+bool wfmrx::set_rds_integrate_pi(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_pi(v);
+    rds_decoder->set_integrate_pi(d_rds_integrate_pi);
+    return true;
+}
+
+bool wfmrx::set_rds_integrate_ps(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_ps(v);
+    rds_decoder->set_integrate_ps(d_rds_integrate_ps);
+    return true;
+}
+
+bool wfmrx::set_rds_integrate_ps_dist(const c_def::v_union & v)
+{
+    receiver_base_cf::set_rds_integrate_ps_dist(v);
+    rds_decoder->set_integrate_ps_dist(d_rds_integrate_ps_dist);
+    return true;
+}
+

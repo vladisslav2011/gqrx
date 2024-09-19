@@ -235,6 +235,9 @@ enum c_id
     C_RDS_CL_BW,
     C_RDS_PHASE_SNR,
     C_RDS_CL_LIM,
+    C_RDS_INTEGR_PS_DIST,
+    C_RDS_INTEGR_PI,
+    C_RDS_INTEGR_PS,
 
     C_COUNT
 };
