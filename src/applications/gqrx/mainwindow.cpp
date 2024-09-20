@@ -2043,7 +2043,11 @@ void MainWindow::stopIqPlayback()
 
     // restore original input device
     auto indev = m_settings->value("input/device", "").toString();
-    rx->set_input_device(indev.toStdString());
+    try{
+        rx->set_input_device(indev.toStdString());
+    }catch(std::runtime_error &x)
+    {
+    }
 
     // restore sample rate
     bool conv_ok;
