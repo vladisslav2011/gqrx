@@ -120,6 +120,7 @@ typedef std::shared_ptr<bpsk_phase_sync_cc> sptr;
 private:
     float estimate(float phase, float incr, int len, const gr_complex * buf);
     float estimate(gr_complex phase, gr_complex incr, int len, const gr_complex * buf);
+    float phase_incr_oneshot_estimate(const float incr, const int size, const gr_complex * buf) const;
     bool phase_incr_oneshot(float & phase, float & incr, int size, const gr_complex * buf);
     gr_complex rotate(gr_complex in);
     void rotateN(gr_complex * out, const gr_complex * in,int n);

@@ -13,6 +13,7 @@
 #include <gnuradio/io_signature.h>
 #include <gnuradio/math.h>
 #include <gnuradio/prefs.h>
+#include <gnuradio/blocks/control_loop.h>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -319,8 +320,46 @@ template<typename T> T max3(const T &a, const T &b, const T &c)
     return std::max(a,std::max(b,c));
 }
 
+float bpsk_phase_sync_cc::phase_incr_oneshot_estimate(const float incr, const int size, const gr_complex * buf) const
+{
+    gr::blocks::control_loop cl(d_bw,d_lim,-d_lim);
+    float i_acc=0.f;
+    float q_acc=0.f;
+    int dir=0;
+    int k=0;
+    while(dir<20)
+    {
+        gr_complex cur=buf[k]*std::polar(1.f,cl.get_phase());
+        k+=(dir&1)?-1:1;
+        if((k==-1)||(k==size))
+        {
+            dir++;
+            k+=(dir&1)?-2:2;
+            cl.set_frequency(-cl.get_frequency());
+            double e_snr=log10(double(q_acc/i_acc))*10.;
+            printf("phase_incr_oneshot_estimate[%d] %02.5f %02.5f %02.5f\n",
+                dir,
+                e_snr,
+                double(cl.get_frequency()),
+                double(cl.get_phase())
+            );
+            i_acc=q_acc=0.f;
+            cl.set_loop_bandwidth(cl.get_loop_bandwidth()*0.75f);
+        }else{
+            float err=cur.real()*cur.imag();
+            cl.advance_loop(err);
+            cl.phase_wrap();
+            cl.frequency_limit();
+            i_acc+=std::abs(cur.real());
+            q_acc+=std::abs(cur.imag());
+        }
+    }
+    return cl.get_frequency();
+}
+
 bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int size, const gr_complex * buf)
 {
+//    float est=phase_incr_oneshot_estimate(incr,size,buf);
     #if 1
     //4 point coarse initial phase estimation search
     //TODO: switch to 3 point search?
@@ -474,6 +513,8 @@ bool bpsk_phase_sync_cc::phase_incr_oneshot(float & phase, float & incr, int siz
     pf-=0.5f*found_incr;
     phase=pf;
     incr=found_incr;
+//    printf("phase_incr_oneshot: s=%01.5f f=%01.5f e=%01.5f %01.5f\n",
+//        double(start_inc),double(found_incr),double(est),std::abs(double(found_incr)-double(est)));
     #endif
     #if 0
     //4 point coarse initial phase estimation search
@@ -604,6 +645,7 @@ int bpsk_phase_sync_cc::work(int noutput_items,
         //  float dd=(log10f(late)-log10f(early));
         float dd=(late-early)/(late+early);
         float e_phase=std::arg(phase),e_incr=std::arg(incr);
+//        printf("phase_incr_oneshot_estimate %01.5f\n",double(phase_incr_oneshot_estimate(0.f,d_size*2,&in[k])));
         if(std::max(prompt,test)>1.f)//in sync
 //        if(0)
         {
@@ -623,6 +665,15 @@ int bpsk_phase_sync_cc::work(int noutput_items,
                     //printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
                     d_phase=std::polar(1.f,e_phase);
                     d_incr=std::polar(1.f,e_incr);
+                }else{
+                    phase_incr_oneshot(e_phase,e_incr,d_size*(block_mul+test_extra),&in[k]);
+                    float newtest=estimate(e_phase,e_incr,d_size*(block_mul+test_extra),&in[k]);
+                    if(newtest>test)
+                    {
+                        //printf("resync: %8.8f\n", double(std::arg(d_phase)-e_phase));
+                        d_phase=std::polar(1.f,e_phase);
+                        d_incr=std::polar(1.f,e_incr);
+                    }
                 }
             }
         }
