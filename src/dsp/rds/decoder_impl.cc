@@ -389,15 +389,12 @@ int decoder_impl::work (int noutput_items,
                     good_group=next_grp;
                     bit_counter=0;
                     printf("<+>\n");
-                }/*else if((curr_errs<prev_errs)&&(curr_errs<next_errs))*/
-                 //reset_corr();
+                }
             }
             bit_errors=process_group(good_group, ecc_max, offset_chars, locators, &good_grp);
             char sync_point='E';
             if(d_state != FORCE_SYNC)
             {
-                //if(((d_curr_errs>d_prev_errs)||(d_curr_errs>d_next_errs))&&(d_state!=SYNC))
-                //    continue;
                 int curr_pi=(good_group[0]>>10)^locators[0];
                 if((d_best_pi==curr_pi)&&(d_block0errs<5))
                 {
@@ -410,24 +407,11 @@ int decoder_impl::work (int noutput_items,
                     d_acc_cnt = 0;
                 }
 
-//                 if(bit_errors <= 1)
-//                 {
-//                     if(d_state != SYNC)
-//                     {
-//                         d_best_pi=curr_pi;
-//                         d_state = SYNC;
-//                         sync_point='N';
-//                     }
-//                 }
-//                 if(offset_chars[0]=='A')
-//                     d_best_pi=curr_pi;
-
                 if(d_state==SYNC)
                 {
                     if(good_grp>=4)
                     {
                         d_counter>>=2;
-                        //d_counter=0;
                     }
                     if(good_grp>=3)
                     {
@@ -452,16 +436,12 @@ int decoder_impl::work (int noutput_items,
                 sync_point='F';
                 d_counter = 0;
             }
-//            if(bit_errors>5)
-//                continue;
             if((bit_errors>0) && (d_integrate_ps_dist>=8) && d_integrate_ps)
             {
-                //std::array<float,GROUP_SIZE> accum{0.f};
                 int p=4;
                 int bestp=0;
                 int bestq=0;
                 int best_errs=bit_errors;
-                float best_dev{2.f};
                 int search_lim=std::min(d_valid_bits / GROUP_SIZE, d_integrate_ps_dist);
                 unsigned char  offset_chars_tmp[4];
                 uint16_t locators_tmp[5]={0,0,0,0,0};
@@ -481,58 +461,27 @@ int decoder_impl::work (int noutput_items,
                     while(q<search_lim)
                     {
                         int bit2=i-GROUP_SIZE*(1+q)-1;
-                        float corr[4]{0.f};
-                        float dev{0.f};
-                        float sum{0.f};
-                        float sum2{0.f};
-                        float sum3{0.f};
-
                         if(!d_used_list[q])
                         {
                             for(int h=0;h<GROUP_SIZE;h++)
                             {
                                 float flt=in[bitp+h]+in[bito+h]+(q?in[bit2+h]:0);
-                                //int sample=(in[bitp+h]+in[bito+h])>0.f;
                                 int sample=flt>0.f;
-                                sum3+=-2.f*sum*std::abs(flt);
-                                sum+=std::abs(flt);
-                                sum2+=powf(flt,2);
-                                corr[0]+=std::abs(sample)/float(GROUP_SIZE);
-                                corr[1]+=std::abs(in[bitp+h])/float(GROUP_SIZE);
-                                corr[2]+=std::abs(in[bito+h])/float(GROUP_SIZE);
-                                if(q)
-                                    corr[3]+=std::abs(in[bit2+h])/float(GROUP_SIZE);
                                 for(int j=0;j<n_group-1;j++)
                                     prev_grp[j]=((prev_grp[j]<<1)|(prev_grp[j+1]>>25))&((1<<26)-1);
                                 prev_grp[n_group-1]=((prev_grp[n_group-1]<<1)|sample)&((1<<26)-1);
                             }
-                            dev=powf(float(GROUP_SIZE-1)*sum2+sum3,0.5f)/sum;
                             int errs=process_group(prev_grp, ecc_max);
-                            if(dev<best_dev)
-                            if(errs<=best_errs)
+                            if(errs<best_errs)
                             {
                                 process_group(prev_grp, ecc_max, offset_chars_tmp, locators_tmp);
                                 best_errs=errs;
                                 bestp=p;
                                 bestq=q;
-                                best_dev=dev;
                                 memcpy(best_grp,prev_grp,sizeof(best_grp));
-                                char c0=(((prev_grp[2]>>10)^locators_tmp[2])>>8)&0xff;
-                                char c1=((prev_grp[2]>>10)^locators_tmp[2])&0xff;
-                                char c2=(((prev_grp[3]>>10)^locators_tmp[3])>>8)&0xff;
-                                char c3=((prev_grp[3]>>10)^locators_tmp[3])&0xff;
-                                if(c0<' ') c0=' ';
-                                if(c1<' ') c1=' ';
-                                if(c2<' ') c2=' ';
-                                if(c3<' ') c3=' ';
-                                int bt=(((prev_grp[1]>>10)^locators_tmp[1]) >> 12) & 0x0f;
-                                bool ab = (((prev_grp[1]>>10)^locators_tmp[1]) >> 11 ) & 0x1;
-                                if((offset_chars_tmp[1]!='x')||(errs==0))
-                                printf("corr[%d %d](%d)=%1.3f %1.3f %1.3f %1.3f d=%1.3f %d%c %c%c%c%c\n",
-                                    p,q,errs,(double)corr[0],(double)corr[1],(double)corr[2],(double)corr[3],(double)dev,bt,ab?'B':'A',c0,c1,c2,c3);
                             }
-                            //if(best_errs==0)
-                            //    break;
+                            if(best_errs==0)
+                                break;
                         }
                         if(d_integrate_ps == INTEGRATE_PS_2)
                             break;
@@ -541,13 +490,12 @@ int decoder_impl::work (int noutput_items,
                         else
                             q=std::max(p+4,p*2-4);
                     }
-                    //if(best_errs==0)
-                    //    break;
+                    if(best_errs==0)
+                        break;
                     p++;
                 }
                 if(best_errs<bit_errors)
                 {
-                    //printf("best_errs: %d => %d\n",bit_errors,best_errs);
                     if((offset_chars_tmp[1]!='x')&&(offset_chars_tmp[2]!='x')&&(offset_chars_tmp[3]!='x'))
                         best_errs=0;
                     bit_errors=best_errs;
