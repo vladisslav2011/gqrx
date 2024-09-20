@@ -121,6 +121,7 @@ void Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
 {
     if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
+    /*
     if (IsFilterSymmetric(iModulationIndex))
         if (high != (high - low) / 2)
         {
@@ -129,6 +130,7 @@ void Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
             else
                 high = -low;
         }
+    */
     if (low < modes[iModulationIndex].ranges.lo.min)
         low = modes[iModulationIndex].ranges.lo.min;
     if (low > modes[iModulationIndex].ranges.lo.max)
