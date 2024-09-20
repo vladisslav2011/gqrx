@@ -441,12 +441,6 @@ bool vfo_s::set_dedicated_audio_sink(const c_def::v_union & v)
     return true;
 }
 
-bool vfo_s::set_rds_agc(const c_def::v_union & v)
-{
-    d_rds_agc = v;
-    return true;
-}
-
 bool vfo_s::set_rds_gmu(const c_def::v_union & v)
 {
     d_rds_gmu = v;
@@ -468,12 +462,6 @@ bool vfo_s::set_rds_fxff_tw(const c_def::v_union & v)
 bool vfo_s::set_rds_fxff_bw(const c_def::v_union & v)
 {
     d_rds_fxff_bw = v;
-    return true;
-}
-
-bool vfo_s::set_rds_ecc_max(const c_def::v_union & v)
-{
-    d_rds_ecc_max = v;
     return true;
 }
 
@@ -608,12 +596,10 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_au_flt_size(v);set_au_flt_size(v);
     from.get_rds_on(v);set_rds_on(v);
     
-    from.get_rds_agc(v); set_rds_agc(v);
     from.get_rds_gmu(v); set_rds_gmu(v);
     from.get_rds_gomega(v); set_rds_gomega(v);
     from.get_rds_fxff_tw(v); set_rds_fxff_tw(v);
     from.get_rds_fxff_bw(v); set_rds_fxff_bw(v);
-    from.get_rds_ecc_max(v); set_rds_ecc_max(v);
     from.get_rds_omega_lim(v); set_rds_omega_lim(v);
     from.get_rds_dll_bw(v); set_rds_dll_bw(v);
     from.get_rds_cl_bw(v); set_rds_cl_bw(v);
@@ -806,8 +792,6 @@ int vfo_s::conf_initializer()
     getters[C_RDS_BIT_ERRORS]=&vfo_s::get_rds_errors;
     getters[C_RDS_CL_FREQ]=&vfo_s::get_rds_cl_freq;
     getters[C_RDS_PHASE_SNR]=&vfo_s::get_rds_phase_snr;
-    getters[C_RDS_AGC]=&vfo_s::get_rds_agc;
-    setters[C_RDS_AGC]=&vfo_s::set_rds_agc;
     getters[C_RDS_GMU]=&vfo_s::get_rds_gmu;
     setters[C_RDS_GMU]=&vfo_s::set_rds_gmu;
     getters[C_RDS_GOMEGA]=&vfo_s::get_rds_gomega;
@@ -816,8 +800,6 @@ int vfo_s::conf_initializer()
     setters[C_RDS_FXFF_BW]=&vfo_s::set_rds_fxff_bw;
     getters[C_RDS_FXFF_TW]=&vfo_s::get_rds_fxff_tw;
     setters[C_RDS_FXFF_TW]=&vfo_s::set_rds_fxff_tw;
-    getters[C_RDS_ECC_MAX]=&vfo_s::get_rds_ecc_max;
-    setters[C_RDS_ECC_MAX]=&vfo_s::set_rds_ecc_max;
     getters[C_RDS_OMEGA_LIM]=&vfo_s::get_rds_omega_lim;
     setters[C_RDS_OMEGA_LIM]=&vfo_s::set_rds_omega_lim;
     getters[C_RDS_DLL_BW]=&vfo_s::get_rds_dll_bw;

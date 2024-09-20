@@ -127,10 +127,10 @@ private:
     constexpr static int d_interpolation = 19;
     constexpr static int d_decimation = 24;
     float d_fxff_tw{300.0f};
-    float d_fxff_bw{950.0f};
-    float d_gain_mu{powf(10.f,-1.4f)};
-    float d_gain_omega{powf(10.f,-4.3f)};
-    float d_omega_lim{0.00050};
+    float d_fxff_bw{1110.0f};
+    float d_gain_mu{powf(10.f,-1.6f)};
+    float d_gain_omega{powf(10.f,-1.6f)};
+    float d_omega_lim{0.00060};
 };
 
 

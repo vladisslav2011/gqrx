@@ -341,13 +341,6 @@ bool wfmrx::get_rds_phase_snr(c_def::v_union &to) const
     return true;
 }
 
-bool wfmrx::set_rds_agc(const c_def::v_union & v)
-{
-    receiver_base_cf::set_rds_agc(v);
-    rds->set_agc_rate(v);
-    return true;
-}
-
 bool wfmrx::set_rds_gmu(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gmu(v);
@@ -373,13 +366,6 @@ bool wfmrx::set_rds_fxff_tw(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_fxff_tw(v);
     rds->set_fxff_tw(d_rds_fxff_tw);
-    return true;
-}
-
-bool wfmrx::set_rds_ecc_max(const c_def::v_union & v)
-{
-    receiver_base_cf::set_rds_ecc_max(v);
-    rds_decoder->set_ecc_max(d_rds_ecc_max);
     return true;
 }
 

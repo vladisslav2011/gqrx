@@ -226,8 +226,6 @@ enum c_id
     C_RDS_GOMEGA,
     C_RDS_CR_MU,
     C_RDS_GMU,
-    C_RDS_AGC,
-    C_RDS_ECC_MAX,
     C_RDS_FXFF_BW,
     C_RDS_FXFF_TW,
     C_RDS_OMEGA_LIM,

@@ -198,12 +198,10 @@ public:
     bool         get_audio_dev(c_def::v_union & v) const { v=d_audio_dev; return true; }
     bool         get_dedicated_audio_sink(c_def::v_union & v) const { v=d_dedicated_audio_sink; return true; }
 
-    bool         get_rds_agc(c_def::v_union & v) const { v=d_rds_agc; return true; }
     bool         get_rds_gmu(c_def::v_union & v) const { v=d_rds_gmu; return true; }
     bool         get_rds_gomega(c_def::v_union & v) const { v=d_rds_gomega; return true; }
     bool         get_rds_fxff_bw(c_def::v_union & v) const { v=d_rds_fxff_bw; return true; }
     bool         get_rds_fxff_tw(c_def::v_union & v) const { v=d_rds_fxff_tw; return true; }
-    bool         get_rds_ecc_max(c_def::v_union & v) const { v=d_rds_ecc_max; return true; }
     bool         get_rds_omega_lim(c_def::v_union & v) const { v=d_rds_omega_lim; return true; }
     bool         get_rds_dll_bw(c_def::v_union & v) const { v=d_rds_dll_bw; return true; }
     bool         get_rds_cl_bw(c_def::v_union & v) const { v=d_rds_cl_bw; return true; }
@@ -307,12 +305,10 @@ public:
     virtual bool get_rds_errors(c_def::v_union &) const;
     virtual bool get_rds_cl_freq(c_def::v_union &) const;
     virtual bool get_rds_phase_snr(c_def::v_union &) const;
-    virtual bool set_rds_agc(const c_def::v_union & v);
     virtual bool set_rds_gmu(const c_def::v_union & v);
     virtual bool set_rds_gomega(const c_def::v_union & v);
     virtual bool set_rds_fxff_bw(const c_def::v_union & v);
     virtual bool set_rds_fxff_tw(const c_def::v_union & v);
-    virtual bool set_rds_ecc_max(const c_def::v_union & v);
     virtual bool set_rds_omega_lim(const c_def::v_union & v);
     virtual bool set_rds_dll_bw(const c_def::v_union & v);
     virtual bool set_rds_cl_bw(const c_def::v_union & v);
@@ -395,19 +391,17 @@ protected:
 
     bool             d_rds_on;
     int              d_testval;
-    float            d_rds_agc{0.01f};
-    float            d_rds_gomega{-1.6f};
-    float            d_rds_gmu{-0.6f};
-    float            d_rds_fxff_bw{950.f};
+    float            d_rds_gomega{-2.6f};
+    float            d_rds_gmu{-1.6f};
+    float            d_rds_fxff_bw{1110.f};
     float            d_rds_fxff_tw{300.f};
-    int              d_rds_ecc_max{0};
-    float            d_rds_omega_lim{5.e-4f};
-    float            d_rds_dll_bw{1.8f};
-    float            d_rds_cl_bw{-28.f};
-    float            d_rds_cl_lim{0.0001};
+    float            d_rds_omega_lim{6.e-4f};
+    float            d_rds_dll_bw{1.7f};
+    float            d_rds_cl_bw{-26.f};
+    float            d_rds_cl_lim{0.005};
     unsigned         d_rds_integrate_pi{2};
-    unsigned         d_rds_integrate_ps{2};
-    unsigned         d_rds_integrate_ps_dist{256};
+    unsigned         d_rds_integrate_ps{0};
+    unsigned         d_rds_integrate_ps_dist{128};
     /* GUI */
     double           d_fft_zoom{1.};
     int              d_fft_center{0};
