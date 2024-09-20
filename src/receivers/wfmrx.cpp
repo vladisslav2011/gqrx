@@ -408,6 +408,7 @@ bool wfmrx::set_rds_integrate_ps(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_integrate_ps(v);
     rds_decoder->set_integrate_ps(d_rds_integrate_ps);
+    rds_parser->set_RT_keep(v);
     return true;
 }
 

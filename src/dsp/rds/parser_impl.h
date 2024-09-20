@@ -34,6 +34,10 @@ public:
     {
         d_index = index;
     }
+    void set_RT_keep(bool keep)
+    {
+        RT_keep = keep;
+    }
     std::string & get_last(int index)
     {
         return d_cache[index];
@@ -95,6 +99,7 @@ private:
     std::string d_best_pi{""};
     std::array<std::string,MSG_IDS_COUNT> d_cache;
     char offset_chars[4];
+    bool RT_keep{0};// Do not clear the RT buffer on A/B change. Makes it possible to accumulate the RT.
 };
 
 } /* namespace rds */

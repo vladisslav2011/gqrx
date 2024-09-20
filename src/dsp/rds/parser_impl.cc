@@ -309,7 +309,7 @@ void parser_impl::decode_type2(unsigned int *group, bool B){
 	unsigned char text_segment_address_code = group[1] & 0x0f;
 
 	// when the A/B flag is toggled, flush your current radiotext
-	if(radiotext_AB_flag != ((group[1] >> 4) & 0x01)) {
+	if(!RT_keep && radiotext_AB_flag != ((group[1] >> 4) & 0x01)) {
 		std::memset(radiotext, ' ', sizeof(radiotext));
 	}
 	radiotext_AB_flag = (group[1] >> 4) & 0x01;
