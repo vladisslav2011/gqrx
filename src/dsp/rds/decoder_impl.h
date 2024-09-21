@@ -125,6 +125,9 @@ private:
     unsigned       d_integrate_pi{INTEGRATE_PI_NC_COH};
     unsigned       d_integrate_ps{INTEGRATE_PS_23};
     unsigned       d_integrate_ps_dist{PS_SEARCH_MAX};
+    std::array<float, GROUP_SIZE> accum{0};
+    std::array<float, GROUP_SIZE> accum_m{0};
+    std::array<float, GROUP_SIZE> accum_a{0};
 
 };
 

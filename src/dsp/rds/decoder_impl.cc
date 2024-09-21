@@ -22,6 +22,7 @@
 #include "constants.h"
 #include <gnuradio/io_signature.h>
 #include <array>
+#include <volk/volk.h>
 
 using namespace gr::rds;
 const std::array<decoder_impl::bit_locator,1024> decoder_impl::locator(decoder_impl::build_locator());
@@ -442,7 +443,10 @@ int decoder_impl::work (int noutput_items,
                 int bestp=0;
                 int bestq=0;
                 int best_errs=bit_errors;
+                //float bestdev=10.f;
                 int search_lim=std::min(d_valid_bits / GROUP_SIZE, d_integrate_ps_dist);
+                unsigned char  offset_chars_a[4];
+                uint16_t locators_a[5]={0,0,0,0,0};
                 unsigned char  offset_chars_tmp[4];
                 uint16_t locators_tmp[5]={0,0,0,0,0};
                 uint32_t best_grp[4]{0};
@@ -461,24 +465,35 @@ int decoder_impl::work (int noutput_items,
                     while(q<search_lim)
                     {
                         int bit2=i-GROUP_SIZE*(1+q)-1;
+                        //float stddev,mean;
                         if(!d_used_list[q])
                         {
+                            volk_32f_x2_add_32f(&accum[0],&in[bitp],&in[bito],GROUP_SIZE);
+                            if(q)
+                                volk_32f_x2_add_32f(&accum[0],&accum[0],&in[bit2],GROUP_SIZE);
                             for(int h=0;h<GROUP_SIZE;h++)
                             {
-                                float flt=in[bitp+h]+in[bito+h]+(q?in[bit2+h]:0);
-                                int sample=flt>0.f;
+                                const float flt=accum[h];
+                                const int sample=flt>0.f;
+                                accum_a[h]=std::abs(accum[h]);
                                 for(int j=0;j<n_group-1;j++)
                                     prev_grp[j]=((prev_grp[j]<<1)|(prev_grp[j+1]>>25))&((1<<26)-1);
                                 prev_grp[n_group-1]=((prev_grp[n_group-1]<<1)|sample)&((1<<26)-1);
                             }
-                            int errs=process_group(prev_grp, ecc_max);
+                            //volk_32f_stddev_and_mean_32f_x2(&stddev,&mean,&accum_a[0],GROUP_SIZE);
+                            //if(mean)
+                            //    stddev/=mean;
+                            int errs=process_group(prev_grp, ecc_max,  offset_chars_a, locators_a);
+                            //if(stddev<bestdev)
                             if(errs<best_errs)
                             {
-                                process_group(prev_grp, ecc_max, offset_chars_tmp, locators_tmp);
                                 best_errs=errs;
                                 bestp=p;
                                 bestq=q;
+                                //bestdev=stddev;
                                 memcpy(best_grp,prev_grp,sizeof(best_grp));
+                                memcpy(locators_tmp,locators_a,sizeof(locators_tmp));
+                                memcpy(offset_chars_tmp,offset_chars_a,sizeof(offset_chars_tmp));
                             }
                             if(best_errs==0)
                                 break;
