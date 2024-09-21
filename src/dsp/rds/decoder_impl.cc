@@ -632,7 +632,7 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
             return pi;
         }
         d_pi_bitcnt[corr]++;
-        if(d_pi_bitcnt[corr]>BLOCK_SIZE*(18+corr*4))
+        if(d_pi_bitcnt[corr]>BLOCK_SIZE*(25+corr*25))
         {
             d_pi_bitcnt[corr]=0;
             for(int jj=0;jj<65536;jj++)
