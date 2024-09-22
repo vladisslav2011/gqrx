@@ -1968,7 +1968,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     }
     bool reopening = !rx->is_running() && rx->is_playing_iq();
     if(reopening)
-        stopIQFftRedraw();
+        stopIQFftRedraw(true);
     else
         storeSession();
 
@@ -2021,6 +2021,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
         uint64_t pos = std::llround(double(lines)*ms_per_line*1e-3*double(actual_rate)/any_to_any_base::fmt[rx->get_last_format()].nsamples);
         seekIqFile(std::min(rx->get_iq_file_size(),pos));
         iq_tool->updateStats(false, 0, pos);
+        triggerIQFftRedraw(true);
     }else
         on_actionDSP_triggered(true);
 }
@@ -2275,9 +2276,11 @@ void MainWindow::plotterUpdate()
     ui->plotter->update();
 }
 
-void MainWindow::triggerIQFftRedraw()
+void MainWindow::triggerIQFftRedraw(bool resume)
 {
-    if(!rx->is_running() && rx->is_playing_iq())
+    if(d_fft_redraw_susended && resume)
+        d_fft_redraw_susended = false;
+    if(!rx->is_running() && rx->is_playing_iq() && !d_fft_redraw_susended)
     {
         std::unique_lock<std::mutex> lock(waterfall_background_mutex);
         waterfall_background_request = MainWindow::WF_RESTART;
@@ -2285,9 +2288,10 @@ void MainWindow::triggerIQFftRedraw()
     }
 }
 
-void MainWindow::stopIQFftRedraw()
+void MainWindow::stopIQFftRedraw(bool suspend)
 {
     std::unique_lock<std::mutex> lock(waterfall_background_mutex);
+    d_fft_redraw_susended = suspend;
     while(waterfall_background_request != MainWindow::WF_NONE)
     {
         waterfall_background_request = MainWindow::WF_STOP;
