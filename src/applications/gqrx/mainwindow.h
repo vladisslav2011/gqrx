@@ -146,6 +146,7 @@ private:
     std::condition_variable waterfall_background_ready;
     int waterfall_background_threads{0};
     std::thread waterfall_background_thread;
+    bool   d_fft_redraw_susended{0};
     double d_fft_duration{0.0};
 
     QFile * metaFile;
@@ -250,8 +251,8 @@ private slots:
     void saveFileRange(const QString& recdir, file_formats fmt, quint64 from_ms, quint64 len_ms);
     void updateSaveProgress(const qint64 saved_ms);
     void plotterUpdate();
-    void triggerIQFftRedraw();
-    void stopIQFftRedraw();
+    void triggerIQFftRedraw(bool resume=false);
+    void stopIQFftRedraw(bool suspend=false);
 
 
     /* FFT settings */
