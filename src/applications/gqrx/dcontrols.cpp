@@ -3832,7 +3832,7 @@ c_def()
     .v_type(V_DOUBLE)
     .def(.0001)
     .min(.00001)
-    .max(.005)
+    .max(.008)
     .step(.00001)
     .frac_digits(5)
     ,
