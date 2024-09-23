@@ -48,7 +48,6 @@ public:
     bool stop() override { return true; }
     bool set_filter_shape(const c_def::v_union &) override;
     bool         set_demod(const c_def::v_union &v) override { return vfo_s::set_demod(Modulations::MODE_NB_REJECTOR);}
-    bool set_iq_flt_size(const c_def::v_union &v) override { return vfo_s::set_iq_flt_size(v);}
     void set_quad_rate(double quad_rate) override {}
     void set_audio_rate(int audio_rate) override {}
     void set_filter(int low, int high, Modulations::filter_shape shape) override;
