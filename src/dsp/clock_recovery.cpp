@@ -47,7 +47,7 @@ clock_recovery_el_cc::clock_recovery_el_cc(
         throw std::out_of_range("Gains must be non-negative");
 
     set_omega(omega); // also sets min and max omega
-    set_relative_rate(1.f/omega);
+    set_relative_rate(1./double(omega));
     pp[0].omega_scale=0.f;
     pp[0].omega_add=0.f;
     pp[1].omega_scale=0.5f;
@@ -81,7 +81,7 @@ void clock_recovery_el_cc::forecast(int noutput_items,
     unsigned ninputs = ninput_items_required.size();
     for (unsigned i = 0; i < ninputs; i++)
         ninput_items_required[i] =
-            (int)ceil((noutput_items * d_omega)) + history();
+            (int)ceilf((noutput_items * d_omega)) + history();
 }
 
 void clock_recovery_el_cc::set_omega(float omega)
