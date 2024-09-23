@@ -32,11 +32,11 @@ class decoder_impl : public decoder
 {
 public:
 	decoder_impl(bool log, bool debug);
-	void set_ecc_max(int n) {d_ecc_max = n;}
-	void reset();
-	void set_integrate_pi(unsigned mode) {d_integrate_pi = mode;}
-	void set_integrate_ps(unsigned mode) {d_integrate_ps = mode;}
-	void set_integrate_ps_dist(unsigned dist) {d_integrate_ps_dist = dist;}
+	void set_ecc_max(int n) override {d_ecc_max = n;}
+	void reset() override;
+	void set_integrate_pi(unsigned mode) override {d_integrate_pi = mode;}
+	void set_integrate_ps(unsigned mode) override {d_integrate_ps = mode;}
+	void set_integrate_ps_dist(unsigned dist) override {d_integrate_ps_dist = dist;}
 
 private:
     constexpr static int BLOCK_SIZE{26};
@@ -64,7 +64,7 @@ private:
 
 	int work(int noutput_items,
 			gr_vector_const_void_star &input_items,
-			gr_vector_void_star &output_items);
+			gr_vector_void_star &output_items) override;
     bool start() override;
 
 	void enter_no_sync();
@@ -78,11 +78,9 @@ private:
 
     static constexpr int n_group{4*1};
 	int            bit_counter;
-	unsigned long  lastseen_offset_counter, reg;
 	unsigned int   block_bit_counter;
 	unsigned int   wrong_blocks_counter;
 	unsigned int   blocks_counter;
-	unsigned int   group_good_blocks_counter;
 	unsigned int   groups[n_group*3];
 	unsigned int  *prev_grp;
 	unsigned int  *group;
@@ -91,14 +89,10 @@ private:
 	bool           log;
 	bool           debug;
 	bool           presync;
-	bool           good_block;
 	bool           group_assembly_started;
-	unsigned char  lastseen_offset;
 	unsigned char  block_number;
 	enum { NO_SYNC, SYNC, FORCE_SYNC } d_state;
 	static const std::array<bit_locator,1024> locator;
-	uint16_t       d_prev_pi{0};
-	int            d_pi_cnt{0};
 	int            d_counter{0};
 	std::atomic<int> d_ecc_max{0};
 	pi_stats       d_pi_stats[65536*2]{};

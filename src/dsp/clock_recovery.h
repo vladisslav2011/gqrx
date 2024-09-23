@@ -80,7 +80,6 @@ private:
         float acc;
     };
     i_point pp[8]{};
-    float d_acc[8]{0.f};
     int d_skip{0};
     float d_corr0{0.0};
     float d_corr180{0.0};
