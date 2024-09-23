@@ -201,7 +201,7 @@ rx_rds::rx_rds(double sample_rate)
 
 //    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
-        2375.f/2.f-d_fxff_bw, 2375.f/2.f+d_fxff_bw, d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
+        2375./2.-(double)d_fxff_bw, 2375./2.+(double)d_fxff_bw, (double)d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
     d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(decim1, d_fxff_tap, 57000, d_sample_rate);
     update_fxff_taps();
 
@@ -215,9 +215,9 @@ rx_rds::rx_rds(double sample_rate)
 
     int n_taps = 151*5;
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
 #else
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((float)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
 #endif
 //    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
 //    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
@@ -409,10 +409,10 @@ void rx_rds::update_fxff_taps()
 {
     //lock();
     if(d_fxff_bw>1170.f)
-        d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, d_fxff_bw, d_fxff_tw);
+        d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, (double)d_fxff_bw, (double)d_fxff_tw);
     else
         d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
-            2375.f/2.f-std::min(d_fxff_bw,1170.0f), 2375.f/2.f+std::min(d_fxff_bw,1170.0f), d_fxff_tw);
+            2375./2.-std::min((double)d_fxff_bw,1170.0), 2375./2.+std::min((double)d_fxff_bw,1170.0), (double)d_fxff_tw);
     d_fxff->set_taps(d_fxff_tap);
     //unlock();
 }
