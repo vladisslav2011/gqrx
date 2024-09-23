@@ -78,45 +78,6 @@ bool wfmrx::stop()
     return true;
 }
 
-bool wfmrx::set_au_flt_size(const c_def::v_union & v)
-{
-    receiver_base_cf::set_au_flt_size(v);
-    switch (d_demod) {
-
-    case Modulations::MODE_WFM_MONO:
-    default:
-        if(d_connected)
-            lock();
-        mono->set_au_flt_size(d_au_flt_size);
-        if(d_connected)
-            unlock();
-        stereo->set_au_flt_size(d_au_flt_size);
-        stereo_oirt->set_au_flt_size(d_au_flt_size);
-        break;
-
-    case Modulations::MODE_WFM_STEREO:
-        mono->set_au_flt_size(d_au_flt_size);
-        if(d_connected)
-            lock();
-        stereo->set_au_flt_size(d_au_flt_size);
-        if(d_connected)
-            unlock();
-        stereo_oirt->set_au_flt_size(d_au_flt_size);
-        break;
-
-    case Modulations::MODE_WFM_STEREO_OIRT:
-        mono->set_au_flt_size(d_au_flt_size);
-        stereo->set_au_flt_size(d_au_flt_size);
-        if(d_connected)
-            lock();
-        stereo_oirt->set_au_flt_size(d_au_flt_size);
-        if(d_connected)
-            unlock();
-        break;
-    }
-    return true;
-}
-
 void wfmrx::set_audio_rate(int audio_rate)
 {
     receiver_base_cf::set_audio_rate(audio_rate);

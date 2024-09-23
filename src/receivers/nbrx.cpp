@@ -89,22 +89,6 @@ bool nbrx::stop()
     return true;
 }
 
-bool nbrx::set_au_flt_size(const c_def::v_union & v)
-{
-    receiver_base_cf::set_au_flt_size(v);
-    if(audio_rr0 || audio_rr1)
-        if(d_connected)
-            lock();
-    if(audio_rr0)
-        audio_rr0->set_flt_size(d_au_flt_size);
-    if(audio_rr1)
-        audio_rr1->set_flt_size(d_au_flt_size);
-    if(audio_rr0 || audio_rr1)
-        if(d_connected)
-            unlock();
-    return true;
-}
-
 void nbrx::set_audio_rate(int audio_rate)
 {
     qDebug() << "Changing NB_RX audio rate:"  << d_audio_rate << "->" << audio_rate;

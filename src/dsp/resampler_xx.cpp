@@ -30,12 +30,12 @@
 /* Create a new instance of resampler_cc and return
  * a shared_ptr. This is effectively the public constructor.
  */
-resampler_cc_sptr make_resampler_cc(float rate, unsigned flt_size)
+resampler_cc_sptr make_resampler_cc(float rate)
 {
-    return gnuradio::get_initial_sptr(new resampler_cc(rate, flt_size));
+    return gnuradio::get_initial_sptr(new resampler_cc(rate));
 }
 
-resampler_cc::resampler_cc(float rate, unsigned flt_size)
+resampler_cc::resampler_cc(float rate)
     : gr::hier_block2 ("resampler_cc",
           gr::io_signature::make (1, 1, sizeof(gr_complex)),
           gr::io_signature::make (1, 1, sizeof(gr_complex)))
@@ -50,15 +50,14 @@ resampler_cc::resampler_cc(float rate, unsigned flt_size)
     */
 
     /* generate taps */
-    d_rate = rate;
     double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
     double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
-    d_flt_size = flt_size;
+    unsigned int flt_size = 32;
 
-    d_taps = gr::filter::firdes::low_pass(d_flt_size, d_flt_size, cutoff, trans_width);
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* create the filter */
-    d_filter = gr::filter::pfb_arb_resampler_ccf::make(d_rate, d_taps, d_flt_size);
+    d_filter = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
     d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE);
 
     /* connect filter */
@@ -73,28 +72,17 @@ resampler_cc::~resampler_cc()
 
 void resampler_cc::set_rate(float rate)
 {
-    d_rate = rate;
-    reconfigure();
-}
-
-void resampler_cc::set_flt_size(unsigned flt_size)
-{
-    d_flt_size = flt_size;
-    reconfigure();
-}
-
-void resampler_cc::reconfigure()
-{
     /* generate taps */
-    double cutoff = d_rate > 1.0f ? 0.4 : 0.4*(double)d_rate;
-    double trans_width = d_rate > 1.0f ? 0.2 : 0.2*(double)d_rate;
-    d_taps = gr::filter::firdes::low_pass(d_flt_size, d_flt_size, cutoff, trans_width);
+    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
+    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    unsigned int flt_size = 32;
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* FIXME: Should implement set_taps() in PFB */
     disconnect(self(), 0, d_filter, 0);
     disconnect(d_filter, 0, self(), 0);
     d_filter.reset();
-    d_filter = gr::filter::pfb_arb_resampler_ccf::make(d_rate, d_taps, d_flt_size);
+    d_filter = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
     d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE);
     connect(self(), 0, d_filter, 0);
     connect(d_filter, 0, self(), 0);
@@ -103,12 +91,12 @@ void resampler_cc::reconfigure()
 /* Create a new instance of resampler_ff and return
  * a shared_ptr. This is effectively the public constructor.
  */
-resampler_ff_sptr make_resampler_ff(float rate, unsigned flt_size)
+resampler_ff_sptr make_resampler_ff(float rate)
 {
-    return gnuradio::get_initial_sptr(new resampler_ff(rate, flt_size));
+    return gnuradio::get_initial_sptr(new resampler_ff(rate));
 }
 
-resampler_ff::resampler_ff(float rate, unsigned flt_size)
+resampler_ff::resampler_ff(float rate)
     : gr::hier_block2 ("resampler_ff",
           gr::io_signature::make (1, 1, sizeof(float)),
           gr::io_signature::make (1, 1, sizeof(float)))
@@ -123,15 +111,14 @@ resampler_ff::resampler_ff(float rate, unsigned flt_size)
     */
 
     /* generate taps */
-    d_rate = rate;
-    double cutoff = d_rate > 1.0f ? 0.4 : 0.4*(double)rate;
-    double trans_width = d_rate > 1.0f ? 0.2 : 0.2*(double)rate;
-    d_flt_size = flt_size;
+    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
+    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    unsigned int flt_size = 32;
 
-    d_taps = gr::filter::firdes::low_pass(d_flt_size, d_flt_size, cutoff, trans_width);
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* create the filter */
-    d_filter = gr::filter::pfb_arb_resampler_fff::make(d_rate, d_taps, d_flt_size);
+    d_filter = gr::filter::pfb_arb_resampler_fff::make(rate, d_taps, flt_size);
 
     /* connect filter */
     connect(self(), 0, d_filter, 0);
@@ -145,28 +132,17 @@ resampler_ff::~resampler_ff()
 
 void resampler_ff::set_rate(float rate)
 {
-    d_rate = rate;
-    reconfigure();
-}
-
-void resampler_ff::set_flt_size(unsigned flt_size)
-{
-    d_flt_size = flt_size;
-    reconfigure();
-}
-
-void resampler_ff::reconfigure()
-{
     /* generate taps */
-    double cutoff = d_rate > 1.0f ? 0.4 : 0.4*(double)d_rate;
-    double trans_width = d_rate > 1.0f ? 0.2 : 0.2*(double)d_rate;
-    d_taps = gr::filter::firdes::low_pass(d_flt_size, d_flt_size, cutoff, trans_width);
+    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
+    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    unsigned int flt_size = 32;
+    d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
     /* FIXME: Should implement set_taps() in PFB */
     disconnect(self(), 0, d_filter, 0);
     disconnect(d_filter, 0, self(), 0);
     d_filter.reset();
-    d_filter = gr::filter::pfb_arb_resampler_fff::make(d_rate, d_taps, d_flt_size);
+    d_filter = gr::filter::pfb_arb_resampler_fff::make(rate, d_taps, flt_size);
     connect(self(), 0, d_filter, 0);
     connect(d_filter, 0, self(), 0);
 }

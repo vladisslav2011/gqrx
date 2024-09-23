@@ -60,7 +60,6 @@ public:
     bool start() override;
     bool stop() override;
 
-    bool set_au_flt_size(const c_def::v_union &) override;
     void set_audio_rate(int audio_rate) override;
 
     void set_filter(int low, int high, Modulations::filter_shape shape) override;

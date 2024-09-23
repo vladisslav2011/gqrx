@@ -82,8 +82,6 @@ public:
         d_pll_bw(0.01),
         d_wfm_deemph(50.0),
         d_wfm_raw(false),
-        d_iq_flt_size(32),
-        d_au_flt_size(32),
         d_rec_dir(""),
         d_rec_sql_triggered(false),
         d_rec_min_time(0),
@@ -170,9 +168,6 @@ public:
     /* WFM parameters */
     bool         get_wfm_deemph(c_def::v_union & v) const { v=d_wfm_deemph; return true; }
     bool         get_wfm_raw(c_def::v_union & v) const { v=d_wfm_raw; return true; }
-    /* other */
-    bool         get_iq_flt_size(c_def::v_union & v) const { v=d_iq_flt_size; return true; }
-    bool         get_au_flt_size(c_def::v_union & v) const { v=d_au_flt_size; return true; }
     /* Noise blanker */
     bool         get_nb1_on(c_def::v_union & v) const { v=d_nb_on[0]; return true; }
     bool         get_nb2_on(c_def::v_union & v) const { v=d_nb_on[1]; return true; }
@@ -257,9 +252,6 @@ public:
     /* WFM parameters */
     virtual bool  set_wfm_deemph(const c_def::v_union &);
     virtual bool  set_wfm_raw(const c_def::v_union &);
-    /* other */
-    virtual bool  set_iq_flt_size(const c_def::v_union &);
-    virtual bool  set_au_flt_size(const c_def::v_union &);
     /* Noise blanker */
     virtual bool set_nb1_on(const c_def::v_union &);
     virtual bool set_nb2_on(const c_def::v_union &);
@@ -368,8 +360,6 @@ protected:
     float            d_pll_bw;
     float            d_wfm_deemph;
     bool             d_wfm_raw;
-    int              d_iq_flt_size;
-    int              d_au_flt_size;
 
     bool             d_nb_on[RECEIVER_NB_COUNT];
     float            d_nb_threshold[RECEIVER_NB_COUNT];

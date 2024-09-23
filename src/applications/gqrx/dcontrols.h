@@ -202,9 +202,6 @@ enum c_id
     C_WFM_RAW,
     C_WFM_STEREO_DEEMPH,
     C_WFM_OIRT_DEEMPH,
-    C_IQ_FLT_SIZE,
-    C_AU_FLT_SIZE,
-
     C_RDS_ON,
     /* type 0 = PI
      * type 1 = PS
