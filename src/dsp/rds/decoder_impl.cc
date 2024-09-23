@@ -310,8 +310,6 @@ int decoder_impl::work (int noutput_items,
         std::swap(group,prev_grp);
         std::memcpy(group,next_grp,sizeof(group[0])*n_group);
         d_weight+=(std::abs(in[i])-d_weight)/float(n_group*BLOCK_SIZE);
-        //d_weight -= std::abs(in[i-n_group*BLOCK_SIZE]);
-        //d_weight += std::abs(in[i]);
         int sample=in[i]>0.f;
         for(int j=0;j<n_group-1;j++)
             group[j]=((group[j]<<1)|(group[j+1]>>25))&((1<<26)-1);
@@ -384,12 +382,14 @@ int decoder_impl::work (int noutput_items,
                 {
                     good_group=prev_grp;
                     bit_counter=2;
-                    printf("<->\n");
+                    if(log||debug)
+                        printf("<->\n");
                 }else if((d_next_errs<d_curr_errs)&&(d_next_errs<d_prev_errs)&&(d_next_errs<12)&&(next_pi==d_best_pi))
                 {
                     good_group=next_grp;
                     bit_counter=0;
-                    printf("<+>\n");
+                    if(log||debug)
+                        printf("<+>\n");
                 }
             }
             bit_errors=process_group(good_group, ecc_max, offset_chars, locators, &good_grp);
@@ -423,7 +423,8 @@ int decoder_impl::work (int noutput_items,
                         if(d_counter > 512*8)
                         {
                             d_state=NO_SYNC;
-                            printf("- NO Sync errors: %d, %d\n",d_curr_errs,d_counter);
+                            if(log||debug)
+                                printf("- NO Sync errors: %d, %d\n",d_curr_errs,d_counter);
                             d_counter = 0;
                         }
                     }
@@ -526,7 +527,7 @@ int decoder_impl::work (int noutput_items,
             prev_grp[2]=(good_group[2]>>10)^locators[2];
             prev_grp[3]=(good_group[3]>>10)^locators[3];
             decode_group(prev_grp, bit_errors);
-            if(d_state != old_sync)
+            if(d_state != old_sync && (log||debug))
                 printf("Sync %c %04x/%04x Corrected: %d %d %c\n",offset_chars[2],prev_grp[0],d_best_pi,bit_errors,ecc_max,sync_point);
         }
     }
@@ -563,7 +564,17 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
             if(pi_a[pi].weight>d_max_weight[corr])
             {
                 d_max_weight[corr]=pi_a[pi].weight;
-                //printf("%c[%04x] %d (%d,%d) %d %d %6.2f\n",corr?':':'?',pi,((bit_offset+1)%GROUP_SIZE < 3),pi_a[pi].weight,pi_a[pi].count,d_block0errs,errs,double(d_weight));
+                if(log||debug)
+                    printf("%c[%04x] %d (%d,%d) %d %d %6.2f\n",
+                        corr?':':'?',
+                        pi,
+                        ((bit_offset+1)%GROUP_SIZE < 3),
+                        pi_a[pi].weight,
+                        pi_a[pi].count,
+                        d_block0errs,
+                        errs,
+                        double(d_weight)
+                    );
                 if(!corr)
                     d_matches[pi].push_back(grp_array(p_grp));
                 tmp_grp[0]=pi;
@@ -575,7 +586,17 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
         }else{
             if((d_state==NO_SYNC)||(d_best_pi!=pi))
             {
-                //printf("%c[%04x] %d (%d,%d) %d %d %6.2f!!\n",corr?'>':'+',pi,((bit_offset+1)%GROUP_SIZE < 3),pi_a[pi].weight,pi_a[pi].count,d_block0errs,errs,double(d_weight));
+                if(log||debug)
+                    printf("%c[%04x] %d (%d,%d) %d %d %6.2f!!\n",
+                        corr?'>':'+',
+                        pi,
+                        ((bit_offset+1)%GROUP_SIZE < 3),
+                        pi_a[pi].weight,
+                        pi_a[pi].count,
+                        d_block0errs,
+                        errs,
+                        double(d_weight)
+                    );
                 if(!corr)
                 {
                     auto & prv=d_matches[pi];
@@ -635,7 +656,8 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
                     pi_a[jj].count--;
             }
             d_max_weight[corr]--;
-            //std::cout<<"d_pi_bitcnt--\n";
+            if(log||debug)
+                std::cout<<"d_pi_bitcnt--\n";
         }
     }
     return -1;
