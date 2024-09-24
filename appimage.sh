@@ -9,8 +9,9 @@
 # Requirements:
 #   * VERSION as an ENV var, if not detected will use actual github
 #     version + commit info
-#   * This must be run after a successfully build and installation into a
-#     prefix passed as the PREFIX variable
+#   * This must be run after a successfully build, and need to set the
+#     APP var below to the path of the executable (default is the current
+#     travis build place: build/src/gqrx)
 #   * Must be run on a Linux version as old as the far distro you need to
 #     support, tested successfully on Ubuntu 14.04 Trusty Tar
 #   * If you plan to use the "-u" option you need to configure some things
@@ -18,11 +19,9 @@
 #
 # On any troubles invoke stdevPavelmc in github
 
-# PREFIX variable must be set before calling this script. It points to the
-# prefix in which gqrx is installed and from which dependency libraries will be
-# gathered.
-#PREFIX="micromamba/envs/gqrx"
-APP="$PREFIX/bin/gqrx"
+# Tweak this please: this is the path of the gqrx executable relative to
+#the project root will reside after build
+APP="build/src/gqrx"
 
 # No need to tweak below unless you move files on the actual project
 DESKTOP="dk.gqrx.gqrx.desktop"
@@ -42,12 +41,12 @@ echo ""
 
 # basic tests
 if [ ! -f "$APP" ] ; then
-    echo "Error: the app file is no in the path we need it, set the PREFIX var before running this script"
+    echo "Error: the app file is no in the path we need it, update the APP var on this script"
     exit 1
 fi
 
 if [ ! -f "$DESKTOP" ] ; then
-    echo "Error: can't find the desktop file, please update the DESKTOP var on the script"
+    echo "Error: can't find the desktop file, please update the DESKTOP var on the scriot"
     exit 1
 fi
 
@@ -63,15 +62,12 @@ rm -rdf Gqrx-*.AppImage 2>/dev/null
 # download & set all needed tools
 wget -c -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 wget -c -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
-wget -c -nv "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+wget -c -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage"
 chmod a+x *.AppImage
 
-# build library arguments so soapy module dependencies are included
-soapy_module_libs=("$PREFIX"/lib/SoapySDR/modules*/*)
-linuxdeploy_lib_args=()
-for lib in ${soapy_module_libs[@]}; do
-    linuxdeploy_lib_args+=( "-l" "$lib" )
-done
+# abra-cadabra
+mkdir -p ./AppDir/usr/lib
+cp -R /usr/lib/x86_64-linux-gnu/SoapySDR/modules* ./AppDir/usr/soapy-modules
 
 # force otherwise excluded libraries that we really need because of library
 # dependence on newer versions
@@ -93,33 +89,12 @@ linuxdeploy_lib_args+=(
 )
 
 mkdir -p ./AppDir/apprun-hooks
-echo 'export CONDA_PREFIX="$APPDIR/usr"' >./AppDir/apprun-hooks/soapy-hook.sh
 echo 'export UHD_PKG_PATH="$APPDIR/usr"' >./AppDir/apprun-hooks/uhd-hook.sh
 echo 'export FONTCONFIG_FILE="$APPDIR/etc/fonts/fonts.conf"
 export FONTCONFIG_PATH="$APPDIR/etc/fonts"' >./AppDir/apprun-hooks/fontconfig-hook.sh
 
-# since libs come from prefix, little use in querying copyright files with dpkg-query
-export DISABLE_COPYRIGHT_FILES_DEPLOYMENT=1
-
-# need to set QMAKE variable for linuxdeploy-plugin-qt so it uses PREFIX's Qt
-export QMAKE="$PREFIX/bin/qmake6"
-
-./linuxdeploy-x86_64.AppImage -e "$APP" -d "$DESKTOP" -i "$ICON" "${linuxdeploy_lib_args[@]}" -p qt --appdir=./AppDir
+./linuxdeploy-x86_64.AppImage -e "$APP" -d "$DESKTOP" -i "$ICON" -p qt --output appimage --appdir=./AppDir
 RESULT=$?
-
-# copy Soapy modules into their expected path in the AppDir
-cp -R "$PREFIX"/lib/SoapySDR ./AppDir/usr/lib/SoapySDR
-
-# copy fontconfig configuration files that the FONTCONFIG_FILE env var points to
-mkdir -p ./AppDir/etc/
-cp -RL "$PREFIX"/etc/fonts ./AppDir/etc/fonts
-# remove any config file lines that refer to the old prefix if it's not /usr
-if [ "${PREFIX:0:4}" != "/usr" ] ; then
-    sed -i "\|$PREFIX|d" ./AppDir/etc/fonts/fonts.conf
-fi
-
-# finally make the AppImage
-./appimagetool-x86_64.AppImage AppDir/
 
 # check build success
 if [ $RESULT -ne 0 ] ; then
