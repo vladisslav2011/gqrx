@@ -157,7 +157,7 @@ jobs:
           path: Gqrx-*.AppImage
   macos:
     name: MacOS
-    runs-on: macos-12
+    runs-on: macos-13
     steps:
       - name: Check for Secret availability
         id: secret-check
@@ -201,7 +201,7 @@ jobs:
           cd build
           cmake ..
           make -j4
-          make install
+          sudo make install
 
           cd /tmp
           cp /Library/Frameworks/iio.framework/iio /usr/local/lib/libiio.dylib
@@ -221,7 +221,7 @@ jobs:
           cd build
           cmake ..
           make -j4
-          make install
+          sudo make install
 
           cd /tmp
           git clone https://gitea.osmocom.org/sdr/gr-osmosdr.git
@@ -230,7 +230,7 @@ jobs:
           cd build
           cmake -DCMAKE_CXX_FLAGS=-Wno-register ..
           LIBRARY_PATH=/usr/local/opt/icu4c/lib make -j4
-          make install
+          sudo make install
       - name: Install Apple certificate
         if: ${{ steps.secret-check.outputs.available == 'true' }}
         env:
