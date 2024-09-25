@@ -37,6 +37,8 @@
 #include "qtgui/ioconfig.h"
 #include "ui_ioconfig.h"
 
+#define RECENT_MAX 10
+
 
 CIoConfig::CIoConfig(QSettings * settings,
                      std::map<QString, QVariant> &devList,
@@ -226,6 +228,42 @@ void CIoConfig::saveConfig()
         m_settings->remove("input/decimation");
     else
         m_settings->setValue("input/decimation", int_val);
+    bool devmatch = false;
+    // Search recent devices
+    for (auto it = recent_devs.cbegin(); it != recent_devs.cend(); it++)
+    {
+        auto devstr = it->first;
+        if (ui->inDevEdit->text() == devstr )
+        {
+            devmatch = true;
+            break;
+        }
+    }
+    // If not found, search all detected devices
+    if(!devmatch)
+        for (auto it = m_devList->cbegin(); it != m_devList->cend(); it++)
+        {
+            auto devstr = (*it).second.toString();
+            if (ui->inDevEdit->text() == devstr)
+            {
+                devmatch = true;
+                break;
+            }
+        }
+    // If still not found add devstring to a list of recent devices
+    if(!devmatch)
+    {
+        for (auto it = recent_devs.begin(); it != recent_devs.end(); it++)
+            it->second++;
+        recent_devs[ui->inDevEdit->text()] = 0;
+    }
+    // Store first RECENT_MAX recent devices
+    for (auto it = recent_devs.cbegin(); it != recent_devs.cend(); it++)
+    {
+        if((*it).second>=RECENT_MAX)
+            continue;
+        m_settings->setValue(QString("input/recent%1").arg((*it).second),(*it).first);
+    }
 }
 
 
@@ -614,12 +652,33 @@ void CIoConfig::updateDecimations(void)
 
 void CIoConfig::updateInDev(const QSettings *settings, const std::map<QString, QVariant> &devList)
 {
+    int i = 0;
     QString indev = settings->value("input/device", "").toString();
     bool cfgmatch = false; //flag to indicate that device from config was found
-
+    // Load up to RECENT_MAX recent devices from a conf
+    recent_devs.clear();
+    while(i<RECENT_MAX)
+    {
+        QString recent_dev=settings->value(QString("input/recent%1").arg(i), "").toString();
+        if(recent_dev=="")
+            break;
+        recent_devs[recent_dev] = i;
+        i++;
+    }
     // insert the device list in device combo box
     ui->inDevCombo->clear();
-    int i = 0;
+    i = 0;
+    for (auto it = recent_devs.cbegin(); it != recent_devs.cend(); it++, i++)
+    {
+        auto devstr = (*it).first;
+        ui->inDevCombo->addItem(devstr, devstr);
+        if (indev == devstr)
+        {
+            ui->inDevCombo->setCurrentIndex(i);
+            ui->inDevEdit->setText(devstr);
+            cfgmatch = true;
+        }
+    }
     for (auto it = devList.cbegin(); it != devList.cend(); it++, i++)
     {
         auto devstr = (*it).second.toString();

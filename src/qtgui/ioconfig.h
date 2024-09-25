@@ -65,6 +65,7 @@ private:
     Ui::CIoConfig  *ui;
     QSettings      *m_settings;
     QPushButton    *m_scanButton;
+    std::map<QString, int> recent_devs;
     std::map<QString, QVariant> *m_devList; // will point to devList from constructor
 
     std::vector<audio_device>           outDevList;
