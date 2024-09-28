@@ -439,6 +439,15 @@ void RemoteControl::setRdsRadiotext(QString text)
     rds_radiotext = text.trimmed();
 }
 
+void RemoteControl::setIqFileName(QString name)
+{
+    iq_filename = name;
+}
+
+void RemoteControl::setIqFileTime(qint64 ts)
+{
+    iq_filetime = ts;
+}
 
 /*! \brief Convert mode string to enum (DockRxOpt::rxopt_mode_idx)
  *  \param mode The Hamlib rigctld compatible mode string
@@ -836,13 +845,17 @@ QString RemoteControl::cmd_get_param(QStringList cmdlist)
     QString func = cmdlist.value(1, "");
 
     if (func == "?")
-        answer = QString("RDS_PI RDS_STATION RDS_RADIOTEXT\n");
+        answer = QString("RDS_PI RDS_STATION RDS_RADIOTEXT IQ_NAME IQ_TIME\n");
     else if (func.compare("RDS_PI", Qt::CaseInsensitive) == 0)
         answer = QString("%1\n").arg(rc_program_id);
 	else if (func.compare("RDS_STATION", Qt::CaseInsensitive) == 0)
 		answer = QString("%1\n").arg(rds_station);
 	else if (func.compare("RDS_RADIOTEXT", Qt::CaseInsensitive) == 0)
 		answer = QString("%1\n").arg(rds_radiotext);
+	else if (func.compare("IQ_NAME", Qt::CaseInsensitive) == 0)
+		answer = QString("%1\n").arg(iq_filename);
+	else if (func.compare("IQ_TIME", Qt::CaseInsensitive) == 0)
+		answer = iq_filetime ? QDateTime::fromMSecsSinceEpoch(iq_filetime).toUTC().toString("yyyy-MM-dd hh:mm:ss\n") : "";
     else
         answer = QString("RPRT 1\n");
 

@@ -2018,6 +2018,8 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     ui->plotter->resetHorizontalZoom();
 
     remote->setBandwidth(actual_rate);
+    remote->setIqFileName(filename);
+    remote->setIqFileTime(time_ms);
 
     // FIXME: would be nice with good/bad status
     ui->statusBar->showMessage(tr("Playing %1").arg(filename));
@@ -2103,6 +2105,8 @@ void MainWindow::stopIqPlayback()
     }
 
     ui->plotter->setPlayingIQ(false);
+    remote->setIqFileName("");
+    remote->setIqFileTime(0);
 
     if (ui->actionDSP->isChecked())
     {
