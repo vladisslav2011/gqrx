@@ -102,6 +102,8 @@ public slots:
     void rdsPI(QString program_id);
     void setRdsStation(QString name);
     void setRdsRadiotext(QString text);
+    void setIqFileName(QString name);
+    void setIqFileTime(qint64 ts);
 
 signals:
     void newFrequency(qint64 freq);
@@ -143,6 +145,8 @@ private:
     QString     rc_program_id;     /*!< RDS Program identification */
     bool        audio_recorder_status; /*!< Recording enabled */
     bool        receiver_running;  /*!< Whether the receiver is running or not */
+    QString     iq_filename;       /*!< IQ tool filename (during playback)*/
+    qint64      iq_filetime;       /*!< IQ tool file recording time (during playback)*/
     bool        hamlib_compatible;
     gain_list_t gains;             /*!< Possible and current gain settings */
     QString     rds_station;       /*!< RDS Station Name */
