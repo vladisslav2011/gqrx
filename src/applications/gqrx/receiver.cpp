@@ -1310,7 +1310,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
             rx[d_current]->set_index(d_current);
         }
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-        tb->connect(iq_src, 0, rx[d_current], 0);
+        tb->connect(iq_swap, 0, rx[d_current], 0);
         // End temporary workaronud
         if (old_rx.get() != rx[d_current].get())
         {
@@ -1336,7 +1336,7 @@ receiver::status receiver::set_demod_locked(Modulations::idx demod, int old_idx)
         }
         set_demod_and_update_filter(old_rx, rx[d_current], demod);
         //Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-        tb->disconnect(iq_src, 0, rx[d_current], 0);
+        tb->disconnect(iq_swap, 0, rx[d_current], 0);
         // End temporary workaronud
         connect_rx();
         foreground_rx();
@@ -1907,8 +1907,15 @@ void receiver::disconnect_rx(int n)
         std::cerr<<"disconnect_rx d_active > 0 get_port="<<rx_port<<std::endl;
         if(d_use_chan)
             tb->disconnect(chan, rx_port, rx[n], 0);
-        else
+        else{
             tb->disconnect(iq_src, 0, rx[n], 0);
+            // prevent freeze on IQ balance activation
+            if(iq_src.get() == src.get())
+            {
+                tb->disconnect(iq_src, 0, iq_fft, 0);
+                tb->connect(iq_src, 0, iq_fft, 0);
+            }
+        }
         std::cerr<<"disconnect_rx in disconnected"<<std::endl;
         tb->disconnect(rx[n], 0, add0, rx_port);
         tb->disconnect(rx[n], 1, add1, rx_port);
