@@ -3854,7 +3854,7 @@ c_def()
     .title("Integrate PS")
     .title_placement(c_def::grid_placement(PLACE_NONE,0))
     .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
-    .hint("PS integration mode")
+    .hint("PS integration mode\nx2,x3: 2 or 3 group integration\nx2/x3: try 3 group integration when 2 group integration fails\nx2/x3+: same as x2/x3, but do not skip already decoded groups")
     .g_type(G_COMBO)
     .dock(D_RDS)
     .scope(S_VFO)
@@ -3871,6 +3871,7 @@ c_def()
         {"2","x2",1},
         {"3","x3",2},
         {"23","x2/x3",3},
+        {"23+","x2/x3+",4},
     })
     ,
 };

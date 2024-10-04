@@ -512,7 +512,7 @@ int decoder_impl::work (int noutput_items,
                     memcpy(offset_chars,offset_chars_tmp,sizeof(offset_chars));
                     memcpy(prev_grp,best_grp,sizeof(best_grp));
                     offset_chars[0]='x';
-                    if(best_errs==0)
+                    if(d_integrate_ps < INTEGRATE_PS_23_PLUS && best_errs==0)
                     {
                         d_used_list[0]=1;
                         d_used_list[bestp]=1;
@@ -520,7 +520,8 @@ int decoder_impl::work (int noutput_items,
                     }
                 }
             }else{
-                d_used_list[0]=1;
+                if(d_integrate_ps < INTEGRATE_PS_23_PLUS)
+                    d_used_list[0]=1;
             }
             prev_grp[0]=(good_group[0]>>10)^locators[0];
             prev_grp[1]=(good_group[1]>>10)^locators[1];
