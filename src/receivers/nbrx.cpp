@@ -160,6 +160,8 @@ void nbrx::set_audio_rate(int audio_rate)
         if (d_demod == Modulations::MODE_RAW)
             audio_rr1->set_rate(d_audio_rate / d_pref_quad_rate);
     }
+    if (d_demod == Modulations::MODE_RAW)
+        update_filter();
 }
 
 void nbrx::set_filter(int low, int high, Modulations::filter_shape shape)
@@ -174,6 +176,7 @@ void nbrx::update_filter()
     int newbw = std::max(d_filter_high, -d_filter_low);
     old_filter_low=d_filter_low;
     old_filter_high=d_filter_high;
+    const int max_bw = std::min(d_audio_rate,(int)NB_PREF_QUAD_RATE)/2;
     if(d_demod!=Modulations::MODE_OFF)
         filter->set_param(double(d_filter_low), double(d_filter_high), double(d_filter_tw));
     //REC_raw
@@ -182,7 +185,7 @@ void nbrx::update_filter()
         printf("bw %d => %d\n",oldbw,newbw);
         double corr_bw=std::min(double(newbw),d_decim_rate/2.-1.);
         double corr_tw=std::min(double(d_filter_tw),d_decim_rate/2.-1.);
-        if((!d_wb_rec)&&(newbw>NB_PREF_QUAD_RATE/2))
+        if((!d_wb_rec)&&(newbw>max_bw))
         {
             printf("nbrx::update_filter connect %d %f %d=>%d %d\n",d_connected,d_decim_rate,oldbw,newbw,d_filter_tw);
             d_fxff_decim = std::max(1,int(std::floor(d_decim_rate / ((newbw + d_filter_tw) * 2))));
@@ -212,7 +215,7 @@ void nbrx::update_filter()
             if(d_connected && d_running)
                 unlock();
         }
-        if((d_wb_rec)&&(newbw<=NB_PREF_QUAD_RATE/2))
+        if((d_wb_rec)&&(newbw<=max_bw))
         {
             printf("nbrx::update_filter disconnect\n");
             if(d_connected)
@@ -228,7 +231,7 @@ void nbrx::update_filter()
             if(d_connected)
                 unlock();
         }
-        if(d_wb_rec&&(newbw>NB_PREF_QUAD_RATE/2))
+        if(d_wb_rec&&(newbw>max_bw))
         {
             int new_fxff_decim = std::max(1,int(std::floor(d_decim_rate / ((newbw + d_filter_tw) * 2))));
             if(d_fxff_decim != new_fxff_decim)
