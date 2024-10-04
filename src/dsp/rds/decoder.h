@@ -38,6 +38,7 @@ public:
         INTEGRATE_PS_2,
         INTEGRATE_PS_3,
         INTEGRATE_PS_23,
+        INTEGRATE_PS_23_PLUS,
     };
 public:
 #if GNURADIO_VERSION < 0x030900
