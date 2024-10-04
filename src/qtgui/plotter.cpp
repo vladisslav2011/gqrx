@@ -141,6 +141,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent), m_ColorTbl(256)
     m_OverlayPixmap = QPixmap(0,0);
     m_WaterfallLine = QImage(0,0,QImage::Format_Indexed8);
     m_WaterfallLine.setColorTable(m_ColorTbl);
+    m_PeakPixmap = QPixmap();
     m_WaterfallPixmap = QPixmap(0,0);
     m_Size = QSize(0,0);
     m_GrabPosition = 0;
@@ -1032,6 +1033,7 @@ void CPlotter::draw(bool timed)
     int     w;
     int     h;
     int     xmin, xmax;
+    const qreal shadowOffset = 1.0;
 
     if (m_DrawOverlay)
     {
@@ -1152,6 +1154,28 @@ void CPlotter::draw(bool timed)
         // Peak detection
         if (m_PeakDetection > 0)
         {
+            // Paint peaks with shadow
+            if (m_PeakPixmap.isNull())
+            {
+                m_PeakPixmap = QPixmap(qRound((10.0 + shadowOffset) * m_DPR), qRound((10.0 + shadowOffset) * m_DPR));
+                m_PeakPixmap.fill(Qt::transparent);
+                QPainter peakPainter(&m_PeakPixmap);
+                peakPainter.translate(QPointF(0.5, 0.5));
+                QPen peakPen(m_FftColor, m_DPR);
+                QPen peakShadowPen(Qt::black, m_DPR);
+                peakPen.setWidthF(m_DPR);
+                peakPainter.setPen(peakShadowPen);
+                peakPainter.drawEllipse(
+                    QRectF(shadowOffset,
+                           shadowOffset,
+                           10.0 * m_DPR, 10.0 * m_DPR));
+                peakPainter.setPen(peakPen);
+                peakPainter.drawEllipse(
+                    QRectF(0,
+                           0,
+                           10.0 * m_DPR, 10.0 * m_DPR));
+            }
+            const int peakPixmapOffset = m_PeakPixmap.width() / 2;
             m_Peaks.clear();
 
             float   mean = 0;
@@ -1178,8 +1202,9 @@ void CPlotter::draw(bool timed)
                     (i - lastPeak > PEAK_H_TOLERANCE || i == n-1))
                 {
                     m_Peaks.insert(lastPeak + xmin, m_fftbuf[lastPeak + xmin]);
-                    painter2.drawEllipse(lastPeak + xmin - 5,
-                                         m_fftbuf[lastPeak + xmin] - 5, 10, 10);
+                    const qreal peakxPlot = qreal(lastPeak + xmin);
+                    const qreal peakv = m_fftbuf[lastPeak + xmin];
+                    painter2.drawPixmap(QPointF(peakxPlot - peakPixmapOffset, peakv - peakPixmapOffset), m_PeakPixmap);
                     lastPeak = -1;
                 }
             }
@@ -2013,6 +2038,7 @@ void CPlotter::moveToDemodFreq()
 void CPlotter::setFftPlotColor(const QColor& color)
 {
     m_FftColor = color;
+    m_PeakPixmap = QPixmap();
     m_FftFillCol = color;
     m_FftFillCol.setAlpha(0x1A);
     m_PeakHoldColor = color;
