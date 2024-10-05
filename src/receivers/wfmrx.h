@@ -73,6 +73,7 @@ public:
 
     bool set_wfm_deemph(const c_def::v_union & v) override;
     bool set_wfm_raw(const c_def::v_union &) override;
+    bool set_wfm_stream(const c_def::v_union &) override;
 
     bool set_rds_on(const c_def::v_union &) override;
     bool get_rds_pi(c_def::v_union &) const override;

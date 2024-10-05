@@ -230,6 +230,17 @@ bool wfmrx::set_wfm_raw(const c_def::v_union & v)
     return true;
 }
 
+bool wfmrx::set_wfm_stream(const c_def::v_union & v)
+{
+    receiver_base_cf::set_wfm_stream(v);
+    if(d_demod == Modulations::MODE_WFM_MONO)
+        lock();
+    mono->set_stream(d_wfm_stream);
+    if(d_demod == Modulations::MODE_WFM_MONO)
+        unlock();
+    return true;
+}
+
 bool wfmrx::set_rds_on(const c_def::v_union & v)
 {
     if(d_rds_on == bool(v))

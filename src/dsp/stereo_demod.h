@@ -35,17 +35,21 @@
 #include <gnuradio/blocks/multiply_const_ff.h>
 #include <gnuradio/blocks/add_ff.h>
 #include <gnuradio/blocks/sub_ff.h>
+#include <gnuradio/filter/freq_xlating_fir_filter_fcf.h>
 #else
 #include <gnuradio/filter/fir_filter_blk.h>
 #include <gnuradio/blocks/multiply.h>
 #include <gnuradio/blocks/multiply_const.h>
 #include <gnuradio/blocks/add_blk.h>
 #include <gnuradio/blocks/sub.h>
+#include <gnuradio/filter/freq_xlating_fir_filter.h>
 #endif
 
 #include <gnuradio/analog/pll_refout_cc.h>
 #include <gnuradio/blocks/complex_to_imag.h>
+#include <gnuradio/blocks/complex_to_float.h>
 #include <gnuradio/blocks/delay.h>
+#include <gnuradio/analog/quadrature_demod_cf.h>
 #include <vector>
 #include "dsp/fm_deemph.h"
 #include "dsp/lpf.h"
@@ -96,6 +100,7 @@ public:
     void set_tau(double tau);
     void set_audio_rate(float audio_rate);
     void set_raw(bool);
+    void set_stream(int);
 
 private:
     /* GR blocks */
@@ -113,6 +118,14 @@ private:
     fm_deemph_sptr deemph1;        /*!< FM de-emphasis #1. */
     gr::blocks::add_ff::sptr add;  /*!< Left stereo channel. */
     gr::blocks::sub_ff::sptr sub;  /*!< Right stereo channel. */
+    gr::filter::freq_xlating_fir_filter_fcf::sptr  alt;  /*!< Alternate stream filter. */
+    gr::blocks::complex_to_float::sptr am_sub;    /*!< substream demod. */
+    gr::analog::quadrature_demod_cf::sptr fm_sub;    /*!< substream demod. */
+    lpf_ff_sptr lpf2;              /*!< SCA Low-pass filter. */
+    lpf_ff_sptr lpf3;              /*!< SCA Low-pass filter. */
+
+    std::vector<float> d_rds_taps;
+    std::vector<float> d_alt_taps;
 
     /* other parameters */
     float d_input_rate;                  /*! Input rate. */
@@ -120,6 +133,7 @@ private:
     bool  d_stereo;                      /*! On/off stereo mode. */
     bool  d_oirt;
     bool  d_raw;
+    int d_stream;
     std::vector<gr_complex> d_tone_taps; /*! Tone BPF taps. */
     std::vector<float> d_pll_taps;       /*! Subtone BPF taps. */
 };
