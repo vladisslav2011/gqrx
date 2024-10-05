@@ -3340,6 +3340,34 @@ c_def()
     .step(1)
     ,
 c_def()
+    .idx(C_WFM_STREAM)
+    .name("WFM Alt stream")
+    .title("Alt stream")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("Alternate stream selection")
+    .g_type(G_COMBO)
+    .dock(D_RXOPT)
+    .window(W_DEMOD_OPT)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("wfm_alt")
+    .v_type(V_INT)
+    .demod_specific(true)
+    .demodgroup(Modulations::GRP_WFM_MONO)
+    .def(0)
+    .min(0)
+    .max(3)
+    .presets((c_def::v_preset[])
+    {
+        {"MPX","Multiplex",0},
+        {"SUB","Stereo subcarrier",1},
+        {"RDS","RDS subcarrier",2},
+        {"SCA67","SCA67 FM",3},
+        {"SCA92","SCA92 FM",4},
+    })
+    ,
+c_def()
     .idx(C_WFM_STEREO_DEEMPH)
     .name("Deemphasis")
     .title("Deemphasis")
