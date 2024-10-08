@@ -462,6 +462,7 @@ MainWindow::~MainWindow()
     }
     waterfall_background_thread.join();
     on_actionDSP_triggered(false);
+    ui->plotter->clearVfos();
 
     /* stop and delete timers */
     dec_timer->stop();
