@@ -95,7 +95,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent), m_ColorTbl(256)
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_PaintOnScreen,false);
     setAutoFillBackground(false);
-    setAttribute(Qt::WA_OpaquePaintEvent, false);
+    setAttribute(Qt::WA_OpaquePaintEvent, true);
     setAttribute(Qt::WA_NoSystemBackground, true);
     setMouseTracking(true);
 
