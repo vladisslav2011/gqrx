@@ -1065,8 +1065,6 @@ void CPlotter::draw(bool timed)
         m_DrawOverlay = false;
     }
 
-    QPointF LineBuf[MAX_SCREENSIZE];
-
     if (m_Running && timed)
     {
 
@@ -1166,14 +1164,14 @@ void CPlotter::draw(bool timed)
         n = xmax - xmin;
         for (i = 0; i < n; i++)
         {
-            LineBuf[i].setX(i + xmin + 0.5);
-            LineBuf[i].setY(m_fftbuf[i + xmin] + 0.5);
+            m_LineBuf[i].setX(i + xmin + 0.5);
+            m_LineBuf[i].setY(m_fftbuf[i + xmin] + 0.5);
             if (m_FftFill)
                 painter2.fillRect(i + xmin, m_fftbuf[i + xmin] + 1, 1, h, fillBrush);
         }
 
         painter2.setPen(m_FftColor);
-        painter2.drawPolyline(LineBuf, n);
+        painter2.drawPolyline(m_LineBuf, n);
 
         // Peak detection
         if (m_PeakDetection > 0)
@@ -1246,11 +1244,11 @@ void CPlotter::draw(bool timed)
                 if(!m_PeakHoldValid || m_fftbuf[i] < m_fftPeakHoldBuf[i])
                     m_fftPeakHoldBuf[i] = m_fftbuf[i];
 
-                LineBuf[i].setX(i + xmin);
-                LineBuf[i].setY(m_fftPeakHoldBuf[i + xmin]);
+                m_LineBuf[i].setX(i + xmin);
+                m_LineBuf[i].setY(m_fftPeakHoldBuf[i + xmin]);
             }
             painter2.setPen(m_PeakHoldColor);
-            painter2.drawPolyline(LineBuf, n);
+            painter2.drawPolyline(m_LineBuf, n);
 
             m_PeakHoldValid = true;
         }
@@ -1365,7 +1363,6 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     if(line == 0)
     {
         m_fftData = fftData;
-        QPointF LineBuf[MAX_SCREENSIZE];
         // get/draw the 2D spectrum
         w = m_2DPixmap.width() / m_DPR;
         h = m_2DPixmap.height() / m_DPR;
@@ -1389,14 +1386,14 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
             n = xmax - xmin;
             for (i = 0; i < n; i++)
             {
-                LineBuf[i].setX(i + xmin + 0.5);
-                LineBuf[i].setY(m_fftbuf2[i + xmin] + 0.5);
+                m_LineBuf[i].setX(i + xmin + 0.5);
+                m_LineBuf[i].setY(m_fftbuf2[i + xmin] + 0.5);
                 if (m_FftFill)
                     painter2.fillRect(i + xmin, m_fftbuf2[i + xmin] + 1, 1, h, fillBrush);
             }
 
             painter2.setPen(m_FftColor);
-            painter2.drawPolyline(LineBuf, n);
+            painter2.drawPolyline(m_LineBuf, n);
 
             painter2.end();
         }

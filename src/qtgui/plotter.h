@@ -267,6 +267,7 @@ private:
     quint8      m_wfbuf[MAX_SCREENSIZE]{}; // used for accumulating waterfall data at high time spans
     qint32      m_fftPeakHoldBuf[MAX_SCREENSIZE]{};
     float      *m_fftData{};     /*! pointer to incoming FFT data */
+    QPointF     m_LineBuf[MAX_SCREENSIZE]{};
     float      *m_wfData{};
     QList<wfLineStats> m_wfLineStats;
     int         m_fftDataSize{};
