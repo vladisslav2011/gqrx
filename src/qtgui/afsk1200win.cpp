@@ -30,7 +30,7 @@
 
 
 Afsk1200Win::Afsk1200Win(QWidget *parent) :
-    QMainWindow(parent),
+    QDialog(parent),
     ui(new Ui::Afsk1200Win),
     tmpbuf(CORRLEN, 0.0)
 {
