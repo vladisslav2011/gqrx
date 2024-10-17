@@ -23,7 +23,7 @@
 #ifndef AFSK1200WIN_H
 #define AFSK1200WIN_H
 
-#include <QMainWindow>
+#include <QDialog>
 #include <QVarLengthArray>
 #include "dsp/afsk1200/cafsk12.h"
 
@@ -34,7 +34,7 @@ namespace Ui {
 
 
 /*! \brief AFSK1200 decoder window. */
-class Afsk1200Win : public QMainWindow
+class Afsk1200Win : public QDialog
 {
     Q_OBJECT
 
