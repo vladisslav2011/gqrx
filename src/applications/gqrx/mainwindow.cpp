@@ -142,7 +142,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     // create DXC Objects
     dxc_options = new DXCOptions(this);
     dxc_timer = new QTimer(this);
-    dxc_timer->start(1000);
 
     /* create dock widgets */
     uiDockRxOpt = new DockRxOpt();
@@ -313,6 +312,8 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_FFT_RATE, &MainWindow::iqFftRateObserver);
     set_observer(C_FFT_SIZE, &MainWindow::iqFftSizeObserver);
     set_observer(C_IQ_PROCESS, &MainWindow::iqProcessObserver);
+    set_observer(C_DXC_CONNECT, &MainWindow::dxcConnectObserver);
+    set_observer(C_DXC_DISCONNECT, &MainWindow::dxcDisconnectObserver);
     set_observer(C_TUNING_STEP, &MainWindow::tuningStepObserver);
     set_observer(C_AUDIO_FFT_RATE, &MainWindow::auFftRateObserver);
 
@@ -1688,6 +1689,16 @@ void MainWindow::iqProcessObserver(const c_id id, const c_def::v_union &value)
         ui->actionDSP->setIcon(QIcon(":/icons/icons/ff.svg"));
     else
         ui->actionDSP->setIcon(QIcon(":/icons/icons/play.svg"));
+}
+
+void MainWindow::dxcConnectObserver(const c_id, const c_def::v_union & value)
+{
+    dxc_timer->start(1000);
+}
+
+void MainWindow::dxcDisconnectObserver(const c_id, const c_def::v_union & value)
+{
+    dxc_timer->stop();
 }
 
 /**
