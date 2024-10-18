@@ -2248,6 +2248,84 @@ c_def()
     .step(1)
     ,
 c_def()
+    .idx(C_AUDIO_FFT_SIZE)
+    .name("FFT size")
+    .title("FFT Size")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("<html>Number of FFT points to calculate. Higher values will require more CPU time. This will not influence the number of points on the display since that parameter is adjusted automatically according to the display size.</html>")
+    .g_type(G_COMBO)
+    .tab("FFT")
+    .window(W_CHILD)
+    .dock(D_AUDIO)
+    .scope(S_RX)
+    .v3_config_group("audio")
+    .config_key("fft_size")
+    .v_type(V_INT)
+    .def(8192)
+    .min(512)
+    .max(4194304)
+    .step(1)
+    .presets((c_def::v_preset[]){
+        {"4194304","4194304",4194304},
+        {"2097152","2097152",2097152},
+        {"1048576","1048576",1048576},
+        {"524288", "524288", 524288},
+        {"262144", "262144", 262144},
+        {"131072", "131072", 131072},
+        {"65536",  "65536",  65536},
+        {"32768",  "32768",  32768},
+        {"16384",  "16384",  16384},
+        {"8192",   "8192",   8192},
+        {"4096",   "4096",   4096},
+        {"3840",   "3840",   3840},
+        {"2048",   "2048",   2048},
+        {"1024",   "1024",   1024},
+        {"768",    "768",    768},
+        {"512",    "512",    512},
+    })
+    ,
+c_def()
+    .idx(C_AUDIO_FFT_RATE)
+    .name("FFT rate")
+    .title("Rate")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("FFT refresh rate")
+    .g_type(G_COMBO)
+    .tab("FFT")
+    .window(W_CHILD)
+    .dock(D_AUDIO)
+    .scope(S_GUI)
+    .v3_config_group("audio")
+    .config_key("fft_rate")
+    .v_type(V_INT)
+    .def(25)
+    .min(1)
+    .max(1000)
+    .step(1)
+    .presets((c_def::v_preset[]){
+        {"1000","1000 fps",1000},
+        {"500", "500 fps", 500},
+        {"400", "400 fps", 400},
+        {"300", "300 fps", 300},
+        {"200", "200 fps", 200},
+        {"100", "100 fps", 100},
+        {"75",  "75 fps",  75},
+        {"60",  "60 fps",  60},
+        {"50",  "50 fps",  50},
+        {"30",  "30 fps",  30},
+        {"25",  "25 fps",  25},
+        {"20",  "20 fps",  20},
+        {"17",  "17 fps",  17},
+        {"15",  "15 fps",  15},
+        {"10",  "10 fps",  10},
+        {"5",   "5 fps",   5},
+        {"2",   "2 fps",   2},
+        {"1",   "1 fps",   1},
+    })
+    ,
+c_def()
     .idx(C_AUDIO_FFT_ZOOM)
     .name("fft_zoom")
     .title("Freq zoom")

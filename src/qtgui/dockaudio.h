@@ -73,9 +73,6 @@ signals:
     /*! \brief Signal emitted when audio gain has changed. Gain is in dB. */
     void audioGainChanged(float gain);
 
-    /*! \brief FFT rate changed. */
-    void fftRateChanged(int fps);
-
 private:
     void audioFFTSplitObserver(const c_id id, const c_def::v_union &value);
     void audioFFTPandMinObserver(const c_id id, const c_def::v_union &value);

@@ -1068,6 +1068,18 @@ void receiver::set_audio_fft_enabled(bool enabled)
     audio_fft->set_enabled(enabled);
 }
 
+bool receiver::set_audio_fft_size(const c_def::v_union & v)
+{
+    audio_fft->set_fft_size(int(v));
+    return true;
+}
+
+bool receiver::get_audio_fft_size(c_def::v_union & v) const
+{
+    v = (int)audio_fft->get_fft_size();
+    return true;
+}
+
 void receiver::get_probe_fft_data(std::complex<float>* fftPoints,
                                 unsigned int &fftsize)
 {
@@ -2310,6 +2322,8 @@ int receiver::conf_initializer()
     getters[C_GLOBAL_MUTE]=&receiver::get_global_mute;
     setters[C_AUDIO_PLAY]=&receiver::set_audio_play;
     getters[C_AUDIO_PLAY]=&receiver::get_audio_play;
+    setters[C_AUDIO_FFT_SIZE]=&receiver::set_audio_fft_size;
+    getters[C_AUDIO_FFT_SIZE]=&receiver::get_audio_fft_size;
     return 0;
 }
 
