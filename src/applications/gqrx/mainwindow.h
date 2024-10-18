@@ -194,6 +194,8 @@ private:
     void filterWidthObserver(const c_id id, const c_def::v_union &value);
     void frequencyObserver(const c_id id, const c_def::v_union &value);
     void iqProcessObserver(const c_id id, const c_def::v_union &value);
+    void dxcConnectObserver(const c_id, const c_def::v_union & value);
+    void dxcDisconnectObserver(const c_id, const c_def::v_union & value);
     void disableObservers();
     void enableObservers();
 
