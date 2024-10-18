@@ -326,14 +326,14 @@ rx_fft_f::rx_fft_f(unsigned int fftsize, double audio_rate, int wintype)
 
     /* allocate circular buffer */
 #if GNURADIO_VERSION < 0x031000
-    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float));
+    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE*2, sizeof(float));
 #else
-    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE, sizeof(float), 1, 1);
+    d_writer = gr::make_buffer(AUDIO_BUFFER_SIZE*2, sizeof(float), 1, 1);
 #endif
     d_reader = gr::buffer_add_reader(d_writer, 0);
 
-    memset(d_writer->write_pointer(), 0, sizeof(gr_complex) * d_fftsize);
-    d_writer->update_write_pointer(d_fftsize);
+    memset(d_writer->write_pointer(), 0, sizeof(gr_complex) * AUDIO_BUFFER_SIZE);
+    d_writer->update_write_pointer(AUDIO_BUFFER_SIZE);
 
     /* create FFT window */
     set_window_type(wintype);
@@ -384,7 +384,7 @@ bool rx_fft_f::start()
     std::lock_guard<std::mutex> lock(d_mutex);
     d_lasttime = std::chrono::steady_clock::now();
     if (d_reader->items_available() > int(d_fftsize))
-        d_reader->update_read_pointer(d_reader->items_available() - d_fftsize);
+        d_reader->update_read_pointer(d_reader->items_available() - AUDIO_BUFFER_SIZE);
     return true;
 }
 
@@ -402,7 +402,7 @@ void rx_fft_f::get_fft_data(std::complex<float>* fftPoints, unsigned int &fftSiz
     d_lasttime = now;
 
     /* perform FFT */
-    d_reader->update_read_pointer(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), d_reader->items_available() - d_fftsize));
+    d_reader->update_read_pointer(std::min((unsigned int)(diff.count() * d_audiorate * 1.001), d_reader->items_available() - (unsigned int)AUDIO_BUFFER_SIZE));
     apply_window(d_fftsize);
     lock.unlock();
 
@@ -425,6 +425,7 @@ void rx_fft_f::apply_window(unsigned int size)
 {
     gr_complex *dst = d_fft->get_inbuf();
     float * p = (float *)d_reader->read_pointer();
+    p += AUDIO_BUFFER_SIZE-d_fftsize;
     /* apply window, and convert to complex */
     if (d_window.size())
     {

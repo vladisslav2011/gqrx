@@ -251,6 +251,8 @@ public:
     void        get_audio_fft_data(std::complex<float>* fftPoints,
                                    unsigned int &fftsize);
     void        set_audio_fft_enabled(bool enabled);
+    bool        set_audio_fft_size(const c_def::v_union & v);
+    bool        get_audio_fft_size(c_def::v_union & v) const;
 
     /* FFT Probe */
     void        get_probe_fft_data(std::complex<float>* fftPoints,

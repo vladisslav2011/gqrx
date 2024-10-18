@@ -104,6 +104,7 @@ private:
     bool d_auto_bookmarks;
     int d_fft_rate{25};
     int d_fft_size{8192};
+    int d_audio_fft_interval{40};
 
     std::complex<float>* d_fftData;
     float          *d_realFftData;
@@ -233,13 +234,13 @@ private slots:
 
 
     /* FFT settings */
+    void auFftRateObserver(c_id, const c_def::v_union &);
     void iqFftSizeObserver(c_id, const c_def::v_union &);
     void iqFftRateObserver(c_id, const c_def::v_union &);
     void iqFftWindowObserver(c_id, const c_def::v_union &);
     void iqFftWindowCorrectionObserver(c_id, const c_def::v_union &);
     void iqFftSplitObserver(c_id, const c_def::v_union &);
     void iqFftAvgObserver(c_id, const c_def::v_union &);
-    void setAudioFftRate(int fps);
     void on_plotter_newZoomLevel(float level);
     void fftZoomLevelObserver(c_id, const c_def::v_union &);
     void setFftCenterFreq(qint64 f);

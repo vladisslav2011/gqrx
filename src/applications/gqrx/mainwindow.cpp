@@ -314,6 +314,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_FFT_SIZE, &MainWindow::iqFftSizeObserver);
     set_observer(C_IQ_PROCESS, &MainWindow::iqProcessObserver);
     set_observer(C_TUNING_STEP, &MainWindow::tuningStepObserver);
+    set_observer(C_AUDIO_FFT_RATE, &MainWindow::auFftRateObserver);
 
     /* Setup demodulator switching SpinBox */
     rxSpinBox = new QSpinBox(ui->mainToolBar);
@@ -328,7 +329,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     connect(uiDockInputCtl, SIGNAL(gainChanged(QString, double)), remote, SLOT(setGain(QString,double)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), this, SLOT(setFilterOffset(qint64)));
     connect(uiDockRxOpt, SIGNAL(filterOffsetChanged(qint64)), remote, SLOT(setFilterOffset(qint64)));
-    connect(uiDockAudio, SIGNAL(fftRateChanged(int)), this, SLOT(setAudioFftRate(int)));
     connect(uiDockAudio, SIGNAL(visibilityChanged(bool)), this, SLOT(dockAudioVisibilityChanged(bool)));
 
     connect(ui->plotter, SIGNAL(newSize()), this, SLOT(setWfSize()));
@@ -2317,6 +2317,19 @@ void MainWindow::stopIQFftRedraw(bool suspend)
     }
 }
 
+/** Audio FFT rate has changed. */
+void MainWindow::auFftRateObserver(c_id, const c_def::v_union & v)
+{
+    int fft_rate = v;
+    if(fft_rate == 0)
+        return;
+
+    d_audio_fft_interval = 1000 / fft_rate;
+
+    audio_fft_timer->setInterval(d_audio_fft_interval);
+
+}
+
 /** FFT size has changed. */
 void MainWindow::iqFftSizeObserver(c_id, const c_def::v_union & v)
 {
@@ -2418,18 +2431,6 @@ void MainWindow::iqFftAvgObserver(c_id, const c_def::v_union & v)
     set_gui(C_FFT_AVG_LABEL,1.0f/avg);
     if ((avg >= 0.0f) && (avg <= 1.0f))
         d_fftAvg = avg;
-}
-
-/** Audio FFT rate has changed. */
-void MainWindow::setAudioFftRate(int fps)
-{
-    auto interval = 1000 / fps;
-
-    if (interval < 10)
-        return;
-
-    if (audio_fft_timer->isActive())
-        audio_fft_timer->setInterval(interval);
 }
 
 void  MainWindow::fftZoomLevelObserver(c_id, const c_def::v_union & v)
@@ -2632,7 +2633,7 @@ void MainWindow::on_actionDSP_triggered(bool checked)
         }
         iq_tool->setRunningState(true);
 
-        audio_fft_timer->start(40);
+        audio_fft_timer->start(d_audio_fft_interval);
 
         /* update menu text and button tooltip */
         ui->actionDSP->setToolTip(tr("Stop DSP processing"));
@@ -2690,7 +2691,7 @@ void MainWindow::on_plotter_setPlaying(bool state)
                 ui->plotter->setRunningState(false);
             }
 
-            audio_fft_timer->start(40);
+            audio_fft_timer->start(d_audio_fft_interval);
         }
         else
         {
