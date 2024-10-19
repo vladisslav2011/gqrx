@@ -991,7 +991,7 @@ void CPlotter::resizeEvent(QResizeEvent* )
             m_OverlayPixmap.fill(QColor(0,0,0,0));
             m_2DPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
             m_2DPixmap.setDevicePixelRatio(m_DPR);
-            m_2DPixmap.fill(QColor(0,0,0,255));
+            m_2DPixmap.fill(m_BgColor);
 
             int height = m_Size.height() - fft_plot_height;
             if (m_WaterfallPixmap.isNull())
@@ -1149,7 +1149,7 @@ void CPlotter::draw(bool timed)
     if (w != 0 && h != 0 && m_fftData)
     {
         std::unique_lock<std::mutex> lock(m_wf_mutex);
-        m_2DPixmap.fill(QColor(0,0,0,255));
+        m_2DPixmap.fill(m_BgColor);
 
         QPainter painter2(&m_2DPixmap);
 
@@ -1372,7 +1372,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
         if (w != 0 && h != 0)
         {
-            m_2DPixmap.fill(QColor(0,0,0,255));
+            m_2DPixmap.fill(m_BgColor);
 
             QPainter painter2(&m_2DPixmap);
 
@@ -2070,12 +2070,11 @@ void CPlotter::moveToDemodFreq()
 /** Set FFT plot color. */
 void CPlotter::setFftPlotColor(const QColor& color)
 {
+    m_BgColor = QColor::fromRgba(PLOTTER_BGD_COLOR);
     m_FftColor = color;
     m_PeakPixmap = QPixmap();
-    m_FftFillCol = color;
-    m_FftFillCol.setAlpha(0x1A);
-    m_PeakHoldColor = color;
-    m_PeakHoldColor.setAlpha(60);
+    m_FftFillCol = blend(m_BgColor, color, 0x1A);
+    m_PeakHoldColor = blend(m_BgColor, color, 60);
 }
 
 /** Enable/disable filling the area below the FFT plot. */

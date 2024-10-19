@@ -250,6 +250,14 @@ private:
                                  float *inBuf, qint32 *outBuf,
                                  qint32 *maxbin, qint32 *minbin);
     static void calcDivSize (qint64 low, qint64 high, int divswanted, qint64 &adjlow, qint64 &step, int& divs);
+    static QColor      blend(QColor base, QColor over, int alpha255)
+    {
+        qreal alpha = alpha255 / 255.0;
+        qreal oneMinusAlpha = 1.0 - alpha;
+        return QColor(qRound(alpha * over.red()   + oneMinusAlpha * base.red()),
+                      qRound(alpha * over.green() + oneMinusAlpha * base.green()),
+                      qRound(alpha * over.blue()  + oneMinusAlpha * base.blue()));
+    }
     void        showToolTip(QMouseEvent* event, QString toolTipText);
 
     bool        m_PeakHoldActive;
@@ -333,7 +341,7 @@ private:
 
     quint32     m_LastSampleRate{};
 
-    QColor      m_FftColor, m_FftFillCol, m_PeakHoldColor;
+    QColor      m_FftColor, m_FftFillCol, m_PeakHoldColor, m_BgColor;;
     bool        m_FftFill{};
 
     float       m_PeakDetection{};
