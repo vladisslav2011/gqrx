@@ -1134,10 +1134,27 @@ void CPlotter::draw(bool timed)
                                 m_FftCenter + (qint64)m_Span/2,
                                 m_fftData, m_fftbuf,
                                 &xmin, &xmax);
+        n = xmax - xmin;
+
+        // Peak hold
+        if (m_PeakHoldActive)
+        {
+            for (i = 0; i < n; i++)
+            {
+                if(!m_PeakHoldValid || m_fftbuf[i] < m_fftPeakHoldBuf[i])
+                    m_fftPeakHoldBuf[i] = m_fftbuf[i];
+
+                m_LineBuf[i].setX(i + xmin);
+                m_LineBuf[i].setY(m_fftPeakHoldBuf[i + xmin]);
+            }
+            painter2.setPen(m_PeakHoldColor);
+            painter2.drawPolyline(m_LineBuf, n);
+
+            m_PeakHoldValid = true;
+        }
 
         // draw the pandapter
         QBrush fillBrush = QBrush(m_FftFillCol);
-        n = xmax - xmin;
         for (i = 0; i < n; i++)
         {
             m_LineBuf[i].setX(i + xmin + 0.5);
@@ -1210,23 +1227,6 @@ void CPlotter::draw(bool timed)
                     lastPeak = -1;
                 }
             }
-        }
-
-        // Peak hold
-        if (m_PeakHoldActive)
-        {
-            for (i = 0; i < n; i++)
-            {
-                if(!m_PeakHoldValid || m_fftbuf[i] < m_fftPeakHoldBuf[i])
-                    m_fftPeakHoldBuf[i] = m_fftbuf[i];
-
-                m_LineBuf[i].setX(i + xmin);
-                m_LineBuf[i].setY(m_fftPeakHoldBuf[i + xmin]);
-            }
-            painter2.setPen(m_PeakHoldColor);
-            painter2.drawPolyline(m_LineBuf, n);
-
-            m_PeakHoldValid = true;
         }
 
         painter2.end();
