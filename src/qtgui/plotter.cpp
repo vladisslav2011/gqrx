@@ -988,10 +988,10 @@ void CPlotter::resizeEvent(QResizeEvent* )
             std::unique_lock<std::mutex> lock(m_wf_mutex);
             m_OverlayPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
             m_OverlayPixmap.setDevicePixelRatio(m_DPR);
-            m_OverlayPixmap.fill(Qt::black);
+            m_OverlayPixmap.fill(QColor(0,0,0,0));
             m_2DPixmap = QPixmap(m_Size.width() * m_DPR, fft_plot_height * m_DPR);
             m_2DPixmap.setDevicePixelRatio(m_DPR);
-            m_2DPixmap.fill(QColor(0,0,0,0));
+            m_2DPixmap.fill(QColor(0,0,0,255));
 
             int height = m_Size.height() - fft_plot_height;
             if (m_WaterfallPixmap.isNull())
@@ -1027,10 +1027,10 @@ void CPlotter::paintEvent(QPaintEvent *)
 
     QPainter painter(this);
 
-    painter.drawPixmap(0, 0, m_OverlayPixmap);
     painter.drawPixmap(0, 0, m_2DPixmap);
     painter.drawPixmap(0, m_Percent2DScreen * m_Size.height() / 100,
                         m_WaterfallPixmap);
+    painter.drawPixmap(0, 0, m_OverlayPixmap);
     auto t2 = high_resolution_clock::now();
     duration<double, std::milli> diff = t2 - t1;
     ms_paint=ms_paint*(1.0-ms_iir)+diff.count()*ms_iir;
@@ -1149,7 +1149,7 @@ void CPlotter::draw(bool timed)
     if (w != 0 && h != 0 && m_fftData)
     {
         std::unique_lock<std::mutex> lock(m_wf_mutex);
-        m_2DPixmap.fill(QColor(0,0,0,0));
+        m_2DPixmap.fill(QColor(0,0,0,255));
 
         QPainter painter2(&m_2DPixmap);
 
@@ -1372,7 +1372,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
 
         if (w != 0 && h != 0)
         {
-            m_2DPixmap.fill(QColor(0,0,0,0));
+            m_2DPixmap.fill(QColor(0,0,0,255));
 
             QPainter painter2(&m_2DPixmap);
 
@@ -1628,13 +1628,10 @@ void CPlotter::drawOverlay()
         float   mindbadj;
         QRect   rect;
         QFontMetrics    metrics(m_Font);
+        m_OverlayPixmap.fill(QColor(0,0,0,0));
         QPainter        painter(&m_OverlayPixmap);
 
         painter.setFont(m_Font);
-
-        // solid background
-        painter.setBrush(Qt::SolidPattern);
-        painter.fillRect(0, 0, w, h, QColor(PLOTTER_BGD_COLOR));
 
         QList<BookmarkInfo> tags;
 
