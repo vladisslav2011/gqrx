@@ -306,11 +306,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_TooltipsEnabled)
                 {
                     qint64 hoverFrequency = freqFromX(pt.x());
-                    QString toolTipText = QString("F: %1 kHz, %2db\n Δ=%3 kHz")
+                    QString toolTipText = QString("F: %1 kHz, %2db")
                         .arg(hoverFrequency/1.e3, 0, 'f', 3)
                         .arg((m_OverlayPixmap.height() / m_DPR - pt.y()) * (qreal)abs(m_PandMindB - m_PandMaxdB) /
-                             (m_OverlayPixmap.height() / m_DPR) + (qreal)m_PandMindB, 0, 'f', 1)
-                        .arg((hoverFrequency - m_DemodCenterFreq)/1.e3, 0, 'f', 3);
+                             (m_OverlayPixmap.height() / m_DPR) + (qreal)m_PandMindB, 0, 'f', 1);
+                    if(m_FilterBoxEnabled)
+                        toolTipText+=QString("\n Δ=%3 kHz").arg((hoverFrequency - m_DemodCenterFreq)/1.e3, 0, 'f', 3);
                     QFontMetrics metrics(m_Font);
                     int bandTopY = (m_OverlayPixmap.height() / m_DPR) - metrics.height() - 2 * VER_MARGIN - m_BandPlanHeight;
                     QList<BandInfo> hoverBands = BandPlan::Get().getBandsEncompassing(hoverFrequency);
@@ -368,9 +369,13 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             tsFreqFromWfXY(pt.x(), pt.y(), ts, freq);
             tt.setMSecsSinceEpoch(ts);
 
-            showToolTip(event, QString("%1\n%2 kHz")
-                                       .arg(tt.toUTC().toString("yyyy.MM.dd hh:mm:ss.zzz"))
-                                       .arg(freq/1.e3, 0, 'f', 3));
+            if(m_FilterBoxEnabled)
+                showToolTip(event, QString("%1\n%2 kHz")
+                    .arg(tt.toUTC().toString("yyyy.MM.dd hh:mm:ss.zzz"))
+                    .arg(freq/1.e3, 0, 'f', 3));
+            else
+                showToolTip(event, QString("%2 kHz")
+                    .arg(freq/1.e3, 0, 'f', 3));
         }
     }
     // process mouse moves while in cursor capture modes
