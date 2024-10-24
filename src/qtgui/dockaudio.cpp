@@ -52,10 +52,11 @@ DockAudio::DockAudio(QWidget *parent) :
     ui->audioSpectrum->setCenterLineEnabled(false);
     ui->audioSpectrum->setBookmarksEnabled(false);
     ui->audioSpectrum->setBandPlanEnabled(false);
+    ui->audioSpectrum->setTooltipsEnabled(true);
     ui->audioSpectrum->setFftRange(-80., 0.);
     ui->audioSpectrum->setVdivDelta(40);
     ui->audioSpectrum->setHdivDelta(40);
-    ui->audioSpectrum->setFreqDigits(1);
+    ui->audioSpectrum->setFreqDigits(4);
 
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
     ui_windows[W_CHILD]=audioOptions;
