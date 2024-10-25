@@ -37,7 +37,7 @@
 // NB: Remember to adjust filter ranges in MainWindow
 #define NB_PREF_QUAD_RATE  96000.f
 
-#define WFM_PREF_QUAD_RATE   240e3 // Nominal channel spacing is 200 kHz
+#define WFM_PREF_QUAD_RATE   320000 // Nominal channel spacing is 200 kHz
 
 #define RX_FILTER_MIN_WIDTH 100  /*! Minimum width of filter */
 
