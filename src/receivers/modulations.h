@@ -202,21 +202,21 @@ public:
             0,24000,
             1,1,0,0,0,0,0,
             {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_MONO
-            {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_MONO
+            {{-WFM_PREF_QUAD_RATE/2, -10000}, { 10000,WFM_PREF_QUAD_RATE/2}},  // MODE_WFM_MONO
         },
         {GRP_WFM_STEREO,"Shift+W","WFM (stereo)",
             1000,
             0,24000,
             1,1,0,0,0,0,0,
             {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO
-            {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_STEREO
+            {{-WFM_PREF_QUAD_RATE/2, -10000}, { 10000,WFM_PREF_QUAD_RATE/2}},  // MODE_WFM_STEREO
         },
         {GRP_WFM_STEREO_OIRT,"O","WFM (oirt)",
             1000,
             0,24000,
             1,1,0,0,0,0,0,
             {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO_OIRT
-            {{-120000, -10000}, { 10000,120000}},  // MODE_WFM_STEREO_OIRT
+            {{-WFM_PREF_QUAD_RATE/2, -10000}, { 10000,WFM_PREF_QUAD_RATE/2}},  // MODE_WFM_STEREO_OIRT
         },
         {GRP_OFF,"Shift+R","NB rejector",
             1,

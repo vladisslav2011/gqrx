@@ -125,7 +125,7 @@ private:
     double d_sample_rate;
     int d_index;
     constexpr static int d_interpolation = 19;
-    constexpr static int d_decimation = 24;
+    constexpr static int d_decimation = WFM_PREF_QUAD_RATE/10000;
     float d_fxff_tw{300.0f};
     float d_fxff_bw{1110.0f};
     float d_gain_mu{powf(10.f,-1.6f)};
