@@ -252,7 +252,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         d_omega =
             d_omega_mid + gr::branchless_clip(d_omega - d_omega_mid, d_omega_lim);
 
-        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega_mid*0.05f);
+        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega_mid*0.1f);
         ii += (int)floorf(d_mu);
         d_mu -= floorf(d_mu);
 
@@ -638,12 +638,17 @@ int bpsk_phase_sync_cc::work(int noutput_items,
         gr_complex incr=d_incr;
         gr_complex early_c = std::polar(1.f,-.3f);
         gr_complex late_c = std::polar(1.f,.3f);
-        float early=estimate(phase*early_c,incr,d_size*block_mul,&in[k]);
-        float late=estimate(phase*late_c,incr,d_size*block_mul,&in[k]);
+        gr_complex early_i = d_incr * std::polar(1.f,-.3f/float(d_size*block_mul));
+        gr_complex late_i = d_incr * std::polar(1.f,.3f/float(d_size*block_mul));
+        float early1=estimate(phase*early_c,incr,d_size*block_mul,&in[k]);
+        float late1=estimate(phase*late_c,incr,d_size*block_mul,&in[k]);
+        float early2=estimate(phase,early_i,d_size*block_mul,&in[k]);
+        float late2=estimate(phase,late_i,d_size*block_mul,&in[k]);
         float test=estimate(phase,incr,d_size*(block_mul+test_extra),&in[k]);
         float prompt=estimate(phase,incr,d_size*block_mul,&in[k]);
         //  float dd=(log10f(late)-log10f(early));
-        float dd=(late-early)/(late+early);
+        float dd=(late1-early1)/(late1+early1);
+        dd+=(late2-early2)/(late2+early2);
         float e_phase=std::arg(phase),e_incr=std::arg(incr);
 //        printf("phase_incr_oneshot_estimate %01.5f\n",double(phase_incr_oneshot_estimate(0.f,d_size*2,&in[k])));
         if(std::max(prompt,test)>1.f)//in sync

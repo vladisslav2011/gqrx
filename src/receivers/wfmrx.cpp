@@ -323,7 +323,24 @@ bool wfmrx::set_rds_gmu(const c_def::v_union & v)
 bool wfmrx::set_rds_gomega(const c_def::v_union & v)
 {
     receiver_base_cf::set_rds_gomega(v);
-    rds->set_gain_omega(powf(10.f, v));
+    float df=sqrtf(2.0f) / 2.0f;
+    float bb=powf(10.f, v);
+    float s=df*df*bb*bb-(bb-4.f)*bb;
+    if(s>=0.f)
+    {
+        float bw1=-df*bb/(bb-4.f)+sqrtf(s)/(bb-4.f);
+        float bw2=-df*bb/(bb-4.f)-sqrtf(s)/(bb-4.f);
+        float bw=std::max(bw1,bw2);
+        if(bw>0.f)
+        {
+            float denom = 1.0f + 2.0f * df * bw + bw * bw;
+            float alpha = (4.f * df * bw) / denom;
+            receiver_base_cf::set_rds_gmu(log10f(alpha));
+            rds->set_gain_mu(alpha);
+            changed_value(C_RDS_GMU,d_index,log10f(alpha));
+        }
+    }
+    rds->set_gain_omega(bb);
     return true;
 }
 

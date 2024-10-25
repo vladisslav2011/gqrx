@@ -3774,6 +3774,7 @@ c_def()
     .max(1.)
     .step(0.01)
     .frac_digits(2)
+    .event(true)
     ,
 c_def()
     .idx(C_RDS_FXFF_BW)

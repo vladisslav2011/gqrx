@@ -215,7 +215,7 @@ rx_rds::rx_rds(double sample_rate)
 
     int n_taps = 151*5;
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.2, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
 #else
     d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
 #endif
@@ -226,7 +226,7 @@ rx_rds::rx_rds(double sample_rate)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    int agc_samp = ((float)d_sample_rate*d_interpolation*1.25f)/(d_decimation*23750.f);
+    int agc_samp = ((float)d_sample_rate*d_interpolation*10.0f)/(decim1*d_decimation*2375.f);
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
     //d_costas_loop->set_damping_factor(0.85);
