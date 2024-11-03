@@ -57,6 +57,7 @@ public:
     bool start() override;
     bool stop() override;
 
+    void set_quad_rate(double quad_rate) override;
     void set_filter(int low, int high, Modulations::filter_shape shape) override;
     bool set_filter_shape(const c_def::v_union &) override;
     bool set_offset(int offset, bool locked) override;
