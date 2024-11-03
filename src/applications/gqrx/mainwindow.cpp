@@ -2083,6 +2083,24 @@ void MainWindow::stopIqPlayback()
     if (conv_ok && (sr > 0))
     {
         auto actual_rate = rx->set_input_rate(sr);
+        auto int_val = m_settings->value("input/decimation", 1).toInt(&conv_ok);
+        if (conv_ok && int_val >= 2)
+        {
+            if (rx->set_input_decim(int_val) != (unsigned int)int_val)
+            {
+                qDebug() << "Failed to set decimation" << int_val;
+                qDebug() << "  actual decimation:" << rx->get_input_decim();
+            }
+            else
+            {
+                // update actual rate
+                actual_rate /= (double)int_val;
+                qDebug() << "Input decimation:" << int_val;
+                qDebug() << "Quadrature rate:" << QString("%1").arg(actual_rate, 0, 'f', 6);
+            }
+        }
+        else
+            rx->set_input_decim(1);
         qDebug() << "Requested sample rate:" << sr;
         qDebug() << "Actual sample rate   :" << QString("%1")
                     .arg(actual_rate, 0, 'f', 6);
