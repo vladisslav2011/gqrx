@@ -89,6 +89,15 @@ bool nbrx::stop()
     return true;
 }
 
+void nbrx::set_quad_rate(double quad_rate)
+{
+    if (std::abs(d_decim_rate-quad_rate) > 0.5)
+    {
+        receiver_base_cf::set_quad_rate(quad_rate);
+        update_filter();
+    }
+}
+
 void nbrx::set_audio_rate(int audio_rate)
 {
     qDebug() << "Changing NB_RX audio rate:"  << d_audio_rate << "->" << audio_rate;
