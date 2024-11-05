@@ -56,11 +56,11 @@ Q_LOGGING_CATEGORY(plotter, "plotter")
 
 // Colors of type QRgb in 0xAARRGGBB format (unsigned int)
 #define PLOTTER_BGD_COLOR           0xFF1F1D1D
-#define PLOTTER_GRID_COLOR          0xFF444242
+#define PLOTTER_GRID_COLOR          0x32FFFFFF
 #define PLOTTER_TEXT_COLOR          0xFFDADADA
 #define PLOTTER_CENTER_LINE_COLOR   0xFF788296
 #define PLOTTER_FILTER_LINE_COLOR   0xFFFF7171
-#define PLOTTER_FILTER_BOX_COLOR    0xFFA0A0A4
+#define PLOTTER_FILTER_BOX_COLOR    0x4CA0A0A4
 // FIXME: Should cache the QColors also
 
 #define HOR_MARGIN 5
@@ -1742,7 +1742,7 @@ void CPlotter::drawOverlay()
                 {
                     painter.setOpacity(1.0);
                     rect.setRect(band_left, xAxisTop - m_BandPlanHeight, band_width, metrics.height());
-                    painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+                    painter.setPen(QColor::fromRgba(PLOTTER_TEXT_COLOR));
                     painter.drawText(rect, Qt::AlignCenter, band_label);
                 }
             }
@@ -1753,7 +1753,7 @@ void CPlotter::drawOverlay()
             x = xFromFreq(m_CenterFreq);
             if (x > 0 && x < w)
             {
-                painter.setPen(QColor(PLOTTER_CENTER_LINE_COLOR));
+                painter.setPen(QColor::fromRgba(PLOTTER_CENTER_LINE_COLOR));
                 painter.drawLine(x, 0, x, xAxisTop);
             }
         }
@@ -1768,7 +1768,7 @@ void CPlotter::drawOverlay()
         pixperdiv = (float)w * (float) m_FreqPerDiv / (float) m_Span;
         adjoffset = pixperdiv * float (m_StartFreqAdj - StartFreq) / (float) m_FreqPerDiv;
 
-        painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
+        painter.setPen(QPen(QColor::fromRgba(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
         for (int i = 0; i <= m_HorDivs; i++)
         {
             x = (int)((float)i * pixperdiv + adjoffset);
@@ -1778,7 +1778,7 @@ void CPlotter::drawOverlay()
 
         // draw frequency values (x axis)
         makeFrequencyStrs();
-        painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+        painter.setPen(QColor::fromRgba(PLOTTER_TEXT_COLOR));
         for (int i = 0; i <= m_HorDivs; i++)
         {
             int tw = w;
@@ -1808,7 +1808,7 @@ void CPlotter::drawOverlay()
                         << "mindbadj =" << mindbadj << "dbstepsize =" << dbstepsize
                         << "pixperdiv =" << pixperdiv << "adjoffset =" << adjoffset;
 
-        painter.setPen(QPen(QColor(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
+        painter.setPen(QPen(QColor::fromRgba(PLOTTER_GRID_COLOR), 1, Qt::DotLine));
         for (int i = 0; i <= m_VerDivs; i++)
         {
             y = h - (int)((float) i * pixperdiv + adjoffset);
@@ -1817,7 +1817,7 @@ void CPlotter::drawOverlay()
         }
 
         // draw amplitude values (y axis)
-        painter.setPen(QColor(PLOTTER_TEXT_COLOR));
+        painter.setPen(QColor::fromRgba(PLOTTER_TEXT_COLOR));
         for (int i = 0; i <= m_VerDivs; i++)
         {
             y = h - (int)((float) i * pixperdiv + adjoffset);
@@ -1869,12 +1869,10 @@ void CPlotter::drawVfo(QPainter &painter, const int demodFreqX, const int demodL
 {
     QFontMetrics    metrics(m_Font);
     QRect         br = metrics.boundingRect("+256+");
-    painter.setOpacity(0.3);
     painter.fillRect(demodLowCutFreqX, br.height(), dw, h,
-                    QColor(PLOTTER_FILTER_BOX_COLOR));
+                    QColor::fromRgba(PLOTTER_FILTER_BOX_COLOR));
 
-    painter.setOpacity(1.0);
-    painter.setPen(QColor(is_selected ? PLOTTER_FILTER_LINE_COLOR : PLOTTER_TEXT_COLOR));
+    painter.setPen(QColor::fromRgba(is_selected ? PLOTTER_FILTER_LINE_COLOR : PLOTTER_TEXT_COLOR));
     painter.drawLine(demodFreqX, br.height(), demodFreqX, h);
     painter.drawText(demodFreqX - br.width() / 2, 0, br.width(), br.height(),
                      Qt::AlignVCenter | Qt::AlignHCenter,
