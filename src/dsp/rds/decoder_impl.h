@@ -60,11 +60,18 @@ private:
             std::memcpy(data,from,sizeof(data));
         }
     };
+    struct group_ecc
+    {
+        int process(unsigned * grp, int thr=0);
+        uint16_t locators[4]={0,0,0,0};
+        uint8_t offset_chars[4]={0,0,0,0};  // [ABCcDEx] (x=error)
+        int errs[4]={0,0,0,0};
+        int good_grp=0; 
+        int res[4]={0,0,0,0};
+    };
     struct integr_ctx
     {
-        uint16_t locators[5]={0,0,0,0,0};
-        uint32_t tmp_grp[4];
-        unsigned char  offset_chars[4];  // [ABCcDEx] (x=error)
+        group_ecc ecc;
         decoder_impl::pi_stats       pi_stats[65536*2]{};
         decoder_impl::pi_stats       *pi_a{&pi_stats[0]};
         decoder_impl::pi_stats       *pi_b{&pi_stats[65536]};
@@ -82,9 +89,8 @@ private:
 	void enter_no_sync();
 	void enter_sync(unsigned int);
 	static unsigned int calc_syndrome(unsigned long, unsigned char);
-	void decode_group(unsigned *, int);
+	void decode_group(group_ecc &, int);
 	static std::array<bit_locator,1024> build_locator();
-    int process_group(unsigned * grp, int thr=0, unsigned char * offs_chars=nullptr, uint16_t * loc=nullptr, int * good_grp=nullptr);
     int pi_detect(uint32_t * p_grp, bool corr);
     int pi_detect(uint32_t * p_grp, integr_ctx &x, bool corr);
 	void reset_corr();
@@ -98,7 +104,6 @@ private:
 	unsigned int  *prev_grp;
 	unsigned int  *group;
 	unsigned int  *next_grp;
-	unsigned char  offset_chars[4];  // [ABCcDEx] (x=error)
 	bool           log;
 	bool           debug;
 	bool           presync;
@@ -113,7 +118,6 @@ private:
     int            d_prev_errs{0};
     int            d_curr_errs{0};
     int            d_next_errs{0};
-    int            d_block0errs{0};
     std::map<uint16_t,std::vector<grp_array>> d_matches{};
     unsigned       d_valid_bits{0};
     uint8_t        d_used_list[PS_SEARCH_MAX]{0};
