@@ -144,43 +144,37 @@ unsigned int decoder_impl::calc_syndrome(unsigned long message,
 	return (lreg & ((1<<plen)-1));	// select the bottom plen bits of reg
 }
 
-int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_chars, uint16_t * loc, int * good_grp)
+int decoder_impl::group_ecc::process(unsigned * grp, int thr)
 {
     int ret=0;
-    if(offs_chars)
-    {
-        offs_chars[0]='A';
-        offs_chars[1]='B';
-        offs_chars[2]='C';
-        offs_chars[3]='D';
-    }
-    if(loc)
-        loc[0]=loc[1]=loc[2]=loc[3]=0;
+    offset_chars[0]='A';
+    offset_chars[1]='B';
+    offset_chars[2]='C';
+    offset_chars[3]='D';
+    locators[0]=locators[1]=locators[2]=locators[3]=0;
     uint16_t s;
     int g1=0;
     int g2=0;
 
-    s=calc_syndrome(grp[0]>>10,16)^(grp[0]&0x3ff);
-    const bit_locator & bl=locator[s^offset_word[0]];
-    if(loc && (bl.l!=0xffff))
-        loc[0]=bl.l;
-    if(offs_chars)
-        if(bl.w>0)
-            offs_chars[0]='x';
+    s=decoder_impl::calc_syndrome(grp[0]>>10,16)^(grp[0]&0x3ff);
+    const bit_locator & bl=decoder_impl::locator[s^offset_word[0]];
+    if(bl.l!=0xffff)
+        locators[0]=bl.l;
+    if(bl.w>0)
+        offset_chars[0]='x';
     if(bl.w==1)
         g1++;
     if(bl.w==2)
         g2++;
     ret+=bl.w;
-    d_block0errs=bl.w;
+    errs[0]=bl.w;
 
     s=calc_syndrome(grp[1]>>10,16)^(grp[1]&0x3ff);
-    const bit_locator & bl1=locator[s^offset_word[1]];
-    if(loc && (bl.l!=0xffff))
-        loc[1]=bl1.l;
-    if(offs_chars)
-        if(bl1.w>thr)
-            offs_chars[1]='x';
+    const bit_locator & bl1=decoder_impl::locator[s^offset_word[1]];
+    if(bl.l!=0xffff)
+        locators[1]=bl1.l;
+    if(bl1.w>thr)
+        offset_chars[1]='x';
     if(bl1.w==1)
         g1++;
     if(bl1.w==2)
@@ -188,28 +182,25 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     ret+=bl1.w;
 
     s=calc_syndrome(grp[2]>>10,16)^(grp[2]&0x3ff);
-    const bit_locator & bl2=locator[s^offset_word[2]];
-    const bit_locator & bl4=locator[s^offset_word[4]];
+    const bit_locator & bl2=decoder_impl::locator[s^offset_word[2]];
+    const bit_locator & bl4=decoder_impl::locator[s^offset_word[4]];
     if(bl2.w<bl4.w)
     {
-        if(loc && (bl.l!=0xffff))
-            loc[2]=bl2.l;
-        if(offs_chars)
-            if(bl2.w>thr)
-                offs_chars[2]='x';
+        if(bl.l!=0xffff)
+            locators[2]=bl2.l;
+        if(bl2.w>thr)
+            offset_chars[2]='x';
         if(bl2.w==1)
             g1++;
         if(bl2.w==2)
             g2++;
         ret+=bl2.w;
     }else{
-        if(offs_chars)
-            offs_chars[2]='c';
-        if(loc && (bl.l!=0xffff))
-            loc[2]=bl4.l;
-        if(offs_chars)
-            if(bl4.w>thr)
-                offs_chars[2]='x';
+        offset_chars[2]='c';
+        if(bl.l!=0xffff)
+            locators[2]=bl4.l;
+        if(bl4.w>thr)
+            offset_chars[2]='x';
         if(bl4.w==1)
             g1++;
         if(bl4.w==2)
@@ -218,44 +209,44 @@ int decoder_impl::process_group(unsigned * grp, int thr, unsigned char * offs_ch
     }
 
     s=calc_syndrome(grp[3]>>10,16)^(grp[3]&0x3ff);
-    const bit_locator & bl3=locator[s^offset_word[3]];
-    if(loc && (bl.l!=0xffff))
-        loc[3]=bl3.l;
-    if(offs_chars)
-        if(bl3.w>thr)
-            offs_chars[3]='x';
+    const bit_locator & bl3=decoder_impl::locator[s^offset_word[3]];
+    if(bl.l!=0xffff)
+        locators[3]=bl3.l;
+    if(bl3.w>thr)
+        offset_chars[3]='x';
     if(bl3.w==1)
         g1++;
     if(bl3.w==2)
         g2++;
     ret+=bl3.w;
 
-    if(good_grp)
-        *good_grp=g1*3+g2;
+    good_grp=g1*3+g2;
+    for(int k=0;k<4;k++)
+        res[k]=(grp[k]>>10)^locators[k];
     return ret;
 }
 
-void decoder_impl::decode_group(unsigned *grp, int bit_errors)
+void decoder_impl::decode_group(group_ecc &ecc, int bit_errors)
 {
 	// raw data bytes, as received from RDS.
 	// 8 info bytes, followed by 4 RDS offset chars: ABCD/ABcD/EEEE (in US)
 	unsigned char bytes[13];
 
 	// RDS information words
-	bytes[0] = (grp[0] >> 8U) & 0xffU;
-	bytes[1] = (grp[0]      ) & 0xffU;
-	bytes[2] = (grp[1] >> 8U) & 0xffU;
-	bytes[3] = (grp[1]      ) & 0xffU;
-	bytes[4] = (grp[2] >> 8U) & 0xffU;
-	bytes[5] = (grp[2]      ) & 0xffU;
-	bytes[6] = (grp[3] >> 8U) & 0xffU;
-	bytes[7] = (grp[3]      ) & 0xffU;
+	bytes[0] = (ecc.res[0] >> 8U) & 0xffU;
+	bytes[1] = (ecc.res[0]      ) & 0xffU;
+	bytes[2] = (ecc.res[1] >> 8U) & 0xffU;
+	bytes[3] = (ecc.res[1]      ) & 0xffU;
+	bytes[4] = (ecc.res[2] >> 8U) & 0xffU;
+	bytes[5] = (ecc.res[2]      ) & 0xffU;
+	bytes[6] = (ecc.res[3] >> 8U) & 0xffU;
+	bytes[7] = (ecc.res[3]      ) & 0xffU;
 
 	// RDS offset words
-	bytes[8] = offset_chars[0];
-	bytes[9] = offset_chars[1];
-	bytes[10] = offset_chars[2];
-	bytes[11] = offset_chars[3];
+	bytes[8] = ecc.offset_chars[0];
+	bytes[9] = ecc.offset_chars[1];
+	bytes[10] = ecc.offset_chars[2];
+	bytes[11] = ecc.offset_chars[3];
 	bytes[12] = bit_errors;
 
 	pmt::pmt_t data(pmt::make_blob(bytes, 13));
@@ -279,7 +270,7 @@ int decoder_impl::work (int noutput_items,
 */
     int i=0;
     int ecc_max = d_ecc_max;
-    uint16_t locators[5]={0,0,0,0,0};
+    group_ecc ecc;
 
 /* the synchronization process is described in Annex C, page 66 of the standard */
     while (i<noutput_items) {
@@ -372,11 +363,11 @@ int decoder_impl::work (int noutput_items,
             //if(0)
             {
                 //handle +/- 1 bit shifts
-                d_prev_errs=process_group(prev_grp);
-                uint16_t prev_pi=prev_grp[0];
-                d_curr_errs=process_group(group);
-                d_next_errs=process_group(next_grp);
-                uint16_t next_pi=next_grp[0];
+                d_prev_errs=ecc.process(prev_grp);
+                uint16_t prev_pi=ecc.res[0];
+                d_curr_errs=ecc.process(group);
+                d_next_errs=ecc.process(next_grp);
+                uint16_t next_pi=ecc.res[0];
                 bit_counter=1;
                 if((d_prev_errs<d_curr_errs)&&(d_prev_errs<d_next_errs)&&(d_prev_errs<12)&&(prev_pi==d_best_pi))
                 {
@@ -392,12 +383,13 @@ int decoder_impl::work (int noutput_items,
                         printf("<+>\n");
                 }
             }
-            bit_errors=process_group(good_group, ecc_max, offset_chars, locators, &good_grp);
+            bit_errors=ecc.process(good_group, ecc_max);
+            good_grp=ecc.good_grp;
             char sync_point='E';
             if(d_state != FORCE_SYNC)
             {
-                int curr_pi=(good_group[0]>>10)^locators[0];
-                if((d_best_pi==curr_pi)&&(d_block0errs<5))
+                int curr_pi=ecc.res[0];
+                if((d_best_pi==curr_pi)&&(ecc.errs[0]<5))
                 {
                     if(d_state!=SYNC)
                     {
@@ -434,7 +426,6 @@ int decoder_impl::work (int noutput_items,
                     continue;
             }else{
                 d_state = SYNC;
-                offset_chars[0]='F';
                 sync_point='F';
                 d_counter = 0;
             }
@@ -445,11 +436,8 @@ int decoder_impl::work (int noutput_items,
                 int bestq=0;
                 int best_errs=bit_errors;
                 int search_lim=std::min(d_valid_bits / GROUP_SIZE, d_integrate_ps_dist);
-                unsigned char  offset_chars_a[4];
-                uint16_t locators_a[5]={0,0,0,0,0};
-                unsigned char  offset_chars_tmp[4];
-                uint16_t locators_tmp[5]={0,0,0,0,0};
-                uint32_t best_grp[4]{0};
+                group_ecc iecc;
+                group_ecc tecc;
                 while(p<search_lim)
                 {
                     int bitp=i-GROUP_SIZE-1;
@@ -478,15 +466,13 @@ int decoder_impl::work (int noutput_items,
                                     prev_grp[j]=((prev_grp[j]<<1)|(prev_grp[j+1]>>25))&((1<<26)-1);
                                 prev_grp[n_group-1]=((prev_grp[n_group-1]<<1)|sample)&((1<<26)-1);
                             }
-                            int errs=process_group(prev_grp, ecc_max,  offset_chars_a, locators_a);
+                            int errs=iecc.process(prev_grp, ecc_max);
                             if(errs<best_errs)
                             {
                                 best_errs=errs;
                                 bestp=p;
                                 bestq=q;
-                                memcpy(best_grp,prev_grp,sizeof(best_grp));
-                                memcpy(locators_tmp,locators_a,sizeof(locators_tmp));
-                                memcpy(offset_chars_tmp,offset_chars_a,sizeof(offset_chars_tmp));
+                                tecc=iecc;
                             }
                             if(best_errs==0)
                                 break;
@@ -504,14 +490,11 @@ int decoder_impl::work (int noutput_items,
                 }
                 if(best_errs<bit_errors)
                 {
-                    if((offset_chars_tmp[1]!='x')&&(offset_chars_tmp[2]!='x')&&(offset_chars_tmp[3]!='x'))
+                    if((tecc.offset_chars[1]!='x')&&(tecc.offset_chars[2]!='x')&&(tecc.offset_chars[3]!='x'))
                         best_errs=0;
                     bit_errors=best_errs;
-                    good_group=&prev_grp[0];
-                    memcpy(locators,locators_tmp,sizeof(locators));
-                    memcpy(offset_chars,offset_chars_tmp,sizeof(offset_chars));
-                    memcpy(prev_grp,best_grp,sizeof(best_grp));
-                    offset_chars[0]='x';
+                    ecc=tecc;
+                    ecc.offset_chars[0]='x';
                     if(d_integrate_ps < INTEGRATE_PS_23_PLUS && best_errs==0)
                     {
                         d_used_list[0]=1;
@@ -523,16 +506,12 @@ int decoder_impl::work (int noutput_items,
                 if(d_integrate_ps < INTEGRATE_PS_23_PLUS)
                     d_used_list[0]=1;
             }
-            prev_grp[0]=(good_group[0]>>10)^locators[0];
-            prev_grp[1]=(good_group[1]>>10)^locators[1];
-            prev_grp[2]=(good_group[2]>>10)^locators[2];
-            prev_grp[3]=(good_group[3]>>10)^locators[3];
-            decode_group(prev_grp, bit_errors);
+            decode_group(ecc, bit_errors);
             if(d_state != old_sync && (log||debug))
-                printf("Sync %c %04x/%04x Corrected: %d %d %c\n",offset_chars[2],prev_grp[0],d_best_pi,bit_errors,ecc_max,sync_point);
+                printf("Sync %c %04x/%04x Corrected: %d %d %c\n",ecc.offset_chars[2],ecc.res[0],d_best_pi,bit_errors,ecc_max,sync_point);
         }
     }
-    decode_group(group, 127);
+    decode_group(ecc, 127);
     return noutput_items;
 }
 
@@ -543,24 +522,24 @@ int decoder_impl::pi_detect(uint32_t * p_grp, bool corr)
 
 int decoder_impl::pi_detect(uint32_t * p_grp, decoder_impl::integr_ctx &x, bool corr)
 {
-    int errs=process_group(p_grp, d_ecc_max, x.offset_chars, x.locators);
+    int errs=x.ecc.process(p_grp, d_ecc_max);
     pi_stats       *pi_a=corr?x.pi_b:x.pi_a;
-    uint16_t pi = (p_grp[0]>>10)^x.locators[0];
-    if(d_block0errs<5)
+    uint16_t pi = (p_grp[0]>>10)^x.ecc.locators[0];
+    if(x.ecc.errs[0]<5)
     {
         static const uint8_t weights_corr[]={19,9,1,1,0};
         static const uint8_t weights_def[]={19,9,5,4,3};
         const uint8_t *weights=corr?weights_corr:weights_def;
-        pi_a[pi].weight+=weights[d_block0errs];
+        pi_a[pi].weight+=weights[x.ecc.errs[0]];
         pi_a[pi].count++;
         int bit_offset=d_bit_counter-pi_a[pi].lastseen;
         pi_a[pi].lastseen=d_bit_counter;
         if(!corr)
         {
             if((pi_a[pi].weight>=22)&&((bit_offset+1)%GROUP_SIZE < 3))
-                pi_a[pi].weight+=weights[d_block0errs]>>2;
+                pi_a[pi].weight+=weights[x.ecc.errs[0]]>>2;
             if((pi_a[pi].weight>=22)&&(bit_offset%GROUP_SIZE == 0))
-                pi_a[pi].weight+=weights[d_block0errs]>>1;
+                pi_a[pi].weight+=weights[x.ecc.errs[0]]>>1;
         }
         int threshold=55;
         if(pi_a[pi].weight<threshold)
@@ -575,17 +554,17 @@ int decoder_impl::pi_detect(uint32_t * p_grp, decoder_impl::integr_ctx &x, bool 
                         ((bit_offset+1)%GROUP_SIZE < 3),
                         pi_a[pi].weight,
                         pi_a[pi].count,
-                        d_block0errs,
+                        x.ecc.errs[0],
                         errs,
                         double(d_weight)
                     );
                 if(!corr)
                     x.matches[pi].push_back(grp_array(p_grp));
-                x.tmp_grp[0]=pi;
-                x.tmp_grp[1]=pi_a[pi].weight;
-                offset_chars[0]='?';
-                offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
-                decode_group(x.tmp_grp,errs);
+                x.ecc.res[0]=pi;
+                x.ecc.res[1]=pi_a[pi].weight;
+                x.ecc.offset_chars[0]='?';
+                x.ecc.offset_chars[1]=x.ecc.offset_chars[2]=x.ecc.offset_chars[3]='x';
+                decode_group(x.ecc,errs);
             }
         }else{
             if((d_state==NO_SYNC)||(d_best_pi!=pi))
@@ -597,7 +576,7 @@ int decoder_impl::pi_detect(uint32_t * p_grp, decoder_impl::integr_ctx &x, bool 
                         ((bit_offset+1)%GROUP_SIZE < 3),
                         pi_a[pi].weight,
                         pi_a[pi].count,
-                        d_block0errs,
+                        x.ecc.errs[0],
                         errs,
                         double(d_weight)
                     );
@@ -606,25 +585,18 @@ int decoder_impl::pi_detect(uint32_t * p_grp, decoder_impl::integr_ctx &x, bool 
                     auto & prv=x.matches[pi];
                     for(unsigned k=0;k<prv.size();k++)
                     {
-                        std::memcpy(x.tmp_grp,prv[k].data,sizeof(prv[k].data));
-                        d_prev_errs=process_group(x.tmp_grp, d_ecc_max, offset_chars, x.locators);
-                        x.tmp_grp[0]=pi;
-                        x.tmp_grp[1]=(x.tmp_grp[1]>>10)^x.locators[1];
-                        x.tmp_grp[2]=(x.tmp_grp[2]>>10)^x.locators[2];
-                        x.tmp_grp[3]=(x.tmp_grp[3]>>10)^x.locators[3];
-                        offset_chars[0]='A';
-                        decode_group(x.tmp_grp,errs);
+                        d_prev_errs=x.ecc.process(prv[k].data, d_ecc_max);
+                        x.ecc.res[0]=pi;
+                        x.ecc.offset_chars[0]='A';
+                        decode_group(x.ecc,errs);
                     }
                 }
-                errs=process_group(p_grp, d_ecc_max, offset_chars, x.locators);
-                x.tmp_grp[0]=pi;
-                x.tmp_grp[1]=(p_grp[1]>>10)^x.locators[1];
-                x.tmp_grp[2]=(p_grp[2]>>10)^x.locators[2];
-                x.tmp_grp[3]=(p_grp[3]>>10)^x.locators[3];
-                offset_chars[0]='A';
+                errs=x.ecc.process(p_grp, d_ecc_max);
+                x.ecc.res[0]=pi;
+                x.ecc.offset_chars[0]='A';
                 if(corr)
-                    offset_chars[1]=offset_chars[2]=offset_chars[3]='x';
-                decode_group(x.tmp_grp,errs);
+                    x.ecc.offset_chars[1]=x.ecc.offset_chars[2]=x.ecc.offset_chars[3]='x';
+                decode_group(x.ecc,errs);
                 for(int jj=0;jj<65536;jj++)
                 {
                     x.pi_b[jj].weight=0;
