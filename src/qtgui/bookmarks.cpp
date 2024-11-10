@@ -524,7 +524,7 @@ bool Bookmarks::save()
         std::string prev_loc = std::setlocale(LC_ALL, nullptr);
         std::setlocale(LC_ALL, "C");
         QString tmp;
-        csv.write(QStringList({"Tag name","color"}));
+        csv.write(QStringList({"name","color"}));
         QMap<QString, TagInfo::sptr> usedTags;
         for (int iBookmark = 0; iBookmark < m_BookmarkList.size(); iBookmark++)
         {
