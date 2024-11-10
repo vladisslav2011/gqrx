@@ -109,6 +109,7 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
     connect(buttonBox, SIGNAL(accepted()), tagsDialog, SLOT(accept()));
     connect(buttonBox, SIGNAL(rejected()), tagsDialog, SLOT(reject()));
     connect(dialogTaglist, SIGNAL(itemChanged(QTableWidgetItem *)), this, SLOT(dialog_tableWidgetTagList_itemChanged(QTableWidgetItem *)));
+    connect(dialogTaglist, SIGNAL(colorChanged()), this, SLOT(dialog_tableWidgetTagList_colorChanged()));
 
     QVBoxLayout *mainLayout = new QVBoxLayout(tagsDialog);
     mainLayout->addWidget(dialogTaglist);
@@ -240,6 +241,11 @@ void DockBookmarks::dialog_tableWidgetTagList_itemChanged(QTableWidgetItem *item
             item->setText(strOld);
         updateTags();
     }
+}
+
+void DockBookmarks::dialog_tableWidgetTagList_colorChanged()
+{
+    updateTags();
 }
 
 bool DockBookmarks::eventFilter(QObject* object, QEvent* event)
