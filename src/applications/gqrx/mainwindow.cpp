@@ -1300,7 +1300,8 @@ void MainWindow::setNewFrequency(qint64 rx_freq)
     auto max_offset = rx->get_input_rate() / 2;
     bool update_offset = rx->is_playing_iq() || rx->is_recording_iq();
 
-    rx->set_rf_freq(hw_freq);
+    if(!update_offset || d_ignore_limits)
+        rx->set_rf_freq(hw_freq);
     d_hw_freq = d_ignore_limits ? hw_freq : (qint64)rx->get_rf_freq();
     update_offset |= (d_hw_freq != (qint64)hw_freq);
 
@@ -2009,6 +2010,7 @@ void MainWindow::startIqPlayback(const QString& filename, float samprate,
     rx->set_input_device(devstr.toStdString());
     updateHWFrequencyRange(false);
     rx->set_input_file(filename.toStdString(), samprate, fmt, time_ms);
+    rx->set_rf_freq(center_freq);
 
     // sample rate
     auto actual_rate = rx->set_input_rate((double)samprate);
