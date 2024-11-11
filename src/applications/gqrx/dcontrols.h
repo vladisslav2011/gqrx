@@ -258,6 +258,7 @@ enum gui_type
     G_BUTTON,
     G_TOGGLEBUTTON,
     G_LABEL,
+    G_HLABEL,
     G_LINE,
     G_COLORPICKER,
     
