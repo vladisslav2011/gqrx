@@ -235,7 +235,6 @@ rx_rds::rx_rds(double sample_rate)
     d_costas_loop->set_max_freq(costas_lock);
     d_bpsk_sync=bpsk_phase_sync_cc::make(128*8*2, 0.3, 0.5);
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
-    gr::digital::constellation_sptr p_c = soft_bpsk::make()->base();
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
@@ -251,11 +250,11 @@ rx_rds::rx_rds(double sample_rate)
 
     d_sync = gr::digital::symbol_sync_cc::make(gr::digital::TED_ZERO_CROSSING,
         (d_sample_rate*d_interpolation*2.0)/(d_decimation*float(2375.f*decim1)), 0.01, 1, 1, 0.1, 1, p_c);
-#endif
-
     d_mpsk = gr::digital::constellation_decoder_cb::make(p_c);
 
     d_ddbb = gr::digital::diff_decoder_bb::make(2);
+
+#endif
 
     /* connect filter */
     connect(self(), 0, d_fxff, 0);
