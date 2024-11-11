@@ -1144,6 +1144,62 @@ void dcontrols_ui::get_label(QWidget * w, const c_id, c_def::v_union &value) con
 // not supported
 }
 
+QWidget * dcontrols_ui::gen_hlabel(const c_id id)
+{
+    QLabel * widget = dynamic_cast<QLabel *>(gen_label(id));
+    widget->setTextFormat(Qt::RichText);
+    return widget;
+}
+
+void dcontrols_ui::set_hlabel(QWidget * w, const c_id id, const c_def::v_union &value)
+{
+    auto & def = c_def::all()[id];
+    QLabel * widget = dynamic_cast<QLabel *>(w);
+    switch(def.v_type())
+    {
+        case V_INT:
+        case V_BOOLEAN:
+            widget->setText(QString(def.prefix())
+                +QString::number(qint64(value))
+                +QString(def.suffix())
+                );
+        break;
+        case V_DOUBLE:
+            widget->setText(QString("%1%2%3")
+                .arg(def.prefix())
+                .arg(double(value),1,'f',def.frac_digits())
+                .arg(def.suffix())
+                );
+        break;
+        case V_STRING:
+        {
+            const std::string raw=value.to_string();
+            if(raw.size()<6)
+                return;
+            int p=-1;
+            int l=-1;
+            try{
+                p=std::stoi(std::string(raw,0,2));
+                l=std::stoi(std::string(raw,2,2));
+            }catch(std::exception &e){
+                p=-1;
+                l=-1;
+            }
+            if(p<0 || l<0)
+                return;
+            const std::string data = std::string(raw,4);
+            const QString a = QString::fromStdString(std::string(data,0,p)).toHtmlEscaped();
+            const QString b = QString::fromStdString(std::string(data,p,l)).toHtmlEscaped();
+            const QString c = QString::fromStdString(std::string(data,p+l)).toHtmlEscaped();
+            widget->setText(QString(def.prefix())
+                +QString("<html>%1<span style='background-color:#77ff77;'>%2</span>%3</html>").arg(a).arg(b).arg(c)
+                +QString(def.suffix())
+                );
+        }
+        break;
+    }
+}
+
 QWidget * dcontrols_ui::gen_line(const c_id id)
 {
     QWidget * parent = obtainParent();
@@ -1214,6 +1270,7 @@ std::array<QWidget * (dcontrols_ui::*)(const c_id), G_GUI_TYPE_COUNT> dcontrols_
     &dcontrols_ui::gen_button,//G_BUTTON,
     &dcontrols_ui::gen_togglebutton,//G_TOGGLEBUTTON,
     &dcontrols_ui::gen_label,//G_LABEL,
+    &dcontrols_ui::gen_hlabel,//G_HLABEL,
     &dcontrols_ui::gen_line,//G_LINE,
     &dcontrols_ui::gen_colorpicker,//G_COLORPICKER
 };
@@ -1235,6 +1292,7 @@ std::array<void (dcontrols_ui::*)(QWidget*, const c_id, const c_def::v_union &),
     nullptr,//G_BUTTON,
     &dcontrols_ui::set_togglebutton,//G_TOGGLEBUTTON,
     &dcontrols_ui::set_label,//G_LABEL,
+    &dcontrols_ui::set_hlabel,//G_HLABEL,
     nullptr,//G_LINE,
     &dcontrols_ui::set_colorpicker,//G_COLORPICKER
 };
@@ -1255,6 +1313,7 @@ std::array<void (dcontrols_ui::*)(QWidget *, const c_id, c_def::v_union &) const
     nullptr,//G_BUTTON,
     &dcontrols_ui::get_togglebutton,//G_TOGGLEBUTTON,
     &dcontrols_ui::get_label,//G_LABEL,
+    &dcontrols_ui::get_label,//G_HLABEL,
     nullptr,//G_LINE,
     &dcontrols_ui::get_colorpicker,//G_COLORPICKER
 };

@@ -102,6 +102,8 @@ private:
     QWidget * gen_label(const c_id id);
     void set_label(QWidget * w, const c_id id, const c_def::v_union &value);
     void get_label(QWidget * w, const c_id, c_def::v_union &value) const;
+    QWidget * gen_hlabel(const c_id id);
+    void set_hlabel(QWidget * w, const c_id id, const c_def::v_union &value);
     QWidget * gen_line(const c_id id);
     QWidget * gen_colorpicker(const c_id id);
     void set_colorpicker(QWidget * w, const c_id, const c_def::v_union &value);
