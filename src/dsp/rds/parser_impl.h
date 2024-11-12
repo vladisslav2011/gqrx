@@ -52,7 +52,7 @@ private:
 	~parser_impl();
 
 	void reset();
-	void send_message(long, std::string);
+	void send_message(long msgtype, std::string msgtext,int ofs=-1,int len=-1);
 	void parse(pmt::pmt_t pdu);
 	double decode_af(unsigned int);
 	void decode_optional_content(int, unsigned long int *);

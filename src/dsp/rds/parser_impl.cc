@@ -78,14 +78,18 @@ void parser_impl::reset() {
  * type 4 = RadioText
  * type 5 = ClockTime
  * type 6 = Alternative Frequencies */
-void parser_impl::send_message(long msgtype, std::string msgtext) {
+void parser_impl::send_message(long msgtype, std::string msgtext,int ofs,int len) {
     switch (msgtype)
     {
     case PI:
         changed_value(C_RDS_PI, d_index, msgtext);
         break;
     case PS:
-        changed_value(C_RDS_PS, d_index, msgtext);
+        {
+            char buf[5]={0};
+            int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
+            changed_value(C_RDS_PS, d_index, std::string(buf,slen)+msgtext);
+        }
         break;
     case PTY:
         changed_value(C_RDS_PTY, d_index, msgtext);
@@ -103,7 +107,11 @@ void parser_impl::send_message(long msgtype, std::string msgtext) {
         changed_value(C_RDS_FLAGS, d_index, msgtext);
         break;
     case RT:
-        changed_value(C_RDS_RADIOTEXT, d_index, msgtext);
+        {
+            char buf[5]={0};
+            int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
+            changed_value(C_RDS_RADIOTEXT, d_index, std::string(buf,slen)+msgtext);
+        }
         break;
     case CLOCK:
         changed_value(C_RDS_CLOCKTIME, d_index, msgtext);
@@ -205,7 +213,7 @@ void parser_impl::decode_type0(unsigned int *group, bool B) {
 		<< " - AF:" << af_string << std::endl;
 
     if(offset_chars[3] != 'x')
-        send_message(PS, std::string(program_service_name, 8));
+        send_message(PS, std::string(program_service_name, 8), segment_address*2,2);
     send_message(FLAGSTRING, flagstring);
     if(offset_chars[2] != 'x')
         send_message(AF, af_string);
@@ -313,29 +321,41 @@ void parser_impl::decode_type2(unsigned int *group, bool B){
 		std::memset(radiotext, ' ', sizeof(radiotext));
 	}
 	radiotext_AB_flag = (group[1] >> 4) & 0x01;
+	int l=-1;
+	int o=-1;
 
 	if(!B) {
         if(offset_chars[2] != 'x')
         {
             radiotext[text_segment_address_code *4     ] = (group[2] >> 8) & 0xff;
             radiotext[text_segment_address_code * 4 + 1] =  group[2]       & 0xff;
+            o=text_segment_address_code * 4;
+            l=2;
         }
         if(offset_chars[3] != 'x')
         {
             radiotext[text_segment_address_code * 4 + 2] = (group[3] >> 8) & 0xff;
             radiotext[text_segment_address_code * 4 + 3] =  group[3]       & 0xff;
+            if(o==-1)
+            {
+                o=text_segment_address_code *4;
+                l=0;
+            }
+            l+=2;
         }
 	} else {
         if(offset_chars[3] != 'x')
         {
             radiotext[text_segment_address_code * 2    ] = (group[3] >> 8) & 0xff;
             radiotext[text_segment_address_code * 2 + 1] =  group[3]       & 0xff;
+            o=text_segment_address_code * 2;
+            l=2;
         }
 	}
 	lout << "Radio Text " << (radiotext_AB_flag ? 'B' : 'A')
 		<< ": " << std::string(radiotext, sizeof(radiotext))
 		<< std::endl;
-	send_message(RT,std::string(radiotext, sizeof(radiotext)));
+	send_message(RT,std::string(radiotext, sizeof(radiotext)),o,l);
 }
 
 void parser_impl::decode_type3(unsigned int *group, bool B){
