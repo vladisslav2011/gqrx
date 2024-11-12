@@ -1155,27 +1155,21 @@ void dcontrols_ui::set_hlabel(QWidget * w, const c_id id, const c_def::v_union &
 {
     auto & def = c_def::all()[id];
     QLabel * widget = dynamic_cast<QLabel *>(w);
+    QString str("");
     switch(def.v_type())
     {
         case V_INT:
         case V_BOOLEAN:
-            widget->setText(QString(def.prefix())
-                +QString::number(qint64(value))
-                +QString(def.suffix())
-                );
+            str=QString::number(qint64(value));
         break;
         case V_DOUBLE:
-            widget->setText(QString("%1%2%3")
-                .arg(def.prefix())
-                .arg(double(value),1,'f',def.frac_digits())
-                .arg(def.suffix())
-                );
+            str=QString("%1").arg(double(value),1,'f',def.frac_digits());
         break;
         case V_STRING:
         {
             const std::string raw=value.to_string();
             if(raw.size()<6)
-                return;
+                break;
             int p=-1;
             int l=-1;
             try{
@@ -1191,13 +1185,14 @@ void dcontrols_ui::set_hlabel(QWidget * w, const c_id id, const c_def::v_union &
             const QString a = QString::fromStdString(std::string(data,0,p)).toHtmlEscaped();
             const QString b = QString::fromStdString(std::string(data,p,l)).toHtmlEscaped();
             const QString c = QString::fromStdString(std::string(data,p+l)).toHtmlEscaped();
-            widget->setText(QString(def.prefix())
-                +QString("<html>%1<span style='background-color:#77ff77;'>%2</span>%3</html>").arg(a).arg(b).arg(c)
-                +QString(def.suffix())
-                );
+            str=QString("<html>%1<span style='background-color:#77ff77;'>%2</span>%3</html>").arg(a).arg(b).arg(c);
         }
         break;
     }
+    widget->setText(QString(def.prefix())
+        +str
+        +QString(def.suffix())
+        );
 }
 
 QWidget * dcontrols_ui::gen_line(const c_id id)
