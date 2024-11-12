@@ -1862,12 +1862,12 @@ void MainWindow::rdsPIObserver(const c_id id, const c_def::v_union &value)
 
 void MainWindow::rdsPSObserver(const c_id id, const c_def::v_union &value)
 {
-    remote->setRdsStation(QString::fromStdString(value));
+    remote->setRdsStation(QString::fromStdString(value).mid(4));
 }
 
 void MainWindow::rdsRTObserver(const c_id id, const c_def::v_union &value)
 {
-    remote->setRdsRadiotext(QString::fromStdString(value));
+    remote->setRdsRadiotext(QString::fromStdString(value).mid(4));
 }
 
 void MainWindow::audioRecObserver(const c_id id, const c_def::v_union &value)
