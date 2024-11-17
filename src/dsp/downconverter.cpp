@@ -23,10 +23,11 @@
 #include <math.h>
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/io_signature.h>
+#include "receivers/defines.h"
 
 #include "downconverter.h"
 
-#define LPF_CUTOFF 120e3
+#define LPF_CUTOFF double(WFM_PREF_QUAD_RATE/2)
 
 downconverter_cc_sptr make_downconverter_cc(unsigned int decim, double center_freq, double samp_rate)
 {
