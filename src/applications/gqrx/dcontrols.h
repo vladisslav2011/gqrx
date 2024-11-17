@@ -25,6 +25,7 @@
 #include "tagged_union.h"
 #include "receivers/defines.h"
 #include "receivers/modulations.h"
+#include <functional>
 
 enum c_id
 {
