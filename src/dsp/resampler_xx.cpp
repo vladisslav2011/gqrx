@@ -26,6 +26,8 @@
 #include "dsp/resampler_xx.h"
 
 #define RESAMPLER_OUTPUT_MULTIPLE 4096
+#define RESAMPLER_BW 0.4
+#define RESAMPLER_TW 0.2
 
 /* Create a new instance of resampler_cc and return
  * a shared_ptr. This is effectively the public constructor.
@@ -50,8 +52,8 @@ resampler_cc::resampler_cc(float rate)
     */
 
     /* generate taps */
-    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
-    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    double cutoff = rate > 1.0f ? RESAMPLER_BW : RESAMPLER_BW*(double)rate;
+    double trans_width = rate > 1.0f ? RESAMPLER_TW : RESAMPLER_TW*(double)rate;
     unsigned int flt_size = 32;
 
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
@@ -73,8 +75,8 @@ resampler_cc::~resampler_cc()
 void resampler_cc::set_rate(float rate)
 {
     /* generate taps */
-    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
-    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    double cutoff = rate > 1.0f ? RESAMPLER_BW : RESAMPLER_BW*(double)rate;
+    double trans_width = rate > 1.0f ? RESAMPLER_TW : RESAMPLER_TW*(double)rate;
     unsigned int flt_size = 32;
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
@@ -111,8 +113,8 @@ resampler_ff::resampler_ff(float rate)
     */
 
     /* generate taps */
-    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
-    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    double cutoff = rate > 1.0f ? RESAMPLER_BW : RESAMPLER_BW*(double)rate;
+    double trans_width = rate > 1.0f ? RESAMPLER_TW : RESAMPLER_TW*(double)rate;
     unsigned int flt_size = 32;
 
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
@@ -133,8 +135,8 @@ resampler_ff::~resampler_ff()
 void resampler_ff::set_rate(float rate)
 {
     /* generate taps */
-    double cutoff = rate > 1.0f ? 0.4 : 0.4*(double)rate;
-    double trans_width = rate > 1.0f ? 0.2 : 0.2*(double)rate;
+    double cutoff = rate > 1.0f ? RESAMPLER_BW : RESAMPLER_BW*(double)rate;
+    double trans_width = rate > 1.0f ? RESAMPLER_TW : RESAMPLER_TW*(double)rate;
     unsigned int flt_size = 32;
     d_taps = gr::filter::firdes::low_pass(flt_size, flt_size, cutoff, trans_width);
 
