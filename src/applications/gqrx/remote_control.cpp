@@ -853,9 +853,10 @@ QString RemoteControl::cmd_get_param(QStringList cmdlist)
 	else if (func.compare("RDS_RADIOTEXT", Qt::CaseInsensitive) == 0)
 		answer = QString("%1\n").arg(rds_radiotext);
 	else if (func.compare("IQ_NAME", Qt::CaseInsensitive) == 0)
-		answer = QString("%1\n").arg(iq_filename);
+		answer = iq_filetime ? QString("%1\n").arg(iq_filename) : "Live\n";
 	else if (func.compare("IQ_TIME", Qt::CaseInsensitive) == 0)
-		answer = iq_filetime ? QDateTime::fromMSecsSinceEpoch(iq_filetime).toUTC().toString("yyyy-MM-dd hh:mm:ss\n") : "";
+		answer = iq_filetime ? QDateTime::fromMSecsSinceEpoch(iq_filetime).toUTC().toString("yyyy-MM-dd hh:mm:ss\n") :
+			QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd hh:mm:ss\n");
     else
         answer = QString("RPRT 1\n");
 
