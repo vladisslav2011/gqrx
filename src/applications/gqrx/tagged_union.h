@@ -23,11 +23,7 @@
 #ifndef INCLUDED_TAGGED_UNION_H
 #define INCLUDED_TAGGED_UNION_H
 
-#include <functional>
-#include <array>
 #include <string>
-#include <map>
-#include <vector>
 #include <iostream>
 #include <cstdint>
 
