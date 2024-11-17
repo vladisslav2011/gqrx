@@ -226,7 +226,7 @@ rx_rds::rx_rds(double sample_rate)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    int agc_samp = ((float)d_sample_rate*d_interpolation*10.0f)/(decim1*d_decimation*2375.f);
+    int agc_samp = ((float)d_sample_rate*d_interpolation*2.5f)/(decim1*d_decimation*2375.f);
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
     //d_costas_loop->set_damping_factor(0.85);
@@ -238,6 +238,7 @@ rx_rds::rx_rds(double sample_rate)
     d_bpf = gr::filter::fir_filter_ccf::make(1, d_rrcf);
 
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
+    d_agc->set_history(agc_samp*2);
 
     d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*(2375.f*decim1)), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
 

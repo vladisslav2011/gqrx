@@ -252,7 +252,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         d_omega =
             d_omega_mid + gr::branchless_clip(d_omega - d_omega_mid, d_omega_lim);
 
-        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega_mid*0.1f);
+        d_mu = d_mu + d_omega + gr::branchless_clip(d_gain_mu * mm_val, d_omega_mid*0.5f);
         ii += (int)floorf(d_mu);
         d_mu -= floorf(d_mu);
 
