@@ -226,7 +226,7 @@ rx_rds::rx_rds(double sample_rate)
         d_rrcf_manchester[n] = d_rrcf[n] - d_rrcf[n+8];
     }
 
-    int agc_samp = ((float)d_sample_rate*d_interpolation*2.5f)/(decim1*d_decimation*2375.f);
+    int agc_samp = ((float)d_sample_rate*d_interpolation*4.0f)/(decim1*d_decimation*2375.f);
 
     d_costas_loop = gr::digital::costas_loop_cc::make(powf(10.f,-2.8f),2);
     //d_costas_loop->set_damping_factor(0.85);
