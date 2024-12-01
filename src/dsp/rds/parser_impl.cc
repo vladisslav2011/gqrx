@@ -88,7 +88,8 @@ void parser_impl::send_message(long msgtype, std::string msgtext,int ofs,int len
         {
             char buf[5]={0};
             int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
-            changed_value(C_RDS_PS, d_index, std::string(buf,slen)+msgtext);
+            msgtext = std::string(buf,slen)+msgtext;
+            changed_value(C_RDS_PS, d_index, msgtext);
         }
         break;
     case PTY:
@@ -110,7 +111,8 @@ void parser_impl::send_message(long msgtype, std::string msgtext,int ofs,int len
         {
             char buf[5]={0};
             int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
-            changed_value(C_RDS_RADIOTEXT, d_index, std::string(buf,slen)+msgtext);
+            msgtext = std::string(buf,slen)+msgtext;
+            changed_value(C_RDS_RADIOTEXT, d_index, msgtext);
         }
         break;
     case CLOCK:
