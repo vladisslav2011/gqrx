@@ -1168,24 +1168,30 @@ void dcontrols_ui::set_hlabel(QWidget * w, const c_id id, const c_def::v_union &
         case V_STRING:
         {
             const std::string raw=value.to_string();
-            if(raw.size()<6)
+            static const std::array<const char *,3> colors{"#77ff77","#eeee44","#ffaaaa"};
+            if(raw.size()<7)
                 break;
             int p=-1;
             int l=-1;
+            unsigned i=0;
             try{
                 p=std::stoi(std::string(raw,0,2));
                 l=std::stoi(std::string(raw,2,2));
+                i=std::stoi(std::string(raw,4,1));
             }catch(std::exception &e){
                 p=-1;
                 l=-1;
+                i=0;
             }
             if(p<0 || l<0)
                 return;
-            const std::string data = std::string(raw,4);
+            if(i>2)
+                i=2;
+            const std::string data = std::string(raw,5);
             const QString a = QString::fromStdString(std::string(data,0,p)).toHtmlEscaped();
             const QString b = QString::fromStdString(std::string(data,p,l)).toHtmlEscaped();
             const QString c = QString::fromStdString(std::string(data,p+l)).toHtmlEscaped();
-            str=QString("<html>%1<span style='background-color:#77ff77;'>%2</span>%3</html>").arg(a).arg(b).arg(c);
+            str=QString("<html>%1<span style='background-color:%4;'>%2</span>%3</html>").arg(a).arg(b).arg(c).arg(colors[i]);
         }
         break;
     }
