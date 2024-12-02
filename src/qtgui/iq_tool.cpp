@@ -30,6 +30,7 @@
 #include <QStringList>
 #include <QScrollBar>
 #include <QDateTime>
+#include <QTimeZone>
 #include <QShortcut>
 #include <QPushButton>
 
@@ -711,7 +712,7 @@ void CIqTool::parseFileName(const QString &filename)
 
     // gqrx_yyyyMMdd_hhmmss_freq_samprate_fc.raw
     QDateTime ts = QDateTime::fromString(list.at(1) + list.at(2), "yyyyMMddhhmmss");
-    ts.setOffsetFromUtc(0);
+    ts.setTimeZone(QTimeZone::utc());
     time_ms = ts.toMSecsSinceEpoch();
     sr = list.at(4).toLongLong(&sr_ok);
     center = list.at(3).toLongLong(&center_ok);
