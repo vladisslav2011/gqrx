@@ -362,7 +362,6 @@ private:
     double      d_audio_rate;       /*!< Audio output rate. */
     unsigned int    d_decim;        /*!< input decimation. */
     double      d_rf_freq;          /*!< Current RF frequency. */
-    bool        d_recording_iq;     /*!< Whether we are recording I/Q file. */
     std::string d_iq_filename;
     uint64_t    d_iq_time_ms;
     int         d_iq_buffers_max;
