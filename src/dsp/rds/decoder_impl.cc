@@ -292,7 +292,7 @@ int decoder_impl::work (int noutput_items,
         d_acc_p++;
         if(d_valid_bits<PS_SEARCH_MAX*GROUP_SIZE)
             d_valid_bits++;
-        memcpy(&d_used_list[1],&d_used_list[0],sizeof(d_used_list)-sizeof(d_used_list[0]));
+        std::memmove(&d_used_list[1],&d_used_list[0],sizeof(d_used_list)-sizeof(d_used_list[0]));
         d_used_list[0]=0;
 
         d_acc_p%=GROUP_SIZE;
