@@ -68,6 +68,7 @@ private:
         int errs[4]={0,0,0,0};
         int good_grp=0; 
         int res[4]={0,0,0,0};
+        int PS_RT_integr_used{0};
     };
     struct integr_ctx
     {

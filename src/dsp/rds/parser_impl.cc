@@ -86,8 +86,8 @@ void parser_impl::send_message(long msgtype, std::string msgtext,int ofs,int len
         break;
     case PS:
         {
-            char buf[5]={0};
-            int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
+            char buf[6]={0};
+            int slen = std::snprintf(buf,sizeof(buf),"%2d%2d%1d",ofs,len,d_integr_used);
             msgtext = std::string(buf,slen)+msgtext;
             changed_value(C_RDS_PS, d_index, msgtext);
         }
@@ -109,8 +109,8 @@ void parser_impl::send_message(long msgtype, std::string msgtext,int ofs,int len
         break;
     case RT:
         {
-            char buf[5]={0};
-            int slen = std::snprintf(buf,5,"%2d%2d",ofs,len);
+            char buf[6]={0};
+            int slen = std::snprintf(buf,sizeof(buf),"%2d%2d%1d",ofs,len,d_integr_used);
             msgtext = std::string(buf,slen)+msgtext;
             changed_value(C_RDS_RADIOTEXT, d_index, msgtext);
         }
@@ -686,7 +686,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         dout << "input PDU message has wrong type (not u8)" << std::endl;
         return;
     }
-    if(pmt::blob_length(vec) != 13) {  // 8 data + 4 offset chars(ABCD) + n_errors
+    if(pmt::blob_length(vec) != 14) {  // 8 data + 4 offset chars(ABCD) + n_errors +integr_used
         dout << "input PDU message has wrong size ("
             << pmt::blob_length(vec) << ")" << std::endl;
         return;
@@ -709,6 +709,7 @@ void parser_impl::parse(pmt::pmt_t pdu) {
         d_bit_errors = bytes[12];
     if(bytes[12] >= 127)
         return;
+    d_integr_used = bytes[13];
 
     unsigned int group_type = (unsigned int)((group[1] >> 12) & 0xf);
     bool ab = (group[1] >> 11 ) & 0x1;
