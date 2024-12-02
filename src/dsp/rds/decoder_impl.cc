@@ -230,7 +230,7 @@ void decoder_impl::decode_group(group_ecc &ecc, int bit_errors)
 {
 	// raw data bytes, as received from RDS.
 	// 8 info bytes, followed by 4 RDS offset chars: ABCD/ABcD/EEEE (in US)
-	unsigned char bytes[13];
+	unsigned char bytes[14];
 
 	// RDS information words
 	bytes[0] = (ecc.res[0] >> 8U) & 0xffU;
@@ -248,8 +248,9 @@ void decoder_impl::decode_group(group_ecc &ecc, int bit_errors)
 	bytes[10] = ecc.offset_chars[2];
 	bytes[11] = ecc.offset_chars[3];
 	bytes[12] = bit_errors;
+	bytes[13] = ecc.PS_RT_integr_used;
 
-	pmt::pmt_t data(pmt::make_blob(bytes, 13));
+	pmt::pmt_t data(pmt::make_blob(bytes, sizeof(bytes)));
 	pmt::pmt_t meta(pmt::PMT_NIL);
 
 	pmt::pmt_t pdu(pmt::cons(meta, data));  // make PDU: (metadata, data) pair
@@ -495,16 +496,21 @@ int decoder_impl::work (int noutput_items,
                     bit_errors=best_errs;
                     ecc=tecc;
                     ecc.offset_chars[0]='x';
+                    ecc.PS_RT_integr_used=1;
+                    if(bestq)
+                        ecc.PS_RT_integr_used=2;
                     if(d_integrate_ps < INTEGRATE_PS_23_PLUS && best_errs==0)
                     {
                         d_used_list[0]=1;
                         d_used_list[bestp]=1;
                         d_used_list[bestq]=1;
                     }
-                }
+                }else
+                    ecc.PS_RT_integr_used=0;
             }else{
                 if(d_integrate_ps < INTEGRATE_PS_23_PLUS)
                     d_used_list[0]=1;
+                ecc.PS_RT_integr_used=0;
             }
             decode_group(ecc, bit_errors);
             if(d_state != old_sync && (log||debug))

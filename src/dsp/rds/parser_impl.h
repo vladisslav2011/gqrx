@@ -96,6 +96,7 @@ private:
     int d_index{0};
     int d_bit_errors{0};
     int d_best_errors{128};
+    int d_integr_used{0};
     std::string d_best_pi{""};
     std::array<std::string,MSG_IDS_COUNT> d_cache;
     char offset_chars[4];
