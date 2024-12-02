@@ -284,7 +284,11 @@ QWidget * dcontrols_ui::gen_checkbox(const c_id id)
     QCheckBox * widget = new QCheckBox(QString(def.name()), parent);
     if(def.writable())
     {
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
         parent->connect(widget, QOverload<int>::of(&QCheckBox::stateChanged), [=](int val){changed_gui(id, val==Qt::Checked);} );
+#else
+        parent->connect(widget, QOverload<Qt::CheckState>::of(&QCheckBox::checkStateChanged), [=](Qt::CheckState val){changed_gui(id, val==Qt::Checked);} );
+#endif
         if(def.shortcut())
         {
             QAction * action = new QAction(parent);
