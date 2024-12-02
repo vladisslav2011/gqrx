@@ -67,7 +67,6 @@ receiver::receiver(const std::string input_device,
       d_audio_rate(48000),
       d_decim(decimation),
       d_rf_freq(144800000.0),
-      d_recording_iq(false),
       d_sniffer_active(false),
       d_iq_rev(false),
       d_dc_cancel(false),
@@ -317,7 +316,7 @@ gr::basic_block_sptr receiver::setup_source(file_formats fmt)
             b = input_decim;
         }
 
-        if (d_recording_iq)
+        if (is_recording_iq())
         {
             // We record IQ with minimal pre-processing
             connect_iq_recorder();
@@ -1579,12 +1578,10 @@ receiver::status receiver::connect_iq_recorder()
             tb->lock();
             tb->connect(b, 0, convert_to[d_iq_fmt], 0);
             tb->connect(convert_to[d_iq_fmt], 0, iq_sink, 0);
-            d_recording_iq = true;
             tb->unlock();
     }else{
         tb->lock();
         tb->connect(b, 0, iq_sink, 0);
-        d_recording_iq = true;
         tb->unlock();
     }
     return STATUS_OK;
@@ -1621,7 +1618,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 {
     int sink_bytes_per_chunk = any_to_any_base::fmt[fmt].size;
 
-    if (d_recording_iq) {
+    if (is_recording_iq()) {
         std::cout << __func__ << ": already recording" << std::endl;
         return STATUS_ERROR;
     }
@@ -1644,7 +1641,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
 /** Stop I/Q data recorder. */
 receiver::status receiver::stop_iq_recording()
 {
-    if (!d_recording_iq){
+    if (!is_recording_iq()){
         /* error: we are not recording */
         return STATUS_ERROR;
     }
@@ -1657,7 +1654,7 @@ receiver::status receiver::stop_iq_recording()
         tb->disconnect(convert_to[d_iq_fmt]);
     tb->unlock();
     iq_sink.reset();
-    d_recording_iq = false;
+    d_iq_fmt = FILE_FORMAT_NONE;
 
     return STATUS_OK;
 }
@@ -1722,9 +1719,9 @@ receiver::status receiver::save_file_range_ts(const uint64_t from_ms, const uint
 
 void receiver::get_iq_tool_stats(struct iq_tool_stats &stats)
 {
-    stats.recording = d_recording_iq;
+    stats.recording = is_recording_iq();
     stats.playing = (d_last_format != FILE_FORMAT_NONE);
-    if (d_recording_iq && iq_sink)
+    if (stats.recording && iq_sink)
     {
         stats.failed = iq_sink->get_failed();
         stats.buffer_usage = iq_sink->get_buffer_usage();
