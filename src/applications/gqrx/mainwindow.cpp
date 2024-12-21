@@ -1672,11 +1672,16 @@ void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
     int     flo=0, fhi=0;
     Modulations::filter_shape filter_shape;
     rx->get_filter(flo, fhi, filter_shape);
-    if(Modulations::GetFilterPreset(rx->get_demod(), value, flo, fhi))
+    if(!Modulations::GetFilterPreset(rx->get_demod(), value, flo, fhi))
     {
-        rx->set_filter(flo, fhi, filter_shape);
-        ui->plotter->setHiLowCutFrequencies(flo, fhi);
+        c_def::v_union tmp;
+        rx->get_value(C_USER_FILTER_LO, tmp);
+        flo=tmp;
+        rx->get_value(C_USER_FILTER_HI, tmp);
+        fhi=tmp;
     }
+    rx->set_filter(flo, fhi, filter_shape);
+    ui->plotter->setHiLowCutFrequencies(flo, fhi);
 }
 
 void MainWindow::frequencyObserver(const c_id id, const c_def::v_union &value)
@@ -2944,7 +2949,6 @@ void MainWindow::on_plotter_newFilterFreq(int low, int high)
      * switching to a bookmark */
     ui->plotter->setHiLowCutFrequencies(low, high);
     remote->setPassband(low, high);
-
 }
 
 /** Full screen button or menu item toggled. */

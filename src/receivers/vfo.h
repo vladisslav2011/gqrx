@@ -53,6 +53,8 @@ public:
         d_offset(0),
         d_filter_low(-5000),
         d_filter_high(5000),
+        d_user_filter_low(-5000),
+        d_user_filter_high(5000),
         d_filter_tw(100),
         d_filter_shape(Modulations::FILTER_SHAPE_NORMAL),
         d_demod(Modulations::MODE_OFF),
@@ -116,6 +118,8 @@ public:
     inline int get_filter_high() const { return d_filter_high;}
     bool         get_filter_low(c_def::v_union & v) const { v=d_filter_low; return true; }
     bool         get_filter_high(c_def::v_union & v) const { v=d_filter_high; return true; }
+    bool         get_user_filter_low(c_def::v_union & v) const { v=d_user_filter_low; return true; }
+    bool         get_user_filter_high(c_def::v_union & v) const { v=d_user_filter_high; return true; }
     bool         get_filter_shape(c_def::v_union & v) const { v=d_filter_shape; return true; }
     inline void get_filter(int &low, int &high, Modulations::filter_shape &shape) const
     {
@@ -215,6 +219,8 @@ public:
     /* Filter parameter */
     virtual bool set_filter_low(const c_def::v_union &);
     virtual bool set_filter_high(const c_def::v_union &);
+    virtual bool set_user_filter_low(const c_def::v_union &);
+    virtual bool set_user_filter_high(const c_def::v_union &);
     virtual bool set_filter_shape(const c_def::v_union &);
     virtual void set_filter(int low, int high, Modulations::filter_shape shape);
     virtual void filter_adjust();
@@ -330,6 +336,8 @@ protected:
     int              d_offset;
     int              d_filter_low;
     int              d_filter_high;
+    int              d_user_filter_low;
+    int              d_user_filter_high;
     int              d_filter_tw;
     Modulations::filter_shape d_filter_shape;
     Modulations::idx d_demod;
