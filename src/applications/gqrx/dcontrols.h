@@ -118,6 +118,8 @@ enum c_id
     C_FILTER_WIDTH,
     C_FILTER_LO,
     C_FILTER_HI,
+    C_USER_FILTER_LO,
+    C_USER_FILTER_HI,
     C_FILTER_SHAPE,
     C_AGC_PRESET,
     C_AGC_OPT,
