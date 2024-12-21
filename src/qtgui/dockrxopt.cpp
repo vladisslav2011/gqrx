@@ -139,10 +139,18 @@ void DockRxOpt::setFilterParam(int lo, int hi)
     set_gui(C_FILTER_WIDTH, filter_index);
     if (filter_index == FILTER_PRESET_USER)
     {
-        float width_f;
-        width_f = abs((hi-lo)/1000.f);
-        dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
-                                     .arg((double)width_f));
+        const float width_f = abs((hi-lo)/1000.f);
+        float width_o = (hi+lo)/2000.f;
+        if(abs(width_o) < 0.001f)
+            width_o=0.f;
+        char sign_o = (width_o>0) ? '+' : '-';
+        width_o = abs(width_o);
+        if(width_o > 0.f)
+            dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1%2%3 k)")
+                                    .arg((double)width_f).arg(sign_o).arg((double)width_o));
+        else
+            dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
+                                        .arg((double)width_f));
     }
 }
 
