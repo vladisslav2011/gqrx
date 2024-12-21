@@ -43,6 +43,18 @@ bool vfo_s::set_filter_high(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_user_filter_low(const c_def::v_union & v)
+{
+    d_user_filter_low = v;
+    return true;
+}
+
+bool vfo_s::set_user_filter_high(const c_def::v_union & v)
+{
+    d_user_filter_high = v;
+    return true;
+}
+
 bool vfo_s::set_filter_shape(const c_def::v_union & v)
 {
     d_filter_shape = Modulations::filter_shape(int(v));
@@ -51,6 +63,11 @@ bool vfo_s::set_filter_shape(const c_def::v_union & v)
      Modulations::UpdateFilterRange(d_demod, d_filter_low, d_filter_high);
     #endif
     d_filter_tw = Modulations::TwFromFilterShape(d_filter_low, d_filter_high, d_filter_shape);
+    if(Modulations::FindFilterPreset(d_demod,d_filter_low,d_filter_high) == FILTER_PRESET_USER)
+    {
+        d_user_filter_low = d_filter_low;
+        d_user_filter_high = d_filter_high;
+    }
     return true;
 }
 
@@ -60,6 +77,11 @@ void vfo_s::set_filter(int low, int high, Modulations::filter_shape shape)
     d_filter_high = high;
     d_filter_shape = shape;
     d_filter_tw = Modulations::TwFromFilterShape(low, high, shape);
+    if(Modulations::FindFilterPreset(d_demod,d_filter_low,d_filter_high) == FILTER_PRESET_USER)
+    {
+        d_user_filter_low = d_filter_low;
+        d_user_filter_high = d_filter_high;
+    }
 }
 
 void vfo_s::filter_adjust()
@@ -524,6 +546,8 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
 
     from.get_filter_low(v);set_filter_low(v);
     from.get_filter_high(v);set_filter_high(v);
+    from.get_user_filter_low(v);set_user_filter_low(v);
+    from.get_user_filter_high(v);set_user_filter_high(v);
     from.get_filter_shape(v);set_filter_shape(v);
 
     from.get_udp_host(v);
@@ -650,6 +674,10 @@ int vfo_s::conf_initializer()
     getters[C_FILTER_LO]=&vfo_s::get_filter_low;
     setters[C_FILTER_HI]=&vfo_s::set_filter_high;
     getters[C_FILTER_HI]=&vfo_s::get_filter_high;
+    setters[C_USER_FILTER_LO]=&vfo_s::set_user_filter_low;
+    getters[C_USER_FILTER_LO]=&vfo_s::get_user_filter_low;
+    setters[C_USER_FILTER_HI]=&vfo_s::set_user_filter_high;
+    getters[C_USER_FILTER_HI]=&vfo_s::get_user_filter_high;
     setters[C_MODE]=&vfo_s::set_demod;
     getters[C_MODE]=&vfo_s::get_demod;
     //Squelch
