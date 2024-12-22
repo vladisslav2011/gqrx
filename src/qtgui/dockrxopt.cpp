@@ -62,6 +62,8 @@ DockRxOpt::DockRxOpt(qint64 filterOffsetRange, QWidget *parent) :
     set_observer(C_MODE_OPT,&DockRxOpt::modeOptObserver);
     set_observer(C_FILTER_LO, &DockRxOpt::filterLoObserver);
     set_observer(C_FILTER_HI, &DockRxOpt::filterHiObserver);
+    set_observer(C_USER_FILTER_LO, &DockRxOpt::userFilterLoObserver);
+    set_observer(C_USER_FILTER_HI, &DockRxOpt::userFilterHiObserver);
 }
 
 DockRxOpt::~DockRxOpt()
@@ -134,26 +136,28 @@ unsigned int DockRxOpt::filterIdxFromLoHi(int lo, int hi) const
  */
 void DockRxOpt::setFilterParam(int lo, int hi)
 {
+    printf("DockRxOpt::setFilterParam %d %d\n",lo,hi);
     int filter_index = filterIdxFromLoHi(lo, hi);
 
     set_gui(C_FILTER_WIDTH, filter_index);
-    if (filter_index == FILTER_PRESET_USER)
-    {
-        const float width_f = abs((hi-lo)/1000.f);
-        float width_o = (hi+lo)/2000.f;
-        if(abs(width_o) < 0.001f)
-            width_o=0.f;
-        char sign_o = (width_o>0) ? '+' : '-';
-        width_o = abs(width_o);
-        if(width_o > 0.f)
-            dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1%2%3 k)")
-                                    .arg((double)width_f).arg(sign_o).arg((double)width_o));
-        else
-            dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
-                                        .arg((double)width_f));
-    }
 }
 
+void DockRxOpt::setUserFilter(int lo, int hi)
+{
+    printf("DockRxOpt::setUserFilter %d %d\n",lo,hi);
+    const float width_f = abs((hi-lo)/1000.f);
+    float width_o = (hi+lo)/2000.f;
+    if(abs(width_o) < 0.001f)
+        width_o=0.f;
+    char sign_o = (width_o>0) ? '+' : '-';
+    width_o = abs(width_o);
+    if(width_o > 0.f)
+        dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1%2%3 k)")
+                                    .arg((double)width_f).arg(sign_o).arg((double)width_o));
+    else
+        dynamic_cast<QComboBox *>(getWidget(C_FILTER_WIDTH))->setItemText(FILTER_PRESET_USER, QString("User (%1 k)")
+                                    .arg((double)width_f));
+}
 void DockRxOpt::agcOnObserver(const c_id id, const c_def::v_union & v)
 {
     if (bool(v))
@@ -242,6 +246,18 @@ void DockRxOpt::filterHiObserver(const c_id id, const c_def::v_union &v)
 {
     m_hi=v;
     setFilterParam(m_lo,m_hi);
+}
+
+void DockRxOpt::userFilterLoObserver(const c_id id, const c_def::v_union &v)
+{
+    m_user_lo=v;
+    setUserFilter(m_user_lo,m_user_hi);
+}
+
+void DockRxOpt::userFilterHiObserver(const c_id id, const c_def::v_union &v)
+{
+    m_user_hi=v;
+    setUserFilter(m_user_lo,m_user_hi);
 }
 
 void DockRxOpt::setRxFreqRange(qint64 min_hz, qint64 max_hz)

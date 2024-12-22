@@ -71,6 +71,7 @@ public slots:
 private:
     unsigned int filterIdxFromLoHi(int lo, int hi) const;
     void setFilterParam(int lo, int hi);
+    void setUserFilter(int lo, int hi);
 
     void setAgcPresetFromParams(int decay);
     void agcOnObserver(const c_id id, const c_def::v_union & v);
@@ -81,6 +82,8 @@ private:
     void modeOptObserver(const c_id id, const c_def::v_union & v);
     void filterLoObserver(const c_id id, const c_def::v_union &value);
     void filterHiObserver(const c_id id, const c_def::v_union &value);
+    void userFilterLoObserver(const c_id id, const c_def::v_union &value);
+    void userFilterHiObserver(const c_id id, const c_def::v_union &value);
 
 signals:
     /** Signal emitted when the channel filter frequency has changed. */
@@ -95,8 +98,10 @@ private:
     CDemodOptions *demodOpt;  /** Demodulator options. */
     CAgcOptions   *agcOpt;    /** AGC options. */
     CNbOptions    *nbOpt;     /** Noise blanker options. */
-    int m_lo;
-    int m_hi;
+    int m_lo{0};
+    int m_hi{0};
+    int m_user_lo{0};
+    int m_user_hi{0};
 };
 
 #endif // DOCKRXOPT_H
