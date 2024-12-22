@@ -67,6 +67,8 @@ bool vfo_s::set_filter_shape(const c_def::v_union & v)
     {
         d_user_filter_low = d_filter_low;
         d_user_filter_high = d_filter_high;
+        changed_value(C_USER_FILTER_LO, d_index, d_user_filter_low);
+        changed_value(C_USER_FILTER_HI, d_index, d_user_filter_high);
     }
     return true;
 }
@@ -77,11 +79,6 @@ void vfo_s::set_filter(int low, int high, Modulations::filter_shape shape)
     d_filter_high = high;
     d_filter_shape = shape;
     d_filter_tw = Modulations::TwFromFilterShape(low, high, shape);
-    if(Modulations::FindFilterPreset(d_demod,d_filter_low,d_filter_high) == FILTER_PRESET_USER)
-    {
-        d_user_filter_low = d_filter_low;
-        d_user_filter_high = d_filter_high;
-    }
 }
 
 void vfo_s::filter_adjust()
