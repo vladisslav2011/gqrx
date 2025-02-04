@@ -34,6 +34,8 @@ BookmarksTagList::BookmarksTagList(QWidget *parent, bool bShowUntagged )
 {
     connect(this, SIGNAL(cellClicked(int,int)),
             this, SLOT(on_cellClicked(int,int)));
+    connect(this, SIGNAL(cellDoubleClicked(int,int)),
+            this, SLOT(on_cellDoubleClicked(int,int)));
 
     // right click menu
     popupMenu=new QMenu(this);
@@ -92,6 +94,14 @@ void BookmarksTagList::on_cellClicked(int row, int column)
     {
         changeColor(row, column);
     }
+    if(column==1)
+    {
+        toggleCheckedState(row, column);
+    }
+}
+
+void BookmarksTagList::on_cellDoubleClicked(int row, int column)
+{
     if(column==1)
     {
         toggleCheckedState(row, column);
