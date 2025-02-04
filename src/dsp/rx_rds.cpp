@@ -202,7 +202,11 @@ rx_rds::rx_rds(double sample_rate)
 //    d_fxff_tap = gr::filter::firdes::low_pass(1, d_sample_rate, 5500, 3500);
     d_fxff_tap = gr::filter::firdes::band_pass(1, d_sample_rate,
         2375./2.-(double)d_fxff_bw, 2375./2.+(double)d_fxff_bw, (double)d_fxff_tw/*,gr::filter::firdes::WIN_BLACKMAN_HARRIS*/);
-    d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(decim1, d_fxff_tap, 57000, d_sample_rate);
+    // TODO: export as a setting?
+//    constexpr float RDS_PPM = 7900.f;
+    constexpr float RDS_PPM = 0.f;
+    constexpr float RDS_S = 1.f+(RDS_PPM * 1e-6f);
+    d_fxff = gr::filter::freq_xlating_fir_filter_fcf::make(decim1, d_fxff_tap, 57000.f * RDS_S, d_sample_rate);
     update_fxff_taps();
 
 #if GNURADIO_VERSION < 0x030900
@@ -215,9 +219,9 @@ rx_rds::rx_rds(double sample_rate)
 
     int n_taps = 151*5;
 #if (GNURADIO_VERSION < 0x030800) || NEW_RDS
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0f*RDS_S, 1.0, n_taps);
 #else
-    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0, 1.0, n_taps);
+    d_rrcf = gr::filter::firdes::root_raised_cosine(1, ((double)d_sample_rate*d_interpolation)/(d_decimation*decim1), 2375.0f*RDS_S, 1.0, n_taps);
 #endif
 //    auto tmp_rrcf=gr::filter::firdes::root_raised_cosine(1, (d_sample_rate*float(d_interpolation))/float(d_decimation*decim1), 2375.0*0.5, 1, n_taps);
 //    volk_32f_x2_add_32f(d_rrcf.data(),d_rrcf.data(),tmp_rrcf.data(),n_taps);
@@ -240,7 +244,7 @@ rx_rds::rx_rds(double sample_rate)
     d_agc = make_rx_agc_cc(0,40, agc_samp, 0, agc_samp, 0);
     d_agc->set_history(agc_samp*2);
 
-    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*(2375.f*decim1)), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
+    d_sync = clock_recovery_el_cc::make(((float)d_sample_rate*d_interpolation)/(d_decimation*(2375.f*RDS_S*decim1)), d_gain_omega, 0.5, d_gain_mu, d_omega_lim);
 
     d_koin = gr::blocks::keep_one_in_n::make(sizeof(unsigned char), 2);
 #else
