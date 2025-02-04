@@ -81,6 +81,8 @@ signals:
 
 public slots:
     void setNewFrequency(qint64 rx_freq);
+    void dialog_tableWidgetTagList_itemChanged(QTableWidgetItem *item);
+    void dialog_tableWidgetTagList_colorChanged();
 
 private slots:
     void activated(const QModelIndex & index );
@@ -88,8 +90,6 @@ private slots:
     //void on_addButton_clicked();
     //void on_delButton_clicked();
     void on_tableWidgetTagList_itemChanged(QTableWidgetItem* item);
-    void dialog_tableWidgetTagList_itemChanged(QTableWidgetItem *item);
-    void dialog_tableWidgetTagList_colorChanged();
     void ShowContextMenu(const QPoint&pos);
     bool DeleteSelectedBookmark();
     bool tuneHere();
