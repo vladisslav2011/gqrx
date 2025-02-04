@@ -3324,6 +3324,8 @@ void MainWindow::on_actionAddBookmark_triggered()
         mainLayout->addWidget(buttonCreateTag);
         mainLayout->addWidget(taglist);
         mainLayout->addWidget(buttonBox);
+        connect(taglist, SIGNAL(itemChanged(QTableWidgetItem *)), uiDockBookmarks, SLOT(dialog_tableWidgetTagList_itemChanged(QTableWidgetItem *)));
+        connect(taglist, SIGNAL(colorChanged()), uiDockBookmarks, SLOT(dialog_tableWidgetTagList_colorChanged()));
 
         if (bookmarkFound.size())
         {

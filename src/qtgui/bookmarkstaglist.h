@@ -46,6 +46,7 @@ signals:
 public slots:
     void updateTags();
     void on_cellClicked(int row, int column);
+    void on_cellDoubleClicked(int row, int column);
     void changeColor(int row, int column);
     void toggleCheckedState(int row, int column);
     void ShowContextMenu(const QPoint& pos);
