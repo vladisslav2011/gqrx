@@ -105,7 +105,7 @@ DockBookmarks::DockBookmarks(QWidget *parent) :
     connect(bookmarksTableModel, SIGNAL(dataChanged(const QModelIndex &, const QModelIndex &)),
             this, SLOT(onDataChanged(const QModelIndex &, const QModelIndex &)));
     connect(&Bookmarks::Get(), SIGNAL(TagListChanged()),
-            ui->tableWidgetTagList, SLOT(updateTags()));
+            ui->tableWidgetTagList, SLOT(updateTags()), Qt::QueuedConnection);
     connect(&Bookmarks::Get(), SIGNAL(BookmarksChanged()),
             bookmarksTableModel, SLOT(update()));
 }
