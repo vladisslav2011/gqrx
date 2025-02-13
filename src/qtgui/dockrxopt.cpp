@@ -136,7 +136,6 @@ unsigned int DockRxOpt::filterIdxFromLoHi(int lo, int hi) const
  */
 void DockRxOpt::setFilterParam(int lo, int hi)
 {
-    printf("DockRxOpt::setFilterParam %d %d\n",lo,hi);
     int filter_index = filterIdxFromLoHi(lo, hi);
 
     set_gui(C_FILTER_WIDTH, filter_index);
@@ -144,7 +143,6 @@ void DockRxOpt::setFilterParam(int lo, int hi)
 
 void DockRxOpt::setUserFilter(int lo, int hi)
 {
-    printf("DockRxOpt::setUserFilter %d %d\n",lo,hi);
     const float width_f = abs((hi-lo)/1000.f);
     float width_o = (hi+lo)/2000.f;
     if(abs(width_o) < 0.001f)
