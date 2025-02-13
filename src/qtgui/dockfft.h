@@ -52,6 +52,7 @@ private slots:
 
 
 private:
+    void fftSplitObserver(const c_id id, const c_def::v_union &value);
     Ui::DockFft   * ui;
     float         m_sample_rate;
 };
