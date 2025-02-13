@@ -35,6 +35,7 @@ DockFft::DockFft(QWidget *parent) :
     m_sample_rate = 0.f;
 
     grid_init(ui->gridLayout,ui->gridLayout->rowCount(),0/*ui->gridLayout->columnCount()*/);
+    set_observer(C_FFT_SPLIT,&DockFft::fftSplitObserver);
 }
 
 
@@ -103,4 +104,11 @@ void DockFft::updateInfoLabels(int rate, int size_in)
             ovr = 100 * (1.f - interval_samples / size);
     }
     set_gui(C_FFT_OVERLAP_LABEL, ovr);
+}
+
+void DockFft::fftSplitObserver(const c_id id, const c_def::v_union &value)
+{
+    const c_def & d = c_def::all()[C_FFT_SPLIT];
+    QSlider * antSelector=dynamic_cast<QSlider *>(getWidget(C_FFT_SPLIT));
+    antSelector->setToolTip(QString("%1 %2\%").arg(d.title()).arg(int(value)));
 }
