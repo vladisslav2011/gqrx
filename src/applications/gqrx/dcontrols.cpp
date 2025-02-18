@@ -1296,16 +1296,23 @@ c_def()
     .title_placement(c_def::grid_placement(PLACE_NONE,0))
     .placement(c_def::grid_placement(PLACE_NEXT,0,1,2))
     .hint("Enable automatic DC removal")
-    .g_type(G_CHECKBOX)
+    .g_type(G_COMBO)
     .dock(D_INPUTCTL)
     .scope(S_RX)
     .v3_config_group("input")
     .config_key("dc_cancel")
-    .v_type(V_BOOLEAN)
-    .def(0)
+    .v_type(V_INT)
+    .def(2)
     .min(0)
-    .max(1)
+    .max(4)
     .step(1)
+    .presets((c_def::v_preset[]){
+        {"DCR Off","DCR Off",0},
+        {"DCR Man","DCR Man",1},
+        {"DCR Auto","DCR Auto",2},
+        {"DCR Off+SW","DCR Off+SW",3},
+        {"DCR Man+SW","DCR Man+SW",4},
+    })
     ,
 c_def()
     .idx(C_IQ_BALANCE)
