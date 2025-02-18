@@ -87,6 +87,14 @@ public:
         STATUS_ERROR = -1  /*!< There was an error. */
     };
 
+    enum dcr_mode {
+        DCR_OFF = 0,
+        DCR_MANUAL,
+        DCR_AUTO,
+        DCR_OFF_SW,
+        DCR_MANUAL_SW,
+    };
+
     /** Filter shape (convenience wrappers for "transition width"). */
     typedef Modulations::filter_shape filter_shape;
 
@@ -369,7 +377,7 @@ private:
     bool        d_iq_repeat;
     bool        d_sniffer_active;   /*!< Only one data decoder allowed. */
     bool        d_iq_rev;           /*!< Whether I/Q is reversed or not. */
-    bool        d_dc_cancel;        /*!< Enable automatic DC removal. */
+    dcr_mode    d_dc_cancel;        /*!< Enable automatic DC removal. */
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
     bool        d_mute;             /*!< Enable audio mute. */
     file_formats d_iq_fmt;

@@ -69,7 +69,7 @@ receiver::receiver(const std::string input_device,
       d_rf_freq(144800000.0),
       d_sniffer_active(false),
       d_iq_rev(false),
-      d_dc_cancel(false),
+      d_dc_cancel(DCR_OFF),
       d_iq_balance(false),
       d_mute(false),
       d_iq_fmt(FILE_FORMAT_NONE),
@@ -578,15 +578,31 @@ bool receiver::get_iq_swap(c_def::v_union & v) const
  */
 bool receiver::set_dc_cancel(const c_def::v_union & v)
 {
-    if (bool(v) == d_dc_cancel)
+    if (int(v) == int(d_dc_cancel))
         return true;
 
-    d_dc_cancel = v;
+    const bool reconnect = ((d_dc_cancel >= DCR_OFF_SW) && (int(v) < DCR_OFF_SW))
+                        || ((d_dc_cancel < DCR_OFF_SW) && (int(v) >= DCR_OFF_SW));
+    d_dc_cancel = dcr_mode(int(v));
 
     // until we have a way to switch on/off
     // inside the dc_corr_cc we do a reconf
-    reconnect_all(FILE_FORMAT_LAST, true);
-//    set_demod(d_demod, FILE_FORMAT_LAST, true);
+    if(reconnect)
+        reconnect_all(FILE_FORMAT_LAST, true);
+    switch(d_dc_cancel)
+    {
+    case DCR_OFF:
+    case DCR_OFF_SW:
+        src->set_dc_offset_mode(osmosdr::source::DCOffsetOff);
+    break;
+    case DCR_MANUAL:
+    case DCR_MANUAL_SW:
+        src->set_dc_offset_mode(osmosdr::source::DCOffsetManual);
+    break;
+    case DCR_AUTO:
+        src->set_dc_offset_mode(osmosdr::source::DCOffsetAutomatic);
+    break;
+    }
     return true;
 }
 
@@ -1808,7 +1824,7 @@ void receiver::connect_all(file_formats fmt)
         b = iq_swap;
     }
 
-    if (d_dc_cancel)
+    if (d_dc_cancel >= DCR_OFF_SW)
     {
         tb->connect(b, 0, dc_corr, 0);
         b = dc_corr;
