@@ -282,6 +282,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     set_observer(C_MODE, &MainWindow::modeObserver);
     set_observer(C_MODE_CHANGED, &MainWindow::modeChangeObserver);
     set_observer(C_FILTER_WIDTH, &MainWindow::filterWidthObserver);
+    set_observer(C_FILTER_RESET_CENTER, &MainWindow::filterCenterResetObserver);
     set_observer(C_VFO_FREQUENCY, &MainWindow::frequencyObserver);
     set_observer(C_AUTO_BOOKMARKS, &MainWindow::autoBookmarksObserver);
     set_observer(C_DIGITS_RESET, &MainWindow::freqCtrlResetObserver);
@@ -1682,6 +1683,19 @@ void MainWindow::filterWidthObserver(const c_id id, const c_def::v_union &value)
     }
     rx->set_filter(flo, fhi, filter_shape);
     ui->plotter->setHiLowCutFrequencies(flo, fhi);
+}
+
+void MainWindow::filterCenterResetObserver(const c_id id, const c_def::v_union &value)
+{
+    int     flo=0, fhi=0;
+    Modulations::filter_shape filter_shape;
+    rx->get_filter(flo, fhi, filter_shape);
+    if(Modulations::IsFilterSymmetric(rx->get_demod()))
+    {
+        fhi = (fhi - flo) / 2;
+        flo = -fhi;
+        on_plotter_newFilterFreq(flo, fhi);
+    }
 }
 
 void MainWindow::frequencyObserver(const c_id id, const c_def::v_union &value)

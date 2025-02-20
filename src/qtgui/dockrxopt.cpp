@@ -227,6 +227,8 @@ void DockRxOpt::modeObserver(const c_id id, const c_def::v_union & v)
     Modulations::idx demod = Modulations::idx(int(v));
     if ((demod >= Modulations::MODE_OFF) && (demod < Modulations::MODE_COUNT))
         demodOpt->setCurrentIndex(demod);
+    getAction(C_FILTER_RESET_CENTER)->setEnabled(Modulations::IsFilterSymmetric(demod));
+
 }
 
 void DockRxOpt::modeOptObserver(const c_id id, const c_def::v_union & v)
