@@ -192,6 +192,7 @@ private:
     void modeObserver(const c_id id, const c_def::v_union &value);
     void modeChangeObserver(const c_id id, const c_def::v_union &value);
     void filterWidthObserver(const c_id id, const c_def::v_union &value);
+    void filterCenterResetObserver(const c_id id, const c_def::v_union &value);
     void frequencyObserver(const c_id id, const c_def::v_union &value);
     void iqProcessObserver(const c_id id, const c_def::v_union &value);
     void dxcConnectObserver(const c_id, const c_def::v_union & value);
