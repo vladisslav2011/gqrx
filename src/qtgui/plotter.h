@@ -163,6 +163,7 @@ signals:
     void selectVfo(int);
     void setPlaying(bool);
     void seekIQ(qint64);
+    void updateToolTip(QPoint, QString);
 
 public slots:
     // zoom functions
@@ -203,6 +204,9 @@ protected:
     void mousePressEvent(QMouseEvent * event) override;
     void mouseReleaseEvent(QMouseEvent * event) override;
     void wheelEvent( QWheelEvent * event ) override;
+
+private slots:
+    void        showToolTip(QPoint event, QString toolTipText);
 
 private:
     enum eCapturetype {
