@@ -171,6 +171,7 @@ CPlotter::CPlotter(QWidget *parent) : QFrame(parent), m_ColorTbl(256)
     m_lookup_vfo = vfo::make();
     m_lookup_vfo->set_index(0);
     m_PlayingIQ = false;
+    connect(this,SIGNAL(updateToolTip(QPoint,QString)),this,SLOT(showToolTip(QPoint,QString)), Qt::QueuedConnection);
 }
 
 CPlotter::~CPlotter()
@@ -233,16 +234,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (YAXIS != m_CursorCaptured)
                     setCursor(QCursor(Qt::OpenHandCursor));
                 m_CursorCaptured = YAXIS;
-                if (m_TooltipsEnabled)
-                    QToolTip::hideText();
             }
             else if (isPointCloseTo(pt.y(), m_XAxisYCenter, m_CursorCaptureDelta+20))
             {
                 if (XAXIS != m_CursorCaptured)
                     setCursor(QCursor(Qt::OpenHandCursor));
                 m_CursorCaptured = XAXIS;
-                if (m_TooltipsEnabled)
-                    QToolTip::hideText();
             }
             else if (isPointCloseTo(pt.x(), m_DemodFreqX, m_CursorCaptureDelta))
             {
@@ -409,6 +406,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 m_Yzero = pt.y();
             }
         }
+        if (m_TooltipsEnabled)
+        {
+            showToolTip(event, QString("Range: %1 to %2 dB")
+                .arg(double(m_PandMindB), 0, 'f', 1)
+                .arg(double(m_PandMaxdB), 0, 'f', 1));
+        }
     }
     else if (XAXIS == m_CursorCaptured)
     {
@@ -444,6 +447,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
             m_PeakHoldValid = false;
 
             m_Xzero = pt.x();
+        }
+        if (m_TooltipsEnabled)
+        {
+            showToolTip(event, QString("Range: %1 to %2 kHz")
+                .arg(((qint64)m_CenterFreq + m_FftCenter - m_Span / 2ll) * 1.e-3, 0, 'f', 3)
+                .arg(((qint64)m_CenterFreq + m_FftCenter + m_Span / 2ll) * 1.e-3, 0, 'f', 3));
         }
     }
     else if (LEFT == m_CursorCaptured)
@@ -899,8 +908,10 @@ void CPlotter::wheelEvent(QWheelEvent * event)
 {
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
     QPointF pt = QPointF(event->pos());
+    QPoint gPt = event->globalPos();
 #else
     QPointF pt = event->position();
+    QPoint gPt = event->globalPosition().toPoint();
 #endif
     int delta = m_InvertScrolling? -event->angleDelta().y() : event->angleDelta().y();
     double numSteps = delta / (8.0 * 15.0);
@@ -927,10 +938,22 @@ void CPlotter::wheelEvent(QWheelEvent * event)
         m_PeakHoldValid = false;
 
         emit pandapterRangeChanged(m_PandMindB, m_PandMaxdB);
+        if (m_TooltipsEnabled)
+        {
+            emit updateToolTip(gPt, QString("Range: %1 to %2 dB")
+                .arg(double(m_PandMindB), 0, 'f', 1)
+                .arg(double(m_PandMaxdB), 0, 'f', 1));
+        }
     }
     else if (m_CursorCaptured == XAXIS)
     {
         zoomStepX(pow(zoomBase, numSteps), pt.x());
+        if (m_TooltipsEnabled)
+        {
+            emit updateToolTip(gPt, QString("Range: %1 to %2 kHz")
+                .arg(((qint64)m_SampleFreq - m_Span / 2ll) * 1.e-3, 0, 'f', 3)
+                .arg(((qint64)m_SampleFreq + m_Span / 2ll) * 1.e-3, 0, 'f', 3));
+        }
     }
     else if (event->modifiers() & Qt::ControlModifier)
     {
@@ -2121,6 +2144,11 @@ void CPlotter::showToolTip(QMouseEvent* event, QString toolTipText)
 #else
     QToolTip::showText(event->globalPosition().toPoint(), toolTipText, this);
 #endif
+}
+
+void CPlotter::showToolTip(QPoint pt, QString toolTipText)
+{
+    QToolTip::showText(pt, toolTipText, this);
 }
 
 // contributed by Chris Kuethe @ckuethe
