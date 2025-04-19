@@ -119,6 +119,7 @@ bool Modulations::IsFilterSymmetric(Modulations::idx iModulationIndex)
 
 void Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low, int& high)
 {
+    const int min_bw = modes[iModulationIndex].click_res;
     if (iModulationIndex >= MODE_COUNT)
         iModulationIndex = MODE_AM;
     #if 0
@@ -131,14 +132,24 @@ void Modulations::UpdateFilterRange(Modulations::idx iModulationIndex, int& low,
                 high = -low;
         }
     #endif
+    if(high - low < min_bw)
+        high = low + min_bw;
     if (low < modes[iModulationIndex].ranges.lo.min)
+    {
         low = modes[iModulationIndex].ranges.lo.min;
+        if(high - low < min_bw)
+            high = low + min_bw;
+    }
     if (low > modes[iModulationIndex].ranges.lo.max)
         low = modes[iModulationIndex].ranges.lo.max;
     if (high < modes[iModulationIndex].ranges.hi.min)
         high = modes[iModulationIndex].ranges.hi.min;
     if (high > modes[iModulationIndex].ranges.hi.max)
+    {
         high = modes[iModulationIndex].ranges.hi.max;
+        if(high - low < min_bw)
+            low = high - min_bw;
+    }
 }
 
 Modulations::idx Modulations::ConvertFromOld(int old)
