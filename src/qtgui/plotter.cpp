@@ -463,11 +463,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
     else if (LEFT == m_CursorCaptured)
     {
         // moving in demod lowcut region
-        if (event->buttons() & (Qt::LeftButton | Qt::RightButton))
+        if (event->buttons() & (Qt::LeftButton | Qt::RightButton | Qt::MiddleButton))
         {
             // moving in demod lowcut region with left button held
             if (m_GrabPosition != 0)
             {
+                int prev = m_DemodLowCutFreq;
                 m_DemodLowCutFreq = freqFromX(pt.x() - m_GrabPosition ) - m_DemodCenterFreq;
                 m_DemodLowCutFreq = std::min(m_DemodLowCutFreq, m_DemodHiCutFreq - FILTER_WIDTH_MIN_HZ);
                 m_DemodLowCutFreq = roundFreq(m_DemodLowCutFreq, m_FilterClickResolution);
@@ -475,6 +476,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_symetric && (event->buttons() & Qt::LeftButton))  // symmetric adjustment
                 {
                     m_DemodHiCutFreq = -m_DemodLowCutFreq;
+                }
+                if (event->buttons() & Qt::MiddleButton)  // shift
+                {
+                    m_DemodHiCutFreq += m_DemodLowCutFreq - prev;
+                    m_DemodHiCutFreq = std::max(m_DemodHiCutFreq, m_DemodLowCutFreq + FILTER_WIDTH_MIN_HZ);
+                    m_DemodHiCutFreq = roundFreq(m_DemodHiCutFreq, m_FilterClickResolution);
                 }
                 clampDemodParameters();
 
@@ -496,11 +503,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
     else if (RIGHT == m_CursorCaptured)
     {
         // moving in demod highcut region
-        if (event->buttons() & (Qt::LeftButton | Qt::RightButton))
+        if (event->buttons() & (Qt::LeftButton | Qt::RightButton | Qt::MiddleButton))
         {
             // moving in demod highcut region with right button held
             if (m_GrabPosition != 0)
             {
+                int prev = m_DemodHiCutFreq;
                 m_DemodHiCutFreq = freqFromX( pt.x()-m_GrabPosition ) - m_DemodCenterFreq;
                 m_DemodHiCutFreq = std::max(m_DemodHiCutFreq, m_DemodLowCutFreq + FILTER_WIDTH_MIN_HZ);
                 m_DemodHiCutFreq = roundFreq(m_DemodHiCutFreq, m_FilterClickResolution);
@@ -508,6 +516,12 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 if (m_symetric && (event->buttons() & Qt::LeftButton)) // symmetric adjustment
                 {
                     m_DemodLowCutFreq = -m_DemodHiCutFreq;
+                }
+                if (event->buttons() & Qt::MiddleButton)  // shift
+                {
+                    m_DemodLowCutFreq += m_DemodHiCutFreq - prev;
+                    m_DemodLowCutFreq = std::min(m_DemodLowCutFreq, m_DemodHiCutFreq - FILTER_WIDTH_MIN_HZ);
+                    m_DemodLowCutFreq = roundFreq(m_DemodLowCutFreq, m_FilterClickResolution);
                 }
                 clampDemodParameters();
 
