@@ -240,6 +240,7 @@ private:
     void        makeFrequencyStrs();
     int         xFromFreq(qint64 freq);
     qint64      freqFromX(int x);
+    double      freqFromXf(int x);
     void        tsFreqFromWfXY(int x, int y, qint64 &ts, qint64 &freq);
     void        zoomStepX(float factor, int x);
     static qint64      roundFreq(qint64 freq, int resolution);

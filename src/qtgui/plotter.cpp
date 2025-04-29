@@ -307,13 +307,13 @@ void CPlotter::mouseMoveEvent(QMouseEvent* event)
                 }
                 if (m_TooltipsEnabled)
                 {
-                    qint64 hoverFrequency = freqFromX(pt.x());
+                    double hoverFrequency = freqFromXf(pt.x());
                     QString toolTipText = QString("F: %1 kHz, %2db")
                         .arg(hoverFrequency/1.e3, 0, 'f', 3)
                         .arg((m_OverlayPixmap.height() / m_DPR - pt.y()) * (qreal)abs(m_PandMindB - m_PandMaxdB) /
                              (m_OverlayPixmap.height() / m_DPR) + (qreal)m_PandMindB, 0, 'f', 1);
                     if(m_FilterBoxEnabled)
-                        toolTipText+=QString("\n Δ=%3 kHz").arg((hoverFrequency - m_DemodCenterFreq)/1.e3, 0, 'f', 3);
+                        toolTipText+=QString("\n Δ=%3 kHz").arg((hoverFrequency - double(m_DemodCenterFreq))/1.e3, 0, 'f', 6);
                     QFontMetrics metrics(m_Font);
                     int bandTopY = (m_OverlayPixmap.height() / m_DPR) - metrics.height() - 2 * VER_MARGIN - m_BandPlanHeight;
                     QList<BandInfo> hoverBands = BandPlan::Get().getBandsEncompassing(hoverFrequency);
@@ -1989,6 +1989,12 @@ qint64 CPlotter::freqFromX(int x)
     double ratio = (double)x / (double)width();
     qint64 f = (m_CenterFreq + m_FftCenter - m_Span / 2) + ratio * m_Span;
     return f;
+}
+
+double CPlotter::freqFromXf(int x)
+{
+    double ratio = (double)x / (double)width();
+    return double(m_CenterFreq + m_FftCenter - m_Span * 0.5) + ratio * double(m_Span);
 }
 
 // Convert from screen coordinate to timestamp and frequency
