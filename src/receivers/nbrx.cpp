@@ -356,7 +356,7 @@ bool nbrx::set_offset(int offset, bool locked)
     }
     wav_sink->set_offset(offset);
     fxff->set_center_freq(offset);// REC_RAW
-    update_rejectors(locked);
+    update_rejectors(locked || (d_demod == Modulations::MODE_OFF));
     return false;
 }
 
