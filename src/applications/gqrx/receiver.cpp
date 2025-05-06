@@ -2010,14 +2010,25 @@ void receiver::disconnect_rx(int n)
 void receiver::background_rx()
 {
     std::cerr<<"background_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
+    bool needs_fix = false;
     if (Modulations::has_audio(rx[d_current]->get_demod()))
     {
         if(!d_audio_fft_source)
+        {
             tb->disconnect(rx[d_current], 0, audio_fft, 0);
+            needs_fix = true;
+        }
         if (d_sniffer_active)
         {
             tb->disconnect(rx[d_current], 0, sniffer_rr, 0);
             tb->disconnect(sniffer_rr, 0, sniffer, 0);
+            needs_fix = true;
+        }
+        if (needs_fix)
+        {
+            int rx_port = rx[d_current]->get_port();
+            tb->disconnect(rx[d_current], 0, add0, rx_port);
+            tb->connect(rx[d_current], 0, add0, rx_port);
         }
     }
 }
