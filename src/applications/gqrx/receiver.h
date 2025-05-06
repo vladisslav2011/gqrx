@@ -95,6 +95,11 @@ public:
         DCR_MANUAL_SW,
     };
 
+    enum audio_fft_sources {
+        SRC_DEMOD = 0,
+        SRC_DMIX,
+    };
+
     /** Filter shape (convenience wrappers for "transition width"). */
     typedef Modulations::filter_shape filter_shape;
 
@@ -261,6 +266,8 @@ public:
     void        set_audio_fft_enabled(bool enabled);
     bool        set_audio_fft_size(const c_def::v_union & v);
     bool        get_audio_fft_size(c_def::v_union & v) const;
+    bool        set_audio_fft_source(const c_def::v_union & v);
+    bool        get_audio_fft_source(c_def::v_union & v) const;
 
     /* FFT Probe */
     void        get_probe_fft_data(std::complex<float>* fftPoints,
@@ -338,6 +345,7 @@ public:
     uint64_t get_filesource_timestamp_ms();
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     file_formats get_last_format() const { return d_last_format; }
+    bool have_audio();
 
     //arbitrary option setters/getters
     bool set_value(c_id optid, const c_def::v_union & value) override;
@@ -380,6 +388,7 @@ private:
     dcr_mode    d_dc_cancel;        /*!< Enable automatic DC removal. */
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
     bool        d_mute;             /*!< Enable audio mute. */
+    int         d_audio_fft_source; /*!< Select audio FFT source. */
     file_formats d_iq_fmt;
     file_formats d_last_format;
     iqfile_timestamp_source d_iq_ts;
