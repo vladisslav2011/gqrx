@@ -112,8 +112,6 @@ private:
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
     int             d_tuning_step{0};
 
-    bool d_have_audio;  /*!< Whether we have audio (i.e. not with demod_off. */
-
     /* dock widgets */
     DockRxOpt      *uiDockRxOpt;
     DockAudio      *uiDockAudio;

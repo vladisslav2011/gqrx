@@ -72,6 +72,7 @@ receiver::receiver(const std::string input_device,
       d_dc_cancel(DCR_OFF),
       d_iq_balance(false),
       d_mute(false),
+      d_audio_fft_source(SRC_DEMOD),
       d_iq_fmt(FILE_FORMAT_NONE),
       d_last_format(FILE_FORMAT_NONE)
 {
@@ -1095,6 +1096,30 @@ bool receiver::get_audio_fft_size(c_def::v_union & v) const
     return true;
 }
 
+bool receiver::set_audio_fft_source(const c_def::v_union & v)
+{
+    if(d_audio_fft_source == (int)v)
+        return true;
+    tb->lock();
+    background_rx();
+    if(d_active > 0)
+        if(d_audio_fft_source)
+            tb->disconnect(mc0, 0, audio_fft, 0);
+    d_audio_fft_source = v;
+    if(d_active > 0)
+        if(d_audio_fft_source)
+            tb->connect(mc0, 0, audio_fft, 0);
+    foreground_rx();
+    tb->unlock();
+    return true;
+}
+
+bool receiver::get_audio_fft_source(c_def::v_union & v) const
+{
+    v = (int)d_audio_fft_source;
+    return true;
+}
+
 void receiver::get_probe_fft_data(std::complex<float>* fftPoints,
                                 unsigned int &fftsize)
 {
@@ -1542,7 +1567,7 @@ bool receiver::set_audio_play(const c_def::v_union & v)
             tb->connect(mc0, 0, audio_null_sink0, 0); /** FIXME: other channel? */
             tb->connect(mc1, 0, audio_null_sink1, 0); /** FIXME: other channel? */
         }
-        tb->disconnect(rx[d_current], 0, audio_fft, 0);
+        tb->disconnect(d_audio_fft_source?mc0->to_basic_block():rx[d_current]->to_basic_block(), 0, audio_fft, 0);
         tb->connect(wav_src, 0, audio_snk, 0);
         tb->connect(wav_src, 1, audio_snk, 1);
         tb->connect(wav_src, 0, audio_fft, 0);
@@ -1561,7 +1586,8 @@ bool receiver::set_audio_play(const c_def::v_union & v)
             tb->connect(mc0, 0, audio_snk, 0);
             tb->connect(mc1, 0, audio_snk, 1);
         }
-        tb->connect(rx[d_current], 0, audio_fft, 0);  /** FIXME: other channel? */
+        tb->connect(d_audio_fft_source?mc0->to_basic_block():rx[d_current]->to_basic_block(), 0, audio_fft, 0);
+         /** FIXME: other channel? */
         start();
 
         /* delete wav_src since we can not change file name */
@@ -1790,8 +1816,8 @@ receiver::status receiver::stop_sniffer()
     tb->disconnect(rx[d_current], 0, sniffer_rr, 0);
 
     // Temporary workaround for https://github.com/gnuradio/gnuradio/issues/5436
-    tb->disconnect(rx[d_current], 0, audio_fft, 0);
-    tb->connect(rx[d_current], 0, audio_fft, 0);
+    tb->disconnect(d_audio_fft_source?mc0->to_basic_block():rx[d_current]->to_basic_block(), 0, audio_fft, 0);
+    tb->connect(d_audio_fft_source?mc0->to_basic_block():rx[d_current]->to_basic_block(), 0, audio_fft, 0);
     // End temporary workaronud
 
     tb->disconnect(sniffer_rr, 0, sniffer, 0);
@@ -1877,6 +1903,8 @@ void receiver::connect_rx(int n)
                 tb->connect(mc0, 0, audio_snk, 0);
                 tb->connect(mc1, 0, audio_snk, 1);
             }
+            if(d_audio_fft_source)
+                tb->connect(mc0, 0, audio_fft, 0);
         }
         std::cerr<<"connect_rx d_active > 0 rx="<<n<<" port="<<d_active<<std::endl;
         if(d_use_chan)
@@ -1927,6 +1955,8 @@ void receiver::disconnect_rx(int n)
                 tb->disconnect(mc0, 0, audio_snk, 0);
                 tb->disconnect(mc1, 0, audio_snk, 1);
             }
+            if(d_audio_fft_source)
+                tb->disconnect(mc0, 0, audio_fft, 0);
         }
         int rx_port = rx[n]->get_port();
         std::cerr<<"disconnect_rx d_active > 0 get_port="<<rx_port<<std::endl;
@@ -1982,7 +2012,8 @@ void receiver::background_rx()
     std::cerr<<"background_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
     if (Modulations::has_audio(rx[d_current]->get_demod()))
     {
-        tb->disconnect(rx[d_current], 0, audio_fft, 0);
+        if(!d_audio_fft_source)
+            tb->disconnect(rx[d_current], 0, audio_fft, 0);
         if (d_sniffer_active)
         {
             tb->disconnect(rx[d_current], 0, sniffer_rr, 0);
@@ -1996,7 +2027,8 @@ void receiver::foreground_rx()
     std::cerr<<"foreground_rx "<<d_current<<" "<<rx[d_current]->get_demod()<<std::endl;
     if (Modulations::has_audio(rx[d_current]->get_demod()))
     {
-        tb->connect(rx[d_current], 0, audio_fft, 0);
+        if(!d_audio_fft_source)
+            tb->connect(rx[d_current], 0, audio_fft, 0);
         if (d_sniffer_active)
         {
             tb->connect(rx[d_current], 0, sniffer_rr, 0);
@@ -2284,6 +2316,11 @@ void receiver::fft_reader::task::thread_func()
     }
 }
 
+bool receiver::have_audio()
+{
+    return Modulations::has_audio(rx[d_current]->get_demod()) || d_audio_fft_source;
+}
+
 bool receiver::set_value(c_id optid, const c_def::v_union & value)
 {
     if(setters[optid])
@@ -2337,6 +2374,8 @@ int receiver::conf_initializer()
     getters[C_AUDIO_PLAY]=&receiver::get_audio_play;
     setters[C_AUDIO_FFT_SIZE]=&receiver::set_audio_fft_size;
     getters[C_AUDIO_FFT_SIZE]=&receiver::get_audio_fft_size;
+    setters[C_AUDIO_FFT_SOURCE]=&receiver::set_audio_fft_source;
+    getters[C_AUDIO_FFT_SOURCE]=&receiver::get_audio_fft_source;
     return 0;
 }
 

@@ -80,7 +80,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_ignore_limits(false),
     d_auto_bookmarks(false),
     d_fftAvg(1.0),
-    d_have_audio(true),
     dec_afsk1200(nullptr),
     waterfall_background_thread(&MainWindow::waterfall_background_func,this)
 {
@@ -1615,7 +1614,6 @@ void MainWindow::updateDemodGUIRanges(const Modulations::idx mode_idx)
             set_gui(id, v, true);
         }
     }
-    d_have_audio = Modulations::has_audio(mode_idx);
     if(Modulations::has_RDS(mode_idx))
         /* Broadcast FM */
         uiDockRDS->setEnabled();
@@ -1832,7 +1830,7 @@ void MainWindow::audioFftTimeout()
         }
     }
 
-    if (!d_have_audio || !uiDockAudio->isVisible())
+    if (!rx->have_audio() || !uiDockAudio->isVisible())
         return;
 
     rx->get_audio_fft_data(d_fftData, fftsize);
@@ -3018,7 +3016,7 @@ void MainWindow::on_actionRemoteConfig_triggered()
  */
 void MainWindow::on_actionAFSK1200_triggered()
 {
-    if (!d_have_audio)
+    if (!rx->have_audio())
     {
         QMessageBox msg_box;
         msg_box.setIcon(QMessageBox::Critical);
