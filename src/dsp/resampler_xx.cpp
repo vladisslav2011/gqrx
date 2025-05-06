@@ -25,7 +25,7 @@
 #include <gnuradio/filter/firdes.h>
 #include "dsp/resampler_xx.h"
 
-#define RESAMPLER_OUTPUT_MULTIPLE 4096
+#define RESAMPLER_OUTPUT_MULTIPLE 4096.f
 #define RESAMPLER_BW 0.4
 #define RESAMPLER_TW 0.2
 
@@ -60,7 +60,7 @@ resampler_cc::resampler_cc(float rate)
 
     /* create the filter */
     d_filter = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
-    d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE);
+    d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE * rate);
 
     /* connect filter */
     connect(self(), 0, d_filter, 0);
@@ -85,7 +85,7 @@ void resampler_cc::set_rate(float rate)
     disconnect(d_filter, 0, self(), 0);
     d_filter.reset();
     d_filter = gr::filter::pfb_arb_resampler_ccf::make(rate, d_taps, flt_size);
-    d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE);
+    d_filter->set_output_multiple(RESAMPLER_OUTPUT_MULTIPLE * rate);
     connect(self(), 0, d_filter, 0);
     connect(d_filter, 0, self(), 0);
 }
