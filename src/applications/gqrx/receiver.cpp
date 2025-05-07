@@ -1111,6 +1111,48 @@ bool receiver::set_audio_fft_source(const c_def::v_union & v)
             tb->connect(mc0, 0, audio_fft, 0);
     foreground_rx();
     tb->unlock();
+    if(d_audio_fft_source)
+    {
+        c_def::v_union v;
+        rx[d_current]->get_value(C_AUDIO_FFT_CENTER, v);
+        d_audio_fft_center = v;
+        rx[d_current]->get_value(C_AUDIO_FFT_ZOOM, v);
+        d_audio_fft_zoom = v;
+    }
+    return true;
+}
+
+bool receiver::get_audio_fft_center(c_def::v_union & v) const
+{
+    if(d_audio_fft_source)
+        v = d_audio_fft_center;
+    else
+        rx[d_current]->get_value(C_AUDIO_FFT_CENTER, v);
+    return true;
+}
+
+bool receiver::get_audio_fft_zoom(c_def::v_union & v) const
+{
+    if(d_audio_fft_source)
+        v = d_audio_fft_zoom;
+    else
+        rx[d_current]->get_value(C_AUDIO_FFT_ZOOM, v);
+    return true;
+}
+
+bool receiver::set_audio_fft_center(const c_def::v_union & v)
+{
+    if(d_audio_fft_source)
+        d_audio_fft_center = v;
+    rx[d_current]->set_value(C_AUDIO_FFT_CENTER, v);
+    return true;
+}
+
+bool receiver::set_audio_fft_zoom(const c_def::v_union & v)
+{
+    if(d_audio_fft_source)
+        d_audio_fft_zoom = v;
+    rx[d_current]->set_value(C_AUDIO_FFT_ZOOM, v);
     return true;
 }
 
@@ -2387,6 +2429,10 @@ int receiver::conf_initializer()
     getters[C_AUDIO_FFT_SIZE]=&receiver::get_audio_fft_size;
     setters[C_AUDIO_FFT_SOURCE]=&receiver::set_audio_fft_source;
     getters[C_AUDIO_FFT_SOURCE]=&receiver::get_audio_fft_source;
+    getters[C_AUDIO_FFT_CENTER]=&receiver::get_audio_fft_center;
+    setters[C_AUDIO_FFT_CENTER]=&receiver::set_audio_fft_center;
+    getters[C_AUDIO_FFT_ZOOM]=&receiver::get_audio_fft_zoom;
+    setters[C_AUDIO_FFT_ZOOM]=&receiver::set_audio_fft_zoom;
     return 0;
 }
 

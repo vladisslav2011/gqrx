@@ -268,6 +268,10 @@ public:
     bool        get_audio_fft_size(c_def::v_union & v) const;
     bool        set_audio_fft_source(const c_def::v_union & v);
     bool        get_audio_fft_source(c_def::v_union & v) const;
+    bool        get_audio_fft_center(c_def::v_union & v) const;
+    bool        get_audio_fft_zoom(c_def::v_union & v) const;
+    bool        set_audio_fft_center(const c_def::v_union & v);
+    bool        set_audio_fft_zoom(const c_def::v_union & v);
 
     /* FFT Probe */
     void        get_probe_fft_data(std::complex<float>* fftPoints,
@@ -389,6 +393,8 @@ private:
     bool        d_iq_balance;       /*!< Enable automatic IQ balance. */
     bool        d_mute;             /*!< Enable audio mute. */
     int         d_audio_fft_source; /*!< Select audio FFT source. */
+    double      d_audio_fft_zoom{1.};
+    int         d_audio_fft_center{0};
     file_formats d_iq_fmt;
     file_formats d_last_format;
     iqfile_timestamp_source d_iq_ts;
