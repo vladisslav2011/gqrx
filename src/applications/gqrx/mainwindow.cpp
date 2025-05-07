@@ -1660,6 +1660,9 @@ void MainWindow::modeChangeObserver(const c_id id, const c_def::v_union &value)
     rx->get_filter(flo, fhi, filter_shape);
     set_gui(C_FILTER_LO,flo,true);
     set_gui(C_FILTER_HI,fhi,true);
+    rx->get_value(C_AUDIO_FFT_SOURCE, tmp);
+    if(int(tmp))
+        return;
     uiDockAudio->setFftRange(
         std::max(Modulations::modes[int(mode_idx)].fft_lo, -audio_rate / 2),
         std::min(Modulations::modes[int(mode_idx)].fft_hi, audio_rate / 2)
