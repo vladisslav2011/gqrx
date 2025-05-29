@@ -2193,8 +2193,24 @@ void MainWindow::saveFileRange(const QString& recdir, file_formats fmt, quint64 
 
 void MainWindow::updateSaveProgress(const qint64 saved_ms)
 {
-    ui->statusBar->showMessage(QString("Saving fragment ... %1 %").arg(saved_ms*100ll/iq_tool->selectionLength()));
+    static qint64 prev_saved = 0;
+    static qint64 prev_time = 0;
+    qint64 now_time = QDateTime::currentMSecsSinceEpoch();
+    if((prev_saved < saved_ms) && prev_time)
+    {
+        const double rate = rx->get_input_rate();
+        const file_formats iq_format = rx->get_last_format();
+        const double mbps = double(saved_ms - prev_saved) * rate
+            * double(any_to_any_base::fmt[iq_format].size)
+            / double(any_to_any_base::fmt[iq_format].nsamples)
+            * (1. / (1024.*1024.)) / double(now_time - prev_time);
+        ui->statusBar->showMessage(QString("Saving fragment ... %1 % [%2 Mbps]").arg(saved_ms*100ll/iq_tool->selectionLength()).arg(mbps));
+    }
+    if(saved_ms == -1) //All done
+        ui->statusBar->showMessage("Saved fragment.");
     iq_tool->updateSaveProgress(saved_ms);
+    prev_time = now_time;
+    prev_saved = saved_ms;
 }
 
 /**
