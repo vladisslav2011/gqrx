@@ -23,22 +23,16 @@
 #ifndef RX_REJECTOR_H
 #define RX_REJECTOR_H
 
-#include <gnuradio/hier_block2.h>
-#include <gnuradio/filter/iir_filter_ccd.h>
-#include <gnuradio/analog/pll_refout_cc.h>
-#include <gnuradio/blocks/multiply_conjugate_cc.h>
-#if GNURADIO_VERSION < 0x030800
-#include <gnuradio/blocks/multiply_cc.h>
-#else
-#include <gnuradio/blocks/multiply.h>
-#endif
-#include "receivers/defines.h"
+#include <gnuradio/blocks/control_loop.h>
+#include <gnuradio/sync_block.h>
+#include <gnuradio/math.h>
 
 /*! \brief Naroow-band PLL-aided interference rejector
  *  \ingroup DSP
  *
  */
-class rx_rejector_cc : public gr::hier_block2
+class rx_rejector_cc : virtual public gr::sync_block,
+                       virtual public gr::blocks::control_loop
 {
 public:
 #if GNURADIO_VERSION < 0x030900
@@ -59,6 +53,9 @@ public:
                      double alfa=0.001);
 
     ~rx_rejector_cc();
+  int work( int noutput_items,
+            gr_vector_const_void_star &input_items,
+            gr_vector_void_star &output_items );
 
     void set_sample_rate(double rate);
     void set_offset(double offset);
@@ -67,17 +64,28 @@ public:
 
 private:
     rx_rejector_cc(double sample_rate=96000.0, double offset=0.0, double bw=5.0, double alfa=0.001);
-    gr::analog::pll_refout_cc::sptr         d_pll;
-    gr::filter::iir_filter_ccd::sptr        d_dcr;
-    gr::blocks::multiply_conjugate_cc::sptr d_fwd;
-    gr::blocks::multiply_cc::sptr           d_bwd;
+      float mod_2pi(float in)
+    {
+        if (in > float(M_PI))
+            return in - (2.f * float(M_PI));
+        else if (in < -float(M_PI))
+            return in + (2.f * float(M_PI));
+        else
+            return in;
+    }
 
-    std::vector< double > d_fftaps;
-    std::vector< double > d_fbtaps;
+    float phase_detector(gr_complex sample, float ref_phase)
+    {
+        float sample_phase;
+        //  sample_phase = atan2(sample.imag(),sample.real());
+        sample_phase = gr::fast_atan2f(sample.imag(), sample.real());
+        return mod_2pi(sample_phase - ref_phase);
+    }
+    gr_complex            d_accum;
+    float                 d_iir_alfa;
     double                d_sample_rate;
     double                d_offset;
     double                d_bw;
 };
-
 
 #endif // RX_REJECTOR_H
