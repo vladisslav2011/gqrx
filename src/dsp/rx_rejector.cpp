@@ -125,7 +125,7 @@ int rx_rejector_cc::work( int noutput_items,
     if(!std::isfinite(std::abs(accum)))
         accum =0.f;
     d_accum = accum;
-    d_counter += noutput_items * 2; // update up to 2 times per second
+    d_counter += noutput_items * 4; // update up to 4 times per second
     if(d_counter > d_sample_rate)
     {
         while(d_counter > d_sample_rate)
