@@ -488,6 +488,10 @@ void receiver_base_cf::update_rejector(receiver_base_cf * rej)
         d_rejectors[k].rejector->set_offset(rej->get_offset()-get_offset());
         d_rejectors[k].rejector->set_sample_rate(d_quad_rate);
         d_rejectors[k].rejector->set_bw(rej->get_filter_high()-rej->get_filter_low());
+        d_rejectors[k].rejector->set_freq_event_handler([=](float freq)
+        {
+            changed_value(C_NBREJ_FREQ, rej->get_index(), double(freq) + rej->d_center_freq + get_offset());
+        });
     }
 }
 void receiver_base_cf::remove_rejector(receiver_base_cf * rej)

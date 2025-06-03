@@ -35,6 +35,7 @@ class rx_rejector_cc : virtual public gr::sync_block,
                        virtual public gr::blocks::control_loop
 {
 public:
+    typedef std::function<void(float freq)> freq_event_t;
 #if GNURADIO_VERSION < 0x030900
     typedef boost::shared_ptr<rx_rejector_cc> sptr;
 #else
@@ -61,6 +62,14 @@ public:
     void set_offset(double offset);
     void set_bw(double bw);
     void set_alfa(double alfa);
+    float get_freq()
+    {
+        return float(d_sample_rate) * d_freq * (.5f/float(M_PI));
+    };
+    template <typename T> void set_freq_event_handler(T handler)
+    {
+        d_freq_event = handler;
+    }
 
 private:
     rx_rejector_cc(double sample_rate=96000.0, double offset=0.0, double bw=5.0, double alfa=0.001);
@@ -83,9 +92,13 @@ private:
     }
     gr_complex            d_accum;
     float                 d_iir_alfa;
+    gr_complex            d_preaccum;
+    float                 d_pre_alfa;
     double                d_sample_rate;
     double                d_offset;
     double                d_bw;
+    float                 d_filt_freq{0.f};
+    freq_event_t          d_freq_event{nullptr};
 };
 
 #endif // RX_REJECTOR_H

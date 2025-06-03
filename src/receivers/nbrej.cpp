@@ -95,6 +95,16 @@ bool nbrej::set_offset(int offset, bool locked)
     return needslock;
 }
 
+void nbrej::set_index(int index)
+{
+    int offset=get_offset();
+    receiver_base_cf::set_index(index);
+    for(size_t k=0;k<d_rxes.size();k++)
+        if(d_rxes[k] && d_rxes[k]->get_demod() != Modulations::MODE_NB_REJECTOR)
+            if(std::abs(d_rxes[k]->get_offset() - offset) * 2 < d_rxes[k]->get_pref_quad_rate())
+               d_rxes[k]->update_rejector(this);
+}
+
 #if 0
 bool nbrej::set_tracking_pll_bw(const c_def::v_union & v)
 {

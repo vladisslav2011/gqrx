@@ -25,13 +25,14 @@
 
 #include <gnuradio/basic_block.h>
 #include "receivers/receiver_base.h"
+#include "applications/gqrx/dcontrols.h"
 
 /*! \brief Narrow band rejector
  *  \ingroup RX
  *
  * This block provides conrol interface to single-tone "birdies" rejector.
  */
-class nbrej : public receiver_base_cf
+class nbrej : public receiver_base_cf, public conf_notifier
 {
 public:
 #if GNURADIO_VERSION < 0x030900
@@ -52,6 +53,7 @@ public:
     void set_audio_rate(int audio_rate) override {}
     void set_filter(int low, int high, Modulations::filter_shape shape) override;
     bool set_offset(int offset, bool locked) override;
+    void set_index(int index) override;
 
 #if 0
     bool set_tracking_pll_bw(const c_def::v_union &) override;

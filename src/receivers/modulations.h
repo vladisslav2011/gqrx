@@ -84,6 +84,7 @@ public:
         GRP_CW,
         GRP_NFM,
         GRP_NFMPLL,
+        GRP_REJECTOR,
         GRP_WFM_MONO,
         GRP_WFM_STEREO,
         GRP_WFM_STEREO_OIRT,
@@ -218,7 +219,7 @@ public:
             {{-100000, 100000}, {-80000, 80000}, {-60000, 60000}},  // MODE_WFM_STEREO_OIRT
             {{-WFM_PREF_QUAD_RATE/2, -10000}, { 10000,WFM_PREF_QUAD_RATE/2}},  // MODE_WFM_STEREO_OIRT
         },
-        {GRP_OFF,"Shift+R","NB rejector",
+        {GRP_REJECTOR,"Shift+R","NB rejector",
             1,
             -24000,24000,
             0,0,0,0,0,0,0,

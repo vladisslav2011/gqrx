@@ -205,6 +205,7 @@ enum c_id
     C_DEMOD_OFF_DUMMY,
     C_RAWIQ_RATE,
     C_SSB_DUMMY,
+    C_NBREJ_FREQ,
     C_WFM_DEEMPH,
     C_WFM_RAW,
     C_WFM_STREAM,

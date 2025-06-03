@@ -51,6 +51,8 @@ rx_rejector_cc::rx_rejector_cc(double sample_rate, double offset, double bw, dou
         2. * M_PI * (offset - bw) / sample_rate),
     d_accum{0},
     d_iir_alfa{float(alfa)},
+    d_preaccum{0},
+    d_pre_alfa{float(alfa*20.)},
     d_sample_rate(sample_rate),
     d_offset(offset),
     d_bw(bw)
@@ -88,6 +90,7 @@ void rx_rejector_cc::set_bw(double bw)
     d_bw = bw;
     set_min_freq(2. * M_PI * (d_offset - d_bw) / d_sample_rate);
     set_max_freq(2. * M_PI * (d_offset + d_bw) / d_sample_rate);
+    set_loop_bandwidth(0.0001 / 20.0 * d_bw);
 }
 
 
@@ -95,6 +98,7 @@ void rx_rejector_cc::set_alfa(double alfa)
 {
     d_iir_alfa = alfa;
 }
+
 int rx_rejector_cc::work( int noutput_items,
             gr_vector_const_void_star &input_items,
             gr_vector_void_star &output_items )
@@ -103,19 +107,28 @@ int rx_rejector_cc::work( int noutput_items,
     gr_complex* optr = (gr_complex*)output_items[0];
 
     float error;
-
+    gr_complex accum = d_accum;
     for (int i = 0; i < noutput_items; i++) {
-        d_accum *= std::polar(1.f, d_freq);
-        d_accum += (iptr[i] - d_accum) * d_iir_alfa;
-        optr[i] = iptr[i] - d_accum;
+        accum *= std::polar(1.f, d_freq);
+        accum += (iptr[i] - accum) * d_iir_alfa;
+        optr[i] = iptr[i] - accum;
         error = phase_detector(iptr[i], d_phase);
+//         d_preaccum *= std::polar(1.f, float(2. * M_PI * d_offset));
+//         d_preaccum += (iptr[i] - d_preaccum) * d_pre_alfa;
+//         error = phase_detector(d_preaccum, d_phase);
 
         advance_loop(error);
         phase_wrap();
         frequency_limit();
 
     }
-    if(!std::isfinite(std::abs(d_accum)))
-        d_accum =0.f;
+    if(!std::isfinite(std::abs(accum)))
+        accum =0.f;
+    d_accum = accum;
+    if(d_freq_event)
+    {
+        d_filt_freq+=(get_freq() - d_filt_freq)*0.1f;
+        d_freq_event(d_filt_freq);
+    }
     return noutput_items;
 }
