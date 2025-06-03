@@ -98,6 +98,7 @@ private:
     double                d_offset;
     double                d_bw;
     float                 d_filt_freq{0.f};
+    int                   d_counter{0};
     freq_event_t          d_freq_event{nullptr};
 };
 

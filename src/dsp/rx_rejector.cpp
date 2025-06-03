@@ -125,10 +125,16 @@ int rx_rejector_cc::work( int noutput_items,
     if(!std::isfinite(std::abs(accum)))
         accum =0.f;
     d_accum = accum;
-    if(d_freq_event)
+    d_counter += noutput_items * 2; // update up to 2 times per second
+    if(d_counter > d_sample_rate)
     {
-        d_filt_freq+=(get_freq() - d_filt_freq)*0.1f;
-        d_freq_event(d_filt_freq);
+        while(d_counter > d_sample_rate)
+            d_counter -= d_sample_rate;
+        if(d_freq_event)
+        {
+            d_filt_freq+=(get_freq() - d_filt_freq)*0.1f;
+            d_freq_event(d_filt_freq);
+        }
     }
     return noutput_items;
 }
