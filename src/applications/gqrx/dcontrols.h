@@ -129,6 +129,7 @@ enum c_id
     C_SQUELCH_RESET,
     C_SQUELCH_AUTO_GLOBAL,
     C_SQUELCH_RESET_GLOBAL,
+    C_NB4_ON,
     C_NB3_ON,
     C_NB2_ON,
     C_NB1_ON,
@@ -190,6 +191,7 @@ enum c_id
     C_NB1_THR,
     C_NB2_THR,
     C_NB3_GAIN,
+    C_NB4_THR,
 
     C_NFM_MAXDEV,
     C_NFMPLL_MAXDEV,

@@ -65,6 +65,8 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
                                        wavfile_sink_gqrx::FORMAT_PCM_16);
     audio_udp_sink = make_udp_sink_f();
     audio_rnnoise =  make_rx_rnnoise_f(audio_rate);
+    audio_mmse0 =  make_rx_mmse_nr_f(audio_rate);
+    audio_mmse1 =  make_rx_mmse_nr_f(audio_rate);
 
     output = audio_rnnoise;
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
@@ -85,8 +87,10 @@ receiver_base_cf::~receiver_base_cf()
 void receiver_base_cf::connect_default()
 {
     connect(self(), 0, ddc, 0);
-    connect(audio_rnnoise, 0, agc, 0);
-    connect(audio_rnnoise, 1, agc, 1);
+    connect(audio_rnnoise, 0, audio_mmse0, 0);
+    connect(audio_rnnoise, 1, audio_mmse1, 0);
+    connect(audio_mmse0, 0, agc, 0);
+    connect(audio_mmse1, 0, agc, 1);
     connect(agc, 0, wav_sink, 0);
     connect(agc, 1, wav_sink, 1);
     connect(agc, 0, audio_udp_sink, 0);
@@ -137,6 +141,16 @@ void receiver_base_cf::set_audio_rate(int audio_rate)
         connect(agc, 0, wav_sink, 0);
         connect(agc, 1, wav_sink, 1);
         agc->set_sample_rate(audio_rate);
+        audio_mmse0->set_sample_rate(audio_rate);
+        audio_mmse1->set_sample_rate(audio_rate);
+        disconnect(audio_rnnoise, 0, audio_mmse0, 0);
+        disconnect(audio_rnnoise, 1, audio_mmse1, 0);
+        disconnect(audio_mmse0, 0, agc, 0);
+        disconnect(audio_mmse1, 0, agc, 1);
+        connect(audio_rnnoise, 0, audio_mmse0, 0);
+        connect(audio_rnnoise, 1, audio_mmse1, 0);
+        connect(audio_mmse0, 0, agc, 0);
+        connect(audio_mmse1, 0, agc, 1);
         if(d_dedicated_audio_sink)
         {
             disconnect(agc, 0, audio_snk, 0);
@@ -234,6 +248,23 @@ bool receiver_base_cf::set_audio_rec_compression(const c_def::v_union & v)
 float receiver_base_cf::get_signal_level()
 {
     return meter->get_level_db();
+}
+
+bool receiver_base_cf::set_nb4_on(const c_def::v_union & v)
+{
+    vfo_s::set_nb4_on(v);
+    audio_mmse0->set_enabled(v);
+    audio_mmse1->set_enabled(v);
+    std::cerr<<"receiver_base_cf::set_nb4_on("<<bool(v)<<")\n";
+    return true;
+}
+
+bool receiver_base_cf::set_nb4_threshold(const c_def::v_union & v)
+{
+    vfo_s::set_nb4_threshold(v);
+    audio_mmse0->set_threshold(v);
+    audio_mmse1->set_threshold(v);
+    return true;
 }
 
 bool receiver_base_cf::has_nb()

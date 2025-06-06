@@ -55,6 +55,8 @@ add_source_files(SRCS_LIST
 	rx_rnnoise.h
 	rx_rejector.cpp
 	rx_rejector.h
+	rx_mmse_nr.cpp
+	rx_mmse_nr.h
 	clock_recovery.h
 	clock_recovery.cpp
 )

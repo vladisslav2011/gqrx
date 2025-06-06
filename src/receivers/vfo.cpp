@@ -358,6 +358,12 @@ bool vfo_s::set_nb3_on(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_nb4_on(const c_def::v_union & v)
+{
+    d_nb_on[3] = v;
+    return true;
+}
+
 bool vfo_s::set_nb1_threshold(const c_def::v_union & v)
 {
     d_nb_threshold[0] = v;
@@ -373,6 +379,12 @@ bool vfo_s::set_nb2_threshold(const c_def::v_union & v)
 bool vfo_s::set_nb3_gain(const c_def::v_union & v)
 {
     d_nb_threshold[2] = v;
+    return true;
+}
+
+bool vfo_s::set_nb4_threshold(const c_def::v_union & v)
+{
+    d_nb_threshold[3] = v;
     return true;
 }
 
@@ -751,12 +763,16 @@ int vfo_s::conf_initializer()
     getters[C_NB2_ON]=&vfo_s::get_nb2_on;
     setters[C_NB3_ON]=&vfo_s::set_nb3_on;
     getters[C_NB3_ON]=&vfo_s::get_nb3_on;
+    setters[C_NB4_ON]=&vfo_s::set_nb4_on;
+    getters[C_NB4_ON]=&vfo_s::get_nb4_on;
     setters[C_NB1_THR]=&vfo_s::set_nb1_threshold;
     getters[C_NB1_THR]=&vfo_s::get_nb1_threshold;
     setters[C_NB2_THR]=&vfo_s::set_nb2_threshold;
     getters[C_NB2_THR]=&vfo_s::get_nb2_threshold;
     setters[C_NB3_GAIN]=&vfo_s::set_nb3_gain;
     getters[C_NB3_GAIN]=&vfo_s::get_nb3_gain;
+    setters[C_NB4_THR]=&vfo_s::set_nb4_threshold;
+    getters[C_NB4_THR]=&vfo_s::get_nb4_threshold;
     // NFM parameters
     setters[C_NFM_MAXDEV]=&vfo_s::set_fm_maxdev;
     getters[C_NFM_MAXDEV]=&vfo_s::get_fm_maxdev;

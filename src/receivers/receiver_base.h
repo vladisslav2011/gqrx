@@ -29,6 +29,7 @@
 #include "dsp/rx_meter.h"
 #include "dsp/rx_agc_xx.h"
 #include "dsp/rx_rnnoise.h"
+#include "dsp/rx_mmse_nr.h"
 #include "dsp/rx_squelch.h"
 #include "dsp/rx_rejector.h"
 #include "dsp/downconverter.h"
@@ -116,6 +117,8 @@ public:
 
     /* Noise blanker */
     virtual bool has_nb();
+    bool set_nb4_on(const c_def::v_union &) override;
+    bool set_nb4_threshold(const c_def::v_union &) override;
 
     /* Squelch parameter */
     bool set_sql_level(const c_def::v_union &) override;
@@ -175,6 +178,8 @@ protected:
     udp_sink_f_sptr           audio_udp_sink;  /*!< UDP sink to stream audio over the network. */
     gr::basic_block_sptr      audio_snk;  /*!< Dedicated audio sink. */
     rx_rnnoise_f_sptr         audio_rnnoise;
+    rx_mmse_nr_f_sptr         audio_mmse0;
+    rx_mmse_nr_f_sptr         audio_mmse1;
     gr::basic_block_sptr      output;
     std::vector<receiver_base_cf_sptr> & d_rxes;
     std::vector<struct rejector> d_rejectors;
