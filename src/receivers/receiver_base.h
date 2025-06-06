@@ -117,6 +117,8 @@ public:
 
     /* Noise blanker */
     virtual bool has_nb();
+    bool set_nb3_on(const c_def::v_union &) override;
+    bool set_nb3_gain(const c_def::v_union &) override;
     bool set_nb4_on(const c_def::v_union &) override;
     bool set_nb4_threshold(const c_def::v_union &) override;
 

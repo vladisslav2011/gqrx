@@ -69,10 +69,8 @@ public:
     bool has_nb() override { return true; }
     bool set_nb1_on(const c_def::v_union &) override;
     bool set_nb2_on(const c_def::v_union &) override;
-    bool set_nb3_on(const c_def::v_union &) override;
     bool set_nb1_threshold(const c_def::v_union &) override;
     bool set_nb2_threshold(const c_def::v_union &) override;
-    bool set_nb3_gain(const c_def::v_union &) override;
 
 
     bool set_demod(const c_def::v_union &) override;

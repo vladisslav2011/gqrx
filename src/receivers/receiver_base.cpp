@@ -250,6 +250,20 @@ float receiver_base_cf::get_signal_level()
     return meter->get_level_db();
 }
 
+bool receiver_base_cf::set_nb3_on(const c_def::v_union & v)
+{
+    vfo_s::set_nb3_on(v);
+    audio_rnnoise->set_enabled(v);
+    return true;
+}
+
+bool receiver_base_cf::set_nb3_gain(const c_def::v_union & v)
+{
+    vfo_s::set_nb3_gain(v);
+    audio_rnnoise->set_gain(powf(10.0, v));
+    return true;
+}
+
 bool receiver_base_cf::set_nb4_on(const c_def::v_union & v)
 {
     vfo_s::set_nb4_on(v);

@@ -374,13 +374,6 @@ bool nbrx::set_nb2_on(const c_def::v_union & v)
     return true;
 }
 
-bool nbrx::set_nb3_on(const c_def::v_union & v)
-{
-    receiver_base_cf::set_nb3_on(v);
-    audio_rnnoise->set_enabled(v);
-    return true;
-}
-
 bool nbrx::set_nb1_threshold(const c_def::v_union & v)
 {
     receiver_base_cf::set_nb1_threshold(v);
@@ -392,13 +385,6 @@ bool nbrx::set_nb2_threshold(const c_def::v_union & v)
 {
     receiver_base_cf::set_nb2_threshold(v);
     nb->set_threshold2(v);
-    return true;
-}
-
-bool nbrx::set_nb3_gain(const c_def::v_union & v)
-{
-    receiver_base_cf::set_nb3_gain(v);
-    audio_rnnoise->set_gain(powf(10.0, v));
     return true;
 }
 
