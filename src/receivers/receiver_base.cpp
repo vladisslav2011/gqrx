@@ -141,12 +141,12 @@ void receiver_base_cf::set_audio_rate(int audio_rate)
         connect(agc, 0, wav_sink, 0);
         connect(agc, 1, wav_sink, 1);
         agc->set_sample_rate(audio_rate);
-        audio_mmse0->set_sample_rate(audio_rate);
-        audio_mmse1->set_sample_rate(audio_rate);
         disconnect(audio_rnnoise, 0, audio_mmse0, 0);
         disconnect(audio_rnnoise, 1, audio_mmse1, 0);
         disconnect(audio_mmse0, 0, agc, 0);
         disconnect(audio_mmse1, 0, agc, 1);
+        audio_mmse0->set_sample_rate(audio_rate);
+        audio_mmse1->set_sample_rate(audio_rate);
         connect(audio_rnnoise, 0, audio_mmse0, 0);
         connect(audio_rnnoise, 1, audio_mmse1, 0);
         connect(audio_mmse0, 0, agc, 0);

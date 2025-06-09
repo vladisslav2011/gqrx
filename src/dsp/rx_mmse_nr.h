@@ -90,11 +90,17 @@ public:
     bool get_enabled() { return d_enabled; }
     float get_threshold() { return d_thr; }
 private:
-    void fv_clear(std::vector<float> & v)
+    template <typename T> void fv_clear(std::vector<T> & v)
     {
         std::memset(v.data(),0,v.size()*sizeof(v[0]));
     }
+int mmse_nr(int noutput_items,
+                    const float *in0,
+                    float * out0);
 
+int dumb_nr(int noutput_items,
+                    const float *in0,
+                    float * out0);
     std::mutex      d_mutex;  /*! Used to lock internal data while processing or setting parameters. */
 
     int             d_sample_rate;   /*! Current sample rate. */
@@ -103,7 +109,7 @@ private:
     float           d_thr;
     int             d_len1{0};
     int             d_len2{0};
-    int             d_type{0};
+    float           d_type{0};
     int             d_init{0};
     bool            d_init_ksi{false};
     int             d_fft_size{0};
@@ -117,6 +123,10 @@ private:
     std::vector<float> d_old;
     std::vector<float> d_ksi;
     std::vector<float> d_Xk_prev;
+    std::vector<gr_complex> d_prev;
+    float d_avg{0.f};
+    float d_havg{0.f};
+    float d_lavg{0.f};
 private:
 };
 

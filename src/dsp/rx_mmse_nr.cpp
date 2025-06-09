@@ -52,7 +52,7 @@ rx_mmse_nr_f::rx_mmse_nr_f(int sample_rate)
 {
     set_sample_rate(sample_rate);
     set_output_multiple(d_frame_size);
-    set_history(1 + d_len1);
+    set_history(1 + d_fft_size - d_len2);
     std::cerr<<"rx_mmse_nr_f::rx_mmse_nr_f\n";
 }
 
@@ -92,12 +92,12 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
 
     d_window.clear();
     d_window = gr::fft::window::build(gr::fft::window::WIN_HANN, len, 6.76);
-    float scale = float(len) / std::accumulate(d_window.begin(), d_window.end(), 0.f);
+    float scale = 1.f / std::accumulate(d_window.begin(), d_window.end(), 0.f);
     for(unsigned j=0;j<d_window.size();j++)
         d_window[j] *= scale;
 
     // Noise magnitude calculations - assuming that the first 6 frames is noise / silence
-    d_fft_size = len;
+    d_fft_size = len<<1;
 
     std::cerr<<"d_fft="<<d_fft<<"d_fft_size="<<d_fft_size<<"\n";
     if(d_fft)
@@ -110,14 +110,17 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     d_fft_rsize = d_fft->outbuf_length();
     d_noise_mean.resize(d_fft_rsize);
     d_noise_mu.resize(d_fft_rsize);
-    d_type = 2 << 11;
+    d_prev.resize(d_fft_rsize);
+    d_type = float(d_fft_size);
     d_old.resize(d_len1);
     d_ksi.resize(d_fft_rsize);
     d_Xk_prev.resize(d_fft_rsize);
     d_init = 0;
     d_init_ksi = false;
+    fv_clear(d_prev);
     fv_clear(d_old);
     fv_clear(d_noise_mean);
+    fv_clear(d_noise_mu);
     fv_clear(d_Xk_prev);
 }
 
@@ -137,21 +140,30 @@ int rx_mmse_nr_f::work(int noutput_items,
     std::lock_guard<std::mutex> lock(d_mutex);
     if(!d_enabled)
     {
-        std::memcpy(out0, in0, noutput_items * sizeof(float));
+        std::memcpy(out0, &in0[history()-1], noutput_items * sizeof(float));
         return noutput_items;
     }
+    return mmse_nr(noutput_items,in0,out0);
+    //return dumb_nr(noutput_items,in0,out0);
+}
+
+
+int rx_mmse_nr_f::mmse_nr(int noutput_items,
+                    const float *in0,
+                    float * out0)
+{
     int nframes = noutput_items / d_frame_size;
     if(d_init<INIT_FRAMES)
     {
         int N=std::min(nframes,INIT_FRAMES-d_init);
-        float scale_N=1.f/float(N*N);
+        float scale_N=0.1f/float(INIT_FRAMES*INIT_FRAMES);
         for(int k=0;k<N;k++)
         {
             float * fft_in = d_fft->get_inbuf();
             gr_complex * fft_out = d_fft->get_outbuf();
             memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
             volk_32f_x2_multiply_32f(fft_in, &in0[k * d_frame_size], &d_window[0], d_window.size());
-            volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/float(d_type), d_window.size());
+//            volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
             d_fft->execute();
             for(int j=0;j<d_fft_rsize;j++)
                 d_noise_mean[j]+=std::abs(fft_out[j]);
@@ -181,7 +193,7 @@ int rx_mmse_nr_f::work(int noutput_items,
         gr_complex * spec = d_fft->get_outbuf();
         memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
         volk_32f_x2_multiply_32f(fft_in, &in0[0], &d_window[0], d_window.size());
-        volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/float(d_type), d_window.size());
+        //volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
         d_fft->execute();
         std::vector<float> sig(d_fft_rsize);
         std::vector<float> sig2(d_fft_rsize);
@@ -200,6 +212,7 @@ int rx_mmse_nr_f::work(int noutput_items,
         //gammak[gammak > 40] = 40
         //volk_32f_s32f_s32f_mod_range_32f(&gammak[0], &gammak[0], -1.f, 40.f, d_fft_rsize);
         //volk_32f_s32f_add_32f(&foo[0], &gammak[0], -1.f,  d_fft_rsize);
+        //foo = gammak - 1
         for(int j=0;j<d_fft_rsize;j++)
         {
             gammak[j]=std::min(40.f, gammak[j]);
@@ -303,6 +316,102 @@ int rx_mmse_nr_f::work(int noutput_items,
     }
     return noutput_items;
 }
+
+template<typename T> static T clip(const T v,const T lo, const T hi)
+{
+    T tmp=(v<lo)?lo:v;
+    return (tmp>hi)?hi:tmp;
+}
+
+int rx_mmse_nr_f::dumb_nr(int noutput_items,
+                    const float *in0,
+                    float * out0)
+{
+    int nframes = noutput_items / d_len2;
+    for(int k = 0; k < nframes; k++)
+    {
+        float * fft_in = d_fft->get_inbuf();
+        gr_complex * spec = d_fft->get_outbuf();
+        gr_complex * hw_x_spec = d_fft_r->get_inbuf();
+        float * xi_w = d_fft_r->get_outbuf();
+        memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
+        volk_32f_x2_multiply_32f(fft_in, &in0[0], &d_window[0], d_window.size());
+//        volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
+        d_fft->execute();
+        std::vector<float> sig;
+        sig.resize(d_fft_rsize);
+        std::vector<gr_complex> incr;
+        incr.resize(d_fft_rsize);
+        std::vector<float> sig2;
+        sig2.resize(d_fft_rsize);
+/*        std::vector<float> gammak(d_fft_rsize);
+        std::vector<float> foo(d_fft_rsize);
+        std::vector<float> log_sigma_k(d_fft_rsize);
+        std::vector<float> ksi_plus_1(d_fft_rsize);
+        std::vector<float> vk(d_fft_rsize);*/
+        //sig2 = sig ** 2
+        //volk_32fc_magnitude_squared_32f(&sig2[0], spec, d_fft_rsize);
+        //sig = abs(spec)
+        volk_32fc_magnitude_32f(&sig[0], spec, d_fft_rsize);
+        //volk_32fc_x2_multiply_conjugate_32fc(&incr[0],&spec[0],&d_prev[0],d_fft_rsize);
+        volk_32f_x2_subtract_32f((float*)&incr[0],(float*)spec,(float*)&d_prev[0],d_fft_rsize*2);
+        memcpy(&d_prev[0],&spec[0],d_fft_rsize*sizeof(gr_complex));
+        volk_32fc_magnitude_32f(&sig2[0], &incr[0], d_fft_rsize);
+        float scale=0.f;
+        float avg=0.f;
+        for(int j=0; j<d_fft_rsize; j++)
+        {
+            if(scale<sig[j])
+                scale=sig[j];
+            d_noise_mean[j]+=(std::max(sig[j],sig2[j])-d_noise_mean[j])*0.01f;
+            d_noise_mean[j]=clip(d_noise_mean[j],0.f,100.f);
+            avg+=sig[j];
+        }
+        avg/=float(d_fft_rsize);
+        d_avg+=(avg-d_avg)*0.02f;
+        d_avg=clip(d_avg,0.f,100.f);
+        avg=d_avg;
+        d_havg+=(scale-d_havg)*0.01f;
+        d_havg=clip(d_havg,0.f,100.f);
+        scale=powf(10.f,0.1f*(d_thr-5.f))*d_havg/4.f;
+        //scale/=4.f;
+        //scale=powf(10.f,0.1f*(d_thr-5.f))*scale/4.f;
+        float scale_i=1.f/scale;
+        //volk_32fc_32f_multiply_32fc(hw_x_spec, spec, &hw[0], d_fft_rsize);
+        for(int j=0; j<d_fft_rsize; j++)
+        {
+            int di=0;
+            int dq=0;
+            gr_complex t1=spec[j]*scale_i;
+            //hw_x_spec[j]=t1;
+            //continue;
+            di=std::round(t1.real());
+            dq=std::round(t1.imag());
+            hw_x_spec[j] = gr_complex(di,dq)*scale;
+            if(j==10)
+                std::cout<<"i="<<di<<" q="<<dq<<"\n";
+        }
+        //std::memcpy(hw_x_spec,spec,d_fft_rsize*sizeof(spec[0]));
+        d_fft_r->execute();
+        //xi_w = np.real(xi_w)
+
+        //xfinal[k: k + np.int(len2)] = x_old + xi_w[0: np.int(len1)]
+        //volk_32f_x2_add_32f(&out0[0], &d_old[0], xi_w, d_old.size());
+        for(unsigned j=0;j<d_old.size();j++)
+        {
+            float scale=0.5f;//powf(float(j)/float(d_old.size()-1),3.f);
+            out0[j]=d_old[j]*(1.f-scale)+xi_w[j]*scale;
+        }
+        //x_old = xi_w[np.int(len1): np.int(len)]
+        std::memcpy(&d_old[0], &xi_w[d_len1], d_old.size() * sizeof(d_old[0]));
+
+        //k = k + np.int(len2)
+        in0 += d_len2;
+        out0 += d_len2;
+    }
+    return noutput_items;
+}
+
 
 static float expn(float x)
 {
