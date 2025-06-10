@@ -104,6 +104,7 @@ public slots:
     void setRdsRadiotext(QString text);
     void setIqFileName(QString name);
     void setIqFileTime(qint64 ts);
+    void setIqPos(qint64 ts);
 
 signals:
     void newFrequency(qint64 freq);
@@ -147,6 +148,7 @@ private:
     bool        receiver_running;  /*!< Whether the receiver is running or not */
     QString     iq_filename;       /*!< IQ tool filename (during playback)*/
     qint64      iq_filetime;       /*!< IQ tool file recording time (during playback)*/
+    qint64      iq_pos;            /*!< IQ tool file current position in seconds (during playback)*/
     bool        hamlib_compatible;
     gain_list_t gains;             /*!< Possible and current gain settings */
     QString     rds_station;       /*!< RDS Station Name */

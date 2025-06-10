@@ -444,6 +444,11 @@ void RemoteControl::setIqFileName(QString name)
     iq_filename = name;
 }
 
+void RemoteControl::setIqPos(qint64 ts)
+{
+    iq_pos = ts;
+}
+
 void RemoteControl::setIqFileTime(qint64 ts)
 {
     iq_filetime = ts;
@@ -854,6 +859,8 @@ QString RemoteControl::cmd_get_param(QStringList cmdlist)
 		answer = QString("%1\n").arg(rds_radiotext);
 	else if (func.compare("IQ_NAME", Qt::CaseInsensitive) == 0)
 		answer = iq_filetime ? QString("%1\n").arg(iq_filename) : "Live\n";
+	else if (func.compare("IQ_POS", Qt::CaseInsensitive) == 0)
+		answer = iq_filetime ? QString("%1\n").arg(iq_pos) : "0\n";
 	else if (func.compare("IQ_TIME", Qt::CaseInsensitive) == 0)
 		answer = iq_filetime ? QDateTime::fromMSecsSinceEpoch(iq_filetime).toUTC().toString("yyyy-MM-dd hh:mm:ss\n") :
 			QDateTime::currentDateTimeUtc().toString("yyyy-MM-dd hh:mm:ss\n");

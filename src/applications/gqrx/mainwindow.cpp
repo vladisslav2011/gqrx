@@ -1763,6 +1763,8 @@ void MainWindow::meterTimeout()
     {
         iq_tool->updateStats(iq_stats.failed, iq_stats.buffer_usage, iq_stats.file_pos);
         d_seek_pos = iq_stats.file_pos;
+        int samples_per_chunk = any_to_any_base::fmt[rx->get_last_format()].nsamples;
+        remote->setIqPos(iq_stats.file_pos * samples_per_chunk / rx->get_input_rate());
     }
     c_def::v_union tmp;
     rx->get_value(C_AGC_ON, tmp);
