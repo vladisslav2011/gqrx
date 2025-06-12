@@ -1796,7 +1796,7 @@ void MainWindow::iqFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize, d_fftData, d_realFftData);
+    iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_input_rate() / rx->get_input_decim());
 
     for (i = 0; i < fftsize; i++)
     {
@@ -1809,11 +1809,11 @@ void MainWindow::iqFftTimeout()
     uiDockFft->setFftLag(d_fft_duration>iq_fft_timer->interval());
 }
 
-void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const
+void MainWindow::iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData, float sample_rate) const
 {
     // NB: without cast to float the multiplication will overflow at 64k
     // and pwr_scale will be inf
-    float pwr_scale = 1.0f/ ((float)fftsize * (float)fftsize);
+    const float pwr_scale = 1.0f/ ((float)fftsize * (d_fft_scaling>2?sample_rate:(float)fftsize));
 
     /* Normalize, calculate power and shift the FFT */
     volk_32fc_magnitude_squared_32f(realFftData, fftData + (fftsize/2), fftsize/2);
@@ -1833,7 +1833,7 @@ void MainWindow::audioFftTimeout()
         rx->get_probe_fft_data(d_fftData, fftsize);
         if (fftsize > 0)
         {
-            iqFftToMag(fftsize, d_fftData, d_realFftData);
+            iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_audio_rate());
             uiDockProbe->setNewFftData(d_realFftData, fftsize);
         }
     }
@@ -1850,7 +1850,7 @@ void MainWindow::audioFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize, d_fftData, d_realFftData);
+    iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_audio_rate());
     uiDockAudio->setNewFftData(d_realFftData, fftsize);
 }
 
@@ -2235,6 +2235,7 @@ void MainWindow::waterfall_background_func()
     int set_request = MainWindow::WF_NONE;
     int last_request = MainWindow::WF_NONE;
     receiver::fft_reader_sptr rd;
+
     std::unique_lock<std::mutex> lock(waterfall_background_mutex);
     lock.unlock();
     while(1)
@@ -2347,10 +2348,10 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
     {
         if(line==0)
         {
-            iqFftToMag(n,data,d_realFftData);
+            iqFftToMag(n,data,d_realFftData, rx->get_input_rate() / rx->get_input_decim());
             ui->plotter->drawOneWaterfallLine(line, d_realFftData, n, ts);
         }else{
-            iqFftToMag(n,data,tmpbuf);
+            iqFftToMag(n,data,tmpbuf, rx->get_input_rate() / rx->get_input_decim());
             ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
         }
         if((line & 15) == 0)
@@ -2459,6 +2460,10 @@ void MainWindow::iqFftWindowCorrectionObserver(c_id, const c_def::v_union & v)
     c_def::v_union win;
     get_gui(C_FFT_WINDOW,win);
     rx->set_iq_fft_window(win, v);
+    d_fft_scaling = v;
+    ui->plotter->setFftScaling(d_fft_scaling);
+    uiDockAudio->setFftScaling(d_fft_scaling);
+    uiDockProbe->setFftScaling(d_fft_scaling);
     triggerIQFftRedraw();
 }
 

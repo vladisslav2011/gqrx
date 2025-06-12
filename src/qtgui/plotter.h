@@ -184,6 +184,10 @@ public slots:
     void setPeakDetection(bool enabled, float c);
     void toggleBandPlan(bool state);
     void updateOverlay();
+    void setFftScaling(int v)
+    {
+        m_FftScaling = v;
+    }
 
     void setPercent2DScreen(int percent)
     {
@@ -348,6 +352,7 @@ private:
 
     QColor      m_FftColor, m_FftFillCol, m_PeakHoldColor, m_BgColor;;
     bool        m_FftFill{};
+    int         m_FftScaling{1};
 
     float       m_PeakDetection{};
     QMap<int,int>   m_Peaks;

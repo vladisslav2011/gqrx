@@ -45,6 +45,7 @@ public:
     void setInvertScrolling(bool enabled);
     void setFftColor(QColor color);
     void setFftFill(bool enabled);
+    void setFftScaling(int v);
     void setDecimOsr(int,int);
     void setCenterOffset(qint64 freq, qint64 ofs);
     void setSampleRate(int sampleRate);

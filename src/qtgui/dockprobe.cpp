@@ -113,6 +113,11 @@ void DockProbe::setFftFill(bool enabled)
     ui->spectrum->setFftFill(enabled);
 }
 
+void DockProbe::setFftScaling(int v)
+{
+    ui->spectrum->setFftScaling(v);
+}
+
 void DockProbe::setSampleRate(int sampleRate)
 {
     m_sampleRate = sampleRate;

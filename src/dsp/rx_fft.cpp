@@ -92,6 +92,7 @@ void fft_c_basic::set_window_type(int wintype, int correction)
         volk_32f_s32f_normalize(d_window.data(),tmp/float(d_fftsize),d_fftsize);
         break;
     case 2:
+    case 3:
         volk_32f_x2_dot_prod_32f(&tmp, d_window.data(), d_window.data(), d_fftsize);
         volk_32f_s32f_normalize(d_window.data(), std::sqrt(tmp / float(d_fftsize)), d_fftsize);
         break;

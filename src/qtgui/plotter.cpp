@@ -1508,8 +1508,9 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
     qint32 x;
     qint32 minbin=old_minbin, maxbin=old_maxbin;
     bool largeFft = old_largeFft;
-    qint32 ymax = 10000;
     qint32 xprev = -1;
+    float s = 0.f;
+    qint32 n = 0;
     qint32 m_FFTSize = m_fftDataSize;
     float *m_pFFTAveBuf = inBuf;
     float  dBGainFactor = ((float)plotHeight) / fabsf(maxdB - mindB);
@@ -1572,29 +1573,33 @@ void CPlotter::getScreenIntegerFFTData(qint32 plotHeight, qint32 plotWidth,
         *xmax = m_pTranslateTbl[maxbin - 1] + 1;
         for (i = minbin; i < maxbin; i++ )
         {
-            y = (qint32)(dBGainFactor*(maxdB-m_pFFTAveBuf[i]));
-
-            if (y > plotHeight)
-                y = plotHeight;
-            else if (y < 0)
-                y = 0;
-
             x = m_pTranslateTbl[i];	//get fft bin to plot x coordinate transform
 
             if (x == xprev)   // still mappped to same fft bin coordinate
             {
-                if (y < ymax) // store only the max value
+                if(m_FftScaling > 2)
                 {
-                    outBuf[x] = y;
-                    ymax = y;
+                    s += m_pFFTAveBuf[i];
+                    n++;
+                }else{
+                    s = std::max(s,m_pFFTAveBuf[i]);
                 }
-
             }
             else
             {
-                outBuf[x] = y;
+                if(xprev > -1)
+                {
+                    y = (qint32)(dBGainFactor*(maxdB-s/float(n)));
+
+                    if (y > plotHeight)
+                        y = plotHeight;
+                    else if (y < 0)
+                        y = 0;
+                    outBuf[xprev] = y;
+                }
+                s = m_pFFTAveBuf[i];
                 xprev = x;
-                ymax = y;
+                n = 1;
             }
         }
     }

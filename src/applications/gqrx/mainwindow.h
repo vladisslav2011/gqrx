@@ -103,6 +103,7 @@ private:
 
     bool d_ignore_limits;
     bool d_auto_bookmarks;
+    int d_fft_scaling{1};
     int d_fft_rate{25};
     int d_fft_size{8192};
     int d_audio_fft_interval{40};
@@ -174,7 +175,7 @@ private:
     void rxOffsetZeroShortcut();
     static void audio_rec_event(MainWindow *self, std::string filename, bool is_running);
     void loadRxToGUI();
-    void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData) const;
+    void iqFftToMag(unsigned int fftsize, std::complex<float>* fftData, float* realFftData, float sample_rate) const;
     void waterfall_background_func();
     static void plotterWfCbWr(MainWindow *self, int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);
     void plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts);

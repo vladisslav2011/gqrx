@@ -789,12 +789,13 @@ c_def()
     .v_type(V_INT)
     .def(1)
     .min(0)
-    .max(2)
+    .max(3)
     .step(1)
     .presets((c_def::v_preset[]){
         {"0","None", 0},
         {"1","Avg Ampl",    1},
         {"2","Avg Pwr",2},
+        {"3","1/Hz",3},
     })
     ,
 c_def()

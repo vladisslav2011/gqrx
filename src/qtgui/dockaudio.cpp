@@ -134,6 +134,11 @@ void DockAudio::setFftFill(bool enabled)
     ui->audioSpectrum->setFftFill(enabled);
 }
 
+void DockAudio::setFftScaling(int v)
+{
+    ui->audioSpectrum->setFftScaling(v);
+}
+
 /*! Public slot to set new RX frequency in Hz. */
 void DockAudio::setRxFrequency(qint64 freq)
 {

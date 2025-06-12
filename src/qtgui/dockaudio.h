@@ -64,6 +64,7 @@ public:
 
     void setFftColor(QColor color);
     void setFftFill(bool enabled);
+    void setFftScaling(int v);
 
 public slots:
     void setRxFrequency(qint64 freq);
