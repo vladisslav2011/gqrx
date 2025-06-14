@@ -237,6 +237,7 @@ void receiver::set_input_device(const std::string device)
         src = osmosdr::source::make("file=" + escape_filename(get_zero_file()) + ",freq=428e6,rate=96000,repeat=true,throttle=true");
     }
     reconnect_all(FILE_FORMAT_NONE, true);
+    d_fft_reader.reset();
     if (src->get_sample_rate() != 0)
         set_input_rate(src->get_sample_rate());
 
@@ -1719,6 +1720,7 @@ receiver::status receiver::start_iq_recording(const std::string filename, const 
     }
 
     d_iq_fmt = fmt;
+    d_fft_reader.reset();
     return connect_iq_recorder();
  }
 

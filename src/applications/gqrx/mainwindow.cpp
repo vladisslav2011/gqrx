@@ -2252,6 +2252,7 @@ void MainWindow::waterfall_background_func()
         if(background_request == MainWindow::WF_NONE)
         {
             lock.lock();
+            rd.reset();
             waterfall_background_ready.notify_one();
             waterfall_background_wake.wait(lock);
             lock.unlock();
@@ -2298,7 +2299,6 @@ void MainWindow::waterfall_background_func()
                 }
                 set_request = MainWindow::WF_RUNNING;
             }else{
-                rd.reset();
                 set_request = MainWindow::WF_NONE;
             }
         }
