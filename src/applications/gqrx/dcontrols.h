@@ -52,6 +52,7 @@ enum c_id
     C_IQ_GOTO_B,
     C_IQ_SAVE_LOC,
     C_IQ_PROCESS,
+    C_IQ_ENABLE_TRUNCATE,
     C_IQ_TRUNCATE,
 
     C_DXC_ADDRESS,

@@ -85,6 +85,8 @@ CIqTool::CIqTool(QWidget *parent) :
     set_observer(C_IQ_SAVE_SEL,&CIqTool::saveObserver);
     set_observer(C_IQ_FINE_STEP,&CIqTool::fineStepObserver);
     set_observer(C_IQ_PROCESS,&CIqTool::iqProcessObserver);
+    set_observer(C_IQ_TRUNCATE,&CIqTool::iqTruncateObserver);
+    set_observer(C_IQ_ENABLE_TRUNCATE,&CIqTool::enableTruncationObserver);
 }
 
 CIqTool::~CIqTool()
@@ -281,9 +283,9 @@ void CIqTool::posObserver(c_id, const c_def::v_union &v)
     refreshTimeWidgets();
     updateStats(false, o_buffersUsed, seek_pos);
     if(is_playing && seek_pos > 0)
-        getAction(C_IQ_TRUNCATE)->setEnabled(true);
+        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(true);
     else
-        getAction(C_IQ_TRUNCATE)->setEnabled(false);
+        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(false);
 }
 
 /*! \brief Start/stop recording */
@@ -297,6 +299,8 @@ void CIqTool::recObserver(c_id, const c_def::v_union &v)
         c_def::v_union buffers;//TODO: remove this
         get_gui(C_IQ_BUFFERS, buffers);
         emit startRecording(recdir->path(), rec_fmt);
+        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(false);
+        getAction(C_IQ_TRUNCATE)->setEnabled(false);
 
         refreshDir();
 //        listWidget->setCurrentRow(listWidget->count()-1);
@@ -649,6 +653,16 @@ void CIqTool::iqProcessObserver(const c_id id, const c_def::v_union &value)
         dynamic_cast<QPushButton *>(getWidget(C_IQ_PLAY))->setIcon(QIcon(":/icons/icons/ff.svg"));
     else
         dynamic_cast<QPushButton *>(getWidget(C_IQ_PLAY))->setIcon(QIcon(":/icons/icons/play.svg"));
+}
+
+void CIqTool::enableTruncationObserver(const c_id id, const c_def::v_union &value)
+{
+    getAction(C_IQ_TRUNCATE)->setEnabled(true);
+}
+
+void CIqTool::iqTruncateObserver(const c_id id, const c_def::v_union &value)
+{
+    getAction(C_IQ_TRUNCATE)->setEnabled(false);
 }
 
 qint64 CIqTool::selectionLength()

@@ -102,6 +102,8 @@ private:
     void resetObserver(c_id, const c_def::v_union&);
     void saveObserver(c_id, const c_def::v_union&);
     void iqProcessObserver(const c_id id, const c_def::v_union &value);
+    void enableTruncationObserver(const c_id id, const c_def::v_union &value);
+    void iqTruncateObserver(const c_id id, const c_def::v_union &value);
     void refreshDir(void);
     void refreshTimeWidgets(void);
     void parseFileName(const QString &filename);
