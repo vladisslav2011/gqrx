@@ -108,6 +108,7 @@ private:
     void switchControlsState(bool recording, bool playback);
     void updateSliderStylesheet(qint64 save_progress = -2);
     void listWidgetFileSelected(const QString &currentText);
+    void updateFileInfo();
     // No spacer at bottom here
     void finalizeInner() override;
 

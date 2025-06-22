@@ -1694,6 +1694,13 @@ bool receiver::set_iq_repeat(const c_def::v_union &v)
     return true;
 }
 
+bool receiver::set_iq_truncate(const c_def::v_union &)
+{
+    int64_t pos = input_file->tell();
+    truncate_iq_file(pos);
+    return true;
+}
+
 /**
  * @brief Start I/Q data recorder.
  * @param filename The filename where to record.
@@ -1754,6 +1761,31 @@ receiver::status receiver::seek_iq_file(long pos)
     receiver::status status = STATUS_OK;
 
     if (input_file->seek(pos, SEEK_SET))
+    {
+        status = STATUS_OK;
+    }
+    else
+    {
+        status = STATUS_ERROR;
+    }
+    if (input_file->get_items_remaining() == 0 && d_running)
+    {
+        tb->stop();
+        tb->wait();
+        tb->start();
+    }
+    return status;
+}
+
+/**
+ * @brief Truncate IQ file.
+ * @param pos Items offset from the beginning of the file.
+ */
+receiver::status receiver::truncate_iq_file(long pos)
+{
+    receiver::status status = STATUS_OK;
+
+    if (input_file->truncate(pos))
     {
         status = STATUS_OK;
     }
@@ -2398,6 +2430,7 @@ int receiver::conf_initializer()
     setters[C_IQ_PROCESS]=&receiver::set_iq_process;
     getters[C_IQ_REPEAT]=&receiver::get_iq_repeat;
     setters[C_IQ_REPEAT]=&receiver::set_iq_repeat;
+    setters[C_IQ_TRUNCATE]=&receiver::set_iq_truncate;
 
     getters[C_IQ_AGC]=&receiver::get_auto_gain;
     setters[C_IQ_AGC]=&receiver::set_auto_gain;

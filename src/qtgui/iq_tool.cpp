@@ -106,6 +106,7 @@ void CIqTool::finalizeInner()
     getAction(C_IQ_GOTO_A)->setEnabled(false);
     getAction(C_IQ_GOTO_B)->setEnabled(false);
     getAction(C_IQ_RESET_SEL)->setEnabled(false);
+    getAction(C_IQ_TRUNCATE)->setEnabled(false);
     getWidget(C_IQ_FORMAT)->show();
     getWidget(C_IQ_BUFFERS)->show();
     getWidget(C_IQ_BUF_STAT)->hide();
@@ -147,9 +148,16 @@ void CIqTool::on_listWidget_currentTextChanged(const QString &currentText)
 void CIqTool::listWidgetFileSelected(const QString &currentText)
 {
     current_file = currentText;
-    QFileInfo info(*recdir, current_file);
-
     parseFileName(currentText);
+    updateFileInfo();
+}
+
+void CIqTool::updateFileInfo()
+{
+    if (is_recording)
+        return;
+    QFileInfo info(*recdir, current_file);
+    auto old_len=rec_len;
     rec_len = info.size() * samples_per_chunk / (sample_rate * chunk_size);
     can_play = info.size() > chunk_size;
 
@@ -272,6 +280,10 @@ void CIqTool::posObserver(c_id, const c_def::v_union &v)
     emit seek(seek_pos);
     refreshTimeWidgets();
     updateStats(false, o_buffersUsed, seek_pos);
+    if(is_playing && seek_pos > 0)
+        getAction(C_IQ_TRUNCATE)->setEnabled(true);
+    else
+        getAction(C_IQ_TRUNCATE)->setEnabled(false);
 }
 
 /*! \brief Start/stop recording */
@@ -460,6 +472,7 @@ void CIqTool::extractDirObserver(c_id, const c_def::v_union &)
 void CIqTool::timeoutFunction(void)
 {
     refreshDir();
+    updateFileInfo();
 }
 
 void CIqTool::formatObserver(c_id, const c_def::v_union &v)

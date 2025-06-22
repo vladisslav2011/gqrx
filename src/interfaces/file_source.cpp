@@ -275,6 +275,24 @@ bool file_source::seek(int64_t seek_point, int whence)
     }
 }
 
+bool file_source::truncate(int64_t seek_point)
+{
+    if (d_seekable)
+    {
+        std::unique_lock<std::mutex> guard(d_mutex);
+
+        int res=::truncate(d_filename.c_str(), (seek_point + d_start_offset_items) * d_itemsize);
+        d_items_remaining -= d_length_items - seek_point;
+        d_length_items = seek_point;
+        return (res==0);
+    }
+    else
+    {
+        std::cerr<<"file not seekable\n";
+        return 0;
+    }
+}
+
 bool file_source::seek_ts(uint64_t ts, uint64_t &res_point)
 {
     int64_t seek_point = ts - d_time_ms;

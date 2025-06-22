@@ -322,9 +322,11 @@ public:
     bool        set_iq_process(const c_def::v_union &);
     bool        get_iq_repeat(c_def::v_union &v) const { v=d_iq_repeat; return true;}
     bool        set_iq_repeat(const c_def::v_union &);
+    bool        set_iq_truncate(const c_def::v_union &);
     status      start_iq_recording(const std::string filename, const file_formats fmt);
     status      stop_iq_recording();
     status      seek_iq_file(long pos);
+    status      truncate_iq_file(long pos);
     status      seek_iq_file_ts(uint64_t ts, uint64_t &res_point);
     void        get_iq_tool_stats(struct iq_tool_stats &stats);
     uint64_t    get_iq_file_size() { return input_file->get_size(); }

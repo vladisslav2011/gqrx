@@ -459,7 +459,24 @@ c_def()
     .max(1)
     .step(1)
     ,
-
+c_def()
+    .idx(C_IQ_TRUNCATE)
+    .base(C_IQ_POS)
+    .name("Truncate IQ file")
+    .title("Truncate IQ file at current position")
+    .title_placement(c_def::grid_placement(PLACE_NONE,0))
+    .placement(c_def::grid_placement(PLACE_NEXT,0,0))
+    .hint("Truncate IQ file at current position")
+    .g_type(G_MENUACTION)
+    .dock(D_IQTOOL)
+    .scope(S_RX)
+    .v_type(V_BOOLEAN)
+    .def(0)
+    .min(0)
+    .max(0)
+    .step(0)
+    .readable(0)
+    ,
 
 
 c_def()
