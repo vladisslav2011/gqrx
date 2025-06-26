@@ -32,6 +32,7 @@
 #include <gnuradio/filter/firdes.h>       /* contains enum win_type */
 
 class rx_mmse_nr_f;
+class min_buffer_n;
 
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<rx_mmse_nr_f> rx_mmse_nr_f_sptr;
@@ -101,6 +102,9 @@ int mmse_nr(int noutput_items,
 int dumb_nr(int noutput_items,
                     const float *in0,
                     float * out0);
+float get_peak(unsigned n);
+void update_buffer(unsigned n,unsigned p);
+
     std::mutex      d_mutex;  /*! Used to lock internal data while processing or setting parameters. */
 
     int             d_sample_rate;   /*! Current sample rate. */
@@ -127,6 +131,10 @@ int dumb_nr(int noutput_items,
     float d_avg{0.f};
     float d_havg{0.f};
     float d_lavg{0.f};
+    std::vector<std::vector<float>> d_mag_buf{};
+    unsigned d_buf_size{0};
+    unsigned d_mag_idx{0};
+    unsigned d_mag_p{0};
 private:
 };
 

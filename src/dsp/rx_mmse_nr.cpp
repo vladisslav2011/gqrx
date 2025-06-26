@@ -23,14 +23,18 @@
 #include <stdexcept>
 #include <numeric>
 #include <cmath>
+#include <cfloat>
 #include <gnuradio/io_signature.h>
 #include <gnuradio/gr_complex.h>
 #include <dsp/rx_mmse_nr.h>
 #include <volk/volk.h>
 
-static constexpr int INIT_FRAMES = 7;
+static constexpr int INIT_FRAMES = 2;
+static constexpr float TRACK_SEC = 1.f;
+static constexpr float NOISE_THR = 8.f;
 
 static float expn(float x);
+
 
 rx_mmse_nr_f_sptr make_rx_mmse_nr_f(int sample_rate)
 {
@@ -122,6 +126,16 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     fv_clear(d_noise_mean);
     fv_clear(d_noise_mu);
     fv_clear(d_Xk_prev);
+    d_buf_size = 1<<unsigned(std::ceil(std::log2(float(sample_rate) * TRACK_SEC / float(d_len2))));
+    d_mag_idx = d_buf_size * 2 -2;
+    d_mag_buf.resize(d_fft_rsize);
+    for(int k=0;k<d_fft_rsize;k++)
+    {
+        d_mag_buf[k].resize(d_buf_size<<1);
+        for(unsigned j=0;j<d_mag_buf[k].size();j++)
+            d_mag_buf[k][j]=FLT_MAX;
+    }
+    d_mag_p=0;
 }
 
 /**
@@ -179,13 +193,16 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
     }
     nframes = noutput_items / d_len2;
     const float aa = 1.f-0.02f;
-    const float mu = 1.f-0.02f;
+    const float mu = 1.f-0.2f;
     //const float mu = 1.f - 0.1f * d_thr;
     const float eta = 0.15;
     //const float eta = d_thr * 1.f;
 
-    //const float ksi_min = powf(10.f,(-25.f * 0.1f));
-    const float ksi_min = powf(10.f,(-d_thr));
+    const float ksi_min = powf(10.f,(-25.f * 0.1f));
+    //const float ksi_min = powf(10.f,(-d_thr));
+
+    //const float nf_thr = powf(10.f,NOISE_THR);
+    const float nf_thr = powf(10.f,d_thr);
 
     for(int k = 0; k < nframes; k++)
     {
@@ -247,6 +264,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         //volk_32f_s32f_add_32f(&ksi_plus_1[0], &d_ksi[0], 1.f, d_fft_rsize);
         for(int j=0;j<d_fft_rsize;j++)
             ksi_plus_1[j]=d_ksi[j]+1.f;
+        #if 0
         volk_32f_x2_multiply_32f(&log_sigma_k[0], &d_ksi[0], &gammak[0], d_fft_rsize);
         volk_32f_x2_divide_32f(&log_sigma_k[0], &log_sigma_k[0], &ksi_plus_1[0], d_fft_rsize);
         //no VOLK function to do this...
@@ -267,6 +285,30 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
             volk_32f_s32f_multiply_32f(&sig2[0], &sig2[0], 1.f - mu, d_fft_rsize);
             volk_32f_x2_add_32f(&d_noise_mu[0], &d_noise_mu[0], &sig2[0], d_fft_rsize);
         }
+        #else
+            {
+                float prv = sig2[0];
+                float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
+                float tmp1=(prv+sig2[d_fft_rsize-2]+sig2[d_fft_rsize-1])*0.333f;
+                sig2[0]=tmp0;
+                for(int j=1;j<d_fft_rsize-1;j++)
+                {
+                    prv=(prv+sig2[j]+sig2[j+1])*0.333f;
+                    std::swap(sig2[j],prv);
+                }
+                sig2[d_fft_rsize-1]=tmp1;
+            }
+            for(int j=0;j<d_fft_rsize;j++)
+            {
+                d_mag_buf[j][d_mag_p] = sig2[j];
+                update_buffer(j,d_mag_p);
+                if(sig2[j]<get_peak(j)*nf_thr)
+                    d_noise_mu[j] += (sig2[j] - d_noise_mu[j]) * (1.f - mu);
+            }
+            d_mag_p++;
+            if(d_mag_p >= d_buf_size)
+                d_mag_p=0;
+        #endif
 
         //# == = end of vad == =
 
@@ -410,6 +452,31 @@ int rx_mmse_nr_f::dumb_nr(int noutput_items,
         out0 += d_len2;
     }
     return noutput_items;
+}
+
+
+float rx_mmse_nr_f::get_peak(unsigned n)
+{
+    return d_mag_buf[n][d_mag_idx];
+}
+
+void rx_mmse_nr_f::update_buffer(unsigned n, unsigned p)
+{
+    unsigned ofs = 0;
+    unsigned base = d_buf_size;
+    std::vector<float> & mag_buf = d_mag_buf[n];
+    while (base > 1)
+    {
+        float max_p = std::min(mag_buf[ofs + p], mag_buf[ofs + (p ^ 1)]);
+        p = p >> 1;
+        ofs += base;
+        if(mag_buf[ofs + p] != max_p)
+            mag_buf[ofs + p] = max_p;
+        else
+            break;
+        base = base >> 1;
+    }
+
 }
 
 
