@@ -193,7 +193,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
     }
     nframes = noutput_items / d_len2;
     const float aa = 1.f-0.02f;
-    const float mu = 1.f-0.2f;
+    const float mu = 1.f-0.02f;
     //const float mu = 1.f - 0.1f * d_thr;
     const float eta = 0.15;
     //const float eta = d_thr * 1.f;
@@ -286,6 +286,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
             volk_32f_x2_add_32f(&d_noise_mu[0], &d_noise_mu[0], &sig2[0], d_fft_rsize);
         }
         #else
+            if(1)
             {
                 float prv = sig2[0];
                 float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
@@ -457,7 +458,14 @@ int rx_mmse_nr_f::dumb_nr(int noutput_items,
 
 float rx_mmse_nr_f::get_peak(unsigned n)
 {
-    return d_mag_buf[n][d_mag_idx];
+    //return d_mag_buf[n][d_mag_idx];
+    const std::vector<float> & mag_buf=d_mag_buf[n];
+    constexpr static int NAVG=7;
+    constexpr static float NMUL=1.f/float(NAVG);
+    float nsum=0.f;
+    for(int k=0;k<NAVG;k++)
+        nsum+=mag_buf[d_mag_idx-k];
+    return nsum*NMUL;
 }
 
 void rx_mmse_nr_f::update_buffer(unsigned n, unsigned p)
