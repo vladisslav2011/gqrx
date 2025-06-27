@@ -198,11 +198,13 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
     const float eta = 0.15;
     //const float eta = d_thr * 1.f;
 
-    const float ksi_min = powf(10.f,(-25.f * 0.1f));
-    //const float ksi_min = powf(10.f,(-d_thr));
+    //const float ksi_min = powf(10.f,(-25.f * 0.1f));
+    const float ksi_min = powf(10.f,(-d_strength));
 
     //const float nf_thr = powf(10.f,NOISE_THR);
     const float nf_thr = powf(10.f,d_thr);
+
+    const float ofs = powf(10.f, d_ofs);
 
     for(int k = 0; k < nframes; k++)
     {
@@ -286,29 +288,29 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
             volk_32f_x2_add_32f(&d_noise_mu[0], &d_noise_mu[0], &sig2[0], d_fft_rsize);
         }
         #else
-            if(1)
+        if(1)
+        {
+            float prv = sig2[0];
+            float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
+            float tmp1=(prv+sig2[d_fft_rsize-2]+sig2[d_fft_rsize-1])*0.333f;
+            sig2[0]=tmp0;
+            for(int j=1;j<d_fft_rsize-1;j++)
             {
-                float prv = sig2[0];
-                float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
-                float tmp1=(prv+sig2[d_fft_rsize-2]+sig2[d_fft_rsize-1])*0.333f;
-                sig2[0]=tmp0;
-                for(int j=1;j<d_fft_rsize-1;j++)
-                {
-                    prv=(prv+sig2[j]+sig2[j+1])*0.333f;
-                    std::swap(sig2[j],prv);
-                }
-                sig2[d_fft_rsize-1]=tmp1;
+                prv=(prv+sig2[j]+sig2[j+1])*0.333f;
+                std::swap(sig2[j],prv);
             }
-            for(int j=0;j<d_fft_rsize;j++)
-            {
-                d_mag_buf[j][d_mag_p] = sig2[j];
-                update_buffer(j,d_mag_p);
-                if(sig2[j]<get_peak(j)*nf_thr)
-                    d_noise_mu[j] += (sig2[j] - d_noise_mu[j]) * (1.f - mu);
-            }
-            d_mag_p++;
-            if(d_mag_p >= d_buf_size)
-                d_mag_p=0;
+            sig2[d_fft_rsize-1]=tmp1;
+        }
+        for(int j=0;j<d_fft_rsize;j++)
+        {
+            d_mag_buf[j][d_mag_p] = sig2[j];
+            update_buffer(j,d_mag_p);
+            if(sig2[j]<get_peak(j)*nf_thr)
+                d_noise_mu[j] += (sig2[j] * ofs - d_noise_mu[j]) * (1.f - mu);
+        }
+        d_mag_p++;
+        if(d_mag_p >= d_buf_size)
+            d_mag_p=0;
         #endif
 
         //# == = end of vad == =

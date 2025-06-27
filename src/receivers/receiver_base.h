@@ -121,6 +121,8 @@ public:
     bool set_nb3_gain(const c_def::v_union &) override;
     bool set_nb4_on(const c_def::v_union &) override;
     bool set_nb4_threshold(const c_def::v_union &) override;
+    bool set_nb4_ofs(const c_def::v_union &) override;
+    bool set_nb4_strength(const c_def::v_union &) override;
 
     /* Squelch parameter */
     bool set_sql_level(const c_def::v_union &) override;

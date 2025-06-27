@@ -388,6 +388,18 @@ bool vfo_s::set_nb4_threshold(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_nb4_ofs(const c_def::v_union & v)
+{
+    d_nb4_ofs = v;
+    return true;
+}
+
+bool vfo_s::set_nb4_strength(const c_def::v_union & v)
+{
+    d_nb4_strength = v;
+    return true;
+}
+
 bool vfo_s::set_audio_rec_dir(const c_def::v_union & v)
 {
     d_rec_dir = std::string(v);
@@ -604,9 +616,13 @@ void vfo_s::restore_settings(vfo_s& from, bool force)
     from.get_nb1_on(v);set_nb1_on(v);
     from.get_nb2_on(v);set_nb2_on(v);
     from.get_nb3_on(v);set_nb3_on(v);
+    from.get_nb4_on(v);set_nb4_on(v);
     from.get_nb1_threshold(v);set_nb1_threshold(v);
     from.get_nb2_threshold(v);set_nb2_threshold(v);
     from.get_nb3_gain(v);set_nb3_gain(v);
+    from.get_nb4_threshold(v);set_nb4_threshold(v);
+    from.get_nb4_ofs(v);set_nb4_ofs(v);
+    from.get_nb4_strength(v);set_nb4_strength(v);
 
     from.get_fm_maxdev(v);set_fm_maxdev(v);
     from.get_fm_deemph(v);set_fm_deemph(v);
@@ -773,6 +789,10 @@ int vfo_s::conf_initializer()
     getters[C_NB3_GAIN]=&vfo_s::get_nb3_gain;
     setters[C_NB4_THR]=&vfo_s::set_nb4_threshold;
     getters[C_NB4_THR]=&vfo_s::get_nb4_threshold;
+    setters[C_NB4_OFS]=&vfo_s::set_nb4_ofs;
+    getters[C_NB4_OFS]=&vfo_s::get_nb4_ofs;
+    setters[C_NB4_STRENGTH]=&vfo_s::set_nb4_strength;
+    getters[C_NB4_STRENGTH]=&vfo_s::get_nb4_strength;
     // NFM parameters
     setters[C_NFM_MAXDEV]=&vfo_s::set_fm_maxdev;
     getters[C_NFM_MAXDEV]=&vfo_s::get_fm_maxdev;

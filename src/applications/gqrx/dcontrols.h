@@ -194,6 +194,8 @@ enum c_id
     C_NB2_THR,
     C_NB3_GAIN,
     C_NB4_THR,
+    C_NB4_OFS,
+    C_NB4_STRENGTH,
 
     C_NFM_MAXDEV,
     C_NFMPLL_MAXDEV,

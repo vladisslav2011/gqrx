@@ -88,8 +88,20 @@ public:
         std::unique_lock<std::mutex> lock(d_mutex);
         d_thr = val;
     }
+    void set_ofs(float val)
+    {
+        std::unique_lock<std::mutex> lock(d_mutex);
+        d_ofs = val;
+    }
+    void set_strength(float val)
+    {
+        std::unique_lock<std::mutex> lock(d_mutex);
+        d_strength = val;
+    }
     bool get_enabled() { return d_enabled; }
     float get_threshold() { return d_thr; }
+    float get_ofs() { return d_ofs; }
+    float get_strength() { return d_strength; }
 private:
     template <typename T> void fv_clear(std::vector<T> & v)
     {
@@ -111,6 +123,8 @@ void update_buffer(unsigned n,unsigned p);
     int             d_frame_size;
     bool            d_enabled;
     float           d_thr;
+    float           d_ofs;
+    float           d_strength;
     int             d_len1{0};
     int             d_len2{0};
     float           d_type{0};
