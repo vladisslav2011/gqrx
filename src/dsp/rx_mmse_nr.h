@@ -77,7 +77,6 @@ public:
     {
         std::unique_lock<std::mutex> lock(d_mutex);
         d_enabled = enabled;
-        d_init = 0;
         d_init_ksi = false;
         fv_clear(d_old);
         fv_clear(d_noise_mean);
@@ -128,7 +127,6 @@ void update_buffer(unsigned n,unsigned p);
     int             d_len1{0};
     int             d_len2{0};
     float           d_type{0};
-    int             d_init{0};
     bool            d_init_ksi{false};
     int             d_fft_size{0};
     int             d_fft_rsize{0};

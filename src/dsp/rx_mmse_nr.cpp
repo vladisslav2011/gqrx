@@ -55,8 +55,6 @@ rx_mmse_nr_f::rx_mmse_nr_f(int sample_rate)
       d_thr(1.0f)
 {
     set_sample_rate(sample_rate);
-    set_output_multiple(d_frame_size);
-    set_history(1 + d_fft_size - d_len2);
     std::cerr<<"rx_mmse_nr_f::rx_mmse_nr_f\n";
 }
 
@@ -119,7 +117,6 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     d_old.resize(d_len1);
     d_ksi.resize(d_fft_rsize);
     d_Xk_prev.resize(d_fft_rsize);
-    d_init = 0;
     d_init_ksi = false;
     fv_clear(d_prev);
     fv_clear(d_old);
@@ -136,6 +133,8 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
             d_mag_buf[k][j]=FLT_MAX;
     }
     d_mag_p=0;
+    set_output_multiple(d_frame_size);
+    set_history(1 + d_fft_size - d_len2);
 }
 
 /**
@@ -166,32 +165,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
                     const float *in0,
                     float * out0)
 {
-    int nframes = noutput_items / d_frame_size;
-    if(d_init<INIT_FRAMES)
-    {
-        int N=std::min(nframes,INIT_FRAMES-d_init);
-        float scale_N=0.1f/float(INIT_FRAMES*INIT_FRAMES);
-        for(int k=0;k<N;k++)
-        {
-            float * fft_in = d_fft->get_inbuf();
-            gr_complex * fft_out = d_fft->get_outbuf();
-            memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
-            volk_32f_x2_multiply_32f(fft_in, &in0[k * d_frame_size], &d_window[0], d_window.size());
-//            volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
-            d_fft->execute();
-            for(int j=0;j<d_fft_rsize;j++)
-                d_noise_mean[j]+=std::abs(fft_out[j]);
-            d_init++;
-        }
-        if(d_init==INIT_FRAMES)
-            for(int j=0;j<d_fft_rsize;j++)
-                d_noise_mu[j]=d_noise_mean[j]*d_noise_mean[j]*scale_N;
-        else{
-            std::memcpy(out0, in0, noutput_items * sizeof(float));
-            return noutput_items;
-        }
-    }
-    nframes = noutput_items / d_len2;
+    int nframes = noutput_items / d_len2;
     const float aa = 1.f-0.02f;
     const float mu = 1.f-0.02f;
     //const float mu = 1.f - 0.1f * d_thr;
