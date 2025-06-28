@@ -347,6 +347,12 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
 
         //xfinal[k: k + np.int(len2)] = x_old + xi_w[0: np.int(len1)]
         //volk_32f_x2_add_32f(&out0[0], &d_old[0], xi_w, d_old.size());
+        float corr1=-xi_w[0];
+        float corr2=-xi_w[d_frame_size-1];
+        float step=(corr2-corr1)/float(d_frame_size-1);
+        for(int j=0;j<d_frame_size;j++)
+            xi_w[j]+=corr1+step*float(j);
+
         for(unsigned j=0;j<d_old.size();j++)
         {
             float scale=0.5f;//powf(float(j)/float(d_old.size()-1),3.f);
