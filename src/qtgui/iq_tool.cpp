@@ -159,12 +159,29 @@ void CIqTool::updateFileInfo()
     if (is_recording)
         return;
     QFileInfo info(*recdir, current_file);
+    if (!info.exists())
+        return;
     auto old_len=rec_len;
     rec_len = info.size() * samples_per_chunk / (sample_rate * chunk_size);
+    if(rec_len == old_len)
+        return;
     can_play = info.size() > chunk_size;
 
     // Get duration of selected recording and update label
     dynamic_cast<QSlider *>(getWidget(C_IQ_POS))->setMaximum(rec_len);
+    bool updateStyleSheet = false;
+    if (sel_A > 0.)
+    {
+        sel_A = (sel_A * old_len) / rec_len;
+        updateStyleSheet = true;
+    }
+    if (sel_B!=-1.0)
+    {
+        sel_B = (sel_B * old_len) / rec_len;
+        updateStyleSheet = true;
+    }
+    if (updateStyleSheet)
+        updateSliderStylesheet();
     refreshTimeWidgets();
 }
 
@@ -674,17 +691,42 @@ qint64 CIqTool::selectionLength()
 /*! \brief Refresh list of files in current working directory. */
 void CIqTool::refreshDir()
 {
+    recdir->refresh();
+    QStringList files = recdir->entryList();
+    QString newFiles = files.join("");
+    if(oldFiles == newFiles)
+        return;
+    oldFiles = newFiles;
+
     int selection = listWidget->currentRow();
     QScrollBar * sc = listWidget->verticalScrollBar();
     int lastScroll = sc->sliderPosition();
 
-    recdir->refresh();
-    QStringList files = recdir->entryList();
-
     listWidget->blockSignals(true);
     listWidget->clear();
     listWidget->insertItems(0, files);
-    listWidget->setCurrentRow(selection);
+    if (current_file != "")
+    {
+        QList<QListWidgetItem*> found = listWidget->findItems(current_file, Qt::MatchExactly);
+        if (found.size() > 0)
+            listWidget->setCurrentItem(found[0]);
+        else{
+            if (is_playing)
+            {
+                listWidget->addItem(current_file);
+                QListWidgetItem * item = listWidget->item(listWidget->count() - 1);
+                item->setBackgroundColor(QColor(0xff0000));
+                listWidget->setCurrentItem(item);
+                oldFiles = "";
+            }else{
+                if (selection < listWidget->count())
+                    listWidget->setCurrentRow(selection);
+                else
+                    listWidget->setCurrentRow(listWidget->count() - 1);
+                listWidgetFileSelected(listWidget->currentItem()->text());
+            }
+        }
+    }
     sc->setSliderPosition(lastScroll);
     listWidget->blockSignals(false);
 }

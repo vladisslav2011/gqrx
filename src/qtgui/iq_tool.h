@@ -124,6 +124,7 @@ private:
     QListWidget *listWidget;
 
     QString current_file;      /*!< Selected file in file browser. */
+    QString oldFiles;
 
     double  sel_A{-1.0};
     double  sel_B{-1.0};
