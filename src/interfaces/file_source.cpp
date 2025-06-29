@@ -54,7 +54,7 @@ void file_source::reader()
     uint8_t * last=&d_buf.data()[d_buf.size()];
     uint8_t * p;
     FILE * old_fp = NULL;
-    int count = 0;
+    size_t count = 0;
     while (true)
     {
         std::unique_lock<std::mutex> guard(d_mutex);   // hold mutex for duration of this block
@@ -62,6 +62,7 @@ void file_source::reader()
         {
             count = 0;
             p=d_wp;
+            int buffered = (d_wp >= d_rp) ? d_wp - d_rp : (last - d_rp) + (d_wp - d_buf.data());
             if (d_updated)
             {
                 old_fp = d_fp;
@@ -106,6 +107,20 @@ void file_source::reader()
                 guard.unlock();
                 count = fread(p, d_itemsize, read_bytes / d_itemsize, d_fp) * d_itemsize;
                 guard.lock();
+                if(count + buffered > d_items_remaining * d_itemsize)
+                {
+                    struct GR_STAT st;
+                    if (GR_FSTAT(GR_FILENO(d_fp), &st) == 0)
+                    {
+                        uint64_t file_size = st.st_size;
+                        uint64_t items_available = (file_size / d_itemsize - d_start_offset_items);
+                        if(d_length_items != items_available)
+                        {
+                            d_items_remaining += items_available - d_length_items;
+                            d_length_items = items_available;
+                        }
+                    }
+                }
                 if (count == 0)
                 {
                     if (ferror(d_fp))
@@ -254,9 +269,24 @@ bool file_source::seek(int64_t seek_point, int whence)
             return 0;
         }
 
-        if ((seek_point < (int64_t)d_start_offset_items) ||
+        while ((seek_point < (int64_t)d_start_offset_items) ||
             (seek_point > (int64_t)(d_start_offset_items + d_length_items - 1)))
         {
+            struct GR_STAT st;
+            if (GR_FSTAT(GR_FILENO(d_fp), &st) == 0)
+            {
+                uint64_t file_size = st.st_size;
+                uint64_t items_available = (file_size / d_itemsize - d_start_offset_items);
+                if(d_length_items != items_available)
+                {
+                    d_items_remaining += items_available - d_length_items;
+                    d_length_items = items_available;
+                    continue;
+                }else{
+                    std::cerr<<"bad seek point\n";
+                    return 0;
+                }
+            }
             std::cerr<<"bad seek point\n";
             return 0;
         }
@@ -282,7 +312,7 @@ bool file_source::truncate(int64_t seek_point)
         std::unique_lock<std::mutex> guard(d_mutex);
 
         int res=::truncate(d_filename.c_str(), (seek_point + d_start_offset_items) * d_itemsize);
-        d_items_remaining -= d_length_items - seek_point;
+        d_items_remaining = d_length_items - seek_point;
         d_length_items = seek_point;
         return (res==0);
     }
@@ -516,6 +546,7 @@ int file_source::work(int noutput_items,
 
 uint64_t file_source::tell()
 {
+    std::unique_lock<std::mutex> guard(d_mutex);
     return d_length_items - d_items_remaining;
 }
 
