@@ -74,6 +74,8 @@ void CMeter::setLevel(float dbfs)
 {
     float alpha = dbfs < m_dBFS ? ALPHA_DECAY : ALPHA_RISE;
     m_dBFS -= alpha * (m_dBFS - dbfs);
+    if (!std::isfinite(m_dBFS))
+        m_dBFS = -150.f;
     update();
 }
 
