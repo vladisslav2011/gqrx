@@ -32,7 +32,6 @@
 #include <gnuradio/filter/firdes.h>       /* contains enum win_type */
 
 class rx_mmse_nr_f;
-class min_buffer_n;
 
 #if GNURADIO_VERSION < 0x030900
 typedef boost::shared_ptr<rx_mmse_nr_f> rx_mmse_nr_f_sptr;
