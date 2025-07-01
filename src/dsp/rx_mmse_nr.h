@@ -110,9 +110,6 @@ int mmse_nr(int noutput_items,
                     const float *in0,
                     float * out0);
 
-int dumb_nr(int noutput_items,
-                    const float *in0,
-                    float * out0);
 float get_peak(unsigned n);
 void update_buffer(unsigned n,unsigned p);
 
