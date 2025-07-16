@@ -87,6 +87,7 @@ CIqTool::CIqTool(QWidget *parent) :
     set_observer(C_IQ_PROCESS,&CIqTool::iqProcessObserver);
     set_observer(C_IQ_TRUNCATE,&CIqTool::iqTruncateObserver);
     set_observer(C_IQ_ENABLE_TRUNCATE,&CIqTool::enableTruncationObserver);
+    set_observer(C_IQ_TOOL_ERROR,&CIqTool::errorObserver);
 }
 
 CIqTool::~CIqTool()
@@ -680,6 +681,14 @@ void CIqTool::enableTruncationObserver(const c_id id, const c_def::v_union &valu
 void CIqTool::iqTruncateObserver(const c_id id, const c_def::v_union &value)
 {
     getAction(C_IQ_TRUNCATE)->setEnabled(false);
+}
+
+void CIqTool::errorObserver(const c_id id, const c_def::v_union &value)
+{
+    QMessageBox msg_box;
+    msg_box.setIcon(QMessageBox::Critical);
+    msg_box.setText(QString::fromStdString(value));
+    msg_box.exec();
 }
 
 qint64 CIqTool::selectionLength()

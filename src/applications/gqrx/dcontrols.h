@@ -32,6 +32,7 @@ enum c_id
     C_INVALID=-1,
     C_TEST=0,
     
+    C_IQ_TOOL_ERROR,
     C_IQ_LOCATION,
     C_IQ_SELECT,
     C_IQ_REC,

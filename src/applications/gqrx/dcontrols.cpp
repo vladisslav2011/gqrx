@@ -92,7 +92,27 @@ c_def()
     .writable(true)
     .event(false)
     ,
-    
+
+
+c_def()
+    .idx(C_IQ_TOOL_ERROR)
+    .name("IQ Tool error")
+    .title("")
+    .title_placement(c_def::grid_placement(PLACE_NONE,0))
+    .placement(c_def::grid_placement(PLACE_NONE,PLACE_NEXT))
+    .g_type(G_NONE)
+    .dock(D_IQTOOL)
+    .scope(S_RX)
+    .bookmarks_column(-1)
+    .v_type(V_STRING)
+    .def("")
+    .min("")
+    .max("")
+    .readable(false)
+    .writable(false)
+    .event(true)
+    ,
+
 
 c_def()
     .idx(C_IQ_LOCATION)

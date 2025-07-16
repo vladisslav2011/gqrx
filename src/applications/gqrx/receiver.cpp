@@ -1697,7 +1697,8 @@ bool receiver::set_iq_repeat(const c_def::v_union &v)
 bool receiver::set_iq_truncate(const c_def::v_union &)
 {
     int64_t pos = input_file->tell();
-    truncate_iq_file(pos);
+    if(truncate_iq_file(pos) != STATUS_OK)
+        changed_value(C_IQ_TOOL_ERROR,0,"Failed to truncate IQ file");
     return true;
 }
 

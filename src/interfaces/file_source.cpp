@@ -311,9 +311,14 @@ bool file_source::truncate(int64_t seek_point)
     {
         std::unique_lock<std::mutex> guard(d_mutex);
 
-        int res=::ftruncate(GR_FILENO(d_fp), (seek_point + d_start_offset_items) * d_itemsize);
+        int res=::truncate(d_filename.c_str(), (seek_point + d_start_offset_items) * d_itemsize);
         d_items_remaining = d_length_items - seek_point;
         d_length_items = seek_point;
+        if(res)
+        {
+	        std::cerr<<"file_source::truncate("<<seek_point<<")="<<res<<"; l="<<d_length_items<<" error ";
+            perror(nullptr);
+		}
         return (res==0);
     }
     else
