@@ -95,12 +95,12 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     d_window.clear();
     d_window = gr::fft::window::build(gr::fft::window::WIN_HANN, len, 6.76);
     float scale = 1.f / std::accumulate(d_window.begin(), d_window.end(), 0.f);
-    scale *= 0.5f;
+    scale *= 0.125f;
     for(unsigned j=0;j<d_window.size();j++)
         d_window[j] *= scale;
 
     // Noise magnitude calculations - assuming that the first 6 frames is noise / silence
-    d_fft_size = len<<1;
+    d_fft_size = len<<3;
 
     std::cerr<<"d_fft="<<d_fft<<"d_fft_size="<<d_fft_size<<"\n";
     if(d_fft)
