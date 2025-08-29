@@ -1702,6 +1702,7 @@ bool receiver::set_iq_truncate(const c_def::v_union &)
         changed_value(C_IQ_TOOL_ERROR,0,"Failed to truncate IQ file");
     return true;
 }
+
 #endif
 
 /**

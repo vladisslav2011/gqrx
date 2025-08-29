@@ -330,6 +330,7 @@ public:
     status      seek_iq_file(long pos);
 #ifdef __linux__
     status      truncate_iq_file(long pos);
+    status      make_hole_in_iq_file(long pos);
 #endif
     status      seek_iq_file_ts(uint64_t ts, uint64_t &res_point);
     void        get_iq_tool_stats(struct iq_tool_stats &stats);

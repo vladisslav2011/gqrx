@@ -34,6 +34,11 @@
 #include <QShortcut>
 #include <QPushButton>
 
+#ifdef __linux__
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
 #include <math.h>
 
 #include "iq_tool.h"
@@ -86,7 +91,10 @@ CIqTool::CIqTool(QWidget *parent) :
     set_observer(C_IQ_FINE_STEP,&CIqTool::fineStepObserver);
     set_observer(C_IQ_PROCESS,&CIqTool::iqProcessObserver);
     set_observer(C_IQ_TRUNCATE,&CIqTool::iqTruncateObserver);
-    set_observer(C_IQ_ENABLE_TRUNCATE,&CIqTool::enableTruncationObserver);
+    set_observer(C_IQ_ENABLE_EDITING,&CIqTool::enableTruncationObserver);
+#ifdef __linux__
+    set_observer(C_IQ_MAKE_HOLE,&CIqTool::makeholeObserver);
+#endif
     set_observer(C_IQ_TOOL_ERROR,&CIqTool::errorObserver);
 }
 
@@ -110,6 +118,7 @@ void CIqTool::finalizeInner()
     getAction(C_IQ_GOTO_B)->setEnabled(false);
     getAction(C_IQ_RESET_SEL)->setEnabled(false);
     getAction(C_IQ_TRUNCATE)->setEnabled(false);
+    getAction(C_IQ_MAKE_HOLE)->setEnabled(false);
     getWidget(C_IQ_FORMAT)->show();
     getWidget(C_IQ_BUFFERS)->show();
     getWidget(C_IQ_BUF_STAT)->hide();
@@ -301,9 +310,9 @@ void CIqTool::posObserver(c_id, const c_def::v_union &v)
     refreshTimeWidgets();
     updateStats(false, o_buffersUsed, seek_pos);
     if(is_playing && seek_pos > 0)
-        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(true);
+        getAction(C_IQ_ENABLE_EDITING)->setEnabled(true);
     else
-        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(false);
+        getAction(C_IQ_ENABLE_EDITING)->setEnabled(false);
 }
 
 /*! \brief Start/stop recording */
@@ -317,8 +326,9 @@ void CIqTool::recObserver(c_id, const c_def::v_union &v)
         c_def::v_union buffers;//TODO: remove this
         get_gui(C_IQ_BUFFERS, buffers);
         emit startRecording(recdir->path(), rec_fmt);
-        getAction(C_IQ_ENABLE_TRUNCATE)->setEnabled(false);
+        getAction(C_IQ_ENABLE_EDITING)->setEnabled(false);
         getAction(C_IQ_TRUNCATE)->setEnabled(false);
+        getAction(C_IQ_MAKE_HOLE)->setEnabled(false);
 
         refreshDir();
 //        listWidget->setCurrentRow(listWidget->count()-1);
@@ -665,6 +675,38 @@ void CIqTool::saveObserver(c_id, const c_def::v_union &v)
     getAction(C_IQ_SAVE_LOC)->setEnabled(false);
 }
 
+#ifdef __linux__
+void CIqTool::makeholeObserver(c_id, const c_def::v_union &v)
+{
+    if(sel_A<0.0)
+        return;
+    quint64 len_ms=(sel_B-sel_A)*double(rec_len)*1000.0;
+    if(len_ms<1.0)
+        len_ms=1.0;
+    QString fn = recdir->absoluteFilePath(current_file);
+    double fileSize = double(rec_len * sample_rate * chunk_size) / double(samples_per_chunk);
+    off_t  hole_a = sel_A * fileSize;
+    off_t  hole_b = sel_B * fileSize;
+    int fd = ::open(fn.toStdString().c_str(), O_RDWR);
+    if(fd >= 0)
+    {
+        int result = ::fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE, hole_a, hole_b - hole_a);
+        ::close(fd);
+        if(result != 0)
+        {
+            QMessageBox msg_box;
+            msg_box.setIcon(QMessageBox::Critical);
+            msg_box.setText("fallocate failed");
+            msg_box.exec();
+        }
+    }
+    sel_A=sel_B=-1.0;
+    updateSliderStylesheet(0);
+    getAction(C_IQ_TRUNCATE)->setEnabled(false);
+    getAction(C_IQ_MAKE_HOLE)->setEnabled(false);
+}
+#endif
+
 void CIqTool::iqProcessObserver(const c_id id, const c_def::v_union &value)
 {
     if(bool(value))
@@ -676,6 +718,7 @@ void CIqTool::iqProcessObserver(const c_id id, const c_def::v_union &value)
 void CIqTool::enableTruncationObserver(const c_id id, const c_def::v_union &value)
 {
     getAction(C_IQ_TRUNCATE)->setEnabled(true);
+    getAction(C_IQ_MAKE_HOLE)->setEnabled(true);
 }
 
 void CIqTool::iqTruncateObserver(const c_id id, const c_def::v_union &value)

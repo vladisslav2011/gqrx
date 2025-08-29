@@ -54,8 +54,9 @@ enum c_id
     C_IQ_SAVE_LOC,
     C_IQ_PROCESS,
 #ifdef __linux__
-    C_IQ_ENABLE_TRUNCATE,
+    C_IQ_ENABLE_EDITING,
     C_IQ_TRUNCATE,
+    C_IQ_MAKE_HOLE,
 #endif
 
     C_DXC_ADDRESS,
