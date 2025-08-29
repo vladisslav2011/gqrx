@@ -1694,6 +1694,7 @@ bool receiver::set_iq_repeat(const c_def::v_union &v)
     return true;
 }
 
+#ifdef __linux__
 bool receiver::set_iq_truncate(const c_def::v_union &)
 {
     int64_t pos = input_file->tell();
@@ -1701,6 +1702,7 @@ bool receiver::set_iq_truncate(const c_def::v_union &)
         changed_value(C_IQ_TOOL_ERROR,0,"Failed to truncate IQ file");
     return true;
 }
+#endif
 
 /**
  * @brief Start I/Q data recorder.
@@ -1778,6 +1780,7 @@ receiver::status receiver::seek_iq_file(long pos)
     return status;
 }
 
+#ifdef __linux__
 /**
  * @brief Truncate IQ file.
  * @param pos Items offset from the beginning of the file.
@@ -1802,6 +1805,7 @@ receiver::status receiver::truncate_iq_file(long pos)
     }
     return status;
 }
+#endif
 
 /**
  * @brief Seek to position in IQ file source.
@@ -2431,7 +2435,9 @@ int receiver::conf_initializer()
     setters[C_IQ_PROCESS]=&receiver::set_iq_process;
     getters[C_IQ_REPEAT]=&receiver::get_iq_repeat;
     setters[C_IQ_REPEAT]=&receiver::set_iq_repeat;
+#ifdef __linux__
     setters[C_IQ_TRUNCATE]=&receiver::set_iq_truncate;
+#endif
 
     getters[C_IQ_AGC]=&receiver::get_auto_gain;
     setters[C_IQ_AGC]=&receiver::set_auto_gain;

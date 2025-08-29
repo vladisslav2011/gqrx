@@ -479,6 +479,7 @@ c_def()
     .max(1)
     .step(1)
     ,
+#ifdef __linux__
 c_def()
     .idx(C_IQ_ENABLE_TRUNCATE)
     .base(C_IQ_POS)
@@ -515,7 +516,7 @@ c_def()
     .step(0)
     .readable(0)
     ,
-
+#endif
 
 c_def()
     .idx(C_DXC_ADDRESS)

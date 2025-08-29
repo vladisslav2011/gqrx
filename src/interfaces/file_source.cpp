@@ -305,6 +305,7 @@ bool file_source::seek(int64_t seek_point, int whence)
     }
 }
 
+#ifdef __linux__
 bool file_source::truncate(int64_t seek_point)
 {
     if (d_seekable)
@@ -327,6 +328,7 @@ bool file_source::truncate(int64_t seek_point)
         return 0;
     }
 }
+#endif
 
 bool file_source::seek_ts(uint64_t ts, uint64_t &res_point)
 {
