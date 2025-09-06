@@ -92,6 +92,7 @@ public:
 private:
 
     void update_filter();
+    void reset_resampler();
 
     bool   d_running;          /*!< Whether receiver is running or not. */
     int d_fxff_decim{1};

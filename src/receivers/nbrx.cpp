@@ -52,15 +52,7 @@ nbrx::nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr
     // for GR prior to v3.10.7.0.
     nb->set_min_output_buffer(32768);
 
-    audio_rr0.reset();
-    audio_rr1.reset();
-    if (d_audio_rate != NB_PREF_QUAD_RATE)
-    {
-        std::cout << "Resampling audio " << NB_PREF_QUAD_RATE << " -> "
-                  << d_audio_rate << std::endl;
-        audio_rr0 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
-        audio_rr1 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
-    }
+    reset_resampler();
 
     rec_raw = gr::blocks::complex_to_float::make(1);
     fxff = gr::filter::freq_xlating_fir_filter_ccf::make(d_fxff_decim, {1}, 0.0, d_decim_rate);
@@ -308,6 +300,20 @@ void nbrx::update_filter()
     }
 }
 
+void nbrx::reset_resampler()
+{
+    audio_rr0.reset();
+    audio_rr1.reset();
+    if (d_audio_rate != NB_PREF_QUAD_RATE)
+    {
+        std::cout << "Resampling audio " << NB_PREF_QUAD_RATE << " -> "
+                  << d_audio_rate << std::endl;
+        audio_rr0 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
+        audio_rr1 = make_resampler_ff(d_audio_rate/NB_PREF_QUAD_RATE);
+    }
+
+}
+
 bool nbrx::set_filter_shape(const c_def::v_union & v)
 {
     receiver_base_cf::set_filter_shape(v);
@@ -415,6 +421,7 @@ bool nbrx::set_demod(const c_def::v_union & v)
 
                 disconnect(audio_rr0, 0, output, 0);
                 disconnect(audio_rr1, 0, output, 1);
+                reset_resampler();
             }
             else
             {
@@ -478,6 +485,7 @@ bool nbrx::set_demod(const c_def::v_union & v)
         {
             if (new_demod == Modulations::MODE_RAW)
             {
+                reset_resampler();
                 connect(demod, 0, audio_rr0, 0);
                 connect(demod, 1, audio_rr1, 0);
 
