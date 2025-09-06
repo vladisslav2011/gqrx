@@ -238,11 +238,7 @@ int clock_recovery_el_cc::general_work(int noutput_items,
         if(out1)
         {
             if(std::abs(d_corr0-d_corr180)>corr_flip_threshold)
-            {
-                if(d_offs!=(d_corr0>=d_corr180))
-                    printf("Flip !\n");
                 d_offs=(d_corr0>=d_corr180);
-            }
             out1[oo] = d_skip^d_offs;
         }
         gr_complex outval=d_interp.interpolate(&in[ii], d_mu);
