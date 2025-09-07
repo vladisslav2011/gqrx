@@ -59,4 +59,10 @@ private:
     float   m_dBFS;
     float   m_Sql;
     QFont   m_font;
+    qreal   m_marg;
+    qreal   m_hline;
+    qreal   m_width;
+    qreal   m_dbfs_x;
+    qreal   m_dbfs_font;
+    qreal   m_sc_y;
 };

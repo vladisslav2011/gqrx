@@ -89,6 +89,27 @@ void CMeter::setSqlLevel(float dbfs)
 void CMeter::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    m_width = width();
+    if(m_width > height() * 7.6)
+    {
+        if(m_width > height() * 10)
+        {
+            m_dbfs_font = height() * 0.8;
+            m_sc_y = 1.4;
+        }else{
+            m_dbfs_font = height() * 0.8 * m_width / (10. * height());
+            m_sc_y = 1.4 * m_width / (10. * height());
+        }
+        m_width *= 0.5;
+        m_dbfs_x = m_width;
+    }else{
+        m_dbfs_x = 0;
+        m_dbfs_font = height() * 0.25;
+        m_sc_y = 1.;
+    }
+    m_marg = m_width * CTRL_MARGIN;
+    m_hline = (qreal) height() * m_sc_y * CTRL_XAXIS_HEGHT;
+
     drawOverlay(painter);
     draw(painter);
 }
@@ -97,10 +118,8 @@ void CMeter::paintEvent(QPaintEvent *)
 void CMeter::draw(QPainter &painter)
 {
     // Draw current position indicator
-    qreal hline = (qreal) height() * CTRL_XAXIS_HEGHT;
-    qreal marg = (qreal) width() * CTRL_MARGIN;
-    qreal ht = (qreal) height() * CTRL_NEEDLE_TOP;
-    qreal pixperdb = (width() - 2 * CTRL_MARGIN * width()) / (qreal)(MAX_DB - MIN_DB);
+    qreal ht = (qreal) height() * m_sc_y * CTRL_NEEDLE_TOP;
+    qreal pixperdb = (m_width - 2 * CTRL_MARGIN * m_width) / (qreal)(MAX_DB - MIN_DB);
 
     if (m_dBFS > MIN_DB)
     {
@@ -109,21 +128,21 @@ void CMeter::draw(QPainter &painter)
         pen.setJoinStyle(Qt::MiterJoin);
         painter.setPen(pen);
         painter.setBrush(QBrush(color));
-        painter.drawRect(QRectF(marg, ht + 2, (qreal)(std::min(m_dBFS, MAX_DB) - MIN_DB) * pixperdb, 4));
+        painter.drawRect(QRectF(m_marg, ht + 2, (qreal)(std::min(m_dBFS, MAX_DB) - MIN_DB) * pixperdb, 4. * m_sc_y ));
     }
 
     if (m_Sql > MIN_DB)
     {
-        qreal x = marg + (qreal)(m_Sql - MIN_DB) * pixperdb;
+        qreal x = m_marg + (qreal)(m_Sql - MIN_DB) * pixperdb;
         painter.setPen(QPen(Qt::yellow, 1, Qt::SolidLine));
-        painter.drawLine(QLineF(x, hline, x, hline + 8));
+        painter.drawLine(QLineF(x, m_hline, x, m_hline + 8));
     }
 
-    m_font.setPixelSize(height() / 4);
+    m_font.setPixelSize(m_dbfs_font);
     painter.setFont(m_font);
 
     painter.setPen(QColor(0xDA, 0xDA, 0xDA, 0xFF));
-    painter.drawText(marg, height() - 2, QString::number((double)m_dBFS, 'f', 1) + " dBFS" );
+    painter.drawText(m_dbfs_x + m_marg, height() - 2, QString::number((double)m_dBFS, 'f', 1) + " dBFS" );
 }
 
 // Called to draw an overlay bitmap containing items that
@@ -131,29 +150,27 @@ void CMeter::draw(QPainter &painter)
 void CMeter::drawOverlay(QPainter &painter)
 {
     // Draw scale lines
-    qreal marg = (qreal) width() * CTRL_MARGIN;
-    qreal hline = (qreal) height() * CTRL_XAXIS_HEGHT;
-    qreal majstart = (qreal) height() * CTRL_MAJOR_START;
-    qreal minstart = (qreal) height() * CTRL_MINOR_START;
-    qreal hstop = (qreal) width() - marg;
+    qreal majstart = (qreal) height() * m_sc_y * CTRL_MAJOR_START;
+    qreal minstart = (qreal) height() * m_sc_y * CTRL_MINOR_START;
+    qreal hstop = (qreal) m_width - m_marg;
     painter.setPen(QPen(Qt::white, 1, Qt::SolidLine));
-    painter.drawLine(QLineF(marg, hline, hstop, hline));        // top line
-    painter.drawLine(QLineF(marg, hline+8, hstop, hline+8));    // bottom line
-    qreal xpos = marg;
+    painter.drawLine(QLineF(m_marg, m_hline, hstop, m_hline));        // top line
+    painter.drawLine(QLineF(m_marg, m_hline+8, hstop, m_hline+8));    // bottom line
+    qreal xpos = m_marg;
     for (int x = 0; x <= 10; x++) {
         if (x & 1)
             //minor tics
-            painter.drawLine(QLineF(xpos, minstart, xpos, hline));
+            painter.drawLine(QLineF(xpos, minstart, xpos, m_hline));
         else
-            painter.drawLine(QLineF(xpos, majstart, xpos, hline));
-        xpos += (hstop-marg) / 10.0;
+            painter.drawLine(QLineF(xpos, majstart, xpos, m_hline));
+        xpos += (hstop-m_marg) / 10.0;
     }
 
     // draw scale text
-    m_font.setPixelSize(height() / 4);
+    m_font.setPixelSize(height() * m_sc_y * 0.25);
     painter.setFont(m_font);
-    qreal rwidth = (hstop - marg) / 5.0;
-    QRectF rect(marg - rwidth / 2, 0, rwidth, majstart);
+    qreal rwidth = (hstop - m_marg) / 5.0;
+    QRectF rect(m_marg - rwidth / 2, 0, rwidth, majstart);
 
     for (int x = MIN_DB; x <= MAX_DB; x += 20)
     {
