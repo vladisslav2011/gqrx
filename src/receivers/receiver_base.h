@@ -39,6 +39,79 @@
 #include "receivers/vfo.h"
 #include "defines.h"
 
+#include <gnuradio/sync_block.h>
+#include <gnuradio/gr_complex.h>
+/*! \brief SNR estimator
+ *  \ingroup DSP
+ *
+ */
+class rx_snr_c;
+class rx_snr_c : virtual public gr::sync_block
+{
+public:
+#if GNURADIO_VERSION < 0x030900
+    typedef boost::shared_ptr<rx_snr_c> sptr;
+#else
+    typedef std::shared_ptr<rx_snr_c> sptr;
+#endif
+    static sptr make(double alfa=0.001)
+    {
+        return gnuradio::get_initial_sptr(new rx_snr_c(alfa));
+    }
+    ~rx_snr_c()
+    {
+    }
+    int work( int noutput_items,
+            gr_vector_const_void_star &input_items,
+            gr_vector_void_star &output_items )
+    {
+        const gr_complex *in0 = (const gr_complex *) input_items[0];
+        for(int k=0;k<noutput_items;k++)
+        {
+            float mag = std::abs(in0[k]);
+            float diff = std::abs(d_mag - mag);
+            d_mag += (mag - d_mag) * d_alfa;
+            d_diff += (diff - d_diff) * d_alfa;
+            if(d_diff > 0.f)
+            {
+                float sig = d_mag - d_diff;
+                if(sig > 0.f)
+                {
+                    d_snr = log10f(sig / d_diff) * 10.f;
+                }else
+                    d_snr = 0.f;
+            }else
+                d_snr = 0.f;
+        }
+        return noutput_items;
+    }
+
+    void set_alfa(double alfa)
+    {
+        d_alfa = alfa;
+    }
+
+    float get_snr()
+    {
+        return d_snr;
+    };
+
+private:
+    rx_snr_c(double alfa)
+    : gr::sync_block ("rx_snr_c",
+          gr::io_signature::make(1, 1, sizeof(gr_complex)),
+          gr::io_signature::make(0, 0, 0))
+
+    {
+        d_alfa = alfa;
+        d_mag=d_diff=0;
+    }
+    float                 d_alfa;
+    float                 d_mag;
+    float                 d_snr;
+    float                 d_diff;
+};
+
 class receiver_base_cf;
 
 #if 0
@@ -154,6 +227,8 @@ public:
     void update_rejector(receiver_base_cf * rej);
     void remove_rejector(receiver_base_cf * rej);
 
+    float get_snr();
+
 protected:
     struct rejector
     {
@@ -185,6 +260,7 @@ protected:
     rx_mmse_nr_f_sptr         audio_mmse0;
     rx_mmse_nr_f_sptr         audio_mmse1;
     gr::basic_block_sptr      output;
+    rx_snr_c::sptr            snr_estimator;
     std::vector<receiver_base_cf_sptr> & d_rxes;
     std::vector<struct rejector> d_rejectors;
 public:

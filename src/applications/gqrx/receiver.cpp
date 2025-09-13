@@ -2414,6 +2414,11 @@ bool receiver::have_audio()
     return Modulations::has_audio(rx[d_current]->get_demod()) || d_audio_fft_source;
 }
 
+float receiver::get_snr()
+{
+    return rx[d_current]->get_snr();
+}
+
 bool receiver::set_value(c_id optid, const c_def::v_union & value)
 {
     if(setters[optid])

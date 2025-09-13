@@ -52,6 +52,7 @@ CMeter::CMeter(QWidget *parent) : QFrame(parent)
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     m_dBFS = MIN_DB;
+    m_snr = 0.f;
     m_Sql = -150.0;
     m_font = QFont("Arial");
 }
@@ -70,12 +71,16 @@ QSize CMeter::sizeHint() const
     return QSize(100, 30);
 }
 
-void CMeter::setLevel(float dbfs)
+void CMeter::setLevel(float dbfs, float snr)
 {
     float alpha = dbfs < m_dBFS ? ALPHA_DECAY : ALPHA_RISE;
     m_dBFS -= alpha * (m_dBFS - dbfs);
     if (!std::isfinite(m_dBFS))
         m_dBFS = -150.f;
+    alpha = snr < m_snr ? ALPHA_DECAY : ALPHA_RISE;
+    m_snr -= alpha * (m_snr - snr);
+    if (!std::isfinite(m_snr))
+        m_snr = 0.f;
     update();
 }
 
@@ -142,7 +147,7 @@ void CMeter::draw(QPainter &painter)
     painter.setFont(m_font);
 
     painter.setPen(QColor(0xDA, 0xDA, 0xDA, 0xFF));
-    painter.drawText(m_dbfs_x + m_marg, height() - 2, QString::number((double)m_dBFS, 'f', 1) + " dBFS" );
+    painter.drawText(m_dbfs_x + m_marg, height() - 2, QString::number((double)m_dBFS, 'f', 1) + "/" + QString::number((double)m_snr, 'f', 1) + " dBFS" );
 }
 
 // Called to draw an overlay bitmap containing items that

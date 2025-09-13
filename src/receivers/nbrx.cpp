@@ -62,6 +62,7 @@ nbrx::nbrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sptr
     connect(iq_resamp, 0, nb, 0);
     connect(nb, 0, filter, 0);
     connect(filter, 0, meter, 0);
+    connect(filter, 0, snr_estimator, 0);
     connect(filter, 0, sql, 0);
     old_filter_low=d_filter_low;
     old_filter_high=d_filter_high;

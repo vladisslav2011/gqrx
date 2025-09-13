@@ -46,7 +46,7 @@ public:
     QSize sizeHint() const;
 
 public slots:
-    void setLevel(float dbfs);
+    void setLevel(float dbfs, float snr);
     void setSqlLevel(float dbfs);
 
 protected:
@@ -57,6 +57,7 @@ private:
     void drawOverlay(QPainter &painter);
 
     float   m_dBFS;
+    float   m_snr;
     float   m_Sql;
     QFont   m_font;
     qreal   m_marg;

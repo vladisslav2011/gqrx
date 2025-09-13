@@ -52,6 +52,7 @@ wfmrx::wfmrx(double quad_rate, float audio_rate, std::vector<receiver_base_cf_sp
     connect(ddc, 0, iq_resamp, 0);
     connect(iq_resamp, 0, filter, 0);
     connect(filter, 0, meter, 0);
+    connect(filter, 0, snr_estimator, 0);
     connect(filter, 0, sql, 0);
     connect(sql, 0, demod_fm, 0);
     connect(demod_fm, 0, mono, 0);

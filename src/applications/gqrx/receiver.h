@@ -357,6 +357,7 @@ public:
     fft_reader_sptr get_fft_reader(uint64_t offset, receiver::fft_reader::fft_data_ready cb, int nthreads);
     file_formats get_last_format() const { return d_last_format; }
     bool have_audio();
+    float get_snr();
 
     //arbitrary option setters/getters
     bool set_value(c_id optid, const c_def::v_union & value) override;

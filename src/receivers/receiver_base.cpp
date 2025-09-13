@@ -67,6 +67,7 @@ receiver_base_cf::receiver_base_cf(std::string src_name, float pref_quad_rate, d
     audio_rnnoise =  make_rx_rnnoise_f(audio_rate);
     audio_mmse0 =  make_rx_mmse_nr_f(audio_rate);
     audio_mmse1 =  make_rx_mmse_nr_f(audio_rate);
+    snr_estimator = rx_snr_c::make(10.f/pref_quad_rate);
 
     output = audio_rnnoise;
     wav_sink->set_rec_event_handler(std::bind(rec_event, this, std::placeholders::_1,
@@ -592,6 +593,10 @@ void receiver_base_cf::remove_rejector(receiver_base_cf * rej)
     d_rejectors.pop_back();
 }
 
+float receiver_base_cf::get_snr()
+{
+    return snr_estimator->get_snr();
+}
 
 bool receiver_base_cf::set_dedicated_audio_sink(const c_def::v_union & v)
 {

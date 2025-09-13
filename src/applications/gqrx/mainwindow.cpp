@@ -1739,11 +1739,16 @@ void MainWindow::sqlLevelObserver(const c_id id, const c_def::v_union &value)
 /** Signal strength meter timeout. */
 void MainWindow::meterTimeout()
 {
-    float level;
+    float level, snr;
     struct receiver::iq_tool_stats iq_stats;
 
     level = rx->get_signal_pwr();
-    ui->sMeter->setLevel(level);
+    snr = rx->get_snr();
+    if(snr>200.f)
+        snr=200.f;
+    if(snr<-200.f)
+        snr=-200.f;
+    ui->sMeter->setLevel(level, snr);
     remote->setSignalLevel(level);
     // As it looks like this timer is always active (when the DSP is running),
     // check iq recorder state here too
