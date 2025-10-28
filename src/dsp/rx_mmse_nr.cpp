@@ -186,138 +186,154 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
     {
         float * fft_in = d_fft->get_inbuf();
         gr_complex * spec = d_fft->get_outbuf();
+        gr_complex * hw_x_spec = d_fft_r->get_inbuf();
+        float * xi_w = d_fft_r->get_outbuf();
         memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
         volk_32f_x2_multiply_32f(&fft_in[(d_fft_size - d_window.size()) / 2], &in0[0], &d_window[0], d_window.size());
         //volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
         d_fft->execute();
-        std::vector<float> sig(d_fft_rsize);
-        std::vector<float> sig2(d_fft_rsize);
-        std::vector<float> gammak(d_fft_rsize);
-        std::vector<float> foo(d_fft_rsize);
-        std::vector<float> log_sigma_k(d_fft_rsize);
-        std::vector<float> ksi_plus_1(d_fft_rsize);
-        std::vector<float> vk(d_fft_rsize);
-        //sig2 = sig ** 2
-        volk_32fc_magnitude_squared_32f(&sig2[0], spec, d_fft_rsize);
-        //sig = abs(spec)
-        volk_32fc_magnitude_32f(&sig[0], spec, d_fft_rsize);
-        //volk_32f_sqrt_32f(&sig[0],&sig2[0],d_fft_rsize);
-        //gammak = np.divide(sig2.reshape(sig2.shape[0], 1), noise_mu.reshape(noise_mu.shape[0], 1))
-        volk_32f_x2_divide_32f(&gammak[0], &sig2[0], &d_noise_mu[0], d_fft_rsize);
-        //gammak[gammak > 40] = 40
-        //volk_32f_s32f_s32f_mod_range_32f(&gammak[0], &gammak[0], -1.f, 40.f, d_fft_rsize);
-        //volk_32f_s32f_add_32f(&foo[0], &gammak[0], -1.f,  d_fft_rsize);
-        //foo = gammak - 1
-        for(int j=0;j<d_fft_rsize;j++)
+        bool bypass = true;
+        for(int j=0;j<d_fft_size;j++)
         {
-            gammak[j]=std::min(40.f, gammak[j]);
-            foo[j]=gammak[j]-1.f;
-        }
-        //foo[foo < 0] = 0
-        //volk_32f_s32f_s32f_mod_range_32f(&foo[0], &foo[0], 0.f, 40.f, d_fft_rsize);
-        for(int j=0;j<d_fft_rsize;j++)
-            foo[j]=std::max(0.f, foo[j]);
-            //foo[j]=std::max(d_thr, foo[j]);
-        if(!d_init_ksi)
-        {
-            d_init_ksi = true;
-            volk_32f_s32f_multiply_32f(&d_ksi[0], &foo[0], 1.f-aa, d_fft_rsize);
-            //volk_32f_s32f_add_32f(&d_ksi[0], &d_ksi[0], aa, d_fft_rsize);
-            for(int j=0;j<d_fft_rsize;j++)
-                d_ksi[j]+=aa;
-        }else{
-            //ksi = aa * Xk_prev / noise_mu + (1 - aa) * foo
-            volk_32f_x2_divide_32f(&d_ksi[0], &d_Xk_prev[0], &d_noise_mu[0], d_fft_rsize);
-            volk_32f_s32f_multiply_32f(&d_ksi[0], &d_ksi[0], aa, d_fft_rsize);
-            volk_32f_s32f_multiply_32f(&foo[0], &foo[0], 1.f-aa, d_fft_rsize);
-            volk_32f_x2_add_32f(&d_ksi[0], &d_ksi[0], &foo[0], d_fft_rsize);
-
-            // limit ksi to - 25 db
-            //ksi[ksi < ksi_min] = ksi_min
-            for(int j=0;j<d_fft_rsize;j++)
-                d_ksi[j]=std::max(ksi_min, d_ksi[j]);
-//            volk_32f_s32f_s32f_mod_range_32f(&d_ksi[0], &d_ksi[0], ksi_min, 40.f, d_fft_rsize);
-            }
-        // log_sigma_k = gammak * ksi / (1 + ksi) - np.log(1 + ksi)
-        //volk_32f_s32f_add_32f(&ksi_plus_1[0], &d_ksi[0], 1.f, d_fft_rsize);
-        for(int j=0;j<d_fft_rsize;j++)
-            ksi_plus_1[j]=d_ksi[j]+1.f;
-        #if 0
-        volk_32f_x2_multiply_32f(&log_sigma_k[0], &d_ksi[0], &gammak[0], d_fft_rsize);
-        volk_32f_x2_divide_32f(&log_sigma_k[0], &log_sigma_k[0], &ksi_plus_1[0], d_fft_rsize);
-        //no VOLK function to do this...
-        for(int j=0;j<d_fft_rsize;j++)
-            log_sigma_k[j]-=std::log(ksi_plus_1[j]);
-
-        //vad_decision = sum(log_sigma_k) / len
-        float vad_decision = 0.f;
-        volk_32f_accumulator_s32f(&vad_decision, &log_sigma_k[0], d_fft_rsize);
-        vad_decision /= d_frame_size;
-
-        //# noise only frame found
-        //if vad_decision < eta:
-        //    noise_mu = mu * noise_mu + (1 - mu) * sig2.reshape([sig2.shape[0], 1])
-        if(vad_decision < eta)
-        {
-            volk_32f_s32f_multiply_32f(&d_noise_mu[0], &d_noise_mu[0], mu, d_fft_rsize);
-            volk_32f_s32f_multiply_32f(&sig2[0], &sig2[0], 1.f - mu, d_fft_rsize);
-            volk_32f_x2_add_32f(&d_noise_mu[0], &d_noise_mu[0], &sig2[0], d_fft_rsize);
-        }
-        #else
-        if(1)
-        {
-            float prv = sig2[0];
-            float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
-            float tmp1=(prv+sig2[d_fft_rsize-2]+sig2[d_fft_rsize-1])*0.333f;
-            sig2[0]=tmp0;
-            for(int j=1;j<d_fft_rsize-1;j++)
+            if(in0[j]>0.f)
             {
-                prv=(prv+sig2[j]+sig2[j+1])*0.333f;
-                std::swap(sig2[j],prv);
+                bypass = false;
+                break;
             }
-            sig2[d_fft_rsize-1]=tmp1;
+            if(in0[j]<-0.f)
+            {
+                bypass = false;
+                break;
+            }
         }
-        for(int j=0;j<d_fft_rsize;j++)
+        if(!bypass)
         {
-            d_mag_buf[j][d_mag_p] = sig2[j];
-            update_buffer(j,d_mag_p);
-            if(sig2[j]<get_peak(j)*nf_thr)
-                d_noise_mu[j] += (sig2[j] * ofs - d_noise_mu[j]) * (1.f - mu);
-        }
-        d_mag_p++;
-        if(d_mag_p >= d_buf_size)
-            d_mag_p=0;
-        #endif
-
-        //# == = end of vad == =
-
-        //# Log - MMSE estimator
-        //A = ksi / (1 + ksi)
-        std::vector<float> & A = d_ksi;
-        volk_32f_x2_divide_32f(&A[0], &d_ksi[0], &ksi_plus_1[0], d_fft_rsize);
-        //vk = A * gammak
-        volk_32f_x2_divide_32f(&vk[0], &A[0], &gammak[0], d_fft_rsize);
-
-        //ei_vk = 0.5 * expn(1, vk)
-        std::vector<float> & ei_vk = vk;
-        for(int j=0; j<d_fft_rsize; j++)
-            ei_vk[j] = 0.5f * expn(vk[j]);
-        //hw = A * np.exp(ei_vk)
-        std::vector<float> & hw = vk;
-        for(int j=0; j<d_fft_rsize; j++)
-            ei_vk[j] = std::exp(ei_vk[j]);
-        volk_32f_x2_multiply_32f(&hw[0], &ei_vk[0], &A[0], d_fft_rsize);
-        //sig = sig.reshape([sig.shape[0], 1]) * hw
-        volk_32f_x2_multiply_32f(&sig[0], &sig[0], &hw[0], d_fft_rsize);
-        //Xk_prev = sig ** 2
-        volk_32f_x2_multiply_32f(&d_Xk_prev[0], &sig[0], &sig[0], d_fft_rsize);
-
-        //xi_w = ifft(hw * spec.reshape([spec.shape[0], 1]), nFFT, 0)
-        gr_complex * hw_x_spec = d_fft_r->get_inbuf();
-        float * xi_w = d_fft_r->get_outbuf();
-        volk_32fc_32f_multiply_32fc(hw_x_spec, spec, &hw[0], d_fft_rsize);
-        
-        //std::memcpy(hw_x_spec,spec,d_fft_rsize*sizeof(spec[0]));
+            std::vector<float> sig(d_fft_rsize);
+            std::vector<float> sig2(d_fft_rsize);
+            std::vector<float> gammak(d_fft_rsize);
+            std::vector<float> foo(d_fft_rsize);
+            std::vector<float> log_sigma_k(d_fft_rsize);
+            std::vector<float> ksi_plus_1(d_fft_rsize);
+            std::vector<float> vk(d_fft_rsize);
+            //sig2 = sig ** 2
+            volk_32fc_magnitude_squared_32f(&sig2[0], spec, d_fft_rsize);
+            //sig = abs(spec)
+            volk_32fc_magnitude_32f(&sig[0], spec, d_fft_rsize);
+            //volk_32f_sqrt_32f(&sig[0],&sig2[0],d_fft_rsize);
+            //gammak = np.divide(sig2.reshape(sig2.shape[0], 1), noise_mu.reshape(noise_mu.shape[0], 1))
+            volk_32f_x2_divide_32f(&gammak[0], &sig2[0], &d_noise_mu[0], d_fft_rsize);
+            //gammak[gammak > 40] = 40
+            //volk_32f_s32f_s32f_mod_range_32f(&gammak[0], &gammak[0], -1.f, 40.f, d_fft_rsize);
+            //volk_32f_s32f_add_32f(&foo[0], &gammak[0], -1.f,  d_fft_rsize);
+            //foo = gammak - 1
+            for(int j=0;j<d_fft_rsize;j++)
+            {
+                gammak[j]=std::min(40.f, gammak[j]);
+                foo[j]=gammak[j]-1.f;
+            }
+            //foo[foo < 0] = 0
+            //volk_32f_s32f_s32f_mod_range_32f(&foo[0], &foo[0], 0.f, 40.f, d_fft_rsize);
+            for(int j=0;j<d_fft_rsize;j++)
+                foo[j]=std::max(0.f, foo[j]);
+                //foo[j]=std::max(d_thr, foo[j]);
+            if(!d_init_ksi)
+            {
+                d_init_ksi = true;
+                volk_32f_s32f_multiply_32f(&d_ksi[0], &foo[0], 1.f-aa, d_fft_rsize);
+                //volk_32f_s32f_add_32f(&d_ksi[0], &d_ksi[0], aa, d_fft_rsize);
+                for(int j=0;j<d_fft_rsize;j++)
+                    d_ksi[j]+=aa;
+            }else{
+                //ksi = aa * Xk_prev / noise_mu + (1 - aa) * foo
+                volk_32f_x2_divide_32f(&d_ksi[0], &d_Xk_prev[0], &d_noise_mu[0], d_fft_rsize);
+                volk_32f_s32f_multiply_32f(&d_ksi[0], &d_ksi[0], aa, d_fft_rsize);
+                volk_32f_s32f_multiply_32f(&foo[0], &foo[0], 1.f-aa, d_fft_rsize);
+                volk_32f_x2_add_32f(&d_ksi[0], &d_ksi[0], &foo[0], d_fft_rsize);
+    
+                // limit ksi to - 25 db
+                //ksi[ksi < ksi_min] = ksi_min
+                for(int j=0;j<d_fft_rsize;j++)
+                    d_ksi[j]=std::max(ksi_min, d_ksi[j]);
+    //            volk_32f_s32f_s32f_mod_range_32f(&d_ksi[0], &d_ksi[0], ksi_min, 40.f, d_fft_rsize);
+                }
+            // log_sigma_k = gammak * ksi / (1 + ksi) - np.log(1 + ksi)
+            //volk_32f_s32f_add_32f(&ksi_plus_1[0], &d_ksi[0], 1.f, d_fft_rsize);
+            for(int j=0;j<d_fft_rsize;j++)
+                ksi_plus_1[j]=d_ksi[j]+1.f;
+            #if 0
+            volk_32f_x2_multiply_32f(&log_sigma_k[0], &d_ksi[0], &gammak[0], d_fft_rsize);
+            volk_32f_x2_divide_32f(&log_sigma_k[0], &log_sigma_k[0], &ksi_plus_1[0], d_fft_rsize);
+            //no VOLK function to do this...
+            for(int j=0;j<d_fft_rsize;j++)
+                log_sigma_k[j]-=std::log(ksi_plus_1[j]);
+    
+            //vad_decision = sum(log_sigma_k) / len
+            float vad_decision = 0.f;
+            volk_32f_accumulator_s32f(&vad_decision, &log_sigma_k[0], d_fft_rsize);
+            vad_decision /= d_frame_size;
+    
+            //# noise only frame found
+            //if vad_decision < eta:
+            //    noise_mu = mu * noise_mu + (1 - mu) * sig2.reshape([sig2.shape[0], 1])
+            if(vad_decision < eta)
+            {
+                volk_32f_s32f_multiply_32f(&d_noise_mu[0], &d_noise_mu[0], mu, d_fft_rsize);
+                volk_32f_s32f_multiply_32f(&sig2[0], &sig2[0], 1.f - mu, d_fft_rsize);
+                volk_32f_x2_add_32f(&d_noise_mu[0], &d_noise_mu[0], &sig2[0], d_fft_rsize);
+            }
+            #else
+            if(1)
+            {
+                float prv = sig2[0];
+                float tmp0=(prv+sig2[1]+sig2[d_fft_rsize-1])*0.333f;
+                float tmp1=(prv+sig2[d_fft_rsize-2]+sig2[d_fft_rsize-1])*0.333f;
+                sig2[0]=tmp0;
+                for(int j=1;j<d_fft_rsize-1;j++)
+                {
+                    prv=(prv+sig2[j]+sig2[j+1])*0.333f;
+                    std::swap(sig2[j],prv);
+                }
+                sig2[d_fft_rsize-1]=tmp1;
+            }
+            for(int j=0;j<d_fft_rsize;j++)
+            {
+                d_mag_buf[j][d_mag_p] = sig2[j];
+                update_buffer(j,d_mag_p);
+                if(sig2[j]<get_peak(j)*nf_thr)
+                    d_noise_mu[j] += (sig2[j] * ofs - d_noise_mu[j]) * (1.f - mu);
+            }
+            d_mag_p++;
+            if(d_mag_p >= d_buf_size)
+                d_mag_p=0;
+            #endif
+    
+            //# == = end of vad == =
+    
+            //# Log - MMSE estimator
+            //A = ksi / (1 + ksi)
+            std::vector<float> & A = d_ksi;
+            volk_32f_x2_divide_32f(&A[0], &d_ksi[0], &ksi_plus_1[0], d_fft_rsize);
+            //vk = A * gammak
+            volk_32f_x2_divide_32f(&vk[0], &A[0], &gammak[0], d_fft_rsize);
+    
+            //ei_vk = 0.5 * expn(1, vk)
+            std::vector<float> & ei_vk = vk;
+            for(int j=0; j<d_fft_rsize; j++)
+                ei_vk[j] = 0.5f * expn(vk[j]);
+            //hw = A * np.exp(ei_vk)
+            std::vector<float> & hw = vk;
+            for(int j=0; j<d_fft_rsize; j++)
+                ei_vk[j] = std::exp(ei_vk[j]);
+            volk_32f_x2_multiply_32f(&hw[0], &ei_vk[0], &A[0], d_fft_rsize);
+            //sig = sig.reshape([sig.shape[0], 1]) * hw
+            volk_32f_x2_multiply_32f(&sig[0], &sig[0], &hw[0], d_fft_rsize);
+            //Xk_prev = sig ** 2
+            volk_32f_x2_multiply_32f(&d_Xk_prev[0], &sig[0], &sig[0], d_fft_rsize);
+    
+            //xi_w = ifft(hw * spec.reshape([spec.shape[0], 1]), nFFT, 0)
+            volk_32fc_32f_multiply_32fc(hw_x_spec, spec, &hw[0], d_fft_rsize);
+        }else
+            std::memcpy(hw_x_spec,spec,d_fft_rsize*sizeof(spec[0]));
         d_fft_r->execute();
         //xi_w = np.real(xi_w)
 
