@@ -77,7 +77,7 @@ public:
         std::unique_lock<std::mutex> lock(d_mutex);
         d_enabled = enabled;
         d_init_ksi = false;
-        fv_clear(d_old);
+        fv_clear(d_outbuf);
         fv_clear(d_noise_mean);
         fv_clear(d_Xk_prev);
     }
@@ -132,7 +132,7 @@ void update_buffer(unsigned n,unsigned p);
     std::vector<float> d_window;
     std::vector<float> d_noise_mean;
     std::vector<float> d_noise_mu;
-    std::vector<float> d_old;
+    std::vector<float> d_outbuf;
     std::vector<float> d_ksi;
     std::vector<float> d_Xk_prev;
     std::vector<gr_complex> d_prev;

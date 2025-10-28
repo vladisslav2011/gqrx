@@ -32,6 +32,7 @@
 static constexpr int INIT_FRAMES = 2;
 static constexpr float TRACK_SEC = 1.f;
 static constexpr float NOISE_THR = 8.f;
+static constexpr int FFT_SIZE_SCALE = (1<<2);
 
 static float expn(float x);
 
@@ -100,7 +101,7 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
         d_window[j] *= scale;
 
     // Noise magnitude calculations - assuming that the first 6 frames is noise / silence
-    d_fft_size = len<<3;
+    d_fft_size = len * FFT_SIZE_SCALE;
 
     std::cerr<<"d_fft="<<d_fft<<"d_fft_size="<<d_fft_size<<"\n";
     if(d_fft)
@@ -115,12 +116,12 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     d_noise_mu.resize(d_fft_rsize);
     d_prev.resize(d_fft_rsize);
     d_type = float(d_fft_size);
-    d_old.resize(d_len1);
+    d_outbuf.resize(d_fft_size);
     d_ksi.resize(d_fft_rsize);
     d_Xk_prev.resize(d_fft_rsize);
     d_init_ksi = false;
     fv_clear(d_prev);
-    fv_clear(d_old);
+    fv_clear(d_outbuf);
     fv_clear(d_noise_mean);
     fv_clear(d_noise_mu);
     fv_clear(d_Xk_prev);
@@ -167,10 +168,10 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
                     float * out0)
 {
     int nframes = noutput_items / d_len2;
-    const float aa = 1.f-0.02f;
-    const float mu = 1.f-0.02f;
+    static constexpr float aa = 1.f-0.02f;
+    static constexpr float mu = 1.f-0.02f;
     //const float mu = 1.f - 0.1f * d_thr;
-    const float eta = 0.15;
+    static constexpr float eta = 0.15;
     //const float eta = d_thr * 1.f;
 
     //const float ksi_min = powf(10.f,(-25.f * 0.1f));
@@ -186,7 +187,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         float * fft_in = d_fft->get_inbuf();
         gr_complex * spec = d_fft->get_outbuf();
         memset(fft_in,0,d_fft_size*sizeof(fft_in[0]));
-        volk_32f_x2_multiply_32f(fft_in, &in0[0], &d_window[0], d_window.size());
+        volk_32f_x2_multiply_32f(&fft_in[(d_fft_size - d_window.size()) / 2], &in0[0], &d_window[0], d_window.size());
         //volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
         d_fft->execute();
         std::vector<float> sig(d_fft_rsize);
@@ -321,7 +322,13 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         //xi_w = np.real(xi_w)
 
         //xfinal[k: k + np.int(len2)] = x_old + xi_w[0: np.int(len1)]
+        #if 1
         //volk_32f_x2_add_32f(&out0[0], &d_old[0], xi_w, d_old.size());
+        volk_32f_x2_add_32f(&d_outbuf[0], &d_outbuf[0], xi_w, d_fft_size);
+        volk_32f_s32f_multiply_32f(&out0[0],&d_outbuf[0],1.f/float(FFT_SIZE_SCALE),d_len2);
+        std::memmove(&d_outbuf[0],&d_outbuf[d_len2],sizeof(d_outbuf[0])*(d_outbuf.size()-d_len2));
+        std::memset(&d_outbuf[d_outbuf.size()-d_len2],0,sizeof(d_outbuf[0])*d_len2);
+        #else
         float corr1=-xi_w[0];
         float corr2=-xi_w[d_frame_size-1];
         float step=(corr2-corr1)/float(d_frame_size-1);
@@ -335,7 +342,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         }
         //x_old = xi_w[np.int(len1): np.int(len)]
         std::memcpy(&d_old[0], &xi_w[d_len1], d_old.size() * sizeof(d_old[0]));
-
+        #endif
         //k = k + np.int(len2)
         in0 += d_len2;
         out0 += d_len2;
