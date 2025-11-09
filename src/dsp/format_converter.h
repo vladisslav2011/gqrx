@@ -528,15 +528,15 @@ using any_to_any_base::sptr;
 #if 0
                 #ifdef __BMI2__
                 if( __builtin_cpu_supports("bmi2"))
-                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN>>4),16,1,"f32s12"));
+                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN>>4),32,1,"f32s12"));
                 #endif
 #endif
-                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN>>2),16,1,"f32s14"));
+                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN>>2),32,1,"f32s14"));
             }else{
-                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN>>2),16,1,"f32s14"));
+                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN>>2),32,1,"f32s14"));
             }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>2),16,1,"f32s14"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>2),32,1,"f32s14"));
         }
     }
 
@@ -549,15 +549,15 @@ using any_to_any_base::sptr;
 #if 0
                 #ifdef __BMI2__
                 if( __builtin_cpu_supports("bmi2"))
-                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s12f32"));
+                    return gnuradio::get_initial_sptr(new any_to_any_bmi64<T_IN, T_OUT>(-float(INT16_MIN),1,32,"s12f32"));
                 #endif
 #endif
-                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s14f32"));
+                return gnuradio::get_initial_sptr(new any_to_any_64<T_IN, T_OUT>(-float(INT16_MIN),1,32,"s14f32"));
             }else{
-                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),1,16,"s14f32"));
+                return gnuradio::get_initial_sptr(new any_to_any_32<T_IN, T_OUT>(-float(INT16_MIN),1,32,"s14f32"));
             }
         }else{
-            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>2),1,16,"s14f32"));
+            return gnuradio::get_initial_sptr(new any_to_any<T_IN, T_OUT>(-float(INT16_MIN>>2),1,32,"s14f32"));
         }
     }
 
