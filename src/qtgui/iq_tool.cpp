@@ -46,7 +46,7 @@
 
 
 CIqTool::CIqTool(QWidget *parent) :
-    QDialog(parent),
+    QDockWidget(parent),
     ui(new Ui::CIqTool)
 {
     ui->setupUi(this);
@@ -96,6 +96,21 @@ CIqTool::CIqTool(QWidget *parent) :
     set_observer(C_IQ_MAKE_HOLE,&CIqTool::makeholeObserver);
 #endif
     set_observer(C_IQ_TOOL_ERROR,&CIqTool::errorObserver);
+
+    // QDockWidget handles close/show automatically (hiding instead of destroying),
+    // so we use visibilityChanged instead of the QDialog closeEvent/showEvent overrides.
+    // Start timer when dock becomes visible, stop when hidden.
+    connect(this, &QDockWidget::visibilityChanged, this, [this](bool visible) {
+        if (visible) {
+            refreshDir();
+            if(getWidget(C_IQ_POS))
+                dynamic_cast<QSlider *>(getWidget(C_IQ_POS))->setMaximum(rec_len);
+            refreshTimeWidgets();
+            timer->start(1000);
+        } else {
+            timer->stop();
+        }
+    });
 }
 
 CIqTool::~CIqTool()
@@ -410,31 +425,6 @@ void CIqTool::updateSaveProgress(const qint64 save_progress)
     }else
         updateSliderStylesheet(save_progress);
 }
-
-
-/*! \brief Catch window close events.
- *
- * This method is called when the user closes the audio options dialog
- * window using the window close icon. We catch the event and hide the
- * dialog but keep it around for later use.
- */
-void CIqTool::closeEvent(QCloseEvent *event)
-{
-    timer->stop();
-    hide();
-    event->ignore();
-}
-
-/*! \brief Catch window show events. */
-void CIqTool::showEvent(QShowEvent * event)
-{
-    Q_UNUSED(event);
-    refreshDir();
-    dynamic_cast<QSlider *>(getWidget(C_IQ_POS))->setMaximum(rec_len);
-    refreshTimeWidgets();
-    timer->start(1000);
-}
-
 
 /*! \brief Slot called when the recordings directory has changed either
  *         because of user input or programmatically.

@@ -23,12 +23,10 @@
 #ifndef IQ_TOOL_H
 #define IQ_TOOL_H
 
-#include <QCloseEvent>
-#include <QDialog>
 #include <QDir>
+#include <QDockWidget>
 #include <QPalette>
 #include <QSettings>
-#include <QShowEvent>
 #include <QString>
 #include <QTimer>
 #include <QMenu>
@@ -50,7 +48,7 @@ struct iqt_cplx
 
 
 /*! \brief User interface for I/Q recording and playback. */
-class CIqTool : public QDialog, public dcontrols_ui
+class CIqTool : public QDockWidget, public dcontrols_ui
 {
     Q_OBJECT
 
@@ -59,10 +57,6 @@ public:
     ~CIqTool();
 
     void setSampleRate(qint64 sr);
-
-    void closeEvent(QCloseEvent *event) override;
-    void showEvent(QShowEvent * event) override;
-
     qint64 selectionLength();
 
 signals:

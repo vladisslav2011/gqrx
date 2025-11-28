@@ -162,6 +162,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     uiDockAudio->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_A));
     uiDockProbe->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_P));
     uiDockBookmarks->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
+    iq_tool->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_I));
     ui->mainToolBar->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
 
     /* frequency setting shortcut */
@@ -196,6 +197,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     tabifyDockWidget(uiDockRDS, uiDockProbe);
     uiDockAudio->raise();
 
+    // IQ tool starts as floating window
+    addDockWidget(Qt::RightDockWidgetArea, iq_tool);
+    iq_tool->setFloating(true);
+
     addDockWidget(Qt::BottomDockWidgetArea, uiDockBookmarks);
 
     /* hide docks that we don't want to show initially */
@@ -212,6 +217,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     ui->menu_View->addAction(uiDockFft->toggleViewAction());
     ui->menu_View->addAction(uiDockBookmarks->toggleViewAction());
     ui->menu_View->addAction(uiDockProbe->toggleViewAction());
+    ui->menu_View->addAction(iq_tool->toggleViewAction());
     ui->menu_View->addSeparator();
     ui->menu_View->addAction(ui->mainToolBar->toggleViewAction());
     ui->menu_View->addSeparator();
@@ -2948,10 +2954,13 @@ void MainWindow::on_actionSaveSettings_triggered()
         m_last_dir = fi.absolutePath();
 }
 
-/** Show I/Q player. */
+/** Toggle I/Q recorder dock visibility. */
 void MainWindow::on_actionIqTool_triggered()
 {
-    iq_tool->show();
+    if (iq_tool->isVisible())
+        iq_tool->hide();
+    else
+        iq_tool->show();
 }
 
 /* CPlotter::NewDemodFreq() is emitted */
