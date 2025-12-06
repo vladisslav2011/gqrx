@@ -298,6 +298,22 @@ bool receiver_base_cf::set_nb4_strength(const c_def::v_union & v)
     return true;
 }
 
+bool receiver_base_cf::set_nb4_osr(const c_def::v_union & v)
+{
+    vfo_s::set_nb4_osr(v);
+    audio_mmse0->set_osr(v);
+    audio_mmse1->set_osr(v);
+    return true;
+}
+
+bool receiver_base_cf::set_nb4_overlap(const c_def::v_union & v)
+{
+    vfo_s::set_nb4_overlap(v);
+    audio_mmse0->set_overlap(v);
+    audio_mmse1->set_overlap(v);
+    return true;
+}
+
 bool receiver_base_cf::has_nb()
 {
     return false;

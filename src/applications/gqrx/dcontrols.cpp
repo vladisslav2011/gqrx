@@ -3270,6 +3270,62 @@ c_def()
     .max(2.5)
     .step(0.1)
     ,
+c_def()
+    .idx(C_NB4_OVERLAP)
+    .name("NB4 FFT overlap")
+    .title("NB4 FFT overlap")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("NB4 FFT overlap")
+    .g_type(G_COMBO)
+    .dock(D_RXOPT)
+    .window(W_NB_OPT)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("nb4ovr")
+    .bookmarks_column(-1)
+    .v_type(V_INT)
+    .frac_digits(1)
+    .def(8)
+    .min(8)
+    .max(15)
+    .step(1)
+    .presets((c_def::v_preset[])
+    {
+        {"8/16","8/16",8},
+        {"12/16","12/16",12},
+        {"14/16","14/16",14},
+        {"15/16","15/16",15},
+    })
+    ,
+c_def()
+    .idx(C_NB4_OSR)
+    .name("NB4 FFT oversampling")
+    .title("NB4 FFT oversampling")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT))
+    .hint("NB4 FFT oversampling")
+    .g_type(G_COMBO)
+    .dock(D_RXOPT)
+    .window(W_NB_OPT)
+    .scope(S_VFO)
+    .v3_config_group("receiver")
+    .config_key("nb4osr")
+    .bookmarks_column(-1)
+    .v_type(V_INT)
+    .frac_digits(1)
+    .def(4)
+    .min(2)
+    .max(16)
+    .step(2)
+    .presets((c_def::v_preset[])
+    {
+        {"2","2",2},
+        {"4","4",4},
+        {"8","8",8},
+        {"16","16",16},
+    })
+    ,
 
 c_def()
     .idx(C_NFM_MAXDEV)

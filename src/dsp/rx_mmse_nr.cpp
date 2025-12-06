@@ -32,7 +32,6 @@
 static constexpr int INIT_FRAMES = 2;
 static constexpr float TRACK_SEC = 1.f;
 static constexpr float NOISE_THR = 8.f;
-static constexpr int FFT_SIZE_SCALE = (1<<2);
 
 static float expn(float x);
 
@@ -88,20 +87,21 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     len=d_frame_size;
     // d_frame_size = len;
 
-    // window overlap in percent of frame size
-    int perc = 50;
-    d_len1 = len * perc * 0.01f;
+    // window overlap in 16th of frame size
+    d_len1 = len * d_overlap / 16;
     d_len2 = len - d_len1;
 
     d_window.clear();
     d_window = gr::fft::window::build(gr::fft::window::WIN_HANN, len, 6.76);
     float scale = 1.f / std::accumulate(d_window.begin(), d_window.end(), 0.f);
-    scale *= 0.125f;
+    scale *= 1.f/float(d_fft_scale);
+    d_scale = float(16 - d_overlap) / 64.f;
+    //scale *= 1.f/float(16 - d_overlap);
     for(unsigned j=0;j<d_window.size();j++)
         d_window[j] *= scale;
 
     // Noise magnitude calculations - assuming that the first 6 frames is noise / silence
-    d_fft_size = len * FFT_SIZE_SCALE;
+    d_fft_size = len * d_fft_scale;
 
     std::cerr<<"d_fft="<<d_fft<<"d_fft_size="<<d_fft_size<<"\n";
     if(d_fft)
@@ -136,7 +136,7 @@ void rx_mmse_nr_f::set_sample_rate(int sample_rate)
     }
     d_mag_p=0;
     set_output_multiple(d_frame_size);
-    set_history(1 + d_fft_size - d_len2);
+    set_history(1 + d_frame_size);
 }
 
 /**
@@ -181,7 +181,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
     const float nf_thr = powf(10.f,d_thr);
 
     const float ofs = powf(10.f, d_ofs);
-
+    in0 += d_len2;
     for(int k = 0; k < nframes; k++)
     {
         float * fft_in = d_fft->get_inbuf();
@@ -341,7 +341,8 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         #if 1
         //volk_32f_x2_add_32f(&out0[0], &d_old[0], xi_w, d_old.size());
         volk_32f_x2_add_32f(&d_outbuf[0], &d_outbuf[0], xi_w, d_fft_size);
-        volk_32f_s32f_multiply_32f(&out0[0],&d_outbuf[0],1.f/float(FFT_SIZE_SCALE),d_len2);
+        volk_32f_s32f_multiply_32f(&out0[0],&d_outbuf[0],d_scale,d_len2);
+        //std::memcpy(&out0[0],&d_outbuf[0],d_len2 * sizeof(out0[0]));
         std::memmove(&d_outbuf[0],&d_outbuf[d_len2],sizeof(d_outbuf[0])*(d_outbuf.size()-d_len2));
         std::memset(&d_outbuf[d_outbuf.size()-d_len2],0,sizeof(d_outbuf[0])*d_len2);
         #else

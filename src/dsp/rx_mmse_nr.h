@@ -96,6 +96,20 @@ public:
         std::unique_lock<std::mutex> lock(d_mutex);
         d_strength = val;
     }
+    void set_osr(int val)
+    {
+        if(d_fft_scale == val)
+            return;
+        d_fft_scale = val;
+        set_sample_rate(d_sample_rate);
+    }
+    void set_overlap(int val)
+    {
+        if(d_overlap == val)
+            return;
+        d_overlap = val;
+        set_sample_rate(d_sample_rate);
+    }
     bool get_enabled() { return d_enabled; }
     float get_threshold() { return d_thr; }
     float get_ofs() { return d_ofs; }
@@ -139,6 +153,9 @@ void update_buffer(unsigned n,unsigned p);
     float d_avg{0.f};
     float d_havg{0.f};
     float d_lavg{0.f};
+    float d_scale{0.5f};
+    int d_fft_scale{4};
+    int d_overlap{8};
     std::vector<std::vector<float>> d_mag_buf{};
     unsigned d_buf_size{0};
     unsigned d_mag_idx{0};

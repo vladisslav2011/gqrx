@@ -107,6 +107,8 @@ public:
         }
         d_nb4_ofs = 0.f;
         d_nb4_strength = 2.5f;
+        d_nb4_osr = 4;
+        d_nb4_overlap = 8;
     }
 
     virtual ~vfo_s()
@@ -187,6 +189,8 @@ public:
     bool         get_nb4_threshold(c_def::v_union & v) const { v=d_nb_threshold[3]; return true; }
     bool         get_nb4_ofs(c_def::v_union & v) const { v=d_nb4_ofs; return true; }
     bool         get_nb4_strength(c_def::v_union & v) const { v=d_nb4_strength; return true; }
+    bool         get_nb4_osr(c_def::v_union & v) const { v=d_nb4_osr; return true; }
+    bool         get_nb4_overlap(c_def::v_union & v) const { v=d_nb4_overlap; return true; }
     /* Audio recorder */
     bool         get_audio_rec_dir(c_def::v_union & v) const { v=d_rec_dir; return true; }
     bool         get_audio_rec_sql_triggered(c_def::v_union & v) const { v=d_rec_sql_triggered; return true; }
@@ -278,6 +282,8 @@ public:
     virtual bool set_nb4_threshold(const c_def::v_union &);
     virtual bool set_nb4_ofs(const c_def::v_union &);
     virtual bool set_nb4_strength(const c_def::v_union &);
+    virtual bool set_nb4_osr(const c_def::v_union &);
+    virtual bool set_nb4_overlap(const c_def::v_union &);
 
     /* Audio recorder */
     virtual bool set_audio_rec_dir(const c_def::v_union &);
@@ -387,6 +393,8 @@ protected:
     float            d_nb_threshold[RECEIVER_NB_COUNT];
     float            d_nb4_ofs;
     float            d_nb4_strength;
+    int              d_nb4_osr;
+    int              d_nb4_overlap;
 
     std::string      d_rec_dir;
     bool             d_rec_sql_triggered;

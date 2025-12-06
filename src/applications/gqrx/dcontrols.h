@@ -200,6 +200,8 @@ enum c_id
     C_NB4_THR,
     C_NB4_OFS,
     C_NB4_STRENGTH,
+    C_NB4_OVERLAP,
+    C_NB4_OSR,
 
     C_NFM_MAXDEV,
     C_NFMPLL_MAXDEV,

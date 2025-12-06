@@ -400,6 +400,18 @@ bool vfo_s::set_nb4_strength(const c_def::v_union & v)
     return true;
 }
 
+bool vfo_s::set_nb4_overlap(const c_def::v_union & v)
+{
+    d_nb4_overlap = v;
+    return true;
+}
+
+bool vfo_s::set_nb4_osr(const c_def::v_union & v)
+{
+    d_nb4_osr = v;
+    return true;
+}
+
 bool vfo_s::set_audio_rec_dir(const c_def::v_union & v)
 {
     d_rec_dir = std::string(v);
@@ -793,6 +805,10 @@ int vfo_s::conf_initializer()
     getters[C_NB4_OFS]=&vfo_s::get_nb4_ofs;
     setters[C_NB4_STRENGTH]=&vfo_s::set_nb4_strength;
     getters[C_NB4_STRENGTH]=&vfo_s::get_nb4_strength;
+    setters[C_NB4_OSR]=&vfo_s::set_nb4_osr;
+    getters[C_NB4_OSR]=&vfo_s::get_nb4_osr;
+    setters[C_NB4_OVERLAP]=&vfo_s::set_nb4_overlap;
+    getters[C_NB4_OVERLAP]=&vfo_s::get_nb4_overlap;
     // NFM parameters
     setters[C_NFM_MAXDEV]=&vfo_s::set_fm_maxdev;
     getters[C_NFM_MAXDEV]=&vfo_s::get_fm_maxdev;
