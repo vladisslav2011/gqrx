@@ -162,7 +162,6 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     uiDockAudio->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_A));
     uiDockProbe->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_P));
     uiDockBookmarks->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_B));
-    iq_tool->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_I));
     ui->mainToolBar->toggleViewAction()->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_T));
 
     /* frequency setting shortcut */
