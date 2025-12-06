@@ -767,7 +767,7 @@ void CIqTool::refreshDir()
             {
                 listWidget->addItem(current_file);
                 QListWidgetItem * item = listWidget->item(listWidget->count() - 1);
-                item->setBackgroundColor(QColor(0xff0000));
+                item->setBackground(QBrush(QColor(0xff0000)));
                 listWidget->setCurrentItem(item);
                 oldFiles = "";
             }else{
