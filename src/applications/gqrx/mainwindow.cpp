@@ -374,6 +374,10 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     m_recent_config = new RecentConfig(m_cfg_dir, ui->menu_RecentConfig);
     connect(m_recent_config, SIGNAL(loadConfig(const QString &)), this, SLOT(loadConfigSlot(const QString &)));
 
+    // restore geometry and state only when the main window is ready
+    // this prevents floating docks from being created under the main window
+    // due to a bug in certain Qt versions on some platforms
+    connect(this,SIGNAL(restoreGeometryAndState_signal()),this,SLOT(restoreGeometryAndState()),Qt::QueuedConnection);
     // restore last session
     if (!loadConfig(cfgfile, true, true))
     {
@@ -568,11 +572,7 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
 
     // main window settings
     if (restore_mainwindow)
-    {
-        restoreGeometry(m_settings->value("gui/geometry",
-                                          saveGeometry()).toByteArray());
-        restoreState(m_settings->value("gui/state", saveState()).toByteArray());
-    }
+        emit restoreGeometryAndState_signal();
 
     int_val = m_settings->value("output/sample_rate", 48000).toInt(&conv_ok);
     if (conv_ok && (int_val > 0))
@@ -760,6 +760,13 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     emit m_recent_config->configLoaded(m_settings->fileName());
 
     return conf_ok;
+}
+
+void MainWindow::restoreGeometryAndState()
+{
+    restoreGeometry(m_settings->value("gui/geometry",
+                                          saveGeometry()).toByteArray());
+    restoreState(m_settings->value("gui/state", saveState()).toByteArray());
 }
 
 /**

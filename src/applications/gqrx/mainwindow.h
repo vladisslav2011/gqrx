@@ -61,6 +61,7 @@ signals:
     void sigAudioRecEvent(const QString filename, bool is_running);
     void requestPlotterUpdate();
     void sigSaveProgress(const qint64);
+    void restoreGeometryAndState_signal();
 
 public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
@@ -171,6 +172,7 @@ private:
 private slots:
     /* RecentConfig */
     void loadConfigSlot(const QString &cfgfile);
+    void restoreGeometryAndState();
 
     /* rf */
     void setLnbLo(double freq_mhz);
