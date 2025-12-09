@@ -67,7 +67,7 @@ public:
     explicit MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    bool loadConfig(const QString& cfgfile, bool check_crash, bool restore_mainwindow);
+    bool loadConfig(const QString& cfgfile, bool check_crash);
     bool saveConfig(const QString& cfgfile);
     void readRXSettings(int ver, double actual_rate);
     void storeSession();

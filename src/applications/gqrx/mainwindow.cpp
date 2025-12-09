@@ -379,7 +379,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     // due to a bug in certain Qt versions on some platforms
     connect(this,SIGNAL(restoreGeometryAndState_signal()),this,SLOT(restoreGeometryAndState()),Qt::QueuedConnection);
     // restore last session
-    if (!loadConfig(cfgfile, true, true))
+    if (!loadConfig(cfgfile, true))
     {
 
       // first time config
@@ -407,6 +407,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
             configOk = true;
         }
     }
+    emit restoreGeometryAndState_signal();
 
     qsvg_dummy = new QSvgWidget();
     connect(this,SIGNAL(requestPlotterUpdate()), this, SLOT(plotterUpdate()), Qt::QueuedConnection);
@@ -501,8 +502,7 @@ MainWindow::~MainWindow()
  *
  * FIXME: Refactor.
  */
-bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
-                            bool restore_mainwindow)
+bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash)
 {
     double      actual_rate;
     qint64      int64_val;
@@ -569,10 +569,6 @@ bool MainWindow::loadConfig(const QString& cfgfile, bool check_crash,
     bool_val = m_settings->value("gui/hide_toolbar", false).toBool();
     if (bool_val)
         ui->mainToolBar->hide();
-
-    // main window settings
-    if (restore_mainwindow)
-        emit restoreGeometryAndState_signal();
 
     int_val = m_settings->value("output/sample_rate", 48000).toInt(&conv_ok);
     if (conv_ok && (int_val > 0))
@@ -813,7 +809,7 @@ bool MainWindow::saveConfig(const QString& cfgfile)
     }
     if (QFile::copy(oldfile, newfile))
     {
-        loadConfig(cfgfile, false, false);
+        loadConfig(cfgfile, false);
         return true;
     }
     else
@@ -3152,7 +3148,7 @@ int MainWindow::on_actionIoConfig_triggered()
         // Refresh LNB LO in dock widget, otherwise changes will be lost
         uiDockInputCtl->readLnbLoFromSettings(m_settings);
         storeSession();
-        loadConfig(m_settings->fileName(), false, false);
+        loadConfig(m_settings->fileName(), false);
 
         if (dsp_running)
             // restsart DSP
@@ -3174,7 +3170,7 @@ int MainWindow::firstTimeConfig()
     auto confres = ioconf->exec();
 
     if (confres == QDialog::Accepted)
-        loadConfig(m_settings->fileName(), false, false);
+        loadConfig(m_settings->fileName(), false);
 
     delete ioconf;
 
@@ -3197,7 +3193,9 @@ void MainWindow::on_actionLoadSettings_triggered()
     if (!cfgfile.endsWith(".conf", Qt::CaseSensitive))
         cfgfile.append(".conf");
 
-    loadConfig(cfgfile, cfgfile != m_settings->fileName(), cfgfile != m_settings->fileName());
+    loadConfig(cfgfile, cfgfile != m_settings->fileName());
+    if(cfgfile != m_settings->fileName())
+        emit restoreGeometryAndState_signal();
 
     // store last dir
     QFileInfo fi(cfgfile);
@@ -3623,7 +3621,9 @@ void MainWindow::showSimpleTextFile(const QString &resource_path,
  */
 void MainWindow::loadConfigSlot(const QString &cfgfile)
 {
-    loadConfig(cfgfile, cfgfile != m_settings->fileName(), cfgfile != m_settings->fileName());
+    loadConfig(cfgfile, cfgfile != m_settings->fileName());
+    if(cfgfile != m_settings->fileName())
+        emit restoreGeometryAndState_signal();
 }
 
 /**
