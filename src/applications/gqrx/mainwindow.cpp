@@ -130,6 +130,7 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     d_iirFftData = new float[MAX_FFT_SIZE];
     for (int i = 0; i < MAX_FFT_SIZE; i++)
         d_iirFftData[i] = -140.0;  // dBFS
+    d_init_iir = true;
 
     /* timer for data decoders */
     dec_timer = new QTimer(this);
@@ -1798,11 +1799,16 @@ void MainWindow::iqFftTimeout()
 
     iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_input_rate() / rx->get_input_decim());
 
-    for (i = 0; i < fftsize; i++)
+    if(d_init_iir)
     {
-        /* FFT averaging */
-        d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
-    }
+        memcpy(&d_iirFftData[0],&d_realFftData[0],sizeof(d_realFftData[0])*fftsize);
+        d_init_iir = false;
+    }else
+        for (i = 0; i < fftsize; i++)
+        {
+            /* FFT averaging */
+            d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
+        }
 
     ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
     d_fft_duration+=(double(QDateTime::currentMSecsSinceEpoch()-fft_start)-d_fft_duration)*0.1;
@@ -2436,6 +2442,7 @@ void MainWindow::iqFftSizeObserver(c_id, const c_def::v_union & v)
     rx->set_iq_fft_size(d_fft_size);
     for (int i = 0; i < d_fft_size; i++)
         d_iirFftData[i] = -140.0;  // dBFS
+    d_init_iir = true;
     uiDockFft->updateInfoLabels(d_fft_rate, d_fft_size);//FIXME
     triggerIQFftRedraw();
 }

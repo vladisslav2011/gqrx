@@ -115,6 +115,7 @@ private:
     int             d_tuning_step{0};
     int             d_avg_lines{0};
     int             d_avg_remaining{-1};
+    bool            d_init_iir{0};
 
     /* dock widgets */
     DockRxOpt      *uiDockRxOpt;
