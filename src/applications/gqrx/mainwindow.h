@@ -116,6 +116,7 @@ private:
     int             d_avg_lines{0};
     int             d_avg_remaining{-1};
     bool            d_init_iir{0};
+    std::mutex      d_avg_mutex;
 
     /* dock widgets */
     DockRxOpt      *uiDockRxOpt;

@@ -2364,20 +2364,31 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
         ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
         if(d_fftAvg<1.f)
         {
-            if(d_avg_remaining>0)
+            int avg_remaining=d_avg_remaining;
+            if(avg_remaining>0)
                 if(d_avg_lines>line)
                 {
-                    if(d_avg_lines==d_avg_remaining)
-                        for (i = 0; i < n; i++)
-                            d_iirFftData[i]=tmpbuf[i];
-                    else
-                        volk_32f_x2_add_32f(d_iirFftData,d_iirFftData,tmpbuf,n);
-                    d_avg_remaining--;
-                    if(d_avg_remaining==0)
+                    {
+                        std::lock_guard<std::mutex> lock(d_avg_mutex);
+                        if(d_avg_remaining>0)
+                        {
+                            if(d_avg_lines==d_avg_remaining)
+                            {
+                                for (i = 0; i < n; i++)
+                                    d_iirFftData[i]=tmpbuf[i];
+                                d_init_iir = true;
+                            }else
+                                volk_32f_x2_add_32f(d_iirFftData,d_iirFftData,tmpbuf,n);
+                            d_avg_remaining--;
+                            avg_remaining=d_avg_remaining;
+                        }
+                    }
+                    if(avg_remaining==0)
                     {
                         float mul=1.f/float(d_avg_lines);
                         volk_32f_s32f_multiply_32f(d_iirFftData,d_iirFftData,mul,n);
                         ui->plotter->drawOneWaterfallLine(-1, d_iirFftData, n, ts);
+                        d_init_iir = false;
                     }
                 }
         }else
