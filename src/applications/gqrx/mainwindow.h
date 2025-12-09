@@ -113,6 +113,8 @@ private:
     float          *d_iirFftData;
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
     int             d_tuning_step{0};
+    int             d_avg_lines{0};
+    int             d_avg_remaining{-1};
 
     /* dock widgets */
     DockRxOpt      *uiDockRxOpt;

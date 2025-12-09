@@ -1369,6 +1369,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
     h = m_WaterfallPixmap.height();
 
     // no need to draw if pixmap is invisible
+    if(line>=0)
     if (w != 0 && h != 0)
     {
         // get scaled FFT data
@@ -1402,7 +1403,7 @@ void CPlotter::drawOneWaterfallLine(int line, float *fftData, int size, qint64 t
         painter.end();
     }
 
-    if(line == 0)
+    if(line < 0)
     {
         m_fftData = fftData;
         // get/draw the 2D spectrum

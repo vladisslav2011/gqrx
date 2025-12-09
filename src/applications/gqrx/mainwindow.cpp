@@ -2297,6 +2297,11 @@ void MainWindow::waterfall_background_func()
                     else
                         line=lines+nlines;
                 }
+                if(d_fftAvg<1.f)
+                {
+                    d_avg_lines=std::min(int(2.f/d_fftAvg),maxlines);
+                    d_avg_remaining=d_avg_lines;
+                }
                 set_request = MainWindow::WF_RUNNING;
             }else{
                 set_request = MainWindow::WF_NONE;
@@ -2344,16 +2349,34 @@ void MainWindow::plotterWfCbWr(MainWindow *self, int line, gr_complex* data, flo
 
 void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned n, quint64 ts)
 {
+    unsigned i;
     if(n > 0)
     {
         if(line==0)
+            tmpbuf = d_realFftData;
+        iqFftToMag(n,data,tmpbuf, rx->get_input_rate() / rx->get_input_decim());
+        ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
+        if(d_fftAvg<1.f)
         {
-            iqFftToMag(n,data,d_realFftData, rx->get_input_rate() / rx->get_input_decim());
-            ui->plotter->drawOneWaterfallLine(line, d_realFftData, n, ts);
-        }else{
-            iqFftToMag(n,data,tmpbuf, rx->get_input_rate() / rx->get_input_decim());
-            ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
-        }
+            if(d_avg_remaining>0)
+                if(d_avg_lines>line)
+                {
+                    if(d_avg_lines==d_avg_remaining)
+                        for (i = 0; i < n; i++)
+                            d_iirFftData[i]=tmpbuf[i];
+                    else
+                        volk_32f_x2_add_32f(d_iirFftData,d_iirFftData,tmpbuf,n);
+                    d_avg_remaining--;
+                    if(d_avg_remaining==0)
+                    {
+                        float mul=1.f/float(d_avg_lines);
+                        volk_32f_s32f_multiply_32f(d_iirFftData,d_iirFftData,mul,n);
+                        ui->plotter->drawOneWaterfallLine(-1, d_iirFftData, n, ts);
+                    }
+                }
+        }else
+            if(line==0)
+                ui->plotter->drawOneWaterfallLine(-1, tmpbuf, n, ts);
         if((line & 15) == 0)
             emit requestPlotterUpdate();
     }
@@ -2508,6 +2531,7 @@ void MainWindow::iqFftAvgObserver(c_id, const c_def::v_union & v)
     set_gui(C_FFT_AVG_LABEL,1.0f/avg);
     if ((avg >= 0.0f) && (avg <= 1.0f))
         d_fftAvg = avg;
+    triggerIQFftRedraw();
 }
 
 void  MainWindow::fftZoomLevelObserver(c_id, const c_def::v_union & v)

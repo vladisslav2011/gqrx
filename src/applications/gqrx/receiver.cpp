@@ -47,7 +47,7 @@
 #endif
 
 // change to WATERFALL_TIME_BENCHMARK to enable timing information output
-#define NOWATERFALL_TIME_BENCHMARK
+#define WATERFALL_TIME_BENCHMARK
 
 /**
  * @brief Public constructor.
