@@ -33,6 +33,7 @@
 #include <QFileDialog>
 #include <QSvgWidget>
 #include <QSpinBox>
+#include <vector>
 
 #include "qtgui/dockrxopt.h"
 #include "qtgui/dockaudio.h"
@@ -108,9 +109,11 @@ private:
     int d_fft_size{8192};
     int d_audio_fft_interval{40};
 
-    std::complex<float>* d_fftData;
-    float          *d_realFftData;
-    float          *d_iirFftData;
+    std::vector<std::complex<float>> d_fftData;
+    std::vector<float>               d_realFftData;
+    std::vector<float>               d_iirFftData;
+    std::vector<float>               d_audioFftData;
+    std::vector<float>               d_probeFftData;
     float           d_fftAvg;      /*!< FFT averaging parameter set by user (not the true gain). */
     int             d_tuning_step{0};
     int             d_avg_lines{0};

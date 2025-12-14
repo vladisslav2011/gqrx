@@ -125,9 +125,11 @@ MainWindow::MainWindow(const QString& cfgfile, bool edit_conf, QWidget *parent) 
     audio_fft_timer = new QTimer(this);
     connect(audio_fft_timer, SIGNAL(timeout()), this, SLOT(audioFftTimeout()));
 
-    d_fftData = new std::complex<float>[MAX_FFT_SIZE];
-    d_realFftData = new float[MAX_FFT_SIZE];
-    d_iirFftData = new float[MAX_FFT_SIZE];
+    d_fftData.resize(MAX_FFT_SIZE);
+    d_realFftData.resize(MAX_FFT_SIZE);
+    d_iirFftData.resize(MAX_FFT_SIZE);
+    d_audioFftData.resize(MAX_FFT_SIZE);
+    d_probeFftData.resize(MAX_FFT_SIZE);
     for (int i = 0; i < MAX_FFT_SIZE; i++)
         d_iirFftData[i] = -140.0;  // dBFS
     d_init_iir = true;
@@ -522,9 +524,6 @@ MainWindow::~MainWindow()
     delete uiDockProbe;
     delete uiDockRDS;
     delete remote;
-    delete [] d_fftData;
-    delete [] d_realFftData;
-    delete [] d_iirFftData;
     delete qsvg_dummy;
     delete rxSpinBox;
 }
@@ -1793,7 +1792,7 @@ void MainWindow::iqFftTimeout()
     qint64 fft_start=QDateTime::currentMSecsSinceEpoch();
 
     // FIXME: fftsize is a reference
-    rx->get_iq_fft_data(d_fftData, fftsize);
+    rx->get_iq_fft_data(&d_fftData[0], fftsize);
     fft_approx_timestamp = rx->is_playing_iq() ? rx->get_filesource_timestamp_ms() : QDateTime::currentMSecsSinceEpoch();
 
     if (fftsize == 0)
@@ -1802,7 +1801,7 @@ void MainWindow::iqFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_input_rate() / rx->get_input_decim());
+    iqFftToMag(fftsize, &d_fftData[0], &d_realFftData[0], rx->get_input_rate() / rx->get_input_decim());
 
     if(d_init_iir)
     {
@@ -1815,7 +1814,7 @@ void MainWindow::iqFftTimeout()
             d_iirFftData[i] += d_fftAvg * (d_realFftData[i] - d_iirFftData[i]);
         }
 
-    ui->plotter->setNewFftData(d_iirFftData, d_realFftData, fftsize, fft_approx_timestamp);
+    ui->plotter->setNewFftData(&d_iirFftData[0], &d_realFftData[0], fftsize, fft_approx_timestamp);
     d_fft_duration+=(double(QDateTime::currentMSecsSinceEpoch()-fft_start)-d_fft_duration)*0.1;
     uiDockFft->setFftLag(d_fft_duration>iq_fft_timer->interval());
 }
@@ -1841,18 +1840,18 @@ void MainWindow::audioFftTimeout()
 
     if(uiDockProbe->isVisible())
     {
-        rx->get_probe_fft_data(d_fftData, fftsize);
+        rx->get_probe_fft_data(&d_fftData[0], fftsize);
         if (fftsize > 0)
         {
-            iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_audio_rate());
-            uiDockProbe->setNewFftData(d_realFftData, fftsize);
+            iqFftToMag(fftsize, &d_fftData[0], &d_probeFftData[0], rx->get_audio_rate());
+            uiDockProbe->setNewFftData(&d_probeFftData[0], fftsize);
         }
     }
 
     if (!rx->have_audio() || !uiDockAudio->isVisible())
         return;
 
-    rx->get_audio_fft_data(d_fftData, fftsize);
+    rx->get_audio_fft_data(&d_fftData[0], fftsize);
 
     if (fftsize == 0)
     {
@@ -1861,8 +1860,8 @@ void MainWindow::audioFftTimeout()
         return;
     }
 
-    iqFftToMag(fftsize, d_fftData, d_realFftData, rx->get_audio_rate());
-    uiDockAudio->setNewFftData(d_realFftData, fftsize);
+    iqFftToMag(fftsize, &d_fftData[0], &d_audioFftData[0], rx->get_audio_rate());
+    uiDockAudio->setNewFftData(&d_audioFftData[0], fftsize);
 }
 
 void MainWindow::agcOnObserver(const c_id id, const c_def::v_union &value)
@@ -2364,7 +2363,7 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
     if(n > 0)
     {
         if(line==0)
-            tmpbuf = d_realFftData;
+            tmpbuf = &d_realFftData[0];
         iqFftToMag(n,data,tmpbuf, rx->get_input_rate() / rx->get_input_decim());
         ui->plotter->drawOneWaterfallLine(line, tmpbuf, n, ts);
         if(d_fftAvg<1.f)
@@ -2383,7 +2382,7 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
                                     d_iirFftData[i]=tmpbuf[i];
                                 d_init_iir = true;
                             }else
-                                volk_32f_x2_add_32f(d_iirFftData,d_iirFftData,tmpbuf,n);
+                                volk_32f_x2_add_32f(&d_iirFftData[0],&d_iirFftData[0],tmpbuf,n);
                             d_avg_remaining--;
                             avg_remaining=d_avg_remaining;
                         }
@@ -2391,8 +2390,8 @@ void MainWindow::plotterWfCb(int line, gr_complex* data, float *tmpbuf, unsigned
                     if(avg_remaining==0)
                     {
                         float mul=1.f/float(d_avg_lines);
-                        volk_32f_s32f_multiply_32f(d_iirFftData,d_iirFftData,mul,n);
-                        ui->plotter->drawOneWaterfallLine(-1, d_iirFftData, n, ts);
+                        volk_32f_s32f_multiply_32f(&d_iirFftData[0],&d_iirFftData[0],mul,n);
+                        ui->plotter->drawOneWaterfallLine(-1, &d_iirFftData[0], n, ts);
                         d_init_iir = false;
                     }
                 }
