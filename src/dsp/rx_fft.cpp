@@ -532,6 +532,7 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
       d_remaining(0),
       d_noutputs(0),
       d_filter_param(6.5),
+      d_enable_shortcut(false),
       d_nthreads(nthreads),
       d_active(nthreads)
 {
@@ -606,16 +607,28 @@ void fft_channelizer_cc::thread_func(int n)
             return;
         if (d_threads[n].count)
         {
-            if(d_shortcut)
+//            if(d_shortcut)
+            if(d_enable_shortcut)
             {
-                gr_complex * fir_out = &((gr_complex *)d_threads[n].out[0])[d_threads[n].offset];
-                const gr_complex * fir_in = d_threads[n].in;
-                for(int k = 0; k < d_threads[n].count; k++,fir_out++,fir_in+=d_fftsize)
-                    volk_32fc_x2_dot_prod_32fc(fir_out,fir_in, d_fir_taps[d_map[0]].data(), d_fir_taps[d_map[0]].size());
-                for (int j = 1; j < d_noutputs ; j++)
-                    memcpy(&((gr_complex *)d_threads[n].out[j])[d_threads[n].offset],
-                        &((gr_complex *)d_threads[n].out[0])[d_threads[n].offset],
-                        sizeof(gr_complex) * d_threads[n].count);
+                std::vector<bool> done(d_noutputs);
+                for (int j = 0; j < d_noutputs ; j++)
+                {
+                    if(done[j])
+                        continue;
+                    gr_complex * fir_out = &((gr_complex *)d_threads[n].out[j])[d_threads[n].offset];
+                    const gr_complex * fir_in = d_threads[n].in;
+                    for(int k = 0; k < d_threads[n].count; k++,fir_out++,fir_in+=d_fftsize)
+                        volk_32fc_x2_dot_prod_32fc(fir_out,fir_in, d_fir_taps[d_map[j]].data(), d_fir_taps[d_map[j]].size());
+                    if(d_rmap[d_map[j]]>1)
+                        for (int i = j + 1; i < d_noutputs ; i++)
+                            if(d_map[i]==d_map[j])
+                            {
+                                memcpy(&((gr_complex *)d_threads[n].out[i])[d_threads[n].offset],
+                                    &((gr_complex *)d_threads[n].out[j])[d_threads[n].offset],
+                                    sizeof(gr_complex) * d_threads[n].count);
+                                done[i]=1;
+                            }
+                }
             }else
                 for (int k = 0; k < d_threads[n].count; k++, d_threads[n].in += d_fftsize)
                 {
@@ -746,10 +759,16 @@ void fft_channelizer_cc::map_output(int output, int pb)
         return;
     if(output >= int(d_map.size()))
         return;
-    d_rmap[d_map[output]]--;
-    d_map[output] = (d_fftsize * d_osr + pb) % (d_fftsize * d_osr);
-    d_rmap[d_map[output]]++;
-    d_shortcut = d_rmap[d_map[output]] == d_noutputs;
+    int mapped = (d_fftsize * d_osr + pb) % (d_fftsize * d_osr);
+    if(mapped == d_map[output])
+        return;
+    {
+        std::lock_guard<std::mutex> lock(d_mutex);
+        d_rmap[d_map[output]]--;
+        d_map[output] = mapped;
+        d_rmap[d_map[output]]++;
+        d_shortcut = d_enable_shortcut && (d_rmap[d_map[output]] == d_noutputs);
+    }
 //    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<" ("<<d_shortcut<<")\n";
 }
 

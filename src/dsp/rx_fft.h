@@ -266,6 +266,13 @@ public:
     void set_decim(int n);
     void set_filter_param(float n);
     void set_nthreads(int n);
+    bool shortcut() {return d_enable_shortcut; }
+    void set_shortcut(bool n)
+    {
+//        std::lock_guard<std::mutex> lock(d_mutex);
+        d_enable_shortcut = n;
+        d_shortcut = d_enable_shortcut && (d_rmap[d_map[0]] == d_noutputs);
+    }
 
 private:
     typedef struct {
@@ -288,6 +295,7 @@ private:
     int          d_remaining;
     int          d_noutputs;
     float        d_filter_param;
+    bool         d_enable_shortcut;
     bool         d_shortcut;
     std::vector<int> d_map;
     std::vector<int> d_rmap;

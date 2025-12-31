@@ -1542,6 +1542,24 @@ c_def()
         {"8","8 threads",8},
    })
     ,
+c_def()
+    .idx(C_CHAN_SHORTCUT)
+    .name("FIR shortcut")
+    .title("FIR shortcut")
+    .title_placement(c_def::grid_placement(PLACE_NEXT,0,1,1,ALIGN_LEFT))
+    .placement(c_def::grid_placement(PLACE_SAME,PLACE_NEXT,1,2))
+    .hint("Use FIR instead of FFT when it is faster")
+    .g_type(G_CHECKBOX)
+    .dock(D_INPUTCTL)
+    .scope(S_RX)
+    .v3_config_group("gui")
+    .config_key("fir_shortcut")
+    .v_type(V_BOOLEAN)
+    .def(0)
+    .min(0)
+    .max(1)
+    .step(1)
+    ,
 
 #if 0
 c_def()

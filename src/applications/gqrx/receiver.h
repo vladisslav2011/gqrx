@@ -286,6 +286,8 @@ public:
     void        set_chan_filter_param(float n);
     bool        get_channelizer(c_def::v_union &) const;
     bool        set_channelizer(const c_def::v_union &);
+    bool        get_fir_shortcut(c_def::v_union &) const;
+    bool        set_fir_shortcut(const c_def::v_union &);
 
     /* Squelch parameter */
     bool        set_sql_auto(const c_def::v_union &);
