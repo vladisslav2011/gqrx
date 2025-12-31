@@ -544,6 +544,7 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
     set_window_type(wintype);
     set_history(2048);
     d_map.resize(RX_MAX);
+    d_rmap.resize(RX_MAX);
     set_output_multiple(8192);
 }
 
@@ -605,22 +606,33 @@ void fft_channelizer_cc::thread_func(int n)
             return;
         if (d_threads[n].count)
         {
-            for (int k = 0; k < d_threads[n].count; k++, d_threads[n].in += d_fftsize)
+            if(d_shortcut)
             {
-                if (d_window.size())
+                gr_complex * fir_out = &((gr_complex *)d_threads[n].out[0])[d_threads[n].offset];
+                const gr_complex * fir_in = d_threads[n].in;
+                for(int k = 0; k < d_threads[n].count; k++,fir_out++,fir_in+=d_fftsize)
+                    volk_32fc_x2_dot_prod_32fc(fir_out,fir_in, d_fir_taps[d_map[0]].data(), d_fir_taps[d_map[0]].size());
+                for (int j = 1; j < d_noutputs ; j++)
+                    memcpy(&((gr_complex *)d_threads[n].out[j])[d_threads[n].offset],
+                        &((gr_complex *)d_threads[n].out[0])[d_threads[n].offset],
+                        sizeof(gr_complex) * d_threads[n].count);
+            }else
+                for (int k = 0; k < d_threads[n].count; k++, d_threads[n].in += d_fftsize)
                 {
-                    gr_complex *dst = d_threads[n].d_fft->get_inbuf();
-                    volk_32fc_32f_multiply_32fc(dst, d_threads[n].in, &d_window[0], d_fftsize * d_osr);
+                    if (d_window.size())
+                    {
+                        gr_complex *dst = d_threads[n].d_fft->get_inbuf();
+                        volk_32fc_32f_multiply_32fc(dst, d_threads[n].in, &d_window[0], d_fftsize * d_osr);
+                    }
+                    else
+                    {
+                        memcpy(d_threads[n].d_fft->get_inbuf(), d_threads[n].in, sizeof(gr_complex) * d_fftsize * d_osr);
+                    }
+                    d_threads[n].d_fft->execute();
+                    gr_complex * ob = (gr_complex *)d_threads[n].d_fft->get_outbuf();
+                    for (int j = 0; j < d_noutputs ; j++)
+                        ((gr_complex *)d_threads[n].out[j])[k + d_threads[n].offset] = ob[d_map[j]];
                 }
-                else
-                {
-                    memcpy(d_threads[n].d_fft->get_inbuf(), d_threads[n].in, sizeof(gr_complex) * d_fftsize * d_osr);
-                }
-                d_threads[n].d_fft->execute();
-                gr_complex * ob = (gr_complex *)d_threads[n].d_fft->get_outbuf();
-                for (int j = 0; j < d_noutputs ; j++)
-                    ((gr_complex *)d_threads[n].out[j])[k + d_threads[n].offset] = ob[d_map[j]];
-            }
         }
         if (d_nthreads > 1)
         {
@@ -644,6 +656,10 @@ bool fft_channelizer_cc::start()
 bool fft_channelizer_cc::check_topology(int ninputs, int noutputs)
 {
     d_noutputs = noutputs;
+    for(unsigned k=0;k<d_rmap.size();k++)
+        d_rmap[k]=0;
+    for(int k=0;k<d_noutputs;k++)
+        d_rmap[d_map[k]]++;
     bool ret = sync_decimator::check_topology(ninputs, noutputs);
     return ret;
 }
@@ -730,8 +746,11 @@ void fft_channelizer_cc::map_output(int output, int pb)
         return;
     if(output >= int(d_map.size()))
         return;
+    d_rmap[d_map[output]]--;
     d_map[output] = (d_fftsize * d_osr + pb) % (d_fftsize * d_osr);
-//    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<"\n";
+    d_rmap[d_map[output]]++;
+    d_shortcut = d_rmap[d_map[output]] == d_noutputs;
+//    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<" ("<<d_shortcut<<")\n";
 }
 
 void fft_channelizer_cc::set_osr(int n)
@@ -787,6 +806,19 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
         }
     set_relative_rate(1.0 / double(d_fftsize));
     set_decimation(d_fftsize);
+    d_fir_taps.resize(d_fftsize * d_osr);
+    d_rmap.resize(d_fftsize * d_osr);
+    for(unsigned k=0;k<d_fir_taps.size();k++)
+    {
+        d_fir_taps[k].resize(d_fftsize * d_osr);
+        for(unsigned i=0;i<d_fir_taps[k].size();i++)
+            d_fir_taps[k][i]=std::polar(1.f,-2.f*float(M_PI)*float(i*k)/float(d_fir_taps.size()))*d_window[i];
+    }
+    for(unsigned k=0;k<d_rmap.size();k++)
+        d_rmap[k]=0;
     for(int j = 0; j < d_noutputs ; j++)
+    {
         d_map[j] %= d_fftsize * d_osr;
+        d_rmap[d_map[j]]++;
+    }
 }

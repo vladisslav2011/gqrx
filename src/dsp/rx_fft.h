@@ -213,6 +213,7 @@ private:
 
 };
 
+#include <gnuradio/filter/fir_filter.h>       /* contains enum win_type */
 
 
 /*! \brief Block for computing complex FFT.
@@ -287,7 +288,10 @@ private:
     int          d_remaining;
     int          d_noutputs;
     float        d_filter_param;
+    bool         d_shortcut;
     std::vector<int> d_map;
+    std::vector<int> d_rmap;
+    std::vector<std::vector<gr_complex>> d_fir_taps;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
     std::mutex   d_thread_mutex;  /*! Thread triggering. */
