@@ -1302,18 +1302,6 @@ void receiver::configure_channelizer(bool reconnect)
         set_channelizer_int(use_chan);
 }
 
-bool receiver::get_fir_shortcut(c_def::v_union & v) const
-{
-    v=chan->shortcut();
-    return true;
-}
-
-bool receiver::set_fir_shortcut(const c_def::v_union & v)
-{
-    chan->set_shortcut(v);
-    return true;
-}
-
 bool receiver::get_chan_correction(c_def::v_union & v) const
 {
     v=chan->correction();
@@ -2484,8 +2472,6 @@ int receiver::conf_initializer()
     setters[C_ANTENNA]=&receiver::set_antenna;
     getters[C_CHAN_THREADS]=&receiver::get_channelizer;
     setters[C_CHAN_THREADS]=&receiver::set_channelizer;
-    getters[C_CHAN_SHORTCUT]=&receiver::get_fir_shortcut;
-    setters[C_CHAN_SHORTCUT]=&receiver::set_fir_shortcut;
     getters[C_CHAN_CORRECTION]=&receiver::get_chan_correction;
     setters[C_CHAN_CORRECTION]=&receiver::set_chan_correction;
 

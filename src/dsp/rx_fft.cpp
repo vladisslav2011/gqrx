@@ -534,7 +534,6 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
       d_remaining(0),
       d_noutputs(0),
       d_filter_param(6.5),
-      d_enable_shortcut(false),
       d_shortcut(false),
       d_active_outputs(0),
       d_enable_correction(false),
@@ -681,7 +680,7 @@ bool fft_channelizer_cc::check_topology(int ninputs, int noutputs)
             d_active_outputs++;
         d_rmap[d_map[k]]++;
     }
-    d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
+    d_shortcut = (d_active_outputs <= SHORTCUT_MAX);
     bool ret = sync_decimator::check_topology(ninputs, noutputs);
     return ret;
 }

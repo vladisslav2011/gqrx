@@ -267,13 +267,6 @@ public:
     void set_decim(int n);
     void set_filter_param(float n);
     void set_nthreads(int n);
-    bool shortcut() {return d_enable_shortcut; }
-    void set_shortcut(bool n)
-    {
-//        std::lock_guard<std::mutex> lock(d_mutex);
-        d_enable_shortcut = n;
-        d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
-    }
     bool correction() {return d_enable_correction; }
     void set_correction(bool n) { d_enable_correction = n; }
 
