@@ -533,6 +533,8 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
       d_noutputs(0),
       d_filter_param(6.5),
       d_enable_shortcut(false),
+      d_shortcut(false),
+      d_active_outputs(0),
       d_nthreads(nthreads),
       d_active(nthreads)
 {
@@ -607,8 +609,7 @@ void fft_channelizer_cc::thread_func(int n)
             return;
         if (d_threads[n].count)
         {
-//            if(d_shortcut)
-            if(d_enable_shortcut)
+            if(d_shortcut)
             {
                 std::vector<bool> done(d_noutputs);
                 for (int j = 0; j < d_noutputs ; j++)
@@ -670,8 +671,14 @@ bool fft_channelizer_cc::check_topology(int ninputs, int noutputs)
     d_noutputs = noutputs;
     for(unsigned k=0;k<d_rmap.size();k++)
         d_rmap[k]=0;
+    d_active_outputs=0;
     for(int k=0;k<d_noutputs;k++)
+    {
+        if(!d_rmap[d_map[k]])
+            d_active_outputs++;
         d_rmap[d_map[k]]++;
+    }
+    d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
     bool ret = sync_decimator::check_topology(ninputs, noutputs);
     return ret;
 }
@@ -764,9 +771,13 @@ void fft_channelizer_cc::map_output(int output, int pb)
     {
         std::lock_guard<std::mutex> lock(d_mutex);
         d_rmap[d_map[output]]--;
+        if(!d_rmap[d_map[output]])
+            d_active_outputs--;
         d_map[output] = mapped;
+        if(!d_rmap[d_map[output]])
+            d_active_outputs++;
         d_rmap[d_map[output]]++;
-        d_shortcut = d_enable_shortcut && (d_rmap[d_map[output]] == d_noutputs);
+        d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
     }
 //    std::cerr<<"fft_channelizer_cc::map_output("<<output<<","<<pb<<")=>"<<d_map[output]<<" ("<<d_shortcut<<")\n";
 }

@@ -271,7 +271,7 @@ public:
     {
 //        std::lock_guard<std::mutex> lock(d_mutex);
         d_enable_shortcut = n;
-        d_shortcut = d_enable_shortcut && (d_rmap[d_map[0]] == d_noutputs);
+        d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
     }
 
 private:
@@ -297,9 +297,13 @@ private:
     float        d_filter_param;
     bool         d_enable_shortcut;
     bool         d_shortcut;
+    int          d_active_outputs;
     std::vector<int> d_map;
     std::vector<int> d_rmap;
     std::vector<gr::filter::kernel::fir_filter_ccc> d_fir_filters;
+    //TODO: autodetect best shrtcut transition point
+    //TODO: @fftsize>32 shrtcut consumes less CPU up to 3 outputs
+    static constexpr int SHORTCUT_MAX = 2;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
     std::mutex   d_thread_mutex;  /*! Thread triggering. */
