@@ -1314,6 +1314,18 @@ bool receiver::set_fir_shortcut(const c_def::v_union & v)
     return true;
 }
 
+bool receiver::get_chan_correction(c_def::v_union & v) const
+{
+    v=chan->correction();
+    return true;
+}
+
+bool receiver::set_chan_correction(const c_def::v_union & v)
+{
+    chan->set_correction(v);
+    return true;
+}
+
 bool receiver::set_sql_auto(const c_def::v_union & level_offset)
 {
     const c_def::v_union new_level(rx[d_current]->get_signal_level() + float(level_offset));
@@ -2474,6 +2486,8 @@ int receiver::conf_initializer()
     setters[C_CHAN_THREADS]=&receiver::set_channelizer;
     getters[C_CHAN_SHORTCUT]=&receiver::get_fir_shortcut;
     setters[C_CHAN_SHORTCUT]=&receiver::set_fir_shortcut;
+    getters[C_CHAN_CORRECTION]=&receiver::get_chan_correction;
+    setters[C_CHAN_CORRECTION]=&receiver::set_chan_correction;
 
     getters[C_HW_FREQ_LABEL]=&receiver::get_hw_freq_label;
     setters[C_FREQ_LOCK_ALL]=&receiver::set_freq_lock_all;

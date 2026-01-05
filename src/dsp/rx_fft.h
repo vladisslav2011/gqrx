@@ -274,6 +274,8 @@ public:
         d_enable_shortcut = n;
         d_shortcut = d_enable_shortcut && (d_active_outputs <= SHORTCUT_MAX);
     }
+    bool correction() {return d_enable_correction; }
+    void set_correction(bool n) { d_enable_correction = n; }
 
 private:
     typedef struct {
@@ -299,6 +301,7 @@ private:
     bool         d_enable_shortcut;
     bool         d_shortcut;
     int          d_active_outputs;
+    int          d_enable_correction;
     std::vector<int> d_map;
     std::vector<int> d_rmap;
     std::vector<gr::filter::kernel::fir_filter_ccc> d_fir_filters;

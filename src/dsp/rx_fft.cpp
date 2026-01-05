@@ -537,6 +537,7 @@ fft_channelizer_cc::fft_channelizer_cc(int nchannels, int osr, int wintype, int 
       d_enable_shortcut(false),
       d_shortcut(false),
       d_active_outputs(0),
+      d_enable_correction(false),
       d_nthreads(nthreads),
       d_active(nthreads)
 {
@@ -725,17 +726,20 @@ int fft_channelizer_cc::work(int noutput_items,
 
         }
     }
-    std::map<int,int> ud;
-    for(int p=0;p<d_noutputs;p++)
+    if(d_enable_correction)
     {
-        gr_complex *out=(gr_complex *)output_items[p];
-        auto p_ud=ud.find(d_map[p]);
-        if(p_ud==ud.end())
+        std::map<int,int> ud;
+        for(int p=0;p<d_noutputs;p++)
         {
-            ud[d_map[p]]=p;
-            d_correctors[(d_map[p]+d_rmap.size())%d_osr].filterN(out,out,noutput_items);;
-        }else
-            memcpy(output_items[p],output_items[p_ud->second],noutput_items*sizeof(gr_complex));
+            gr_complex *out=(gr_complex *)output_items[p];
+            auto p_ud=ud.find(d_map[p]);
+            if(p_ud==ud.end())
+            {
+                ud[d_map[p]]=p;
+                d_correctors[(d_map[p]+d_rmap.size())%d_osr].filterN(out,out,noutput_items);;
+            }else
+                memcpy(output_items[p],output_items[p_ud->second],noutput_items*sizeof(gr_complex));
+        }
     }
     return nblocks;
 }
