@@ -299,7 +299,7 @@ private:
     bool         d_shortcut;
     std::vector<int> d_map;
     std::vector<int> d_rmap;
-    std::vector<std::vector<gr_complex>> d_fir_taps;
+    std::vector<gr::filter::kernel::fir_filter_ccc> d_fir_filters;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
     std::mutex   d_thread_mutex;  /*! Thread triggering. */

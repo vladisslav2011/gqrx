@@ -617,8 +617,7 @@ void fft_channelizer_cc::thread_func(int n)
                         continue;
                     gr_complex * fir_out = &((gr_complex *)d_threads[n].out[j])[d_threads[n].offset];
                     const gr_complex * fir_in = d_threads[n].in;
-                    for(int k = 0; k < d_threads[n].count; k++,fir_out++,fir_in+=d_fftsize)
-                        volk_32fc_x2_dot_prod_32fc(fir_out,fir_in, d_fir_taps[d_map[j]].data(), d_fir_taps[d_map[j]].size());
+                    d_fir_filters[d_map[j]].filterNdec(fir_out,fir_in,d_threads[n].count,d_fftsize);
                     if(d_rmap[d_map[j]]>1)
                         for (int i = j + 1; i < d_noutputs ; i++)
                             if(d_map[i]==d_map[j])
@@ -825,13 +824,15 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
         }
     set_relative_rate(1.0 / double(d_fftsize));
     set_decimation(d_fftsize);
-    d_fir_taps.resize(d_fftsize * d_osr);
+    d_fir_filters.clear();
+    d_fir_filters.reserve(d_fftsize * d_osr);
     d_rmap.resize(d_fftsize * d_osr);
-    for(unsigned k=0;k<d_fir_taps.size();k++)
+    std::vector<gr_complex> tmp_taps(d_fftsize * d_osr);
+    for(unsigned k=0;k<d_rmap.size();k++)
     {
-        d_fir_taps[k].resize(d_fftsize * d_osr);
-        for(unsigned i=0;i<d_fir_taps[k].size();i++)
-            d_fir_taps[k][i]=std::polar(1.f,-2.f*float(M_PI)*float(i*k)/float(d_fir_taps.size()))*d_window[i];
+        for(unsigned i=0;i<tmp_taps.size();i++)
+            tmp_taps[i]=std::polar(1.f,2.f*float(M_PI)*float(i*k)/float(tmp_taps.size()))*d_window[i];
+        d_fir_filters.emplace_back(d_fftsize, tmp_taps);
     }
     for(unsigned k=0;k<d_rmap.size();k++)
         d_rmap[k]=0;
