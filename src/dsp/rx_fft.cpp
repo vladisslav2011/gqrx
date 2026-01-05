@@ -30,6 +30,8 @@
 #include "dsp/rx_fft.h"
 #include "receivers/defines.h"
 #include <algorithm>
+#include <map>
+
 using namespace std::literals;
 
 fft_c_basic::fft_c_basic(unsigned int fftsize, int wintype)
@@ -682,6 +684,11 @@ bool fft_channelizer_cc::check_topology(int ninputs, int noutputs)
     bool ret = sync_decimator::check_topology(ninputs, noutputs);
     return ret;
 }
+#define countof(x) (sizeof(x)/sizeof(x[0]))
+
+static const float corr_taps[]={
+2.0620138457161374e-05, -0.13459430634975433, 0.7307701706886292, -0.13459429144859314, 2.0620138457161374e-05
+};
 
 int fft_channelizer_cc::work(int noutput_items,
             gr_vector_const_void_star &input_items,
@@ -718,6 +725,29 @@ int fft_channelizer_cc::work(int noutput_items,
 
         }
     }
+    std::map<int,int> ud;
+    for(int p=0;p<d_noutputs;p++)
+    {
+        gr_complex *out=(gr_complex *)output_items[p];
+        auto p_ud=ud.find(d_map[p]);
+        if(p_ud==ud.end())
+        {
+            ud[d_map[p]]=p;
+            int cfir_p=d_cfir_p;
+            gr_complex * ptaps=&d_cfir_taps[(d_map[p]+d_rmap.size())%d_osr][0];
+            for(int k=0;k<noutput_items;k++)
+            {
+                gr_complex acc=0;
+                d_cfir_buf[d_map[p]][cfir_p]=out[k];
+                cfir_p=(cfir_p+1)%countof(corr_taps);
+                for(unsigned j=0;j<countof(corr_taps);j++)
+                    acc+=d_cfir_buf[d_map[p]][(countof(corr_taps)+j+cfir_p)%countof(corr_taps)]*ptaps[j];
+                out[k]=acc;
+            }
+        }else
+            memcpy(output_items[p],output_items[p_ud->second],noutput_items*sizeof(gr_complex));
+    }
+    d_cfir_p=(d_cfir_p+noutput_items)%countof(corr_taps);
     return nblocks;
 }
 
@@ -812,7 +842,7 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize * d_osr, (double)d_filter_param);
     for(auto &dw :d_window)
-        dw /= float(d_fftsize) * 1.7f;
+        dw /= float(d_fftsize) * 0.83f;
     /* reset FFT object (also reset FFTW plan) */
     if(d_nthreads != nthreads)
     {
@@ -838,12 +868,14 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     d_fir_filters.clear();
     d_fir_filters.reserve(d_fftsize * d_osr);
     d_rmap.resize(d_fftsize * d_osr);
+    d_cfir_buf.resize(d_rmap.size());
     std::vector<gr_complex> tmp_taps(d_fftsize * d_osr);
     for(unsigned k=0;k<d_rmap.size();k++)
     {
         for(unsigned i=0;i<tmp_taps.size();i++)
             tmp_taps[i]=std::polar(1.f,2.f*float(M_PI)*float(i*k)/float(tmp_taps.size()))*d_window[i];
         d_fir_filters.emplace_back(d_fftsize, tmp_taps);
+        d_cfir_buf[k].resize(countof(corr_taps));
     }
     for(unsigned k=0;k<d_rmap.size();k++)
         d_rmap[k]=0;
@@ -851,5 +883,13 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     {
         d_map[j] %= d_fftsize * d_osr;
         d_rmap[d_map[j]]++;
+    }
+    d_cfir_p=0;
+    d_cfir_taps.resize(osr);
+    for(int j=0;j<osr;j++)
+    {
+        d_cfir_taps[j].resize(countof(corr_taps));
+        for(unsigned k=0;k<countof(corr_taps);k++)
+            d_cfir_taps[j][k]=gr_complex(corr_taps[k])*std::polar(1.f,float(-2.*M_PI*double(k*j)/double(osr)));
     }
 }
