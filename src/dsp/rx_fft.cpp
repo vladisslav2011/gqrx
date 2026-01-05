@@ -733,21 +733,10 @@ int fft_channelizer_cc::work(int noutput_items,
         if(p_ud==ud.end())
         {
             ud[d_map[p]]=p;
-            int cfir_p=d_cfir_p;
-            gr_complex * ptaps=&d_cfir_taps[(d_map[p]+d_rmap.size())%d_osr][0];
-            for(int k=0;k<noutput_items;k++)
-            {
-                gr_complex acc=0;
-                d_cfir_buf[d_map[p]][cfir_p]=out[k];
-                cfir_p=(cfir_p+1)%countof(corr_taps);
-                for(unsigned j=0;j<countof(corr_taps);j++)
-                    acc+=d_cfir_buf[d_map[p]][(countof(corr_taps)+j+cfir_p)%countof(corr_taps)]*ptaps[j];
-                out[k]=acc;
-            }
+            d_correctors[(d_map[p]+d_rmap.size())%d_osr].filterN(out,out,noutput_items);;
         }else
             memcpy(output_items[p],output_items[p_ud->second],noutput_items*sizeof(gr_complex));
     }
-    d_cfir_p=(d_cfir_p+noutput_items)%countof(corr_taps);
     return nblocks;
 }
 
@@ -868,14 +857,12 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
     d_fir_filters.clear();
     d_fir_filters.reserve(d_fftsize * d_osr);
     d_rmap.resize(d_fftsize * d_osr);
-    d_cfir_buf.resize(d_rmap.size());
     std::vector<gr_complex> tmp_taps(d_fftsize * d_osr);
     for(unsigned k=0;k<d_rmap.size();k++)
     {
         for(unsigned i=0;i<tmp_taps.size();i++)
             tmp_taps[i]=std::polar(1.f,2.f*float(M_PI)*float(i*k)/float(tmp_taps.size()))*d_window[i];
         d_fir_filters.emplace_back(d_fftsize, tmp_taps);
-        d_cfir_buf[k].resize(countof(corr_taps));
     }
     for(unsigned k=0;k<d_rmap.size();k++)
         d_rmap[k]=0;
@@ -884,12 +871,13 @@ void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float fil
         d_map[j] %= d_fftsize * d_osr;
         d_rmap[d_map[j]]++;
     }
-    d_cfir_p=0;
-    d_cfir_taps.resize(osr);
+    d_correctors.clear();
+    d_correctors.reserve(d_osr);
+    std::vector<gr_complex> correctors_taps(countof(corr_taps));
     for(int j=0;j<osr;j++)
     {
-        d_cfir_taps[j].resize(countof(corr_taps));
         for(unsigned k=0;k<countof(corr_taps);k++)
-            d_cfir_taps[j][k]=gr_complex(corr_taps[k])*std::polar(1.f,float(-2.*M_PI*double(k*j)/double(osr)));
+            correctors_taps[k]=gr_complex(corr_taps[k])*std::polar(1.f,2.f*float(M_PI)*float(k*j)/float(osr));
+        d_correctors.emplace_back(correctors_taps);
     }
 }

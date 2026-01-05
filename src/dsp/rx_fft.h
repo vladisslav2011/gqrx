@@ -213,7 +213,8 @@ private:
 
 };
 
-#include <gnuradio/filter/fir_filter.h>       /* contains enum win_type */
+#include <gnuradio/filter/fir_filter.h>
+#include <gnuradio/filter/fir_filter_with_buffer.h>
 
 
 /*! \brief Block for computing complex FFT.
@@ -304,9 +305,7 @@ private:
     //TODO: autodetect best shrtcut transition point
     //TODO: @fftsize>32 shrtcut consumes less CPU up to 3 outputs
     static constexpr int SHORTCUT_MAX = 2;
-    std::vector<std::vector<gr_complex>> d_cfir_buf;
-    std::vector<std::vector<gr_complex>> d_cfir_taps;
-    int          d_cfir_p;
+    std::vector<gr::filter::kernel::fir_filter_with_buffer_ccc> d_correctors;
 
     std::mutex   d_mutex;  /*! Used to lock FFT output buffer. */
     std::mutex   d_thread_mutex;  /*! Thread triggering. */
