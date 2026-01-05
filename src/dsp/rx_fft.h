@@ -268,7 +268,7 @@ public:
     void set_filter_param(float n);
     void set_nthreads(int n);
     bool correction() {return d_enable_correction; }
-    void set_correction(bool n) { d_enable_correction = n; }
+    void set_correction(bool n);
 
 private:
     typedef struct {
@@ -312,7 +312,7 @@ private:
     int          d_nthreads;
     int          d_active;
 
-    void set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads);
+    void set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads, bool corr);
     void thread_func(int n);
     void stop_threads();
     void start_threads();

@@ -751,7 +751,7 @@ void fft_channelizer_cc::set_window_type(int wintype)
 
     if ((wintype < gr::fft::window::WIN_HAMMING) || (wintype > gr::fft::window::WIN_FLATTOP))
         wintype = gr::fft::window::WIN_HAMMING;
-    set_params(d_fftsize, wintype, d_osr, d_filter_param, d_nthreads);
+    set_params(d_fftsize, wintype, d_osr, d_filter_param, d_nthreads, d_enable_correction);
 }
 
 int  fft_channelizer_cc::get_window_type() const
@@ -762,13 +762,13 @@ int  fft_channelizer_cc::get_window_type() const
 void fft_channelizer_cc::set_fft_size(int fftsize)
 {
     if (fftsize != d_fftsize)
-        set_params(fftsize, d_wintype, d_osr, d_filter_param, d_nthreads);
+        set_params(fftsize, d_wintype, d_osr, d_filter_param, d_nthreads, d_enable_correction);
 }
 
 void fft_channelizer_cc::set_nthreads(int n)
 {
     if (n != d_nthreads)
-        set_params(d_fftsize, d_wintype, d_osr, d_filter_param, n);
+        set_params(d_fftsize, d_wintype, d_osr, d_filter_param, n, d_enable_correction);
 }
 
 int fft_channelizer_cc::nthreads()
@@ -807,7 +807,7 @@ void fft_channelizer_cc::map_output(int output, int pb)
 void fft_channelizer_cc::set_osr(int n)
 {
     if (n != d_osr)
-        set_params(d_fftsize, d_wintype, n, d_filter_param, d_nthreads);
+        set_params(d_fftsize, d_wintype, n, d_filter_param, d_nthreads, d_enable_correction);
 }
 
 void fft_channelizer_cc::set_decim(int n)
@@ -818,23 +818,36 @@ void fft_channelizer_cc::set_decim(int n)
 void fft_channelizer_cc::set_filter_param(float n)
 {
     if(d_filter_param != n)
-        set_params(d_fftsize, d_wintype, d_osr, n, d_nthreads);
+        set_params(d_fftsize, d_wintype, d_osr, n, d_nthreads, d_enable_correction);
 }
 
-void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads)
+void fft_channelizer_cc::set_correction(bool n)
+{
+    if(d_enable_correction != n)
+        set_params(d_fftsize, d_wintype, d_osr, d_filter_param, d_nthreads, n);
+}
+
+void fft_channelizer_cc::set_params(int fftsize, int wintype, int osr, float filter_param, int nthreads, bool corr)
 {
     std::lock_guard<std::mutex> lock(d_mutex);
-    if((d_wintype == wintype)&&(d_fftsize == fftsize)&&(d_osr == osr)&&(d_filter_param == filter_param)&&(d_nthreads==nthreads))
+    if((d_wintype == wintype)&&(d_fftsize == fftsize)&&(d_osr == osr)
+        &&(d_filter_param == filter_param)&&(d_nthreads==nthreads)&&(d_enable_correction==corr))
         return;
     std::cerr<<"fft_channelizer_cc::set_params "<<fftsize<<" "<<wintype<<" "<<osr<<" "<<filter_param<<" "<<nthreads<<std::endl;
     d_wintype = wintype;
     d_filter_param = filter_param;
     d_osr = osr;
     d_fftsize = fftsize;
+    d_enable_correction = corr;
     d_window.clear();
     d_window = gr::fft::window::build((gr::fft::window::win_type)d_wintype, d_fftsize * d_osr, (double)d_filter_param);
+    float scale = 1.f / float(d_fftsize);
+    if(d_enable_correction)
+        scale /= 0.83f;
+    else
+        scale /= 1.68f;
     for(auto &dw :d_window)
-        dw /= float(d_fftsize) * 0.83f;
+        dw *=  scale;
     /* reset FFT object (also reset FFTW plan) */
     if(d_nthreads != nthreads)
     {
