@@ -1088,6 +1088,7 @@ void receiver::set_audio_fft_enabled(bool enabled)
 bool receiver::set_audio_fft_size(const c_def::v_union & v)
 {
     audio_fft->set_fft_size(int(v));
+    probe_fft->set_fft_size(int(v));
     return true;
 }
 
