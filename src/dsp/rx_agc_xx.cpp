@@ -141,8 +141,8 @@ int rx_agc_2f::work(int noutput_items,
         if (d_refill)
         {
             d_refill = false;
-            int p = history() - 1 - d_buf_size;
-            for (k = 0; k < d_buf_size; k++, p++)
+            int p = history() - 1 - d_buf_samples;
+            for (k = 0; k < d_buf_samples; k++, p++)
             {
                 float sample_in0 = in0[p];
                 float sample_in1 = in1[p];
@@ -165,7 +165,7 @@ int rx_agc_2f::work(int noutput_items,
             max_out = get_peak();
 
             int buf_p_next = d_buf_p + 1;
-            if (buf_p_next >= d_buf_size)
+            if (buf_p_next >= d_buf_samples)
                 buf_p_next = 0;
 
             if (max_out > d_floor)
@@ -494,9 +494,14 @@ void rx_agc_2f::set_parameters(double sample_rate, bool agc_on, int target_level
             d_max_idx = d_buf_size * 2 - 2;
             if(d_agc_on && d_running)
                 d_refill = true;
-         }
-        if (d_buf_p >= d_buf_size)
-            d_buf_p %= d_buf_size;
+         }else
+             for(int k = d_buf_samples; k < d_buf_size; k++)
+             {
+                 d_mag_buf[k]=0.f;
+                 update_buffer(k);
+             }
+         if (d_buf_p >= d_buf_samples)
+             d_buf_p %= d_buf_samples;
     }
     if ((manual_gain_changed || agc_on_changed) && !agc_on)
         d_current_gain = powf(10.f, TYPEFLOAT(d_manual_gain) / 20.f);
@@ -637,7 +642,7 @@ int rx_agc_cc::work(int noutput_items,
         max_out = get_peak();
 
         int buf_p_next = d_buf_p + 1;
-        if (buf_p_next >= d_buf_size)
+        if (buf_p_next >= d_buf_samples)
             buf_p_next = 0;
 
         if (max_out > d_floor)
@@ -793,9 +798,14 @@ void rx_agc_cc::set_parameters(int target_level,
             d_mag_buf.resize(d_buf_size * 2, 0);
             d_buf_p = 0;
             d_max_idx = d_buf_size * 2 - 2;
-         }
-        if (d_buf_p >= d_buf_size)
-            d_buf_p %= d_buf_size;
+         }else
+             for(int k = d_buf_samples; k < d_buf_size; k++)
+             {
+                 d_mag_buf[k]=0.f;
+                 update_buffer(k);
+             }
+         if (d_buf_p >= d_buf_samples)
+             d_buf_p %= d_buf_samples;
     }
     if (max_gain_changed || attack_changed)
         d_attack_step = 1.0 / pow(10., std::max(TYPEFLOAT(d_max_gain), - MIN_GAIN_DB) / TYPEFLOAT(d_buf_samples) / 20.f);
