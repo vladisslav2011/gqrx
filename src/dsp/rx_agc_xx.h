@@ -141,6 +141,7 @@ private:
     int d_delay_l;
     int d_delay_r;
 
+    std::vector<gr::tag_t> d_work_tags;
     std::vector<float>   d_mag_buf;
     bool d_refill;
     bool d_running;
@@ -236,6 +237,7 @@ private:
     TYPEFLOAT d_attack_step;
     TYPEFLOAT d_floor;
 
+    std::vector<gr::tag_t> d_work_tags;
     std::vector<float>   d_mag_buf;
 };
 

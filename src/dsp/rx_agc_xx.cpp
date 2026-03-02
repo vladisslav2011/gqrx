@@ -129,15 +129,12 @@ int rx_agc_2f::work(int noutput_items,
     int k;
     TYPEFLOAT max_out = 0;
     TYPEFLOAT mag_in = 0;
+    uint64_t abs_I = nitems_read(0);
+    uint64_t abs_O = nitems_written(0);
+    uint64_t tag_delay = 0;
     if (d_agc_on)
     {
-        std::vector<gr::tag_t> work_tags;
-        get_tags_in_window(work_tags, 0, 0, noutput_items);
-        for (const auto& tag : work_tags)
-            add_item_tag(0, tag.offset + d_buf_samples, tag.key, tag.value);
-        get_tags_in_window(work_tags, 1, 0, noutput_items);
-        for (const auto& tag : work_tags)
-            add_item_tag(1, tag.offset + d_buf_samples, tag.key, tag.value);
+        tag_delay = d_buf_samples;
         if (d_refill)
         {
             d_refill = false;
@@ -220,13 +217,6 @@ int rx_agc_2f::work(int noutput_items,
         }
     }
     else{
-        std::vector<gr::tag_t> work_tags;
-        get_tags_in_window(work_tags, 0, 0, noutput_items);
-        for (const auto& tag : work_tags)
-            add_item_tag(0, tag.offset, tag.key, tag.value);
-        get_tags_in_window(work_tags, 1, 0, noutput_items);
-        for (const auto& tag : work_tags)
-            add_item_tag(1, tag.offset, tag.key, tag.value);
         if (d_mute)
         {
             std::memset(out2, 0, sizeof(float) * noutput_items);
@@ -238,6 +228,13 @@ int rx_agc_2f::work(int noutput_items,
         volk_32f_s32f_multiply_32f((float *)out0, (float *)&in0[history() - 1], d_current_gain, noutput_items);
         volk_32f_s32f_multiply_32f((float *)out1, (float *)&in1[history() - 1], d_current_gain, noutput_items);
     }
+    // propagate tags
+    get_tags_in_window(d_work_tags, 0, 0, history() - 1 + noutput_items);
+    for (const auto& tag : d_work_tags)
+        add_item_tag(0, tag.offset - abs_I + abs_O + tag_delay, tag.key, tag.value);
+    get_tags_in_window(d_work_tags, 1, 0, history() - 1 + noutput_items);
+    for (const auto& tag : d_work_tags)
+        add_item_tag(1, tag.offset - abs_I + abs_O + tag_delay, tag.key, tag.value);
     #ifdef AGC_DEBUG2
     static TYPEFLOAT d_prev_dbg = 0.0;
     if(d_prev_dbg != d_target_gain)
@@ -627,10 +624,12 @@ int rx_agc_cc::work(int noutput_items,
     int k;
     TYPEFLOAT max_out = 0;
     TYPEFLOAT mag_in = 0;
-    std::vector<gr::tag_t> work_tags;
-    get_tags_in_window(work_tags, 0, 0, noutput_items);
-    for (const auto& tag : work_tags)
-        add_item_tag(0, tag.offset + d_buf_samples, tag.key, tag.value);
+    uint64_t abs_I = nitems_read(0);
+    uint64_t abs_O = nitems_written(0);
+    uint64_t tag_delay = d_buf_samples;
+    get_tags_in_window(d_work_tags, 0, 0, history() - 1 + noutput_items);
+    for (const auto& tag : d_work_tags)
+        add_item_tag(0, tag.offset - abs_I + abs_O + tag_delay, tag.key, tag.value);
     for (k = 0; k < noutput_items; k++)
     {
         int k_hist = k + history() - 1;
