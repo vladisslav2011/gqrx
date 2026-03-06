@@ -193,7 +193,7 @@ int rx_mmse_nr_f::mmse_nr(int noutput_items,
         //volk_32f_s32f_multiply_32f(fft_in, fft_in, 1.f/d_type, d_window.size());
         d_fft->execute();
         bool bypass = true;
-        for(int j=0;j<d_fft_size;j++)
+        for(unsigned j=0;j<d_window.size();j++)
         {
             if(in0[j]>0.f)
             {
